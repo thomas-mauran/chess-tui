@@ -1,4 +1,4 @@
-pub const PAWN: &str = 
+pub const P: &str = 
 "\
 ███\n\
 █████\n\
@@ -6,7 +6,7 @@ pub const PAWN: &str =
 █████
 ";
 
-pub const ROOK: &str =
+pub const R: &str =
 "\
 █ █ █\n\
 █████\n\
@@ -14,7 +14,7 @@ pub const ROOK: &str =
 █████\n\
 ";
 
-pub const QUEEN: &str =
+pub const Q: &str =
 "\
 █ ░ █\n\
 █ █ █\n\
@@ -22,7 +22,7 @@ pub const QUEEN: &str =
 █████\n\
 ";
 
-pub const KING: &str =
+pub const K: &str =
 "\
   █\n\
 ██░██\n\
@@ -30,7 +30,7 @@ pub const KING: &str =
   █\n\
 ";
 
-pub const BISHOP: &str =
+pub const B: &str =
 "\
  ███\n\
 ██ ██\n\
@@ -38,7 +38,7 @@ pub const BISHOP: &str =
 █████\n\
 ";
 
-pub const KNIGHT: &str =
+pub const N: &str =
 "\
  ██\n\
 █░░██\n\
