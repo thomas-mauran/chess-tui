@@ -1,0 +1,10 @@
+[package]
+name = "chess_tui"
+version = "0.1.0"
+authors = ["{{authors}}"]
+license = "MIT"
+edition = "2021"
+
+[dependencies]
+crossterm = "0.26.1"
+ratatui = "0.24.0"
