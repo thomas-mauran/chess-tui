@@ -1,4 +1,5 @@
 use std::error;
+use crate::board::Board;
 
 /// Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
@@ -8,15 +9,15 @@ pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 pub struct App {
     /// Is the application running?
     pub running: bool,
-    /// counter
-    pub counter: u8,
+    /// board
+    pub board: Board, 
 }
 
 impl Default for App {
     fn default() -> Self {
         Self {
             running: true,
-            counter: 0,
+            board: Board::default()
         }
     }
 }

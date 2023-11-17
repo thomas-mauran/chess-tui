@@ -1,14 +1,25 @@
 use ratatui::{
-    style::{Color, Style, Modifier, Stylize},
-    widgets::{Block, BorderType, Borders, Paragraph, Padding},
-    Frame, text::{Span, Line}, layout::{Layout, Direction, Constraint, Rect},
+    style::{Color, Style,  Stylize},
+    widgets::{Block,  Paragraph},
+    Frame, layout::{Layout, Direction, Constraint, Rect, Alignment},
 };
 
 
-use crate::{app::App};
+use crate::{app::App, pieces::{P, Q, N, K, R, B}};
 
 /// Renders the user interface widgets.
 pub fn render(app: &mut App, frame: &mut Frame) {
+
+    let board = [
+        ['R', 'N', 'B', 'K', 'Q', 'B', 'N', 'R'],
+        ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
+        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+        ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
+        ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R'],
+    ];
 
     // Splitting the full tui in 3 vertical boxes and 3 horizontal boxes in the vertical[1]
     let main_area = frame.size();
@@ -39,7 +50,7 @@ pub fn render(app: &mut App, frame: &mut Frame) {
     // Board block representing the full board div
     let board_block =  Block::default()
     .style(Style::default()
-    .bg(Color::Rgb((210), (200), (190))));
+    .bg(Color::Rgb(210, 200, 190)));
 
 
     
@@ -47,55 +58,5 @@ pub fn render(app: &mut App, frame: &mut Frame) {
     frame.render_widget(board_block.clone(), main_layout_horizontal[1]);
 
     // We make the inside of the board
-    board_render(board_block.inner(main_layout_horizontal[1]), frame);
-}
-
-fn board_render(area: Rect, frame: &mut Frame) {
-    // We have 8 vertical lines
-    let columns = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints(
-            [
-                Constraint::Ratio(1, 8),
-                Constraint::Ratio(1, 8),
-                Constraint::Ratio(1, 8),
-                Constraint::Ratio(1, 8),
-                Constraint::Ratio(1, 8),
-                Constraint::Ratio(1, 8),
-                Constraint::Ratio(1, 8),
-                Constraint::Ratio(1, 8),
-                ]
-            .as_ref(),
-        )
-        .split(area);
-
-    // For each line we set 8 layout
-    for i in 0..8{
-        let lines = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints(
-            [
-                Constraint::Ratio(1, 8),
-                Constraint::Ratio(1, 8),
-                Constraint::Ratio(1, 8),
-                Constraint::Ratio(1, 8),
-                Constraint::Ratio(1, 8),
-                Constraint::Ratio(1, 8),
-                Constraint::Ratio(1, 8),
-                Constraint::Ratio(1, 8),
-    
-            ]
-            .as_ref(),
-        ).split(columns[i]);
-        for j in 0..8{
-            let color: Color = if (i + j) % 2 == 0 {
-                Color::Rgb((210), (200), (190))
-            } else {
-                Color::Black
-            };
-            let cell = Block::default().bg(color);
-            frame.render_widget(cell,lines[j]);
-        }
-    }
-    
+    app.board.board_render(board_block.inner(main_layout_horizontal[1]), frame);
 }

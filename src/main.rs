@@ -15,6 +15,7 @@ fn main() -> AppResult<()> {
     let terminal = Terminal::new(backend)?;
     let events = EventHandler::new(250);
     let mut tui = Tui::new(terminal, events);
+
     tui.init()?;
 
     // Start the main loop.
