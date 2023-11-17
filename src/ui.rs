@@ -1,26 +1,14 @@
 use ratatui::{
-    style::{Color, Style,  Stylize},
-    widgets::{Block,  Paragraph},
-    Frame, layout::{Layout, Direction, Constraint, Rect, Alignment},
+    style::{Color, Style},
+    widgets::Block,
+    Frame, layout::{Layout, Direction, Constraint},
 };
 
 
-use crate::{app::App, pieces::{P, Q, N, K, R, B}};
+use crate::app::App;
 
 /// Renders the user interface widgets.
 pub fn render(app: &mut App, frame: &mut Frame) {
-
-    let board = [
-        ['R', 'N', 'B', 'K', 'Q', 'B', 'N', 'R'],
-        ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
-        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-        ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
-        ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R'],
-    ];
-
     // Splitting the full tui in 3 vertical boxes and 3 horizontal boxes in the vertical[1]
     let main_area = frame.size();
  
