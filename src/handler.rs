@@ -16,8 +16,16 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         }
         // Counter handlers
         KeyCode::Right => {
+            app.board.cursor_right()
         }
         KeyCode::Left => {
+            app.board.cursor_left()
+        }
+        KeyCode::Up => {
+            app.board.cursor_up()
+        }
+        KeyCode::Down => {
+            app.board.cursor_down()
         }
         // Other handlers you could add here.
         _ => {}

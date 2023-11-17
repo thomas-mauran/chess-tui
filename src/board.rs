@@ -1,31 +1,46 @@
-use ratatui::{layout::{Constraint, Layout, Direction, Rect, Alignment}, Frame, style::{Color, Stylize}, widgets::{Block, Paragraph}};
+use ratatui::{layout::{Constraint, Layout, Direction, Rect, Alignment}, Frame, style::{Color, Stylize, Modifier}, widgets::{Block, Paragraph}};
 use crate::pieces::{K, Q, R, N, P, B};
 
 #[derive(Debug)]
 pub struct Board {
-    pub board: [[char; 8]; 8],    
+    pub board: [[&'static str; 8]; 8],    
+    pub cursor_x: usize,
+    pub cursor_y: usize
+
 }
 
 impl Default for Board {
     fn default() -> Self {
         Self {
             board: [
-                ['R', 'N', 'B', 'K', 'Q', 'B', 'N', 'R'],
-                ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
-                [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-                [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-                [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-                [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-                ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
-                ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R'],
-            ]
+                ["bR", "bN", "bB", "bQ", "bK", "bB", "bN", "bR"],
+                ["bP", "bP", "bP", "bP", "bP", "bP", "bP", "bP"],
+                ["  ", "  ", "  ", "  ", "  ", "  ", "  ", "  "],
+                ["  ", "  ", "  ", "  ", "  ", "  ", "  ", "  "],
+                ["  ", "  ", "  ", "  ", "  ", "  ", "  ", "  "],
+                ["  ", "  ", "  ", "  ", "  ", "  ", "  ", "  "],
+                ["wP", "wP", "wP", "wP", "wP", "wP", "wP", "wP"],
+                ["wR", "wN", "wB", "wQ", "wK", "wB", "wN", "wR"],
+            ],
+            cursor_x: 4,
+            cursor_y: 4
         }
     }
 }
 
 impl Board {
-    pub fn hello() {
-        print!("Hello");
+
+    pub fn cursor_up(&mut self) {
+        if self.cursor_x > 0 {self.cursor_x -= 1}
+    }
+    pub fn cursor_down(&mut self) {
+        if self.cursor_x < 7 {self.cursor_x += 1}
+    }
+    pub fn cursor_left(&mut self) {
+        if self.cursor_y > 0 {self.cursor_y -= 1}
+    }
+    pub fn cursor_right(&mut self) {
+        if self.cursor_y < 7 {self.cursor_y += 1}
     }
 
     pub fn board_render(&mut self, area: Rect, frame: &mut Frame) {
@@ -66,26 +81,44 @@ impl Board {
                 .as_ref(),
             ).split(columns[i]);
             for j in 0..8{
-                let color: Color = if (i + j) % 2 == 0 {
+                // Color of the cell to draw the board
+                let cell_color: Color = if (i + j) % 2 == 0 {
                     Color::Rgb(210, 200, 190)
                 } else {
                     Color::Rgb(128, 95, 69)
                 };
-                let cell = Block::default().bg(color);
-                frame.render_widget(cell.clone(),lines[j]);
-    
-                let current_piece = match self.board[i][j] {
-                    'Q' => Q,
-                    'K' => K,
-                    'R' => R,
-                    'B' => B,
-                    'N' => N,
-                    'P' => P,
-                    _ => " ",
+
+                if i == self.cursor_x && j == self.cursor_y{
+                    let cell = Block::default().bg(Color::LightBlue).add_modifier(Modifier::RAPID_BLINK);
+                    frame.render_widget(cell.clone(),lines[j]); 
+                }else{
+                    let cell = Block::default().bg(cell_color);
+                    frame.render_widget(cell.clone(),lines[j]);
+                }
+                let piece_color = &self.board[i][j][0..1];
+                let piece_type = &self.board[i][j][1..2];
+
+                let color_enum = match piece_color {
+                    "b" => Color::Black,
+                    "w" => Color::White,
+                    _ => Color::Red
                 };
-    
-                let paragraph = Paragraph::new(format!("{}", current_piece)).alignment(Alignment::Center).fg(Color::Black);
+
+                let piece_enum = match piece_type {
+                    "Q" => Q,
+                    "K" => K,
+                    "R" => R,
+                    "B" => B,
+                    "N" => N,
+                    "P" => P,
+                    _ => "",
+                };
+
+                // Place the pieces on the board
+                let paragraph = Paragraph::new(format!("{}", piece_enum)).alignment(Alignment::Center).fg(color_enum);
                 frame.render_widget(paragraph,lines[j]);
+
+                
             }
         }
     }
