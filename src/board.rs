@@ -4,8 +4,8 @@ use crate::{pieces::{K, Q, R, N, P, B}, constants::UNDEFINED_POSITION};
 #[derive(Debug)]
 pub struct Board {
     pub board: [[&'static str; 8]; 8],    
-    pub cursor_x: i32,
     pub cursor_y: i32,
+    pub cursor_x: i32,
     pub selected_coordinates: [i32; 2]
 
 }
@@ -23,8 +23,8 @@ impl Default for Board {
                 ["wP", "wP", "wP", "wP", "wP", "wP", "wP", "wP"],
                 ["wR", "wN", "wB", "wQ", "wK", "wB", "wN", "wR"],
             ],
-            cursor_x: 4,
             cursor_y: 4,
+            cursor_x: 4,
             selected_coordinates: [UNDEFINED_POSITION, UNDEFINED_POSITION]
         }
     }
@@ -38,22 +38,22 @@ impl Board {
 
     // Methods to change the position of the cursor
     pub fn cursor_up(&mut self) {
-        if self.cursor_x > 0 && !self.is_cell_selected() {self.cursor_x -= 1}
-    }
-    pub fn cursor_down(&mut self) {
-        if self.cursor_x < 7 && !self.is_cell_selected() {self.cursor_x += 1}
-    }
-    pub fn cursor_left(&mut self) {
         if self.cursor_y > 0 && !self.is_cell_selected() {self.cursor_y -= 1}
     }
-    pub fn cursor_right(&mut self) {
+    pub fn cursor_down(&mut self) {
         if self.cursor_y < 7 && !self.is_cell_selected() {self.cursor_y += 1}
+    }
+    pub fn cursor_left(&mut self) {
+        if self.cursor_x > 0 && !self.is_cell_selected() {self.cursor_x -= 1}
+    }
+    pub fn cursor_right(&mut self) {
+        if self.cursor_x < 7 && !self.is_cell_selected() {self.cursor_x += 1}
     }
 
     // Methods to select a cell on the board
     pub fn select_cell(&mut self){
-        if !self.is_cell_selected() {
-            self.selected_coordinates = [self.cursor_x, self.cursor_y]
+        if !self.is_cell_selected() && self.board[self.cursor_y as usize][self.cursor_x as usize] != "  "{
+            self.selected_coordinates = [self.cursor_y, self.cursor_x]
         }
     }
 
@@ -108,7 +108,7 @@ impl Board {
                     Color::Rgb(128, 95, 69)
                 };
                 // Draw the cell blue if this is the current cursor cell
-                if (i as i32 == self.cursor_x && j as i32 == self.cursor_y) && !self.is_cell_selected(){
+                if (i as i32 == self.cursor_y && j as i32 == self.cursor_x) && !self.is_cell_selected(){
                     let cell = Block::default().bg(Color::LightBlue).add_modifier(Modifier::RAPID_BLINK);
                     frame.render_widget(cell.clone(),lines[j]); 
                 }
