@@ -16,3 +16,5 @@ pub mod handler;
 pub mod pieces;
 
 pub mod board;
+
+pub mod constants;

@@ -4,8 +4,8 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 /// Handles the key events and updates the state of [`App`].
 pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
     match key_event.code {
-        // Exit application on `ESC` or `q`
-        KeyCode::Esc | KeyCode::Char('q') => {
+        // Exit application on `q`
+        KeyCode::Char('q') => {
             app.quit();
         }
         // Exit application on `Ctrl-C`
@@ -26,6 +26,12 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         }
         KeyCode::Down => {
             app.board.cursor_down()
+        }
+        KeyCode::Char(' ') => {
+            app.board.select_cell()
+        }
+        KeyCode::Esc => {
+            app.board.unselect_cell()
         }
         // Other handlers you could add here.
         _ => {}
