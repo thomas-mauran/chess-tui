@@ -17,7 +17,7 @@ impl Default for Board {
                 ["bR", "bN", "bB", "bQ", "bK", "bB", "bN", "bR"],
                 ["bP", "bP", "bP", "bP", "bP", "bP", "bP", "bP"],
                 ["  ", "  ", "  ", "  ", "  ", "  ", "  ", "  "],
-                ["  ", "  ", "  ", "  ", "  ", "  ", "  ", "  "],
+                ["  ", "  ", "  ", "bQ","bB", "  ", "  ", "  "],
                 ["  ", "  ", "  ", "  ", "  ", "  ", "  ", "  "],
                 ["  ", "  ", "  ", "  ", "  ", "  ", "  ", "  "],
                 ["wP", "wP", "wP", "wP", "wP", "wP", "wP", "wP"],
@@ -45,6 +45,11 @@ impl Board {
     pub fn authorized_positions_enum(&mut self, piece: char, color: char) -> Vec<Vec<i32>>{
         match piece {
             'P' => Pawn::authorized_positions(self.selected_coordinates, color),
+            'R' => Rook::authorized_positions(self.selected_coordinates, color),
+            'B' => Bishop::authorized_positions(self.selected_coordinates, color),
+            'Q' => Queen::authorized_positions(self.selected_coordinates, color),
+            'K' => King::authorized_positions(self.selected_coordinates, color),
+            'N' => Knight::authorized_positions(self.selected_coordinates, color),
             _ => vec![]
         }
     }
