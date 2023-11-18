@@ -1,53 +1,78 @@
-pub const P: &str = 
-"\
-\n\
-\n\
-  █\n\
- ███\n\
- ███\n\
-";
+pub struct Pawn{}
 
-pub const R: &str =
-"\
-\n\
-█ █ █\n\
-█████\n\
- ███\n\
-█████\n\
-";
+impl Pawn{
+  pub fn to_string() -> &'static str{
+    return "\
+    \n\
+    \n\
+      █\n\
+     ███\n\
+     ███\n\
+    ";
+  }
+}
 
-pub const Q: &str =
-"\
-\n\
-█ ░ █\n\
-█ █ █\n\
- ███\n\
-█████\n\
-";
+pub struct Rook{}
 
-pub const K: &str =
-"\
-\n\
-  █\n\
-██░██\n\
-  █\n\
-█████\n\
-";
+impl Rook{
+  pub fn to_string() -> &'static str{
+    return "\
+    \n\
+    █ █ █\n\
+    █████\n\
+     ███\n\
+    █████\n\
+    ";
+  }
+}
+pub struct Queen{}
 
-pub const B: &str =
-"\
-\n\
- ███\n\
-██ ██\n\
- ███\n\
-█████\n\
-";
+impl Queen{
+  pub fn to_string() -> &'static str{
+    return "\
+    \n\
+    █ ░ █\n\
+    █ █ █\n\
+     ███\n\
+    █████\n\
+    ";
+  }
+}
 
-pub const N: &str =
-"\
-\n\
- ██\n\
-██░██\n\
-███  \n\
-█████\n\
-";
+pub struct King{}
+impl King{
+  pub fn to_string() -> &'static str{
+    return "\
+    \n\
+      █\n\
+    ██░██\n\
+      █\n\
+    █████\n\
+    ";
+  }
+}
+pub struct Bishop{}
+impl Bishop{
+  pub fn to_string() -> &'static str{
+    return "\
+    \n\
+     ███\n\
+    ██ ██\n\
+     ███\n\
+    █████\n\
+    ";
+  }
+}
+
+pub struct Knight{}
+impl Knight{
+  pub fn to_string() -> &'static str{
+    return "\
+    \n\
+     ██\n\
+    ██░██\n\
+    ███  \n\
+    █████\n\
+    ";
+  }
+}

@@ -1,5 +1,5 @@
 use ratatui::{layout::{Constraint, Layout, Direction, Rect, Alignment}, Frame, style::{Color, Stylize, Modifier}, widgets::{Block, Paragraph}};
-use crate::{pieces::{K, Q, R, N, P, B}, constants::UNDEFINED_POSITION};
+use crate::{pieces::{Pawn, Queen, King, Rook, Bishop, Knight}, constants::UNDEFINED_POSITION};
 
 #[derive(Debug)]
 pub struct Board {
@@ -31,8 +31,9 @@ impl Default for Board {
 }
 
 impl Board {
+
     // Check if a cell has been selected
-    pub fn is_cell_selected(&mut self) -> bool {
+    fn is_cell_selected(&mut self) -> bool {
         self.selected_coordinates[0] != UNDEFINED_POSITION && self.selected_coordinates[1] != UNDEFINED_POSITION
     }
 
@@ -131,12 +132,12 @@ impl Board {
                 };
 
                 let piece_enum = match piece_type {
-                    "Q" => Q,
-                    "K" => K,
-                    "R" => R,
-                    "B" => B,
-                    "N" => N,
-                    "P" => P,
+                    "Q" => Queen::to_string(),
+                    "K" => King::to_string(),
+                    "R" => Rook::to_string(),
+                    "B" => Bishop::to_string(),
+                    "N" => Knight::to_string(),
+                    "P" => Pawn::to_string(),
                     _ => "",
                 };
 
