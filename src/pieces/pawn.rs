@@ -101,4 +101,50 @@ mod tests {
 
         assert_eq!(vec![vec![3, 4]], positions);
     }
+
+    #[test]
+    fn pawn_moves_one_cell_forward_two() {
+        let custom_board = [
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, Some((PieceType::Pawn, PieceColor::White)), None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+        ];
+        let mut board = Board::default();
+        board.set_board(custom_board);
+
+        let positions = Pawn::authorized_positions([6, 4], PieceColor::White, board.board);
+
+        assert_eq!(vec![vec![5, 4], vec![4, 4]], positions);
+    }
+
+    #[test]
+    fn pawn_moves_one_cell_enemy_left_right() {
+        let custom_board = [
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, Some((PieceType::Pawn, PieceColor::Black)), None, None, None, None],
+            [None, None, Some((PieceType::Pawn, PieceColor::White)), None, Some((PieceType::Pawn, PieceColor::White)), None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+        ];
+        let mut board = Board::default();
+        board.set_board(custom_board);
+
+        let positions = Pawn::authorized_positions([1, 3], PieceColor::Black, board.board);
+
+        let right_positions = vec![
+          vec![2, 3], 
+          vec![3, 3],
+          vec![2, 4],
+          vec![2, 2],
+        ];
+        assert_eq!(right_positions, positions);
+    }
 }
