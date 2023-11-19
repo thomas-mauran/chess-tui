@@ -1,4 +1,4 @@
-use crate::utils::{is_valid, get_piece_color, is_cell_color_ally, cleaned_positions};
+use crate::utils::{is_valid, is_cell_color_ally, cleaned_positions};
 pub struct Knight{}
 impl Knight{
   pub fn to_string() -> &'static str{
