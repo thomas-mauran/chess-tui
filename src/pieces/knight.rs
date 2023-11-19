@@ -1,4 +1,5 @@
 use crate::utils::{is_valid, is_cell_color_ally, cleaned_positions};
+use super::{PieceType, PieceColor};
 pub struct Knight{}
 impl Knight{
   pub fn to_string() -> &'static str{
@@ -11,7 +12,7 @@ impl Knight{
     "
   }
 
-  pub fn authorized_positions(coordinates: [i32; 2], color: char, board: [[&'static str; 8]; 8]) -> Vec<Vec<i32>>{
+  pub fn authorized_positions(coordinates: [i32; 2], color: PieceColor, board: [[Option<(PieceType, PieceColor)>; 8]; 8]) -> Vec<Vec<i32>>{
     let mut positions: Vec<Vec<i32>> = Vec::new();
 
     let (y, x) = (coordinates[0], coordinates[1]);

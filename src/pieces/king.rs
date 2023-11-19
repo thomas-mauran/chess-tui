@@ -1,4 +1,5 @@
-use crate::utils::{get_piece_color, cleaned_positions};
+use crate::utils::{cleaned_positions, is_cell_color_ally};
+use super::{PieceType, PieceColor};
 
 pub struct King{}
 impl King{
@@ -12,7 +13,7 @@ impl King{
     "
   }
 
-  pub fn authorized_positions(coordinates: [i32; 2], color: char, board: [[&'static str; 8]; 8]) -> Vec<Vec<i32>>{
+  pub fn authorized_positions(coordinates: [i32; 2], color: PieceColor, board: [[Option<(PieceType, PieceColor)>; 8]; 8]) -> Vec<Vec<i32>>{
     // Pawns can only move in one direction depending of their color
     let mut positions: Vec<Vec<i32>> = vec![];
     
@@ -27,7 +28,7 @@ impl King{
           // Skip the case where both dx and dy are zero (the current position)
           let new_x = x + dx;
           let new_y = y + dy;
-          if new_x > 0 && new_y > 0 && new_x <= 7 && new_y <= 7 && get_piece_color(board, [new_y, new_x]) != color {
+          if new_x > 0 && new_y > 0 && new_x <= 7 && new_y <= 7 && !is_cell_color_ally(board, [new_y, new_x], color) {
             positions.push(vec![y + dy, x + dx]);
           }
       }

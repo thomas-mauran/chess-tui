@@ -1,5 +1,10 @@
-pub fn get_piece_color(board: [[&'static str; 8]; 8], coordinates: [i32; 2]) -> char {
-    return board[coordinates[0] as usize][coordinates[1] as usize].chars().next().unwrap();
+use crate::pieces::{PieceColor, PieceType};
+
+pub fn get_piece_color(board: [[Option<(PieceType, PieceColor)>; 8]; 8], coordinates: [i32; 2]) -> Option<PieceColor> {
+  match board[coordinates[0] as usize][coordinates[1] as usize] {
+    Some((_, piece_color)) => Some(piece_color),
+    None => None
+  }
 }
 
 
@@ -15,13 +20,13 @@ pub fn cleaned_positions(positions: Vec<Vec<i32>>) -> Vec<Vec<i32>> {
     cleaned_array
   }
   
-  // Return true for empty cell and ally cell color; false for enemy
-pub fn is_cell_color_ally(board: [[&'static str; 8]; 8], coordinates: [i32; 2], color: char) -> bool{
-    let cell_color = get_piece_color(board, coordinates);
-    if cell_color == ' ' { return false;}
-  
-    return color == cell_color 
+// Return true forally cell color; false for enemy
+pub fn is_cell_color_ally(board: [[Option<(PieceType, PieceColor)>; 8]; 8], coordinates: [i32; 2], color: PieceColor) -> bool {
+  match get_piece_color(board, coordinates) {
+      Some(cell_color) => cell_color == color,
+      None => false, // Treat empty cell as ally
   }
+}
   
 pub fn is_valid(coordinates: [i32; 2]) -> bool{
     let (y, x) = (coordinates[0], coordinates[1]);

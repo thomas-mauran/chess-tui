@@ -1,9 +1,9 @@
 use ratatui::{layout::{Constraint, Layout, Direction, Rect, Alignment}, Frame, style::{Color, Stylize, Modifier}, widgets::{Block, Paragraph}};
-use crate::{constants::UNDEFINED_POSITION, utils::get_piece_color, pieces::{pawn::Pawn, rook::Rook, bishop::Bishop, queen::Queen, king::King, knight::Knight}};
+use crate::{constants::UNDEFINED_POSITION, utils::get_piece_color, pieces::{pawn::Pawn, rook::Rook, bishop::Bishop, queen::Queen, king::King, knight::Knight, PieceType, PieceColor}};
 
 #[derive(Debug)]
 pub struct Board {
-    pub board: [[&'static str; 8]; 8],    
+    pub board: [[Option<(PieceType, PieceColor)>; 8]; 8],    
     pub cursor_y: i32,
     pub cursor_x: i32,
     pub selected_coordinates: [i32; 2]
@@ -14,14 +14,50 @@ impl Default for Board {
     fn default() -> Self {
         Self {
             board: [
-                ["bR", "bN", "bB", "bQ", "bK", "bB", "bN", "bR"],
-                ["bP", "bP", "wP", "bP", "bP", "bP", "bP", "bP"],
-                ["  ", "bP", "  ", "wP", "  ", "  ", "  ", "  "],
-                ["  ", "  ", "  ", "bQ","bN", "bK", "  ", "  "],
-                ["  ", "  ", "  ", "  ", "  ", "  ", "wR", "  "],
-                ["wP", "bQ", "  ", "bR", "wR", "  ", "wR", "  "],
-                ["  ", "wP", "wP", "wP", "wP", "  ", "wP", "wP"],
-                ["wR", "wN", "wB", "wQ", "wK", "wB", "wN", "wR"],
+                [
+                    Some((PieceType::Rook, PieceColor::Black)),
+                    Some((PieceType::Knight, PieceColor::Black)),
+                    Some((PieceType::Bishop, PieceColor::Black)),
+                    Some((PieceType::Queen, PieceColor::Black)),
+                    Some((PieceType::King, PieceColor::Black)),
+                    Some((PieceType::Bishop, PieceColor::Black)),
+                    Some((PieceType::Knight, PieceColor::Black)),
+                    Some((PieceType::Rook, PieceColor::Black)),
+                ],
+                [
+                    Some((PieceType::Pawn, PieceColor::Black)),
+                    Some((PieceType::Pawn, PieceColor::Black)),
+                    Some((PieceType::Pawn, PieceColor::Black)),
+                    Some((PieceType::Pawn, PieceColor::Black)),
+                    Some((PieceType::Pawn, PieceColor::Black)),
+                    Some((PieceType::Pawn, PieceColor::Black)),
+                    Some((PieceType::Pawn, PieceColor::Black)),
+                    Some((PieceType::Pawn, PieceColor::Black)),
+                ],
+                [ Some((PieceType::Pawn, PieceColor::White)), None, None, None, None, None, None, Some((PieceType::Bishop, PieceColor::White))],
+                [ None, None, None, Some((PieceType::Pawn, PieceColor::White)), Some((PieceType::King, PieceColor::White)), Some((PieceType::Pawn, PieceColor::Black)), None, None],
+                [ None, None, None, None, None, None, None, None],
+                [ Some((PieceType::Pawn, PieceColor::White)), None, None, Some((PieceType::Rook, PieceColor::Black)), None, None, None, None],
+                [
+                    Some((PieceType::Pawn, PieceColor::White)),
+                    Some((PieceType::Pawn, PieceColor::White)),
+                    Some((PieceType::Pawn, PieceColor::White)),
+                    Some((PieceType::Pawn, PieceColor::White)),
+                    Some((PieceType::Pawn, PieceColor::White)),
+                    Some((PieceType::Pawn, PieceColor::White)),
+                    Some((PieceType::Pawn, PieceColor::White)),
+                    Some((PieceType::Pawn, PieceColor::White)),
+                ],
+                [
+                    Some((PieceType::Rook, PieceColor::White)),
+                    Some((PieceType::Knight, PieceColor::White)),
+                    Some((PieceType::Bishop, PieceColor::White)),
+                    Some((PieceType::Queen, PieceColor::White)),
+                    Some((PieceType::King, PieceColor::White)),
+                    Some((PieceType::Bishop, PieceColor::White)),
+                    Some((PieceType::Knight, PieceColor::White)),
+                    Some((PieceType::Rook, PieceColor::White)),
+                ],
             ],
             cursor_y: 4,
             cursor_x: 4,
@@ -31,26 +67,27 @@ impl Default for Board {
 }
 
 impl Board {
-
     // Setters
-    pub fn set_board(&mut self, board: [[&'static str; 8]; 8]){
+    pub fn set_board(&mut self, board: [[Option<(PieceType, PieceColor)>; 8]; 8]){
         self.board = board;
     }
 
     // Getters
-    pub fn get_piece_type(&mut self, coordinates: [i32; 2]) -> char {
-        return self.board[coordinates[0] as usize][coordinates[1] as usize].chars().nth(1).unwrap();
+    pub fn get_piece_type(&mut self, coordinates: [i32; 2]) -> Option<PieceType> {
+        match self.board[coordinates[0] as usize][coordinates[1] as usize] {
+            Some((piece_type, _)) => Some(piece_type),
+            None => None,
+        }
     }
 
-    pub fn authorized_positions_enum(&mut self, piece: char, color: char) -> Vec<Vec<i32>>{
+    pub fn authorized_positions_enum(&mut self, piece: PieceType, color: PieceColor) -> Vec<Vec<i32>>{
         match piece {
-            'P' => Pawn::authorized_positions(self.selected_coordinates, color, self.board),
-            'R' => Rook::authorized_positions(self.selected_coordinates, color, self.board),
-            'B' => Bishop::authorized_positions(self.selected_coordinates, color, self.board),
-            'Q' => Queen::authorized_positions(self.selected_coordinates, color, self.board),
-            'K' => King::authorized_positions(self.selected_coordinates, color, self.board),
-            'N' => Knight::authorized_positions(self.selected_coordinates, color, self.board),
-            _ => vec![]
+            PieceType::Pawn => Pawn::authorized_positions(self.selected_coordinates, color, self.board),
+            PieceType::Rook => Rook::authorized_positions(self.selected_coordinates, color, self.board),
+            PieceType::Bishop => Bishop::authorized_positions(self.selected_coordinates, color, self.board),
+            PieceType::Queen => Queen::authorized_positions(self.selected_coordinates, color, self.board),
+            PieceType::King => King::authorized_positions(self.selected_coordinates, color, self.board),
+            PieceType::Knight => Knight::authorized_positions(self.selected_coordinates, color, self.board),
         }
     }
     // Check if a cell has been selected
@@ -74,7 +111,7 @@ impl Board {
 
     // Methods to select a cell on the board
     pub fn select_cell(&mut self){
-        if !self.is_cell_selected() && self.board[self.cursor_y as usize][self.cursor_x as usize] != "  "{
+        if !self.is_cell_selected(){
             self.selected_coordinates = [self.cursor_y, self.cursor_x]
         }
     }
@@ -132,9 +169,15 @@ impl Board {
 
                 // Draw the available moves for the selected piece
                 if self.is_cell_selected() {
-                    let selected_piece_type:char = self.get_piece_type(self.selected_coordinates);
-                    let selected_piece_color:char = get_piece_color(self.board, self.selected_coordinates);
-                    let positions = self.authorized_positions_enum(selected_piece_type, selected_piece_color);
+                    let selected_piece_type:Option<PieceType> = self.get_piece_type(self.selected_coordinates);
+                    let selected_piece_color:Option<PieceColor> = get_piece_color(self.board, self.selected_coordinates);
+                    let positions = match (selected_piece_type, selected_piece_color) {
+                        (Some(piece_type), Some(piece_color)) => {
+                            self.authorized_positions_enum(piece_type, piece_color)
+                        },
+                        _ => { Vec::new()}
+                    };
+                    
 
                     for coords in positions.clone(){
                         if i == coords[0] && j == coords[1]{
@@ -166,19 +209,20 @@ impl Board {
                 let piece_type =self.get_piece_type([i, j]);
 
                 let color_enum = match piece_color {
-                    'b' => Color::Black,
-                    'w' => Color::White,
-                    _ => Color::Red
+                    Some(PieceColor::Black) => Color::Black,
+                    Some(PieceColor::White) => Color::White,
+                    None => Color::Red,
+
                 };
 
                 let piece_enum = match piece_type {
-                    'Q' => Queen::to_string(),
-                    'K' => King::to_string(),
-                    'R' => Rook::to_string(),
-                    'B' => Bishop::to_string(),
-                    'N' => Knight::to_string(),
-                    'P' => Pawn::to_string(),
-                    _ => "",
+                    Some(PieceType::Queen) => Queen::to_string(),
+                    Some(PieceType::King) => King::to_string(),
+                    Some(PieceType::Rook) => Rook::to_string(),
+                    Some(PieceType::Bishop) => Bishop::to_string(),
+                    Some(PieceType::Knight) => Knight::to_string(),
+                    Some(PieceType::Pawn) => Pawn::to_string(),
+                    None => " ",
                 };
 
                 // Place the pieces on the board
