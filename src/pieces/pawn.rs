@@ -29,13 +29,17 @@ impl Pawn{
     if is_valid(new_coordinates_front_one) && !is_cell_color_ally(board, new_coordinates_front_one, color){
       positions.push(new_coordinates_front_one.to_vec());
 
-      // move front in two
-      let new_x_front_two = x;
-      let new_y_front_two = y + direction * 2;
-      let new_coordinates_front_two = [new_y_front_two, new_x_front_two];
-      if is_valid(new_coordinates_front_two) && !is_cell_color_ally(board, new_coordinates_front_two, color) && ((color == 'w' && y == 6) || (color == 'b' && y == 1)){
-        positions.push(new_coordinates_front_two.to_vec());
+      if get_piece_color(board, new_coordinates_front_one) == ' '{
+        // move front in two
+        let new_x_front_two = x;
+        let new_y_front_two = y + direction * 2;
+        let new_coordinates_front_two = [new_y_front_two, new_x_front_two];
+        if is_valid(new_coordinates_front_two) && !is_cell_color_ally(board, new_coordinates_front_two, color) && ((color == 'w' && y == 6) || (color == 'b' && y == 1)){
+          positions.push(new_coordinates_front_two.to_vec());
+        }
       }
+
+     
     }
 
 
