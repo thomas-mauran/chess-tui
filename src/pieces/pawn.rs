@@ -68,3 +68,29 @@ impl Pawn{
     cleaned_positions(positions)
   }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use crate::{board::Board, pieces::pawn::Pawn};
+
+    #[test]
+    fn pawn_moves_one_cell_forward() {
+        let custom_board = [
+            ["  ", "  ", "  ", "  ", "  ", "  ", "  ", "  "],
+            ["  ", "  ", "  ", "  ", "  ", "  ", "  ", "  "],
+            ["  ", "  ", "  ", "  ", "  ", "  ", "  ", "  "],
+            ["  ", "  ", "  ", "  ", "  ", "  ", "  ", "  "],
+            ["  ", "  ", "  ", "wP", "  ", "  ", "  ", "  "],
+            ["  ", "  ", "  ", "  ", "  ", "  ", "  ", "  "],
+            ["  ", "  ", "  ", "  ", "  ", "  ", "  ", "  "],
+            ["  ", "  ", "  ", "  ", "  ", "  ", "  ", "  "],
+        ];
+        let mut board = Board::default();
+        board.set_board(custom_board);
+
+        let positions = Pawn::authorized_positions([4, 4], 'w', board.board);
+
+        assert_eq!(vec![vec![3, 4]], positions);
+    }
+}

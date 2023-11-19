@@ -32,8 +32,12 @@ impl Default for Board {
 
 impl Board {
 
-    // Getters
+    // Setters
+    pub fn set_board(&mut self, board: [[&'static str; 8]; 8]){
+        self.board = board;
+    }
 
+    // Getters
     pub fn get_piece_type(&mut self, coordinates: [i32; 2]) -> char {
         return self.board[coordinates[0] as usize][coordinates[1] as usize].chars().nth(1).unwrap();
     }
