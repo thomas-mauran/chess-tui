@@ -13,8 +13,11 @@ pub mod tui;
 /// Event handler.
 pub mod handler;
 
+// Chess pieces structures
 pub mod pieces;
 
 pub mod board;
 
 pub mod constants;
+
+pub mod utils;

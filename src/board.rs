@@ -1,5 +1,5 @@
 use ratatui::{layout::{Constraint, Layout, Direction, Rect, Alignment}, Frame, style::{Color, Stylize, Modifier}, widgets::{Block, Paragraph}};
-use crate::{pieces::{Pawn, Queen, King, Rook, Bishop, Knight}, constants::UNDEFINED_POSITION};
+use crate::{constants::UNDEFINED_POSITION, utils::get_piece_color, pieces::{pawn::Pawn, rook::Rook, bishop::Bishop, queen::Queen, king::King, knight::Knight}};
 
 #[derive(Debug)]
 pub struct Board {
@@ -15,12 +15,12 @@ impl Default for Board {
         Self {
             board: [
                 ["bR", "bN", "bB", "bQ", "bK", "bB", "bN", "bR"],
-                ["bP", "bP", "bP", "bP", "bP", "bP", "bP", "bP"],
-                ["  ", "  ", "  ", "  ", "  ", "  ", "  ", "  "],
-                ["  ", "  ", "  ", "bQ","bB", "  ", "  ", "  "],
-                ["  ", "  ", "  ", "  ", "  ", "  ", "  ", "  "],
-                ["  ", "  ", "  ", "  ", "  ", "  ", "  ", "  "],
-                ["wP", "wP", "wP", "wP", "wP", "wP", "wP", "wP"],
+                ["bP", "bP", "wP", "bP", "bP", "bP", "bP", "bP"],
+                ["  ", "bP", "  ", "wP", "  ", "  ", "  ", "  "],
+                ["  ", "  ", "  ", "bQ","bN", "bK", "  ", "  "],
+                ["  ", "  ", "  ", "  ", "  ", "  ", "wR", "  "],
+                ["wP", "bQ", "  ", "bR", "wR", "  ", "wR", "  "],
+                ["  ", "wP", "wP", "wP", "wP", "  ", "wP", "wP"],
                 ["wR", "wN", "wB", "wQ", "wK", "wB", "wN", "wR"],
             ],
             cursor_y: 4,
@@ -38,18 +38,14 @@ impl Board {
         return self.board[coordinates[0] as usize][coordinates[1] as usize].chars().nth(1).unwrap();
     }
 
-    pub fn get_piece_color(&mut self, coordinates: [i32; 2]) -> char {
-        return self.board[coordinates[0] as usize][coordinates[1] as usize].chars().next().unwrap();
-    }
-
     pub fn authorized_positions_enum(&mut self, piece: char, color: char) -> Vec<Vec<i32>>{
         match piece {
-            'P' => Pawn::authorized_positions(self.selected_coordinates, color),
-            'R' => Rook::authorized_positions(self.selected_coordinates, color),
-            'B' => Bishop::authorized_positions(self.selected_coordinates, color),
-            'Q' => Queen::authorized_positions(self.selected_coordinates, color),
-            'K' => King::authorized_positions(self.selected_coordinates, color),
-            'N' => Knight::authorized_positions(self.selected_coordinates, color),
+            'P' => Pawn::authorized_positions(self.selected_coordinates, color, self.board),
+            'R' => Rook::authorized_positions(self.selected_coordinates, color, self.board),
+            'B' => Bishop::authorized_positions(self.selected_coordinates, color, self.board),
+            'Q' => Queen::authorized_positions(self.selected_coordinates, color, self.board),
+            'K' => King::authorized_positions(self.selected_coordinates, color, self.board),
+            'N' => Knight::authorized_positions(self.selected_coordinates, color, self.board),
             _ => vec![]
         }
     }
@@ -133,7 +129,7 @@ impl Board {
                 // Draw the available moves for the selected piece
                 if self.is_cell_selected() {
                     let selected_piece_type:char = self.get_piece_type(self.selected_coordinates);
-                    let selected_piece_color:char = self.get_piece_color(self.selected_coordinates);
+                    let selected_piece_color:char = get_piece_color(self.board, self.selected_coordinates);
                     let positions = self.authorized_positions_enum(selected_piece_type, selected_piece_color);
 
                     for coords in positions.clone(){
@@ -162,7 +158,7 @@ impl Board {
 
 
                 // Get piece and color
-                let piece_color = self.get_piece_color([i, j]);
+                let piece_color = get_piece_color(self.board, [i, j]);
                 let piece_type =self.get_piece_type([i, j]);
 
                 let color_enum = match piece_color {
