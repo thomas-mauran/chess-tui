@@ -121,3 +121,119 @@ impl Bishop{
   }
 
 }
+
+
+#[cfg(test)]
+mod tests {
+  use crate::{board::Board, pieces::{PieceType, PieceColor, rook::Rook, bishop::Bishop}};
+
+  #[test]
+  fn bishop_moves_no_enemies() {
+      let custom_board = [
+          [None, None, None, None, None, None, None, None],
+          [None, None, None, None, None, None, None, None],
+          [None, None, None, None, None, None, None, None],
+          [None, None, None, None, None, None, None, None],
+          [None, None, None, None, Some((PieceType::Bishop, PieceColor::White)), None, None, None],
+          [None, None, None, None, None, None, None, None],
+          [None, None, None, None, None, None, None, None],
+          [None, None, None, None, None, None, None, None],
+      ];
+      let mut board = Board::default();
+      board.set_board(custom_board);
+
+      let right_positions = vec![
+        vec![0, 0],
+        vec![1, 1],
+        vec![2, 2],
+        vec![3, 3],
+
+        vec![5, 5],
+        vec![6, 6],
+        vec![7, 7],
+
+        vec![1, 7],
+        vec![2, 6],
+        vec![3, 5],
+        
+        vec![5, 3],
+        vec![6, 2],
+        vec![7, 1],
+
+      ].sort();
+
+      let positions = Bishop::authorized_positions([4, 4], PieceColor::White, board.board).sort();
+
+      assert_eq!(right_positions, positions);
+  }
+
+  #[test]
+  fn bishop_moves_one_enemies_top_right() {
+      let custom_board = [
+          [None, None, None, None, None, None, None, None],
+          [None, None, None, None, None, None, None, None],
+          [None, None, None, None, None, None, None, None],
+          [None, None, None, None, None, Some((PieceType::Pawn, PieceColor::Black)), None, None],
+          [None, None, None, None, Some((PieceType::Rook, PieceColor::White)), None, None, None],
+          [None, None, None, None, None, None, None, None],
+          [None, None, None, None, None, None, None, None],
+          [None, None, None, None, None, None, None, None],
+      ];
+      let mut board = Board::default();
+      board.set_board(custom_board);
+
+      let right_positions = vec![
+        vec![0, 0],
+        vec![1, 1],
+        vec![2, 2],
+        vec![3, 3],
+
+        vec![5, 5],
+        vec![6, 6],
+        vec![7, 7],
+
+        vec![3, 5],
+        
+        vec![5, 3],
+        vec![6, 2],
+        vec![7, 1],
+      ].sort();
+
+      let positions = Rook::authorized_positions([4, 4], PieceColor::White, board.board).sort();
+
+      assert_eq!(right_positions, positions);
+  }
+
+  #[test]
+  fn bishop_moves_multiple_enemies_and_ally_front() {
+      let custom_board = [
+          [None, None, None, None, None, None, None, None],
+          [None, None, None, None, None, None, None, None],
+          [None, None, None, None, None, None, None, None],
+          [None, None, None, Some((PieceType::Pawn, PieceColor::Black)), None, None, None, None],
+          [None, None, None, None, Some((PieceType::Rook, PieceColor::White)), None, None, None],
+          [None, None, None, None, None, Some((PieceType::Pawn, PieceColor::Black)), None, None],
+          [None, None, None, None, None, None, None, None],
+          [None, Some((PieceType::Rook, PieceColor::White)), None, None, None, None, None, None],
+      ];
+      let mut board = Board::default();
+      board.set_board(custom_board);
+
+      let right_positions = vec![
+        vec![3, 3],
+
+        vec![5, 5],
+
+        vec![3, 5],
+        vec![2, 6],
+        vec![1, 7],
+        
+        vec![5, 3],
+        vec![6, 2],
+      ].sort();
+
+      let positions = Rook::authorized_positions([4, 4], PieceColor::White, board.board).sort();
+
+      assert_eq!(right_positions, positions);
+  }
+}
