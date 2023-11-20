@@ -96,9 +96,12 @@ mod tests {
         ];
         let mut board = Board::default();
         board.set_board(custom_board);
-        let right_positions = vec![vec![3, 4]].sort();
-        let positions = Pawn::authorized_positions([4, 4], PieceColor::White, board.board).sort();
 
+        let mut right_positions = vec![vec![3, 4]];
+        right_positions.sort();
+
+        let mut positions = Pawn::authorized_positions([4, 4], PieceColor::White, board.board);
+        positions.sort();
         assert_eq!(right_positions, positions);
     }
 
@@ -117,9 +120,11 @@ mod tests {
         let mut board = Board::default();
         board.set_board(custom_board);
 
-        let right_positions = vec![vec![5, 4], vec![4, 4]].sort();
-        let positions = Pawn::authorized_positions([6, 4], PieceColor::White, board.board).sort();
-
+        let mut right_positions = vec![vec![5, 4], vec![4, 4]];
+        right_positions.sort();
+        
+        let mut positions = Pawn::authorized_positions([6, 4], PieceColor::White, board.board);
+        positions.sort();
         assert_eq!(right_positions, positions);
     }
 
@@ -138,14 +143,16 @@ mod tests {
         let mut board = Board::default();
         board.set_board(custom_board);
 
-        let positions = Pawn::authorized_positions([1, 3], PieceColor::Black, board.board).sort();
-
-        let right_positions = vec![
+        let mut right_positions = vec![
           vec![2, 3], 
           vec![3, 3],
           vec![2, 4],
           vec![2, 2],
-        ].sort();
+        ];
+        right_positions.sort();
+
+        let mut positions = Pawn::authorized_positions([1, 3], PieceColor::Black, board.board);
+        positions.sort();
         assert_eq!(right_positions, positions);
     }
 }

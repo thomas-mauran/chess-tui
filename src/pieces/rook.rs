@@ -147,23 +147,28 @@ mod tests {
         let mut board = Board::default();
         board.set_board(custom_board);
 
-        let right_positions = vec![
+        let mut right_positions = vec![
+          vec![7, 4],
+          vec![6, 4],
+          vec![5, 4],
           vec![3, 4],
           vec![2, 4],
           vec![1, 4],
           vec![0, 4],
 
+          vec![4, 0],
+          vec![4, 1],
+          vec![4, 2],
+          vec![4, 3],
           vec![4, 5],
           vec![4, 6],
           vec![4, 7],
 
-          vec![5, 4], 
-          vec![6, 4],
-          vec![7, 4],
-        ].sort();
-
-        let positions = Rook::authorized_positions([4, 4], PieceColor::White, board.board).sort();
-
+        ];
+        right_positions.sort();
+        
+        let mut positions = Rook::authorized_positions([4, 4], PieceColor::White, board.board);
+        positions.sort();
         assert_eq!(right_positions, positions);
     }
 
@@ -182,20 +187,25 @@ mod tests {
         let mut board = Board::default();
         board.set_board(custom_board);
 
-        let right_positions = vec![
+        let mut right_positions = vec![
+          vec![7, 4],
+          vec![6, 4],
+          vec![5, 4],
           vec![3, 4],
 
+          vec![4, 0],
+          vec![4, 1],
+          vec![4, 2],
+          vec![4, 3],
           vec![4, 5],
           vec![4, 6],
           vec![4, 7],
 
-          vec![5, 4], 
-          vec![6, 4],
-          vec![7, 4],
-        ].sort();
+        ];
+        right_positions.sort();
 
-        let positions = Rook::authorized_positions([4, 4], PieceColor::White, board.board).sort();
-
+        let mut positions = Rook::authorized_positions([4, 4], PieceColor::White, board.board);
+        positions.sort();
         assert_eq!(right_positions, positions);
     }
 
@@ -208,22 +218,26 @@ mod tests {
             [None, None, None, None, Some((PieceType::Pawn, PieceColor::Black)), None, None, None],
             [None, None, None, None, Some((PieceType::Rook, PieceColor::White)), None, Some((PieceType::Pawn, PieceColor::Black)), None],
             [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, Some((PieceType::Rook, PieceColor::White)), None, None],
+            [None, None, None, None, Some((PieceType::Rook, PieceColor::White)), None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
         let mut board = Board::default();
         board.set_board(custom_board);
 
-        let right_positions = vec![
-          vec![3, 4],
-
+        let mut right_positions = vec![
+          vec![4, 0],
+          vec![4, 1],
+          vec![4, 2],
+          vec![4, 3],
           vec![4, 5],
           vec![4, 6],
+          vec![3, 4],
+          vec![5, 4],
+          ];
+        right_positions.sort();
 
-          vec![5, 4], 
-        ].sort();
-
-        let positions = Rook::authorized_positions([4, 4], PieceColor::White, board.board).sort();
+        let mut positions = Rook::authorized_positions([4, 4], PieceColor::White, board.board);
+        positions.sort();
 
         assert_eq!(right_positions, positions);
     }
