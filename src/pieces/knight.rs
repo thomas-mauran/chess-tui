@@ -31,3 +31,45 @@ impl Knight{
     cleaned_positions(positions)
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use crate::{board::Board, pieces::{PieceType, PieceColor, rook::Rook, knight::Knight}};
+
+  #[test]
+  fn knight_moves_no_enemies() {
+      let custom_board = [
+          [None, None, None, None, None, None, None, None],
+          [None, None, None, None, None, None, None, None],
+          [None, None, None, None, None, None, None, None],
+          [None, None, None, None, None, None, None, None],
+          [None, None, None, None, Some((PieceType::Knight, PieceColor::White)), None, None, None],
+          [None, None, None, None, None, None, None, None],
+          [None, None, None, None, None, None, None, None],
+          [None, None, None, None, None, None, None, None],
+      ];
+      let mut board = Board::default();
+      board.set_board(custom_board);
+
+      let mut right_positions = vec![
+        vec![2, 3],
+        vec![2, 5],
+
+        vec![3, 2],
+        vec![3, 6],
+
+        vec![5, 2],
+        vec![5, 6],
+
+        vec![6, 3],
+        vec![6, 5],
+
+      ];
+      right_positions.sort();
+
+      let mut positions = Knight::authorized_positions([4, 4], PieceColor::White, board.board);
+      positions.sort();
+
+      assert_eq!(right_positions, positions);
+  }
+}
