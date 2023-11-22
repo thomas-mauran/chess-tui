@@ -12,7 +12,7 @@ impl Knight{
     "
   }
 
-  pub fn authorized_positions(coordinates: [i32; 2], color: PieceColor, board: [[Option<(PieceType, PieceColor)>; 8]; 8]) -> Vec<Vec<i32>>{
+  pub fn knight_moves(coordinates: [i32; 2], color: PieceColor, board: [[Option<(PieceType, PieceColor)>; 8]; 8], allow_move_on_ally_positions: bool) -> Vec<Vec<i32>>{
     let mut positions: Vec<Vec<i32>> = Vec::new();
 
     let (y, x) = (coordinates[0], coordinates[1]);
@@ -23,12 +23,26 @@ impl Knight{
     for &(dy, dx) in &knight_moves {
       let new_coordinates = [y + dy, x + dx];
 
-      if is_valid(new_coordinates) && !is_cell_color_ally(board, new_coordinates, color){
-        positions.push(new_coordinates.to_vec());
+      if !is_valid(new_coordinates){
+        continue;
       }
+
+      if is_cell_color_ally(board, new_coordinates, color) && !allow_move_on_ally_positions {
+        continue;
+      }
+      
+      positions.push(new_coordinates.to_vec());
     }
 
     cleaned_positions(positions)
+  }
+
+  pub fn authorized_positions(coordinates: [i32; 2], color: PieceColor, board: [[Option<(PieceType, PieceColor)>; 8]; 8]) -> Vec<Vec<i32>>{
+    Self::knight_moves(coordinates, color, board, false)
+  }
+
+  pub fn protecting_positions(coordinates: [i32; 2], color: PieceColor, board: [[Option<(PieceType, PieceColor)>; 8]; 8]) -> Vec<Vec<i32>>{
+    Self::knight_moves(coordinates, color, board, true)
   }
 }
 

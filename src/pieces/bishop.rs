@@ -11,7 +11,8 @@ impl Bishop{
     █████\n\
     "
   }
-  pub fn authorized_positions(coordinates: [i32; 2], color: PieceColor, board: [[Option<(PieceType, PieceColor)>; 8]; 8]) -> Vec<Vec<i32>> {
+
+  pub fn bishop_moves(coordinates: [i32; 2], color: PieceColor, board: [[Option<(PieceType, PieceColor)>; 8]; 8], allow_move_on_ally_positions: bool) -> Vec<Vec<i32>> {
     let mut positions: Vec<Vec<i32>> = vec![];
 
     let y = coordinates[0];
@@ -34,11 +35,13 @@ impl Bishop{
           continue;
       }
       // Ally cell
-      if is_cell_color_ally(board, new_coordinates, color) {
+      if is_cell_color_ally(board, new_coordinates, color) && !allow_move_on_ally_positions {
           break;
       }
       // Enemy cell
-      positions.push(new_coordinates.to_vec());
+      if !allow_move_on_ally_positions {
+        positions.push(new_coordinates.to_vec());
+      }
       break;
     }
 
@@ -59,12 +62,14 @@ impl Bishop{
           continue;
       }
       // Ally cell
-      if is_cell_color_ally(board, new_coordinates, color) {
+      if is_cell_color_ally(board, new_coordinates, color) && !allow_move_on_ally_positions{
           break;
       }
       // Enemy cell
-      positions.push(new_coordinates.to_vec());
-      break;
+      if !allow_move_on_ally_positions {
+        positions.push(new_coordinates.to_vec());
+        break;
+      }
     }
 
      // for diagonal from piece to bottom right
@@ -84,12 +89,14 @@ impl Bishop{
         continue;
     }
     // Ally cell
-    if is_cell_color_ally(board, new_coordinates, color) {
+    if is_cell_color_ally(board, new_coordinates, color) && !allow_move_on_ally_positions{
         break;
     }
     // Enemy cell
-    positions.push(new_coordinates.to_vec());
-    break;
+    if !allow_move_on_ally_positions {
+      positions.push(new_coordinates.to_vec());
+      break;
+    }
   }
 
   // for diagonal from piece to top right
@@ -109,18 +116,29 @@ impl Bishop{
         continue;
     }
     // Ally cell
-    if is_cell_color_ally(board, new_coordinates, color) {
+    if is_cell_color_ally(board, new_coordinates, color) && !allow_move_on_ally_positions{
         break;
     }
     // Enemy cell
-    positions.push(new_coordinates.to_vec());
-    break;
+    if !allow_move_on_ally_positions {
+      positions.push(new_coordinates.to_vec());
+      break;
+    }
   }
 
     cleaned_positions(positions)
   }
 
+
+  pub fn authorized_positions(coordinates: [i32; 2], color: PieceColor, board: [[Option<(PieceType, PieceColor)>; 8]; 8]) -> Vec<Vec<i32>> {
+   Self::bishop_moves(coordinates, color, board, false)
+  }
+
+  pub fn protecting_positions(coordinates: [i32; 2], color: PieceColor, board: [[Option<(PieceType, PieceColor)>; 8]; 8]) -> Vec<Vec<i32>> {
+    Self::bishop_moves(coordinates, color, board, true)
+  }
 }
+
 
 #[cfg(test)]
 mod tests {
