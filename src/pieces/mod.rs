@@ -1,9 +1,9 @@
-pub mod rook;
-pub mod pawn;
 pub mod bishop;
 pub mod king;
 pub mod knight;
+pub mod pawn;
 pub mod queen;
+pub mod rook;
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum PieceType {
     Pawn,
@@ -19,4 +19,3 @@ pub enum PieceColor {
     Black,
     White,
 }
-

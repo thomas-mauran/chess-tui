@@ -15,24 +15,12 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             }
         }
         // Counter handlers
-        KeyCode::Right => {
-            app.board.cursor_right()
-        }
-        KeyCode::Left => {
-            app.board.cursor_left()
-        }
-        KeyCode::Up => {
-            app.board.cursor_up()
-        }
-        KeyCode::Down => {
-            app.board.cursor_down()
-        }
-        KeyCode::Char(' ') => {
-            app.board.select_cell()
-        }
-        KeyCode::Esc => {
-            app.board.unselect_cell()
-        }
+        KeyCode::Right => app.board.cursor_right(),
+        KeyCode::Left => app.board.cursor_left(),
+        KeyCode::Up => app.board.cursor_up(),
+        KeyCode::Down => app.board.cursor_down(),
+        KeyCode::Char(' ') => app.board.select_cell(),
+        KeyCode::Esc => app.board.unselect_cell(),
         // Other handlers you could add here.
         _ => {}
     }
