@@ -69,7 +69,7 @@ mod tests {
   use crate::{board::Board, pieces::{PieceType, PieceColor, king::King}};
 
   #[test]
-  fn king_moves_no_enemies() {
+  fn king_moves_multiple_enemies_1() {
       let custom_board = [
         [None, None, None, None, None, None, None, None],
         [None, None, None, None, None, None, None, None],
@@ -86,6 +86,32 @@ mod tests {
       let mut right_positions = vec![
         vec![4, 5],
         vec![5, 4],
+      ];
+      right_positions.sort();
+
+      let mut positions = King::authorized_positions([4, 4], PieceColor::White, board.board);
+      positions.sort();
+
+      assert_eq!(right_positions, positions);
+  }
+
+  #[test]
+  fn king_moves_multiple_enemies_2() {
+      let custom_board = [
+        [None, None, None, None, None, None, None, None],
+        [None, None, None, None, None, None, None, None],
+        [None, Some((PieceType::Queen, PieceColor::Black)), None, None, None, Some((PieceType::Rook, PieceColor::Black)), None, None],
+        [None, None, None, None, None, None, None, None],
+        [None, None, None, None, Some((PieceType::King, PieceColor::White)), None, None, None],
+        [None, None, None, None, None, Some((PieceType::Bishop, PieceColor::Black)), None, None],
+        [None, None, Some((PieceType::Bishop, PieceColor::Black)), None, None, None, None, None],
+        [None, None, None, None, None, None, None, None],
+      ];
+      let mut board = Board::default();
+      board.set_board(custom_board);
+
+      let mut right_positions = vec![
+        vec![3, 4],
       ];
       right_positions.sort();
 
