@@ -114,7 +114,7 @@ impl Board {
     // Methods to change the position of the cursor
     pub fn cursor_up(&mut self) {
         if self.is_cell_selected() {
-            self.move_selected_piece_cursor(false)
+            self.move_selected_piece_cursor(false, -1)
         }else{
             if self.cursor_coordinates[0] > 0 {
                 self.cursor_coordinates[0] -= 1 
@@ -123,7 +123,7 @@ impl Board {
     }
     pub fn cursor_down(&mut self) {
         if self.is_cell_selected() {
-            self.move_selected_piece_cursor(false)
+            self.move_selected_piece_cursor(false,  1)
         }else{
             if self.cursor_coordinates[0] < 7 {
                 self.cursor_coordinates[0] += 1 
@@ -132,7 +132,7 @@ impl Board {
     }
     pub fn cursor_left(&mut self) {
         if self.is_cell_selected() {
-            self.move_selected_piece_cursor(false)
+            self.move_selected_piece_cursor(false, -1)
         }else{
             if self.cursor_coordinates[1] > 0 {
                 self.cursor_coordinates[1] -= 1 
@@ -141,7 +141,7 @@ impl Board {
     }
     pub fn cursor_right(&mut self) {
         if self.is_cell_selected() {
-            self.move_selected_piece_cursor(false)
+            self.move_selected_piece_cursor(false, 1)
         }else{
             if self.cursor_coordinates[1] < 7 {
                 self.cursor_coordinates[1] += 1 
@@ -149,32 +149,52 @@ impl Board {
         }
     }
 
-    fn move_selected_piece_cursor(&mut self, first_time_moving: bool) {
+    fn move_selected_piece_cursor(&mut self, first_time_moving: bool, direction: i32) {
         let piece_color = get_piece_color(self.board.clone(), self.selected_coordinates);
-        let piece_type =get_piece_type(self.board, self.selected_coordinates);
-
+        let piece_type = get_piece_type(self.board.clone(), self.selected_coordinates);
+    
         let mut authorized_positions = self.get_authorized_positions(piece_type, piece_color, self.selected_coordinates);
-        if authorized_positions.len() > 0 {
-            self.selected_piece_cursor = if self.selected_piece_cursor == 0 && first_time_moving  {
+    
+        if !authorized_positions.is_empty() {
+            self.selected_piece_cursor = if self.selected_piece_cursor == 0 && first_time_moving {
                 0
             } else {
-                (self.selected_piece_cursor + 1) % authorized_positions.len() as i32
+                let new_cursor = (self.selected_piece_cursor + direction) % authorized_positions.len() as i32;
+                if new_cursor == -1 {
+                    authorized_positions.len() as i32 - 1
+                } else {
+                    new_cursor
+                }
             };
+    
             authorized_positions.sort();
+    
             if let Some(position) = authorized_positions.get(self.selected_piece_cursor as usize) {
                 self.cursor_coordinates = [position[0], position[1]];
-            }       
+            }
         }
     }
+    
 
     // Methods to select a cell on the board
     pub fn select_cell(&mut self){
         if !self.is_cell_selected(){
             self.selected_coordinates = self.cursor_coordinates;
             self.old_cursor_position = self.cursor_coordinates;
-            self.move_selected_piece_cursor(true);
+            self.move_selected_piece_cursor(true, 1);
+        }else{
+            let selected_coords_usize: [usize; 2] = [self.selected_coordinates[0] as usize, self.selected_coordinates[1] as usize];
+            let cursor_coords_usize: [usize; 2] = [self.cursor_coordinates[0] as usize, self.cursor_coordinates[1] as usize];
+            self.move_piece_on_the_board(selected_coords_usize, cursor_coords_usize);
+            self.unselect_cell();
         }
     }
+
+    pub fn move_piece_on_the_board(&mut self, from: [usize; 2], to: [usize; 2]) {
+        self.board[to[0]][to[1]] = self.board[from[0]][from[1]];
+        self.board[from[0]][from[1]] = None;
+    }
+    
 
     pub fn unselect_cell(&mut self){
         self.selected_coordinates[0] = UNDEFINED_POSITION;
