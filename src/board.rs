@@ -7,7 +7,8 @@ pub struct Board {
     pub cursor_coordinates: [i32; 2],
     pub selected_coordinates: [i32; 2],
     pub selected_piece_cursor: i32,
-    pub old_cursor_position: [i32; 2]
+    pub old_cursor_position: [i32; 2],
+    pub player_turn: PieceColor
 
 }
 
@@ -64,6 +65,7 @@ impl Default for Board {
             selected_coordinates: [UNDEFINED_POSITION, UNDEFINED_POSITION],
             selected_piece_cursor: 0,
             old_cursor_position: [UNDEFINED_POSITION, UNDEFINED_POSITION],
+            player_turn: PieceColor::White
         }
     }
 }
@@ -109,6 +111,13 @@ impl Board {
             },
             _ => { Vec::new()}
         };
+    }
+
+    pub fn switch_player_turn(&mut self){
+        match self.player_turn {
+            PieceColor::White => self.player_turn = PieceColor::Black,
+            PieceColor::Black => self.player_turn = PieceColor::White
+        }
     }
 
     // Methods to change the position of the cursor
@@ -179,16 +188,22 @@ impl Board {
     // Methods to select a cell on the board
     pub fn select_cell(&mut self){
         if !self.is_cell_selected(){
-            self.selected_coordinates = self.cursor_coordinates;
-            self.old_cursor_position = self.cursor_coordinates;
-            self.move_selected_piece_cursor(true, 1);
+            match get_piece_color(self.board, self.cursor_coordinates) {
+                Some(piece_color) => if piece_color == self.player_turn {
+                    self.selected_coordinates = self.cursor_coordinates;
+                    self.old_cursor_position = self.cursor_coordinates;
+                    self.move_selected_piece_cursor(true, 1);
+                        }
+                _ => {}
+            }
         }else{
             let selected_coords_usize: [usize; 2] = [self.selected_coordinates[0] as usize, self.selected_coordinates[1] as usize];
             let cursor_coords_usize: [usize; 2] = [self.cursor_coordinates[0] as usize, self.cursor_coordinates[1] as usize];
             self.move_piece_on_the_board(selected_coords_usize, cursor_coords_usize);
             self.unselect_cell();
+            self.switch_player_turn();
+            }
         }
-    }
 
     pub fn move_piece_on_the_board(&mut self, from: [usize; 2], to: [usize; 2]) {
         self.board[to[0]][to[1]] = self.board[from[0]][from[1]];
@@ -263,7 +278,7 @@ impl Board {
             for j in 0..8i32{
                 // Color of the cell to draw the board
                 let mut cell_color: Color = if (i + j) % 2 == 0 {
-                    Color::Rgb(210, 200, 190)
+                    Color::Rgb(160, 160, 160)
                 } else {
                     Color::Rgb(128, 95, 69)
                 };
