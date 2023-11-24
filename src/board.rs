@@ -5,7 +5,9 @@ use crate::{constants::UNDEFINED_POSITION, utils::{get_piece_color, get_piece_ty
 pub struct Board {
     pub board: [[Option<(PieceType, PieceColor)>; 8]; 8],    
     pub cursor_coordinates: [i32; 2],
-    pub selected_coordinates: [i32; 2] 
+    pub selected_coordinates: [i32; 2],
+    pub selected_piece_cursor: i32,
+    pub old_cursor_position: [i32; 2]
 
 }
 
@@ -18,7 +20,7 @@ impl Default for Board {
                     Some((PieceType::Knight, PieceColor::Black)),
                     Some((PieceType::Bishop, PieceColor::Black)),
                     Some((PieceType::Queen, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
+                    Some((PieceType::King, PieceColor::Black)),
                     Some((PieceType::Bishop, PieceColor::Black)),
                     Some((PieceType::Knight, PieceColor::Black)),
                     Some((PieceType::Rook, PieceColor::Black)),
@@ -30,13 +32,13 @@ impl Default for Board {
                     Some((PieceType::Pawn, PieceColor::Black)),
                     Some((PieceType::Pawn, PieceColor::Black)),
                     Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::White)),
+                    Some((PieceType::Pawn, PieceColor::Black)),
                     Some((PieceType::Pawn, PieceColor::Black)),
                 ],
-                [ Some((PieceType::Pawn, PieceColor::White)), None, Some((PieceType::Pawn, PieceColor::White)), None, None, None, Some((PieceType::Pawn, PieceColor::Black)), Some((PieceType::Bishop, PieceColor::White))],
-                [ None, None, None, Some((PieceType::Pawn, PieceColor::White)), None, Some((PieceType::Pawn, PieceColor::Black)), None, None],
-                [ None, Some((PieceType::King, PieceColor::White)), None, None, None, None, None, None],
-                [ Some((PieceType::Pawn, PieceColor::White)), None, None, Some((PieceType::Rook, PieceColor::Black)), Some((PieceType::King, PieceColor::Black)), None, None, None],
+                [ None, None, None, None, None, None, None, None],
+                [ None, None, None, None, None, None, None, None],
+                [ None, None, None, None, None, None, None, None],
+                [ None, None, None, None, None, None, None, None],
                 [
                     Some((PieceType::Pawn, PieceColor::White)),
                     Some((PieceType::Pawn, PieceColor::White)),
@@ -52,14 +54,16 @@ impl Default for Board {
                     Some((PieceType::Knight, PieceColor::White)),
                     Some((PieceType::Bishop, PieceColor::White)),
                     Some((PieceType::Queen, PieceColor::White)),
-                    None,
+                    Some((PieceType::King, PieceColor::White)),
                     Some((PieceType::Bishop, PieceColor::White)),
                     Some((PieceType::Knight, PieceColor::White)),
                     Some((PieceType::Rook, PieceColor::White)),
                 ],
             ],
             cursor_coordinates: [4, 4],
-            selected_coordinates: [UNDEFINED_POSITION, UNDEFINED_POSITION]
+            selected_coordinates: [UNDEFINED_POSITION, UNDEFINED_POSITION],
+            selected_piece_cursor: 0,
+            old_cursor_position: [UNDEFINED_POSITION, UNDEFINED_POSITION],
         }
     }
 }
@@ -98,31 +102,104 @@ impl Board {
         self.selected_coordinates[0] != UNDEFINED_POSITION && self.selected_coordinates[1] != UNDEFINED_POSITION
     }
 
+    fn get_authorized_positions(&mut self, piece_type: Option<PieceType>, piece_color: Option<PieceColor>, coordinates: [i32; 2]) -> Vec<Vec<i32>>{
+        return match (piece_type, piece_color) {
+            (Some(piece_type), Some(piece_color)) => {
+                Board::authorized_positions_enum(coordinates, piece_type, piece_color, self.board)
+            },
+            _ => { Vec::new()}
+        };
+    }
 
     // Methods to change the position of the cursor
     pub fn cursor_up(&mut self) {
-        if self.cursor_coordinates[0] > 0 && !self.is_cell_selected() {self.cursor_coordinates[0] -= 1}
+        if self.is_cell_selected() {
+            self.move_selected_piece_cursor(false)
+        }else{
+            if self.cursor_coordinates[0] > 0 {
+                self.cursor_coordinates[0] -= 1 
+            }
+        }
     }
     pub fn cursor_down(&mut self) {
-        if self.cursor_coordinates[0] < 7 && !self.is_cell_selected() {self.cursor_coordinates[0] += 1}
+        if self.is_cell_selected() {
+            self.move_selected_piece_cursor(false)
+        }else{
+            if self.cursor_coordinates[0] < 7 {
+                self.cursor_coordinates[0] += 1 
+            }
+        }
     }
     pub fn cursor_left(&mut self) {
-        if self.cursor_coordinates[1] > 0 && !self.is_cell_selected() {self.cursor_coordinates[1] -= 1}
+        if self.is_cell_selected() {
+            self.move_selected_piece_cursor(false)
+        }else{
+            if self.cursor_coordinates[1] > 0 {
+                self.cursor_coordinates[1] -= 1 
+            }
+        }
     }
     pub fn cursor_right(&mut self) {
-        if self.cursor_coordinates[1] < 7 && !self.is_cell_selected() {self.cursor_coordinates[1] += 1}
+        if self.is_cell_selected() {
+            self.move_selected_piece_cursor(false)
+        }else{
+            if self.cursor_coordinates[1] < 7 {
+                self.cursor_coordinates[1] += 1 
+            }
+        }
+    }
+
+    fn move_selected_piece_cursor(&mut self, first_time_moving: bool) {
+        let piece_color = get_piece_color(self.board.clone(), self.selected_coordinates);
+        let piece_type =get_piece_type(self.board, self.selected_coordinates);
+
+        let mut authorized_positions = self.get_authorized_positions(piece_type, piece_color, self.selected_coordinates);
+        if authorized_positions.len() > 0 {
+            self.selected_piece_cursor = if self.selected_piece_cursor == 0 && first_time_moving  {
+                0
+            } else {
+                (self.selected_piece_cursor + 1) % authorized_positions.len() as i32
+            };
+            authorized_positions.sort();
+            if let Some(position) = authorized_positions.get(self.selected_piece_cursor as usize) {
+                self.cursor_coordinates = [position[0], position[1]];
+            }       
+        }
     }
 
     // Methods to select a cell on the board
     pub fn select_cell(&mut self){
         if !self.is_cell_selected(){
-            self.selected_coordinates = [self.cursor_coordinates[0], self.cursor_coordinates[1]]
+            self.selected_coordinates = self.cursor_coordinates;
+            self.old_cursor_position = self.cursor_coordinates;
+            self.move_selected_piece_cursor(true);
         }
     }
 
     pub fn unselect_cell(&mut self){
         self.selected_coordinates[0] = UNDEFINED_POSITION;
         self.selected_coordinates[1] = UNDEFINED_POSITION;
+        self.selected_piece_cursor = 0;
+        self.cursor_coordinates = self.old_cursor_position
+    }
+
+    pub fn color_to_ratatui_enum(&mut self, piece_color: Option<PieceColor>) -> Color{
+        return match piece_color {
+            Some(PieceColor::Black) => Color::Black,
+            Some(PieceColor::White) => Color::White,
+            None => Color::Red,
+        };
+    }
+    pub fn piece_type_to_string_enum(&mut self, piece_type: Option<PieceType>) -> &'static str{
+        return match piece_type {
+            Some(PieceType::Queen) => Queen::to_string(),
+            Some(PieceType::King) => King::to_string(),
+            Some(PieceType::Rook) => Rook::to_string(),
+            Some(PieceType::Bishop) => Bishop::to_string(),
+            Some(PieceType::Knight) => Knight::to_string(),
+            Some(PieceType::Pawn) => Pawn::to_string(),
+            None => " ",
+        };
     }
 
     // Method to render the board
@@ -173,15 +250,9 @@ impl Board {
 
                 // Draw the available moves for the selected piece
                 if self.is_cell_selected() {
-                    let selected_piece_type:Option<PieceType> = get_piece_type(self.board, self.selected_coordinates);
+                    let selected_piece_type = get_piece_type(self.board, self.selected_coordinates);
                     let selected_piece_color:Option<PieceColor> = get_piece_color(self.board, self.selected_coordinates);
-                    let positions = match (selected_piece_type, selected_piece_color) {
-                        (Some(piece_type), Some(piece_color)) => {
-                            Board::authorized_positions_enum(self.cursor_coordinates, piece_type, piece_color, self.board)
-                        },
-                        _ => { Vec::new()}
-                    };
-                    
+                    let positions = self.get_authorized_positions(selected_piece_type, selected_piece_color, self.selected_coordinates);
 
                     for coords in positions.clone(){
                         if i == coords[0] && j == coords[1]{
@@ -192,7 +263,7 @@ impl Board {
 
 
                 // Draw the cell blue if this is the current cursor cell
-                if (i == self.cursor_coordinates[0] && j == self.cursor_coordinates[1]) && !self.is_cell_selected(){
+                if i == self.cursor_coordinates[0] && j == self.cursor_coordinates[1]{
                     let cell = Block::default().bg(Color::LightBlue).add_modifier(Modifier::RAPID_BLINK);
                     frame.render_widget(cell.clone(),lines[j as usize]); 
                 }
@@ -206,28 +277,12 @@ impl Board {
                     frame.render_widget(cell.clone(),lines[j as usize]);
                 }
 
-
-
                 // Get piece and color
                 let piece_color = get_piece_color(self.board, [i, j]);
                 let piece_type =get_piece_type(self.board, [i, j]);
 
-                let color_enum = match piece_color {
-                    Some(PieceColor::Black) => Color::Black,
-                    Some(PieceColor::White) => Color::White,
-                    None => Color::Red,
-
-                };
-
-                let piece_enum = match piece_type {
-                    Some(PieceType::Queen) => Queen::to_string(),
-                    Some(PieceType::King) => King::to_string(),
-                    Some(PieceType::Rook) => Rook::to_string(),
-                    Some(PieceType::Bishop) => Bishop::to_string(),
-                    Some(PieceType::Knight) => Knight::to_string(),
-                    Some(PieceType::Pawn) => Pawn::to_string(),
-                    None => " ",
-                };
+                let color_enum = self.color_to_ratatui_enum(piece_color);
+                let piece_enum = self.piece_type_to_string_enum(piece_type);
 
                 // Place the pieces on the board
                 let paragraph = Paragraph::new(piece_enum).alignment(Alignment::Center).fg(color_enum);
