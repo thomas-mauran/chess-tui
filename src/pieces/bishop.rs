@@ -35,17 +35,22 @@ impl Bishop{
           continue;
       }
       // Ally cell
-      if is_cell_color_ally(board, new_coordinates, color) && !allow_move_on_ally_positions {
-          break;
+      if is_cell_color_ally(board, new_coordinates, color) {
+        if !allow_move_on_ally_positions {
+            break;
+        } else {
+            positions.push(new_coordinates.to_vec());
+            break;
+        }
       }
       // Enemy cell
       if !allow_move_on_ally_positions {
         positions.push(new_coordinates.to_vec());
+        break;
       }
-      break;
     }
 
-    // for diagonal from piece to bottom left
+    // for diagonal from piece to bottom right
     for i in 1..8i32 {
       let new_x = x + i;
       let new_y = y + i;
@@ -62,8 +67,13 @@ impl Bishop{
           continue;
       }
       // Ally cell
-      if is_cell_color_ally(board, new_coordinates, color) && !allow_move_on_ally_positions{
-          break;
+      if is_cell_color_ally(board, new_coordinates, color) {
+        if !allow_move_on_ally_positions {
+            break;
+        } else {
+            positions.push(new_coordinates.to_vec());
+            break;
+        }
       }
       // Enemy cell
       if !allow_move_on_ally_positions {
@@ -72,7 +82,7 @@ impl Bishop{
       }
     }
 
-     // for diagonal from piece to bottom right
+     // for diagonal from piece to bottom left
     for i in 1..8i32 {
       let new_x = x - i;
       let new_y = y + i;
@@ -89,9 +99,15 @@ impl Bishop{
         continue;
     }
     // Ally cell
-    if is_cell_color_ally(board, new_coordinates, color) && !allow_move_on_ally_positions{
-        break;
+    if is_cell_color_ally(board, new_coordinates, color) {
+      if !allow_move_on_ally_positions {
+          break;
+      } else {
+          positions.push(new_coordinates.to_vec());
+          break;
+      }
     }
+
     // Enemy cell
     if !allow_move_on_ally_positions {
       positions.push(new_coordinates.to_vec());
@@ -116,8 +132,13 @@ impl Bishop{
         continue;
     }
     // Ally cell
-    if is_cell_color_ally(board, new_coordinates, color) && !allow_move_on_ally_positions{
+    if is_cell_color_ally(board, new_coordinates, color) {
+      if !allow_move_on_ally_positions {
         break;
+      } else {
+        positions.push(new_coordinates.to_vec());
+        break;
+      }
     }
     // Enemy cell
     if !allow_move_on_ally_positions {

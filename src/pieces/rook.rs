@@ -40,8 +40,13 @@ impl Rook{
         continue;
     }
     // Ally cell
-    if is_cell_color_ally(board, new_coordinates, color) && !allow_move_on_ally_positions{
-        break;
+    if is_cell_color_ally(board, new_coordinates, color) {
+      if !allow_move_on_ally_positions {
+          break;
+      } else {
+          positions.push(new_coordinates.to_vec());
+          break;
+      }
     }
     // Enemy cell
     positions.push(new_coordinates.to_vec());
@@ -65,8 +70,13 @@ impl Rook{
           continue;
       }
       // Ally cell
-      if is_cell_color_ally(board, new_coordinates, color) && !allow_move_on_ally_positions{
-          break;
+      if is_cell_color_ally(board, new_coordinates, color) {
+        if !allow_move_on_ally_positions {
+            break;
+        } else {
+            positions.push(new_coordinates.to_vec());
+            break;
+        }
       }
       // Enemy cell
       positions.push(new_coordinates.to_vec());
@@ -90,8 +100,13 @@ impl Rook{
         continue;
     }
     // Ally cell
-    if is_cell_color_ally(board, new_coordinates, color) && !allow_move_on_ally_positions{
-        break;
+    if is_cell_color_ally(board, new_coordinates, color) {
+      if !allow_move_on_ally_positions {
+          break;
+      } else {
+          positions.push(new_coordinates.to_vec());
+          break;
+      }
     }
     // Enemy cell
     positions.push(new_coordinates.to_vec());
@@ -115,8 +130,14 @@ impl Rook{
         continue;
     }
     // Ally cell
-    if is_cell_color_ally(board, new_coordinates, color) && !allow_move_on_ally_positions{
-        break;
+    if is_cell_color_ally(board, new_coordinates, color) {
+      if !allow_move_on_ally_positions {
+          break;
+      } else {
+          positions.push(new_coordinates.to_vec());
+          break;
+
+      }
     }
     // Enemy cell
     positions.push(new_coordinates.to_vec());
