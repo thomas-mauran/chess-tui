@@ -4,12 +4,13 @@ use crate::{
         bishop::Bishop, king::King, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook,
         PieceColor, PieceType,
     },
-    utils::{get_piece_color, get_piece_type},
+    utils::{get_piece_color, get_piece_type, is_cell_color_ally, is_valid},
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Stylize},
-    widgets::{Block, Paragraph},
+    style::{Color, Modifier, Style, Stylize},
+    text::{Line, Span},
+    widgets::{Block, BorderType, Borders, Padding, Paragraph},
     Frame,
 };
 
@@ -21,6 +22,7 @@ pub struct Board {
     pub selected_piece_cursor: i32,
     pub old_cursor_position: [i32; 2],
     pub player_turn: PieceColor,
+    pub moves_historic: Vec<Vec<String>>,
 }
 
 impl Default for Board {
@@ -77,6 +79,7 @@ impl Default for Board {
             selected_piece_cursor: 0,
             old_cursor_position: [UNDEFINED_POSITION, UNDEFINED_POSITION],
             player_turn: PieceColor::White,
+            moves_historic: vec![],
         }
     }
 }
@@ -210,6 +213,8 @@ impl Board {
             if let Some(position) = authorized_positions.get(self.selected_piece_cursor as usize) {
                 self.cursor_coordinates = [position[0], position[1]];
             }
+        } else {
+            self.cursor_coordinates = [UNDEFINED_POSITION, UNDEFINED_POSITION];
         }
     }
 
@@ -227,30 +232,40 @@ impl Board {
                 _ => {}
             }
         } else {
-            let selected_coords_usize: [usize; 2] = [
-                self.selected_coordinates[0] as usize,
-                self.selected_coordinates[1] as usize,
-            ];
-            let cursor_coords_usize: [usize; 2] = [
-                self.cursor_coordinates[0] as usize,
-                self.cursor_coordinates[1] as usize,
-            ];
-            self.move_piece_on_the_board(selected_coords_usize, cursor_coords_usize);
-            self.unselect_cell();
-            self.switch_player_turn();
+            // We already selected a piece
+            if is_valid(self.cursor_coordinates) {
+                let selected_coords_usize: [usize; 2] = [
+                    self.selected_coordinates[0] as usize,
+                    self.selected_coordinates[1] as usize,
+                ];
+                let cursor_coords_usize: [usize; 2] = [
+                    self.cursor_coordinates[0] as usize,
+                    self.cursor_coordinates[1] as usize,
+                ];
+                self.move_piece_on_the_board(selected_coords_usize, cursor_coords_usize);
+                self.unselect_cell();
+                self.switch_player_turn();
+            }
         }
     }
 
     pub fn move_piece_on_the_board(&mut self, from: [usize; 2], to: [usize; 2]) {
         self.board[to[0]][to[1]] = self.board[from[0]][from[1]];
         self.board[from[0]][from[1]] = None;
+        // We store it in the historic
+        self.moves_historic.push(vec![format!(
+            "{:?}{:?}{:?}{:?}",
+            from[0], from[1], to[0], to[1]
+        )])
     }
 
     pub fn unselect_cell(&mut self) {
-        self.selected_coordinates[0] = UNDEFINED_POSITION;
-        self.selected_coordinates[1] = UNDEFINED_POSITION;
-        self.selected_piece_cursor = 0;
-        self.cursor_coordinates = self.old_cursor_position
+        if self.is_cell_selected() {
+            self.selected_coordinates[0] = UNDEFINED_POSITION;
+            self.selected_coordinates[1] = UNDEFINED_POSITION;
+            self.selected_piece_cursor = 0;
+            self.cursor_coordinates = self.old_cursor_position
+        }
     }
 
     pub fn color_to_ratatui_enum(&mut self, piece_color: Option<PieceColor>) -> Color {
@@ -366,5 +381,43 @@ impl Board {
                 frame.render_widget(paragraph, lines[j as usize]);
             }
         }
+    }
+
+    pub fn historic_render(&mut self, area: Rect, frame: &mut Frame) {
+        // We write the historic board on the side
+        let historic_block = Block::default()
+            .title("Historic")
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(Color::White))
+            .border_type(BorderType::Rounded)
+            .padding(Padding::new(5, 10, 1, 2));
+
+        let mut lines: Vec<Line> = vec![];
+
+        for i in (0..self.moves_historic.len()).step_by(2) {
+            let move1 = if i < self.moves_historic.len() {
+                self.moves_historic[i][0].clone()
+            } else {
+                "".to_string()
+            };
+
+            let move2 = if i + 1 < self.moves_historic.len() {
+                self.moves_historic[i + 1][0].clone()
+            } else {
+                "".to_string()
+            };
+
+            lines.push(Line::from(vec![Span::raw(format!(
+                "{:2}. {:<10} {:<10}",
+                i / 2 + 1,
+                move1,
+                move2
+            ))]));
+        }
+
+        let historic_paragraph = Paragraph::new(lines).alignment(Alignment::Center);
+
+        frame.render_widget(historic_block.clone(), area);
+        frame.render_widget(historic_paragraph, historic_block.inner(area));
     }
 }
