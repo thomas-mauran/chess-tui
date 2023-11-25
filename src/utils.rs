@@ -87,3 +87,34 @@ pub fn get_all_checked_cells(
     }
     check_cells
 }
+
+pub fn col_to_letter(col: i32) -> String {
+    match col {
+        0 => "a".to_string(),
+        1 => "b".to_string(),
+        2 => "c".to_string(),
+        3 => "d".to_string(),
+        4 => "e".to_string(),
+        5 => "f".to_string(),
+        6 => "g".to_string(),
+        7 => "h".to_string(),
+        _ => panic!("Col out of bound {}", col),
+    }
+}
+
+pub fn convert_position_into_notation(position: i32) -> String {
+    let mut result: String = "".to_string();
+    // println!("{}", position);
+    let from_y: i32 = position / 1000 % 10;
+    let from_x: i32 = position / 100 % 10;
+    let to_y: i32 = position / 10 % 10;
+    let to_x: i32 = position % 10;
+
+    result += &col_to_letter(from_x);
+    result += &format!("{}", (8 - from_y) % 8).to_string();
+    result += "-";
+    result += &col_to_letter(to_x);
+    result += &format!("{}", (8 - to_y) % 8).to_string();
+
+    result
+}

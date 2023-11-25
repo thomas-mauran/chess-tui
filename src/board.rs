@@ -1,10 +1,10 @@
 use crate::{
-    constants::UNDEFINED_POSITION,
+    constants::{BLACK, UNDEFINED_POSITION, WHITE},
     pieces::{
         bishop::Bishop, king::King, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook,
         PieceColor, PieceType,
     },
-    utils::{get_piece_color, get_piece_type, is_valid},
+    utils::{convert_position_into_notation, get_piece_color, get_piece_type, is_valid},
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -22,7 +22,7 @@ pub struct Board {
     pub selected_piece_cursor: i32,
     pub old_cursor_position: [i32; 2],
     pub player_turn: PieceColor,
-    pub moves_historic: Vec<Vec<String>>,
+    pub moves_historic: Vec<(Option<PieceType>, String)>,
 }
 
 impl Default for Board {
@@ -242,13 +242,15 @@ impl Board {
     }
 
     pub fn move_piece_on_the_board(&mut self, from: [usize; 2], to: [usize; 2]) {
+        // We store it in the historic
+        let piece_type_from = get_piece_type(self.board, [from[0] as i32, from[1] as i32]);
+        let tuple = (
+            piece_type_from,
+            format!("{:?}{:?}{:?}{:?}", from[0], from[1], to[0], to[1]),
+        );
+        self.moves_historic.push(tuple);
         self.board[to[0]][to[1]] = self.board[from[0]][from[1]];
         self.board[from[0]][from[1]] = None;
-        // We store it in the historic
-        self.moves_historic.push(vec![format!(
-            "{:?}{:?}{:?}{:?}",
-            from[0], from[1], to[0], to[1]
-        )])
     }
 
     pub fn unselect_cell(&mut self) {
@@ -276,6 +278,18 @@ impl Board {
             Some(PieceType::Knight) => Knight::to_string(),
             Some(PieceType::Pawn) => Pawn::to_string(),
             None => " ",
+        }
+    }
+
+    pub fn piece_type_to_utf_enum(&mut self, piece_type: Option<PieceType>) -> &'static str {
+        match piece_type {
+            Some(PieceType::Queen) => "♛",
+            Some(PieceType::King) => "♚",
+            Some(PieceType::Rook) => "♜",
+            Some(PieceType::Bishop) => "♝",
+            Some(PieceType::Knight) => "♞",
+            Some(PieceType::Pawn) => "♟",
+            None => "NONE",
         }
     }
 
@@ -319,11 +333,7 @@ impl Board {
                 .split(columns[i as usize]);
             for j in 0..8i32 {
                 // Color of the cell to draw the board
-                let mut cell_color: Color = if (i + j) % 2 == 0 {
-                    Color::Rgb(160, 160, 160)
-                } else {
-                    Color::Rgb(128, 95, 69)
-                };
+                let mut cell_color: Color = if (i + j) % 2 == 0 { WHITE } else { BLACK };
 
                 // Draw the available moves for the selected piece
                 if self.is_cell_selected() {
@@ -387,24 +397,32 @@ impl Board {
         let mut lines: Vec<Line> = vec![];
 
         for i in (0..self.moves_historic.len()).step_by(2) {
-            let move1 = if i < self.moves_historic.len() {
-                self.moves_historic[i][0].clone()
-            } else {
-                "".to_string()
-            };
+            let piece_type_from = self.moves_historic[i].0.clone();
+            let utf_icon_white = self.piece_type_to_utf_enum(piece_type_from);
+            let number_move = self.moves_historic[i].1.clone();
+            let move_white =
+                convert_position_into_notation(number_move.to_string().parse::<i32>().unwrap());
 
-            let move2 = if i + 1 < self.moves_historic.len() {
-                self.moves_historic[i + 1][0].clone()
-            } else {
-                "".to_string()
-            };
+            let mut utf_icon_black = "   ";
+            let mut move_black: String = "   ".to_string();
 
-            lines.push(Line::from(vec![Span::raw(format!(
-                "{:2}. {:<10} {:<10}",
-                i / 2 + 1,
-                move1,
-                move2
-            ))]));
+            // If there is something for black
+            if i + 1 < self.moves_historic.len() {
+                let piece_type_to = self.moves_historic[i + 1].0.clone();
+                let number = self.moves_historic[i + 1].1.clone();
+                move_black =
+                    convert_position_into_notation(number.to_string().parse::<i32>().unwrap());
+                utf_icon_black = self.piece_type_to_utf_enum(piece_type_to)
+            }
+
+            lines.push(Line::from(vec![
+                Span::raw(format!("{}.  ", i / 2 + 1)), // line number
+                Span::styled(format!("{} ", utf_icon_white), Style::default().fg(WHITE)), // white symbol
+                Span::raw(format!("{}", move_white)), // white move
+                Span::raw("     "),                   // separator
+                Span::styled(format!("{} ", utf_icon_black), Style::default().fg(BLACK)), // white symbol
+                Span::raw(format!("{}", move_black)), // black move
+            ]));
         }
 
         let historic_paragraph = Paragraph::new(lines).alignment(Alignment::Center);
