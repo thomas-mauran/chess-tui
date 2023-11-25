@@ -30,28 +30,24 @@ impl Pawn {
 
         // move one in front
         let new_x_front_one = x;
-        let new_y_front_one = y + direction * 1;
+        let new_y_front_one = y + direction;
         let new_coordinates_front_one = [new_y_front_one, new_x_front_one];
 
-        if is_valid(new_coordinates_front_one) {
-            if !allow_move_on_ally_positions {
-                if get_piece_color(board, new_coordinates_front_one).is_none() {
-                    // Empty cell
-                    positions.push(new_coordinates_front_one.to_vec());
+        if is_valid(new_coordinates_front_one) && !allow_move_on_ally_positions && get_piece_color(board, new_coordinates_front_one).is_none() {
+            // Empty cell
+            positions.push(new_coordinates_front_one.to_vec());
 
-                    // move front a second cell
-                    let new_x_front_two = x;
-                    let new_y_front_two = y + direction * 2;
-                    let new_coordinates_front_two = [new_y_front_two, new_x_front_two];
+            // move front a second cell
+            let new_x_front_two = x;
+            let new_y_front_two = y + direction * 2;
+            let new_coordinates_front_two = [new_y_front_two, new_x_front_two];
 
-                    if is_valid(new_coordinates_front_two)
-                        && get_piece_color(board, new_coordinates_front_two).is_none()
-                        && ((color == PieceColor::White && y == 6)
-                            || (color == PieceColor::Black && y == 1))
-                    {
-                        positions.push(new_coordinates_front_two.to_vec());
-                    }
-                }
+            if is_valid(new_coordinates_front_two)
+                && get_piece_color(board, new_coordinates_front_two).is_none()
+                && ((color == PieceColor::White && y == 6)
+                    || (color == PieceColor::Black && y == 1))
+            {
+                positions.push(new_coordinates_front_two.to_vec());
             }
         }
 
@@ -90,7 +86,7 @@ impl Pawn {
             }
         }
 
-        return cleaned_positions(positions);
+        cleaned_positions(positions)
     }
     pub fn authorized_positions(
         coordinates: [i32; 2],

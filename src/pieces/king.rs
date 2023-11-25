@@ -67,7 +67,7 @@ impl King {
             }
         }
 
-        return positions;
+        positions
     }
 
     // This method is used to calculated the cells the king is actually covering and is used when the other king authorized position is called

@@ -4,7 +4,7 @@ use crate::{
         bishop::Bishop, king::King, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook,
         PieceColor, PieceType,
     },
-    utils::{get_piece_color, get_piece_type, is_cell_color_ally, is_valid},
+    utils::{get_piece_color, get_piece_type, is_valid},
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -135,12 +135,12 @@ impl Board {
         piece_color: Option<PieceColor>,
         coordinates: [i32; 2],
     ) -> Vec<Vec<i32>> {
-        return match (piece_type, piece_color) {
+        match (piece_type, piece_color) {
             (Some(piece_type), Some(piece_color)) => {
                 Board::authorized_positions_enum(coordinates, piece_type, piece_color, self.board)
             }
             _ => Vec::new(),
-        };
+        }
     }
 
     pub fn switch_player_turn(&mut self) {
@@ -154,43 +154,35 @@ impl Board {
     pub fn cursor_up(&mut self) {
         if self.is_cell_selected() {
             self.move_selected_piece_cursor(false, -1)
-        } else {
-            if self.cursor_coordinates[0] > 0 {
-                self.cursor_coordinates[0] -= 1
-            }
+        } else if self.cursor_coordinates[0] > 0 {
+            self.cursor_coordinates[0] -= 1
         }
     }
     pub fn cursor_down(&mut self) {
         if self.is_cell_selected() {
             self.move_selected_piece_cursor(false, 1)
-        } else {
-            if self.cursor_coordinates[0] < 7 {
-                self.cursor_coordinates[0] += 1
-            }
+        } else if self.cursor_coordinates[0] < 7 {
+            self.cursor_coordinates[0] += 1
         }
     }
     pub fn cursor_left(&mut self) {
         if self.is_cell_selected() {
             self.move_selected_piece_cursor(false, -1)
-        } else {
-            if self.cursor_coordinates[1] > 0 {
-                self.cursor_coordinates[1] -= 1
-            }
+        } else if self.cursor_coordinates[1] > 0 {
+            self.cursor_coordinates[1] -= 1
         }
     }
     pub fn cursor_right(&mut self) {
         if self.is_cell_selected() {
             self.move_selected_piece_cursor(false, 1)
-        } else {
-            if self.cursor_coordinates[1] < 7 {
-                self.cursor_coordinates[1] += 1
-            }
+        } else if self.cursor_coordinates[1] < 7 {
+            self.cursor_coordinates[1] += 1
         }
     }
 
     fn move_selected_piece_cursor(&mut self, first_time_moving: bool, direction: i32) {
-        let piece_color = get_piece_color(self.board.clone(), self.selected_coordinates);
-        let piece_type = get_piece_type(self.board.clone(), self.selected_coordinates);
+        let piece_color = get_piece_color(self.board, self.selected_coordinates);
+        let piece_type = get_piece_type(self.board, self.selected_coordinates);
 
         let mut authorized_positions =
             self.get_authorized_positions(piece_type, piece_color, self.selected_coordinates);
@@ -269,14 +261,14 @@ impl Board {
     }
 
     pub fn color_to_ratatui_enum(&mut self, piece_color: Option<PieceColor>) -> Color {
-        return match piece_color {
+        match piece_color {
             Some(PieceColor::Black) => Color::Black,
             Some(PieceColor::White) => Color::White,
             None => Color::Red,
-        };
+        }
     }
     pub fn piece_type_to_string_enum(&mut self, piece_type: Option<PieceType>) -> &'static str {
-        return match piece_type {
+        match piece_type {
             Some(PieceType::Queen) => Queen::to_string(),
             Some(PieceType::King) => King::to_string(),
             Some(PieceType::Rook) => Rook::to_string(),
@@ -284,7 +276,7 @@ impl Board {
             Some(PieceType::Knight) => Knight::to_string(),
             Some(PieceType::Pawn) => Pawn::to_string(),
             None => " ",
-        };
+        }
     }
 
     // Method to render the board

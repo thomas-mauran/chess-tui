@@ -7,20 +7,14 @@ pub fn get_piece_color(
     board: [[Option<(PieceType, PieceColor)>; 8]; 8],
     coordinates: [i32; 2],
 ) -> Option<PieceColor> {
-    match board[coordinates[0] as usize][coordinates[1] as usize] {
-        Some((_, piece_color)) => Some(piece_color),
-        None => None,
-    }
+    board[coordinates[0] as usize][coordinates[1] as usize].map(|(_, piece_color)| piece_color)
 }
 
 pub fn get_piece_type(
     board: [[Option<(PieceType, PieceColor)>; 8]; 8],
     coordinates: [i32; 2],
 ) -> Option<PieceType> {
-    match board[coordinates[0] as usize][coordinates[1] as usize] {
-        Some((piece_type, _)) => Some(piece_type),
-        None => None,
-    }
+    board[coordinates[0] as usize][coordinates[1] as usize].map(|(piece_type, _)| piece_type)
 }
 
 pub fn get_opposite_color(color: PieceColor) -> PieceColor {
@@ -56,7 +50,7 @@ pub fn is_cell_color_ally(
 pub fn is_valid(coordinates: [i32; 2]) -> bool {
     let (y, x) = (coordinates[0], coordinates[1]);
 
-    return y < 8 && y >= 0 && x < 8 && x >= 0;
+    (0..8).contains(&y) && (0..8).contains(&x)
 }
 
 pub fn is_vec_in_array(array: Vec<Vec<i32>>, element: [i32; 2]) -> bool {
@@ -65,7 +59,7 @@ pub fn is_vec_in_array(array: Vec<Vec<i32>>, element: [i32; 2]) -> bool {
             return true;
         }
     }
-    return false;
+    false
 }
 
 // We get all the cells that are getting put in 'check'
@@ -91,5 +85,5 @@ pub fn get_all_checked_cells(
             }
         }
     }
-    return check_cells;
+    check_cells
 }
