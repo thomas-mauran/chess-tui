@@ -295,19 +295,26 @@ impl Board {
 
     // Method to render the board
     pub fn board_render(&mut self, area: Rect, frame: &mut Frame) {
+        let width = area.width / 8;
+        let height = area.height / 8;
+        let border_height = area.height / 2 - (4 * height);
+        let border_width = area.width / 2 - (4 * width);
         // We have 8 vertical lines
         let columns = Layout::default()
             .direction(Direction::Vertical)
             .constraints(
                 [
-                    Constraint::Ratio(1, 8),
-                    Constraint::Ratio(1, 8),
-                    Constraint::Ratio(1, 8),
-                    Constraint::Ratio(1, 8),
-                    Constraint::Ratio(1, 8),
-                    Constraint::Ratio(1, 8),
-                    Constraint::Ratio(1, 8),
-                    Constraint::Ratio(1, 8),
+                    // spread the excess border
+                    Constraint::Length(border_height),
+                    Constraint::Length(height),
+                    Constraint::Length(height),
+                    Constraint::Length(height),
+                    Constraint::Length(height),
+                    Constraint::Length(height),
+                    Constraint::Length(height),
+                    Constraint::Length(height),
+                    Constraint::Length(height),
+                    Constraint::Length(border_height),
                 ]
                 .as_ref(),
             )
@@ -319,18 +326,20 @@ impl Board {
                 .direction(Direction::Horizontal)
                 .constraints(
                     [
-                        Constraint::Ratio(1, 8),
-                        Constraint::Ratio(1, 8),
-                        Constraint::Ratio(1, 8),
-                        Constraint::Ratio(1, 8),
-                        Constraint::Ratio(1, 8),
-                        Constraint::Ratio(1, 8),
-                        Constraint::Ratio(1, 8),
-                        Constraint::Ratio(1, 8),
+                        Constraint::Length(border_width),
+                        Constraint::Length(width),
+                        Constraint::Length(width),
+                        Constraint::Length(width),
+                        Constraint::Length(width),
+                        Constraint::Length(width),
+                        Constraint::Length(width),
+                        Constraint::Length(width),
+                        Constraint::Length(width),
+                        Constraint::Length(border_width),
                     ]
                     .as_ref(),
                 )
-                .split(columns[i as usize]);
+                .split(columns[i as usize + 1]);
             for j in 0..8i32 {
                 // Color of the cell to draw the board
                 let mut cell_color: Color = if (i + j) % 2 == 0 { WHITE } else { BLACK };
@@ -353,20 +362,21 @@ impl Board {
                     }
                 }
 
+                let square = lines[j as usize + 1];
                 // Draw the cell blue if this is the current cursor cell
                 if i == self.cursor_coordinates[0] && j == self.cursor_coordinates[1] {
                     let cell = Block::default()
                         .bg(Color::LightBlue)
                         .add_modifier(Modifier::RAPID_BLINK);
-                    frame.render_widget(cell.clone(), lines[j as usize]);
+                    frame.render_widget(cell.clone(), square);
                 }
                 // Draw the cell green if this is the selected cell
                 else if i == self.selected_coordinates[0] && j == self.selected_coordinates[1] {
                     let cell = Block::default().bg(Color::LightGreen);
-                    frame.render_widget(cell.clone(), lines[j as usize]);
+                    frame.render_widget(cell.clone(), square);
                 } else {
                     let cell = Block::default().bg(cell_color);
-                    frame.render_widget(cell.clone(), lines[j as usize]);
+                    frame.render_widget(cell.clone(), square);
                 }
 
                 // Get piece and color
@@ -380,7 +390,7 @@ impl Board {
                 let paragraph = Paragraph::new(piece_enum)
                     .alignment(Alignment::Center)
                     .fg(color_enum);
-                frame.render_widget(paragraph, lines[j as usize]);
+                frame.render_widget(paragraph, square);
             }
         }
     }
