@@ -22,7 +22,7 @@ pub struct Board {
     pub selected_piece_cursor: i32,
     pub old_cursor_position: [i32; 2],
     pub player_turn: PieceColor,
-    pub moves_historic: Vec<(Option<PieceType>, String)>,
+    pub moves_historic: Vec<(Option<PieceType>, i32)>,
 }
 
 impl Default for Board {
@@ -92,13 +92,19 @@ impl Board {
 
     // Getters
     pub fn authorized_positions_enum(
+        &mut self,
         selected_coordinates: [i32; 2],
         piece_type: PieceType,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
     ) -> Vec<Vec<i32>> {
         match piece_type {
-            PieceType::Pawn => Pawn::authorized_positions(selected_coordinates, color, board),
+            PieceType::Pawn => Pawn::authorized_positions(
+                selected_coordinates,
+                color,
+                board,
+                self.get_latest_move(),
+            ),
             PieceType::Rook => Rook::authorized_positions(selected_coordinates, color, board),
             PieceType::Bishop => Bishop::authorized_positions(selected_coordinates, color, board),
             PieceType::Queen => Queen::authorized_positions(selected_coordinates, color, board),
@@ -129,6 +135,13 @@ impl Board {
             && self.selected_coordinates[1] != UNDEFINED_POSITION
     }
 
+    fn get_latest_move(&mut self) -> (Option<PieceType>, i32) {
+        if self.moves_historic.len() > 0 {
+            return self.moves_historic[self.moves_historic.len() - 1];
+        }
+        (None, 0)
+    }
+
     fn get_authorized_positions(
         &mut self,
         piece_type: Option<PieceType>,
@@ -137,7 +150,7 @@ impl Board {
     ) -> Vec<Vec<i32>> {
         match (piece_type, piece_color) {
             (Some(piece_type), Some(piece_color)) => {
-                Board::authorized_positions_enum(coordinates, piece_type, piece_color, self.board)
+                self.authorized_positions_enum(coordinates, piece_type, piece_color, self.board)
             }
             _ => Vec::new(),
         }
@@ -241,16 +254,46 @@ impl Board {
         }
     }
 
-    pub fn move_piece_on_the_board(&mut self, from: [usize; 2], to: [usize; 2]) {
-        // We store it in the historic
+    fn is_latest_move_en_passant(&self, from: [usize; 2], to: [usize; 2]) -> bool {
         let piece_type_from = get_piece_type(self.board, [from[0] as i32, from[1] as i32]);
-        let tuple = (
-            piece_type_from,
-            format!("{:?}{:?}{:?}{:?}", from[0], from[1], to[0], to[1]),
-        );
+        let piece_type_to = get_piece_type(self.board, [to[0] as i32, to[1] as i32]);
+
+        let from_y: i32 = from[0] as i32;
+        let from_x: i32 = from[1] as i32;
+        let to_y: i32 = to[0] as i32;
+        let to_x: i32 = to[1] as i32;
+        match (piece_type_from, piece_type_to) {
+            (Some(PieceType::Pawn), _) => {
+                // Check if it's a diagonal move, and the destination is an empty cell
+                from_y != to_y && from_x != to_x && self.board[to[0]][to[1]].is_none()
+            }
+            _ => false,
+        }
+    }
+
+    pub fn move_piece_on_the_board(&mut self, from: [usize; 2], to: [usize; 2]) {
+        let direction: i32 = if self.player_turn == PieceColor::White {
+            -1
+        } else {
+            1
+        };
+
+        let piece_type_from = get_piece_type(self.board, [from[0] as i32, from[1] as i32]);
+        let position_number: i32 =
+            from[0] as i32 * 1000 + from[1] as i32 * 100 + to[0] as i32 * 10 + to[1] as i32;
+
+        let tuple = (piece_type_from, position_number);
+        // We store it in the historic
         self.moves_historic.push(tuple);
+        if self.is_latest_move_en_passant(from, to) {
+            // we kill the pawn
+            let row_index = to[0] as i32 - direction;
+
+            self.board[row_index as usize][to[1]] = None;
+        }
         self.board[to[0]][to[1]] = self.board[from[0]][from[1]];
         self.board[from[0]][from[1]] = None;
+        // We check if it is en passant or not
     }
 
     pub fn unselect_cell(&mut self) {
@@ -410,8 +453,7 @@ impl Board {
             let piece_type_from = self.moves_historic[i].0.clone();
             let utf_icon_white = self.piece_type_to_utf_enum(piece_type_from);
             let number_move = self.moves_historic[i].1.clone();
-            let move_white =
-                convert_position_into_notation(number_move.to_string().parse::<i32>().unwrap());
+            let move_white = convert_position_into_notation(number_move);
 
             let mut utf_icon_black = "   ";
             let mut move_black: String = "   ".to_string();

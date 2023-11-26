@@ -19,6 +19,7 @@ impl Pawn {
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         allow_move_on_ally_positions: bool,
+        latest_move: (Option<PieceType>, i32),
     ) -> Vec<Vec<i32>> {
         // Pawns can only move in one direction depending of their color
         // -1 if they are white (go up) +1 if they are black (go down)
@@ -89,14 +90,49 @@ impl Pawn {
             }
         }
 
+        // We check for en passant
+        match latest_move.0 {
+            Some(PieceType::Pawn) => {
+                let from_y: i32 = latest_move.1 / 1000 % 10;
+                let from_x: i32 = latest_move.1 / 100 % 10;
+                let to_y: i32 = latest_move.1 / 10 % 10;
+                let to_x: i32 = latest_move.1 % 10;
+                let valid_y_start: i32;
+                let number_of_cells_move: i32;
+
+                if color == PieceColor::White {
+                    valid_y_start = 1;
+                    number_of_cells_move = to_y - from_y;
+                } else {
+                    valid_y_start = 6;
+                    number_of_cells_move = from_y - to_y;
+                };
+
+                // We check if the latest move was on the right start cell
+                // if it moved 2 cells
+                // and if the current pawn is next to this pawn latest position
+                if from_y == valid_y_start
+                    && number_of_cells_move == 2
+                    && y == to_y
+                    && (x == to_x - 1 || x == to_x + 1)
+                {
+                    let new_y = from_y + direction * -1;
+                    let new_x = from_x;
+                    positions.push([new_y, new_x].to_vec());
+                }
+            }
+            _ => {}
+        }
+
         cleaned_positions(positions)
     }
     pub fn authorized_positions(
         coordinates: [i32; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        latest_move: (Option<PieceType>, i32),
     ) -> Vec<Vec<i32>> {
-        Self::pawn_moves(coordinates, color, board, false)
+        Self::pawn_moves(coordinates, color, board, false, latest_move)
     }
 
     pub fn protecting_positions(
@@ -104,7 +140,7 @@ impl Pawn {
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
     ) -> Vec<Vec<i32>> {
-        Self::pawn_moves(coordinates, color, board, true)
+        Self::pawn_moves(coordinates, color, board, true, (None, 0000))
     }
 }
 
@@ -142,7 +178,8 @@ mod tests {
         let mut right_positions = vec![vec![3, 4]];
         right_positions.sort();
 
-        let mut positions = Pawn::authorized_positions([4, 4], PieceColor::White, board.board);
+        let mut positions =
+            Pawn::authorized_positions([4, 4], PieceColor::White, board.board, (None, 0000));
         positions.sort();
         assert_eq!(right_positions, positions);
     }
@@ -174,7 +211,8 @@ mod tests {
         let mut right_positions = vec![vec![5, 4], vec![4, 4]];
         right_positions.sort();
 
-        let mut positions = Pawn::authorized_positions([6, 4], PieceColor::White, board.board);
+        let mut positions =
+            Pawn::authorized_positions([6, 4], PieceColor::White, board.board, (None, 0000));
         positions.sort();
         assert_eq!(right_positions, positions);
     }
@@ -215,7 +253,8 @@ mod tests {
         let mut right_positions = vec![vec![2, 3], vec![3, 3], vec![2, 4], vec![2, 2]];
         right_positions.sort();
 
-        let mut positions = Pawn::authorized_positions([1, 3], PieceColor::Black, board.board);
+        let mut positions =
+            Pawn::authorized_positions([1, 3], PieceColor::Black, board.board, (None, 0000));
         positions.sort();
         assert_eq!(right_positions, positions);
     }
@@ -256,7 +295,128 @@ mod tests {
         let mut right_positions = vec![vec![2, 4], vec![2, 2]];
         right_positions.sort();
 
-        let mut positions = Pawn::authorized_positions([1, 3], PieceColor::Black, board.board);
+        let mut positions =
+            Pawn::authorized_positions([1, 3], PieceColor::Black, board.board, (None, 0000));
+        positions.sort();
+        assert_eq!(right_positions, positions);
+    }
+
+    #[test]
+    fn pawn_en_passant_white() {
+        let custom_board = [
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [
+                None,
+                None,
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                None,
+                None,
+                None,
+                None,
+            ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+        ];
+        let mut board = Board::default();
+        board.set_board(custom_board);
+
+        let mut right_positions = vec![vec![2, 2], vec![2, 3]];
+        right_positions.sort();
+
+        let mut positions = Pawn::authorized_positions(
+            [3, 3],
+            PieceColor::White,
+            board.board,
+            (Some(PieceType::Pawn), 1232),
+        );
+        positions.sort();
+        assert_eq!(right_positions, positions);
+    }
+
+    #[test]
+    fn pawn_en_passant_black() {
+        let custom_board = [
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [
+                None,
+                None,
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                None,
+                None,
+                None,
+                None,
+            ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+        ];
+        let mut board = Board::default();
+        board.set_board(custom_board);
+
+        let mut right_positions = vec![vec![5, 2], vec![5, 3]];
+        right_positions.sort();
+
+        let mut positions = Pawn::authorized_positions(
+            [4, 2],
+            PieceColor::Black,
+            board.board,
+            (Some(PieceType::Pawn), 6343),
+        );
+        positions.sort();
+        assert_eq!(right_positions, positions);
+    }
+
+    #[test]
+    fn pawn_not_en_passant() {
+        let custom_board = [
+            [None, None, None, None, None, None, None, None],
+            [
+                None,
+                Some((PieceType::Pawn, PieceColor::Black)),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [
+                None,
+                None,
+                None,
+                Some((PieceType::Pawn, PieceColor::White)),
+                None,
+                None,
+                None,
+                None,
+            ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+        ];
+        let mut board = Board::default();
+        board.set_board(custom_board);
+
+        let mut right_positions = vec![vec![2, 1], vec![3, 1]];
+        right_positions.sort();
+
+        let mut positions = Pawn::authorized_positions(
+            [1, 1],
+            PieceColor::Black,
+            board.board,
+            (Some(PieceType::Pawn), 6343),
+        );
         positions.sort();
         assert_eq!(right_positions, positions);
     }

@@ -104,7 +104,6 @@ pub fn col_to_letter(col: i32) -> String {
 
 pub fn convert_position_into_notation(position: i32) -> String {
     let mut result: String = "".to_string();
-    // println!("{}", position);
     let from_y: i32 = position / 1000 % 10;
     let from_x: i32 = position / 100 % 10;
     let to_y: i32 = position / 10 % 10;
