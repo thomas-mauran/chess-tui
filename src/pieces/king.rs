@@ -9,10 +9,10 @@ impl King {
     pub fn to_string() -> &'static str {
         "\
     \n\
-      █\n\
-    ██░██\n\
-      █\n\
-    █████\n\
+      ✚\n\
+    ▞▀▄▀▚\n\
+    ▙▄█▄▟\n\
+    ▐███▌\n\
     "
     }
 

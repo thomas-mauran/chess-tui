@@ -6,11 +6,11 @@ pub struct Pawn {}
 impl Pawn {
     pub fn to_string() -> &'static str {
         "\
-    \n\
-    \n\
-      █\n\
-     ███\n\
-     ███\n\
+        \n\
+        \n\
+      ▟█▙\n\
+      ▜█▛\n\
+     ▟███▙\n\
     "
     }
 
@@ -33,7 +33,10 @@ impl Pawn {
         let new_y_front_one = y + direction;
         let new_coordinates_front_one = [new_y_front_one, new_x_front_one];
 
-        if is_valid(new_coordinates_front_one) && !allow_move_on_ally_positions && get_piece_color(board, new_coordinates_front_one).is_none() {
+        if is_valid(new_coordinates_front_one)
+            && !allow_move_on_ally_positions
+            && get_piece_color(board, new_coordinates_front_one).is_none()
+        {
             // Empty cell
             positions.push(new_coordinates_front_one.to_vec());
 
