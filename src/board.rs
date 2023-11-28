@@ -2,9 +2,12 @@ use crate::{
     constants::{BLACK, UNDEFINED_POSITION, WHITE},
     pieces::{
         bishop::Bishop, king::King, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook,
-        PieceColor, PieceType, Position,
+        PieceColor, PieceType,
     },
-    utils::{convert_position_into_notation, get_piece_color, get_piece_type, is_valid},
+    utils::{
+        convert_position_into_notation, get_latest_move, get_piece_color, get_piece_type,
+        get_player_turn_in_modulo, is_valid,
+    },
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -22,7 +25,7 @@ pub struct Board {
     pub selected_piece_cursor: i8,
     pub old_cursor_position: [i8; 2],
     pub player_turn: PieceColor,
-    pub moves_history: Vec<(Option<PieceType>, i32)>,
+    pub moves_history: Vec<(Option<PieceType>, String)>,
 }
 
 impl Default for Board {
@@ -65,9 +68,9 @@ impl Default for Board {
                 ],
                 [
                     Some((PieceType::Rook, PieceColor::White)),
-                    Some((PieceType::Knight, PieceColor::White)),
-                    Some((PieceType::Bishop, PieceColor::White)),
-                    Some((PieceType::Queen, PieceColor::White)),
+                    None,
+                    None,
+                    None,
                     Some((PieceType::King, PieceColor::White)),
                     Some((PieceType::Bishop, PieceColor::White)),
                     Some((PieceType::Knight, PieceColor::White)),
@@ -96,25 +99,23 @@ impl Board {
             && self.selected_coordinates[1] != UNDEFINED_POSITION
     }
 
-    pub fn get_latest_move(&self) -> (Option<PieceType>, i32) {
-        if !self.moves_history.is_empty() {
-            return self.moves_history[self.moves_history.len() - 1];
+    fn get_authorized_positions(
+        &self,
+        piece_type: Option<PieceType>,
+        piece_color: Option<PieceColor>,
+        coordinates: [i8; 2],
+    ) -> Vec<Vec<i8>> {
+        match (piece_type, piece_color) {
+            (Some(piece_type), Some(piece_color)) => piece_type.authorized_positions(
+                coordinates,
+                piece_color,
+                self.board,
+                self.moves_history.clone(),
+                self.did_king_already_move(),
+            ),
+            _ => Vec::new(),
         }
-        (None, 0)
     }
-fn get_authorized_positions(
-    &self,
-    piece_type: Option<PieceType>,
-    piece_color: Option<PieceColor>,
-    coordinates: [i8; 2],
-) -> Vec<Vec<i8>> {
-    match (piece_type, piece_color) {
-        (Some(piece_type), Some(piece_color)) => {
-            piece_type.authorized_positions(coordinates, piece_color, self.board, Some(self.get_latest_move()))
-        }
-        _ => Vec::new(),
-    }
-}
     pub fn switch_player_turn(&mut self) {
         match self.player_turn {
             PieceColor::White => self.player_turn = PieceColor::Black,
@@ -150,6 +151,22 @@ fn get_authorized_positions(
         } else if self.cursor_coordinates[1] < 7 {
             self.cursor_coordinates[1] += 1
         }
+    }
+
+    pub fn did_king_already_move(&self) -> bool {
+        for i in 0..self.moves_history.len() {
+            match self.moves_history[i] {
+                (Some(piece_type), _) => {
+                    if piece_type == PieceType::King
+                        && get_player_turn_in_modulo(self.player_turn) == i % 2
+                    {
+                        return true;
+                    }
+                }
+                _ => unreachable!("Invalid move in history"),
+            }
+        }
+        false
     }
 
     fn move_selected_piece_cursor(&mut self, first_time_moving: bool, direction: i8) {
@@ -230,29 +247,69 @@ fn get_authorized_positions(
         }
     }
 
+    fn is_latest_move_castling(&self, from: [usize; 2], to: [usize; 2]) -> bool {
+        let piece_type_from = get_piece_type(self.board, [from[0] as i8, from[1] as i8]);
+        let piece_type_to = get_piece_type(self.board, [to[0] as i8, to[1] as i8]);
+
+        let from_x: i32 = from[1] as i32;
+        let to_x: i32 = to[1] as i32;
+        let distance = (from_x - to_x).abs();
+
+        match (piece_type_from, piece_type_to) {
+            (Some(PieceType::King), _) => {
+                // Check if it's a move on more
+                distance > 1
+            }
+            _ => false,
+        }
+    }
+
     pub fn move_piece_on_the_board(&mut self, from: [usize; 2], to: [usize; 2]) {
-        let direction: i32 = if self.player_turn == PieceColor::White {
+        let direction_y: i32 = if self.player_turn == PieceColor::White {
             -1
         } else {
             1
         };
 
         let piece_type_from = get_piece_type(self.board, [from[0] as i8, from[1] as i8]);
-        let position_number: i32 =
-            from[0] as i32 * 1000 + from[1] as i32 * 100 + to[0] as i32 * 10 + to[1] as i32;
+        let position_number: String = format!("{}{}{}{}", from[0], from[1], to[0], to[1]);
 
         let tuple = (piece_type_from, position_number);
-        // We store it in the history
-        self.moves_history.push(tuple);
+
+        // We check for en passant as the latest move
         if self.is_latest_move_en_passant(from, to) {
             // we kill the pawn
-            let row_index = to[0] as i32 - direction;
+            let row_index = to[0] as i32 - direction_y;
 
             self.board[row_index as usize][to[1]] = None;
         }
-        self.board[to[0]][to[1]] = self.board[from[0]][from[1]];
+
+        // We check for castling as the latest move
+        if self.is_latest_move_castling(from, to) {
+            // we set the king 2 cells on where it came from
+
+            let from_x: i32 = from[1] as i32;
+            let to_x: i32 = to[1] as i32;
+            let distance = from_x - to_x;
+            let direction_x = if distance > 0 { -1 } else { 1 };
+
+            let row_index = from[1] as i32 + direction_x * 2;
+            // We put move the king 2 cells
+            self.board[to[0]][row_index as usize] = self.board[from[0]][from[1]];
+
+            // We put the rook 3 cells from it's position
+            let row_index_rook = to[1] as i32 + direction_x * (distance * -1) - 1;
+            self.board[to[0]][row_index_rook as usize] = self.board[to[0]][to[1]];
+
+            // We remove the latest rook
+            self.board[to[0]][to[1]] = None;
+        } else {
+            self.board[to[0]][to[1]] = self.board[from[0]][from[1]];
+        }
         self.board[from[0]][from[1]] = None;
-        // We check if it is en passant or not
+
+        // We store it in the history
+        self.moves_history.push(tuple);
     }
 
     pub fn unselect_cell(&mut self) {
@@ -411,8 +468,8 @@ fn get_authorized_positions(
         for i in (0..self.moves_history.len()).step_by(2) {
             let piece_type_from = self.moves_history[i].0;
             let utf_icon_white = self.piece_type_to_utf_enum(piece_type_from);
-            let number_move = self.moves_history[i].1;
-            let move_white = convert_position_into_notation(number_move);
+            let number_move = &self.moves_history[i].1;
+            let move_white = convert_position_into_notation(number_move.to_string());
 
             let mut utf_icon_black = "   ";
             let mut move_black: String = "   ".to_string();
@@ -420,9 +477,8 @@ fn get_authorized_positions(
             // If there is something for black
             if i + 1 < self.moves_history.len() {
                 let piece_type_to = self.moves_history[i + 1].0;
-                let number = self.moves_history[i + 1].1;
-                move_black =
-                    convert_position_into_notation(number.to_string().parse::<i32>().unwrap());
+                let number = &self.moves_history[i + 1].1;
+                move_black = convert_position_into_notation(number.to_string());
                 utf_icon_black = self.piece_type_to_utf_enum(piece_type_to)
             }
 
@@ -430,7 +486,7 @@ fn get_authorized_positions(
                 Span::raw(format!("{}.  ", i / 2 + 1)), // line number
                 Span::styled(format!("{} ", utf_icon_white), Style::default().fg(WHITE)), // white symbol
                 Span::raw(move_white.to_string()), // white move
-                Span::raw("     "),                   // separator
+                Span::raw("     "),                // separator
                 Span::styled(
                     format!("{} ", utf_icon_black),
                     Style::default().fg(Color::Black),

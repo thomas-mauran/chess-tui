@@ -1,14 +1,14 @@
-use super::{PieceColor, PieceType, Movable, Position};
+use super::{Movable, PieceColor, PieceType, Position};
 use crate::utils::{cleaned_positions, is_cell_color_ally, is_valid};
 pub struct Knight;
 
-impl Movable for Knight{
+impl Movable for Knight {
     fn piece_move(
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         allow_move_on_ally_positions: bool,
-        _latest_move: Option<(Option<PieceType>, i32)>,
+        _move_history: Vec<(Option<PieceType>, String)>,
     ) -> Vec<Vec<i8>> {
         let mut positions: Vec<Vec<i8>> = Vec::new();
 
@@ -44,23 +44,24 @@ impl Movable for Knight{
     }
 }
 
-impl Position for Knight{
+impl Position for Knight {
     fn authorized_positions(
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-        _latest_move: Option<(Option<PieceType>, i32)>,
+        _move_history: Vec<(Option<PieceType>, String)>,
+        _did_king_already_move: bool,
     ) -> Vec<Vec<i8>> {
-        Self::piece_move(coordinates, color, board, false, None)
+        Self::piece_move(coordinates, color, board, false, _move_history)
     }
 
     fn protected_positions(
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-        _latest_move: Option<(Option<PieceType>, i32)>,
+        _move_history: Vec<(Option<PieceType>, String)>,
     ) -> Vec<Vec<i8>> {
-        Self::piece_move(coordinates, color, board, true, None)
+        Self::piece_move(coordinates, color, board, true, _move_history)
     }
 }
 
@@ -74,8 +75,6 @@ impl Knight {
     ▟████\n\
     "
     }
-
-    
 }
 
 #[cfg(test)]
@@ -121,7 +120,8 @@ mod tests {
         ];
         right_positions.sort();
 
-        let mut positions = Knight::authorized_positions([4, 4], PieceColor::White, board.board, None);
+        let mut positions =
+            Knight::authorized_positions([4, 4], PieceColor::White, board.board, vec![], false);
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -172,7 +172,8 @@ mod tests {
         let mut right_positions = vec![vec![6, 5]];
         right_positions.sort();
 
-        let mut positions = Knight::authorized_positions([7, 7], PieceColor::White, board.board, None);
+        let mut positions =
+            Knight::authorized_positions([7, 7], PieceColor::White, board.board, vec![], false);
         positions.sort();
 
         assert_eq!(right_positions, positions);

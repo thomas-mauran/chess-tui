@@ -1,5 +1,5 @@
 use super::rook::Rook;
-use super::{PieceColor, PieceType, Movable, Position};
+use super::{Movable, PieceColor, PieceType, Position};
 use crate::pieces::bishop::Bishop;
 use crate::utils::cleaned_positions;
 
@@ -11,7 +11,7 @@ impl Movable for Queen {
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         allow_move_on_ally_positions: bool,
-        _latest_move: Option<(Option<PieceType>, i32)>,
+        _move_history: Vec<(Option<PieceType>, String)>,
     ) -> Vec<Vec<i8>> {
         let mut positions: Vec<Vec<i8>> = vec![];
 
@@ -21,14 +21,14 @@ impl Movable for Queen {
             color,
             board,
             allow_move_on_ally_positions,
-            None
+            _move_history.clone(),
         ));
         positions.extend(Rook::piece_move(
             coordinates,
             color,
             board,
             allow_move_on_ally_positions,
-            None
+            _move_history,
         ));
 
         cleaned_positions(positions)
@@ -40,17 +40,18 @@ impl Position for Queen {
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-        _latest_move: Option<(Option<PieceType>, i32)>,
+        _move_history: Vec<(Option<PieceType>, String)>,
+        _did_king_already_move: bool,
     ) -> Vec<Vec<i8>> {
-        Self::piece_move(coordinates, color, board, false, None)
+        Self::piece_move(coordinates, color, board, false, _move_history)
     }
     fn protected_positions(
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-        _latest_move: Option<(Option<PieceType>, i32)>,
+        _move_history: Vec<(Option<PieceType>, String)>,
     ) -> Vec<Vec<i8>> {
-        Self::piece_move(coordinates, color, board, true, None)
+        Self::piece_move(coordinates, color, board, true, _move_history)
     }
 }
 
@@ -128,7 +129,8 @@ mod tests {
         ];
         right_positions.sort();
 
-        let mut positions = Queen::authorized_positions([4, 4], PieceColor::White, board.board, None);
+        let mut positions =
+            Queen::authorized_positions([4, 4], PieceColor::White, board.board, vec![], false);
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -196,7 +198,8 @@ mod tests {
         ];
         right_positions.sort();
 
-        let mut positions = Queen::authorized_positions([4, 4], PieceColor::White, board.board, None);
+        let mut positions =
+            Queen::authorized_positions([4, 4], PieceColor::White, board.board, vec![], false);
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -274,7 +277,8 @@ mod tests {
 
         right_positions.sort();
 
-        let mut positions = Queen::authorized_positions([4, 4], PieceColor::White, board.board, None);
+        let mut positions =
+            Queen::authorized_positions([4, 4], PieceColor::White, board.board, vec![], false);
         positions.sort();
 
         assert_eq!(right_positions, positions);

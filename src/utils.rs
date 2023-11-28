@@ -1,6 +1,4 @@
-use crate::{
-    pieces::{PieceColor, PieceType},
-};
+use crate::pieces::{PieceColor, PieceType};
 
 pub fn get_piece_color(
     board: [[Option<(PieceType, PieceColor)>; 8]; 8],
@@ -65,7 +63,7 @@ pub fn is_vec_in_array(array: Vec<Vec<i8>>, element: [i8; 2]) -> bool {
 pub fn get_all_checked_cells(
     board: [[Option<(PieceType, PieceColor)>; 8]; 8],
     color: PieceColor,
-    latest_move: Option<(Option<PieceType>, i32)>,
+    move_history: Vec<(Option<PieceType>, String)>,
 ) -> Vec<Vec<i8>> {
     let mut check_cells: Vec<Vec<i8>> = vec![];
     for i in 0..8i8 {
@@ -80,7 +78,7 @@ pub fn get_all_checked_cells(
                         piece_type,
                         piece_color,
                         board,
-                        latest_move
+                        move_history.clone(),
                     ));
                 }
             }
@@ -103,18 +101,41 @@ pub fn col_to_letter(col: i8) -> String {
     }
 }
 
-pub fn convert_position_into_notation(position: i32) -> String {
+pub fn convert_position_into_notation(position: String) -> String {
     let mut result: String = "".to_string();
-    let from_y: i32 = position / 1000 % 10;
-    let from_x: i32 = position / 100 % 10;
-    let to_y: i32 = position / 10 % 10;
-    let to_x: i32 = position % 10;
+    let from_y = get_int_from_char(position.chars().nth(0));
+    let from_x = get_int_from_char(position.chars().nth(1));
+    let to_y = get_int_from_char(position.chars().nth(2));
+    let to_x = get_int_from_char(position.chars().nth(3));
 
-    result += &col_to_letter(from_x as i8);
-    result += &format!("{}", (8 - from_y as i8) % 8).to_string();
+    result += &col_to_letter(from_x);
+    result += &format!("{}", (8 - from_y) % 8).to_string();
     result += "-";
-    result += &col_to_letter(to_x as i8);
-    result += &format!("{}", (8 - to_y as i8) % 8).to_string();
+    result += &col_to_letter(to_x);
+    result += &format!("{}", (8 - to_y) % 8).to_string();
 
     result
+}
+
+pub fn get_player_turn_in_modulo(color: PieceColor) -> usize {
+    match color {
+        PieceColor::White => 0,
+        PieceColor::Black => 1,
+    }
+}
+
+pub fn get_int_from_char(ch: Option<char>) -> i8 {
+    match ch {
+        Some(ch) => ch.to_digit(10).unwrap() as i8,
+        _ => -1,
+    }
+}
+
+pub fn get_latest_move(
+    move_history: &Vec<(Option<PieceType>, String)>,
+) -> (Option<PieceType>, String) {
+    if !move_history.is_empty() {
+        return move_history[move_history.len() - 1].clone();
+    }
+    (None, "0000".to_string())
 }
