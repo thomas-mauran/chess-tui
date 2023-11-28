@@ -1,5 +1,4 @@
 use crate::{
-    board::Board,
     pieces::{PieceColor, PieceType},
 };
 
@@ -66,6 +65,7 @@ pub fn is_vec_in_array(array: Vec<Vec<i8>>, element: [i8; 2]) -> bool {
 pub fn get_all_checked_cells(
     board: [[Option<(PieceType, PieceColor)>; 8]; 8],
     color: PieceColor,
+    latest_move: Option<(Option<PieceType>, i32)>,
 ) -> Vec<Vec<i8>> {
     let mut check_cells: Vec<Vec<i8>> = vec![];
     for i in 0..8i8 {
@@ -75,11 +75,12 @@ pub fn get_all_checked_cells(
             }
             if let Some(piece_color) = get_piece_color(board, [i, j]) {
                 if let Some(piece_type) = get_piece_type(board, [i, j]) {
-                    check_cells.extend(Board::protected_positions_enum(
+                    check_cells.extend(PieceType::protected_positions(
                         [i, j],
                         piece_type,
                         piece_color,
                         board,
+                        latest_move
                     ));
                 }
             }
@@ -98,7 +99,7 @@ pub fn col_to_letter(col: i8) -> String {
         5 => "f".to_string(),
         6 => "g".to_string(),
         7 => "h".to_string(),
-        _ => panic!("Col out of bound {}", col),
+        _ => unreachable!("Col out of bound {}", col),
     }
 }
 

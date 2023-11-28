@@ -1,29 +1,21 @@
-use super::{PieceColor, PieceType};
+use super::{PieceColor, PieceType, Movable, Position};
 use crate::utils::{cleaned_positions, is_cell_color_ally, is_valid};
-pub struct Knight {}
-impl Knight {
-    pub fn to_string() -> &'static str {
-        "\
-    \n\
-    ▟▛██▙\n\
-   ▟█████\n\
-   ▀▀▟██▌\n\
-    ▟████\n\
-    "
-    }
+pub struct Knight;
 
-    pub fn knight_moves(
+impl Movable for Knight{
+    fn piece_move(
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         allow_move_on_ally_positions: bool,
+        _latest_move: Option<(Option<PieceType>, i32)>,
     ) -> Vec<Vec<i8>> {
         let mut positions: Vec<Vec<i8>> = Vec::new();
 
         let (y, x) = (coordinates[0], coordinates[1]);
 
         // Generate knight positions in all eight possible L-shaped moves
-        let knight_moves = [
+        let piece_move = [
             (-2, -1),
             (-2, 1),
             (-1, -2),
@@ -34,7 +26,7 @@ impl Knight {
             (2, 1),
         ];
 
-        for &(dy, dx) in &knight_moves {
+        for &(dy, dx) in &piece_move {
             let new_coordinates = [y + dy, x + dx];
 
             if !is_valid(new_coordinates) {
@@ -50,33 +42,51 @@ impl Knight {
 
         cleaned_positions(positions)
     }
+}
 
-    pub fn authorized_positions(
+impl Position for Knight{
+    fn authorized_positions(
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        _latest_move: Option<(Option<PieceType>, i32)>,
     ) -> Vec<Vec<i8>> {
-        Self::knight_moves(coordinates, color, board, false)
+        Self::piece_move(coordinates, color, board, false, None)
     }
 
-    pub fn protecting_positions(
+    fn protected_positions(
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        _latest_move: Option<(Option<PieceType>, i32)>,
     ) -> Vec<Vec<i8>> {
-        Self::knight_moves(coordinates, color, board, true)
+        Self::piece_move(coordinates, color, board, true, None)
     }
+}
+
+impl Knight {
+    pub fn to_string() -> &'static str {
+        "\
+    \n\
+    ▟▛██▙\n\
+   ▟█████\n\
+   ▀▀▟██▌\n\
+    ▟████\n\
+    "
+    }
+
+    
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
         board::Board,
-        pieces::{knight::Knight, PieceColor, PieceType},
+        pieces::{knight::Knight, PieceColor, PieceType, Position},
     };
 
     #[test]
-    fn knight_moves_no_enemies() {
+    fn piece_move_no_enemies() {
         let custom_board = [
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
@@ -111,14 +121,14 @@ mod tests {
         ];
         right_positions.sort();
 
-        let mut positions = Knight::authorized_positions([4, 4], PieceColor::White, board.board);
+        let mut positions = Knight::authorized_positions([4, 4], PieceColor::White, board.board, None);
         positions.sort();
 
         assert_eq!(right_positions, positions);
     }
 
     #[test]
-    fn knight_moves_enemy_and_ally() {
+    fn piece_move_enemy_and_ally() {
         let custom_board = [
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
@@ -162,7 +172,7 @@ mod tests {
         let mut right_positions = vec![vec![6, 5]];
         right_positions.sort();
 
-        let mut positions = Knight::authorized_positions([7, 7], PieceColor::White, board.board);
+        let mut positions = Knight::authorized_positions([7, 7], PieceColor::White, board.board, None);
         positions.sort();
 
         assert_eq!(right_positions, positions);

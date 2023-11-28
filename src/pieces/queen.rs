@@ -1,9 +1,58 @@
 use super::rook::Rook;
-use super::{PieceColor, PieceType};
+use super::{PieceColor, PieceType, Movable, Position};
 use crate::pieces::bishop::Bishop;
 use crate::utils::cleaned_positions;
 
-pub struct Queen {}
+pub struct Queen;
+
+impl Movable for Queen {
+    fn piece_move(
+        coordinates: [i8; 2],
+        color: PieceColor,
+        board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        allow_move_on_ally_positions: bool,
+        _latest_move: Option<(Option<PieceType>, i32)>,
+    ) -> Vec<Vec<i8>> {
+        let mut positions: Vec<Vec<i8>> = vec![];
+
+        // Queen = bishop concat rook
+        positions.extend(Bishop::piece_move(
+            coordinates,
+            color,
+            board,
+            allow_move_on_ally_positions,
+            None
+        ));
+        positions.extend(Rook::piece_move(
+            coordinates,
+            color,
+            board,
+            allow_move_on_ally_positions,
+            None
+        ));
+
+        cleaned_positions(positions)
+    }
+}
+
+impl Position for Queen {
+    fn authorized_positions(
+        coordinates: [i8; 2],
+        color: PieceColor,
+        board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        _latest_move: Option<(Option<PieceType>, i32)>,
+    ) -> Vec<Vec<i8>> {
+        Self::piece_move(coordinates, color, board, false, None)
+    }
+    fn protected_positions(
+        coordinates: [i8; 2],
+        color: PieceColor,
+        board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        _latest_move: Option<(Option<PieceType>, i32)>,
+    ) -> Vec<Vec<i8>> {
+        Self::piece_move(coordinates, color, board, true, None)
+    }
+}
 
 impl Queen {
     pub fn to_string() -> &'static str {
@@ -15,58 +64,17 @@ impl Queen {
     ▐███▌\n\
     "
     }
-
-    pub fn queen_moves(
-        coordinates: [i8; 2],
-        color: PieceColor,
-        board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-        allow_move_on_ally_positions: bool,
-    ) -> Vec<Vec<i8>> {
-        let mut positions: Vec<Vec<i8>> = vec![];
-
-        // Queen = bishop concat rook
-        positions.extend(Bishop::bishop_moves(
-            coordinates,
-            color,
-            board,
-            allow_move_on_ally_positions,
-        ));
-        positions.extend(Rook::rook_moves(
-            coordinates,
-            color,
-            board,
-            allow_move_on_ally_positions,
-        ));
-
-        cleaned_positions(positions)
-    }
-
-    pub fn authorized_positions(
-        coordinates: [i8; 2],
-        color: PieceColor,
-        board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-    ) -> Vec<Vec<i8>> {
-        Self::queen_moves(coordinates, color, board, false)
-    }
-
-    pub fn protecting_positions(
-        coordinates: [i8; 2],
-        color: PieceColor,
-        board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-    ) -> Vec<Vec<i8>> {
-        Self::queen_moves(coordinates, color, board, true)
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
         board::Board,
-        pieces::{queen::Queen, PieceColor, PieceType},
+        pieces::{queen::Queen, PieceColor, PieceType, Position},
     };
 
     #[test]
-    fn queen_moves_no_enemies() {
+    fn piece_move_no_enemies() {
         let custom_board = [
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
@@ -120,14 +128,14 @@ mod tests {
         ];
         right_positions.sort();
 
-        let mut positions = Queen::authorized_positions([4, 4], PieceColor::White, board.board);
+        let mut positions = Queen::authorized_positions([4, 4], PieceColor::White, board.board, None);
         positions.sort();
 
         assert_eq!(right_positions, positions);
     }
 
     #[test]
-    fn queen_moves_one_enemies_top_right() {
+    fn piece_move_one_enemies_top_right() {
         let custom_board = [
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
@@ -188,14 +196,14 @@ mod tests {
         ];
         right_positions.sort();
 
-        let mut positions = Queen::authorized_positions([4, 4], PieceColor::White, board.board);
+        let mut positions = Queen::authorized_positions([4, 4], PieceColor::White, board.board, None);
         positions.sort();
 
         assert_eq!(right_positions, positions);
     }
 
     #[test]
-    fn queen_moves_enemies_and_allies() {
+    fn piece_move_enemies_and_allies() {
         let custom_board = [
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
@@ -266,7 +274,7 @@ mod tests {
 
         right_positions.sort();
 
-        let mut positions = Queen::authorized_positions([4, 4], PieceColor::White, board.board);
+        let mut positions = Queen::authorized_positions([4, 4], PieceColor::White, board.board, None);
         positions.sort();
 
         assert_eq!(right_positions, positions);

@@ -51,7 +51,7 @@ pub fn render(app: &mut App, frame: &mut Frame) {
 
     // We make the inside of the board
     app.board
-        .historic_render(board_block.inner(main_layout_vertical[3]), frame);
+        .history_render(board_block.inner(main_layout_vertical[3]), frame);
 
     if app.show_popup {
         render_popup(frame)
@@ -73,15 +73,15 @@ pub fn render_popup(frame: &mut Frame) {
         Line::from(""),
         Line::from(vec![
             "← ↑ ↓ →: Use the arrow keys to move the ".into(),
-            "blue".blue().into(),
+            "blue".blue(),
             " cursor".into(),
         ]),
         Line::from(""),
         Line::from(vec![
             "SPACE_BAR: Select the piece you want to move to make the square ".into(),
-            "green.".green().into(),
+            "green.".green(),
             " If you selected a piece you will see in ".into(),
-            "red".red().into(),
+            "red".red(),
             " the available cells for this piece. You can then hit SPACE_BAR again to move on that square".into(),
         ]),
         Line::from(""),

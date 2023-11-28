@@ -1,24 +1,15 @@
-use super::{PieceColor, PieceType};
+use super::{PieceColor, PieceType, Movable, Position};
 use crate::utils::{cleaned_positions, get_piece_color, is_cell_color_ally, is_valid};
 
-pub struct Rook {}
+pub struct Rook;
 
-impl Rook {
-    pub fn to_string() -> &'static str {
-        "\
-    \n\
-    █▟█▙█\n\
-    ▜███▛\n\
-    ▐███▌\n\
-   ▗█████▖\n\
-    "
-    }
-
-    pub fn rook_moves(
+impl Movable for Rook {
+    fn piece_move(
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         allow_move_on_ally_positions: bool,
+        _latest_move: Option<(Option<PieceType>, i32)>,
     ) -> Vec<Vec<i8>> {
         // Pawns can only move in one direction depending on their color
         let mut positions: Vec<Vec<i8>> = vec![];
@@ -147,21 +138,37 @@ impl Rook {
 
         cleaned_positions(positions)
     }
+}
 
-    pub fn authorized_positions(
+impl Position for Rook{
+    fn authorized_positions(
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        _latest_move: Option<(Option<PieceType>, i32)>,
     ) -> Vec<Vec<i8>> {
-        Self::rook_moves(coordinates, color, board, false)
+        Self::piece_move(coordinates, color, board, false, None)
     }
 
-    pub fn protecting_positions(
+    fn protected_positions(
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        _latest_move: Option<(Option<PieceType>, i32)>,
     ) -> Vec<Vec<i8>> {
-        Self::rook_moves(coordinates, color, board, true)
+        Self::piece_move(coordinates, color, board, true, None)
+    }
+}
+
+impl Rook {
+    pub fn to_string() -> &'static str {
+        "\
+    \n\
+    █▟█▙█\n\
+    ▜███▛\n\
+    ▐███▌\n\
+   ▗█████▖\n\
+    "
     }
 }
 
@@ -169,11 +176,11 @@ impl Rook {
 mod tests {
     use crate::{
         board::Board,
-        pieces::{rook::Rook, PieceColor, PieceType},
+        pieces::{rook::Rook, PieceColor, PieceType, Position},
     };
 
     #[test]
-    fn rook_moves_no_enemies() {
+    fn piece_move_no_enemies() {
         let custom_board = [
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
@@ -214,13 +221,13 @@ mod tests {
         ];
         right_positions.sort();
 
-        let mut positions = Rook::authorized_positions([4, 4], PieceColor::White, board.board);
+        let mut positions = Rook::authorized_positions([4, 4], PieceColor::White, board.board, None);
         positions.sort();
         assert_eq!(right_positions, positions);
     }
 
     #[test]
-    fn rook_moves_one_enemies_front() {
+    fn piece_move_one_enemies_front() {
         let custom_board = [
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
@@ -267,13 +274,13 @@ mod tests {
         ];
         right_positions.sort();
 
-        let mut positions = Rook::authorized_positions([4, 4], PieceColor::White, board.board);
+        let mut positions = Rook::authorized_positions([4, 4], PieceColor::White, board.board, None);
         positions.sort();
         assert_eq!(right_positions, positions);
     }
 
     #[test]
-    fn rook_moves_multiple_enemies_and_ally_front() {
+    fn piece_move_multiple_enemies_and_ally_front() {
         let custom_board = [
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
@@ -326,7 +333,7 @@ mod tests {
         ];
         right_positions.sort();
 
-        let mut positions = Rook::authorized_positions([4, 4], PieceColor::White, board.board);
+        let mut positions = Rook::authorized_positions([4, 4], PieceColor::White, board.board, None);
         positions.sort();
 
         assert_eq!(right_positions, positions);

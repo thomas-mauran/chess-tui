@@ -1,22 +1,14 @@
-use super::{PieceColor, PieceType};
+use super::{PieceColor, PieceType, Movable, Position};
 use crate::utils::{cleaned_positions, get_piece_color, is_cell_color_ally, is_valid};
-pub struct Bishop {}
-impl Bishop {
-    pub fn to_string() -> &'static str {
-        "\
-    \n\
-       ⭘\n\
-      █✝█\n\
-      ███\n\
-    ▗█████▖\n\
-    "
-    }
+pub struct Bishop;
 
-    pub fn bishop_moves(
+impl Movable for Bishop{
+    fn piece_move(
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         allow_move_on_ally_positions: bool,
+        _latest_move: Option<(Option<PieceType>, i32)>,
     ) -> Vec<Vec<i8>> {
         let mut positions: Vec<Vec<i8>> = vec![];
 
@@ -154,33 +146,49 @@ impl Bishop {
 
         cleaned_positions(positions)
     }
+}
 
-    pub fn authorized_positions(
+impl Position for Bishop{
+    fn authorized_positions(
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        _latest_move: Option<(Option<PieceType>, i32)>,
     ) -> Vec<Vec<i8>> {
-        Self::bishop_moves(coordinates, color, board, false)
+        Self::piece_move(coordinates, color, board, false, None)
     }
-
-    pub fn protecting_positions(
+    fn protected_positions(
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        _latest_move: Option<(Option<PieceType>, i32)>,
     ) -> Vec<Vec<i8>> {
-        Self::bishop_moves(coordinates, color, board, true)
+        Self::piece_move(coordinates, color, board, true, None)
     }
+}
+
+impl Bishop {
+    pub fn to_string() -> &'static str {
+        "\
+    \n\
+       ⭘\n\
+      █✝█\n\
+      ███\n\
+    ▗█████▖\n\
+    "
+    }
+
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
         board::Board,
-        pieces::{bishop::Bishop, PieceColor, PieceType},
+        pieces::{bishop::Bishop, PieceColor, PieceType, Position},
     };
 
     #[test]
-    fn bishop_moves_no_enemies() {
+    fn piece_move_no_enemies() {
         let custom_board = [
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
@@ -220,14 +228,14 @@ mod tests {
         ];
         right_positions.sort();
 
-        let mut positions = Bishop::authorized_positions([4, 4], PieceColor::White, board.board);
+        let mut positions = Bishop::authorized_positions([4, 4], PieceColor::White, board.board, None);
         positions.sort();
 
         assert_eq!(right_positions, positions);
     }
 
     #[test]
-    fn bishop_moves_one_enemies_top_right() {
+    fn piece_move_one_enemies_top_right() {
         let custom_board = [
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
@@ -274,14 +282,14 @@ mod tests {
         ];
         right_positions.sort();
 
-        let mut positions = Bishop::authorized_positions([4, 4], PieceColor::White, board.board);
+        let mut positions = Bishop::authorized_positions([4, 4], PieceColor::White, board.board, None);
         positions.sort();
 
         assert_eq!(right_positions, positions);
     }
 
     #[test]
-    fn bishop_moves_multiple_enemies_and_ally_front() {
+    fn piece_move_multiple_enemies_and_ally_front() {
         let custom_board = [
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
@@ -342,7 +350,7 @@ mod tests {
         ];
         right_positions.sort();
 
-        let mut positions = Bishop::authorized_positions([4, 4], PieceColor::White, board.board);
+        let mut positions = Bishop::authorized_positions([4, 4], PieceColor::White, board.board, None);
         positions.sort();
 
         assert_eq!(right_positions, positions);

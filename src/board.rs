@@ -2,7 +2,7 @@ use crate::{
     constants::{BLACK, UNDEFINED_POSITION, WHITE},
     pieces::{
         bishop::Bishop, king::King, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook,
-        PieceColor, PieceType,
+        PieceColor, PieceType, Position,
     },
     utils::{convert_position_into_notation, get_piece_color, get_piece_type, is_valid},
 };
@@ -22,7 +22,7 @@ pub struct Board {
     pub selected_piece_cursor: i8,
     pub old_cursor_position: [i8; 2],
     pub player_turn: PieceColor,
-    pub moves_historic: Vec<(Option<PieceType>, i32)>,
+    pub moves_history: Vec<(Option<PieceType>, i32)>,
 }
 
 impl Default for Board {
@@ -79,7 +79,7 @@ impl Default for Board {
             selected_piece_cursor: 0,
             old_cursor_position: [UNDEFINED_POSITION, UNDEFINED_POSITION],
             player_turn: PieceColor::White,
-            moves_historic: vec![],
+            moves_history: vec![],
         }
     }
 }
@@ -90,72 +90,31 @@ impl Board {
         self.board = board;
     }
 
-    // Getters
-    pub fn authorized_positions_enum(
-        &mut self,
-        selected_coordinates: [i8; 2],
-        piece_type: PieceType,
-        color: PieceColor,
-        board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-    ) -> Vec<Vec<i8>> {
-        match piece_type {
-            PieceType::Pawn => Pawn::authorized_positions(
-                selected_coordinates,
-                color,
-                board,
-                self.get_latest_move(),
-            ),
-            PieceType::Rook => Rook::authorized_positions(selected_coordinates, color, board),
-            PieceType::Bishop => Bishop::authorized_positions(selected_coordinates, color, board),
-            PieceType::Queen => Queen::authorized_positions(selected_coordinates, color, board),
-            PieceType::King => King::authorized_positions(selected_coordinates, color, board),
-            PieceType::Knight => Knight::authorized_positions(selected_coordinates, color, board),
-        }
-    }
-
-    pub fn protected_positions_enum(
-        selected_coordinates: [i8; 2],
-        piece_type: PieceType,
-        color: PieceColor,
-        board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-    ) -> Vec<Vec<i8>> {
-        match piece_type {
-            PieceType::Pawn => Pawn::protecting_positions(selected_coordinates, color, board),
-            PieceType::Rook => Rook::protecting_positions(selected_coordinates, color, board),
-            PieceType::Bishop => Bishop::protecting_positions(selected_coordinates, color, board),
-            PieceType::Queen => Queen::protecting_positions(selected_coordinates, color, board),
-            PieceType::King => King::protecting_positions(selected_coordinates, color, board),
-            PieceType::Knight => Knight::protecting_positions(selected_coordinates, color, board),
-        }
-    }
-
     // Check if a cell has been selected
-    fn is_cell_selected(&mut self) -> bool {
+    fn is_cell_selected(&self) -> bool {
         self.selected_coordinates[0] != UNDEFINED_POSITION
             && self.selected_coordinates[1] != UNDEFINED_POSITION
     }
 
-    fn get_latest_move(&mut self) -> (Option<PieceType>, i32) {
-        if self.moves_historic.len() > 0 {
-            return self.moves_historic[self.moves_historic.len() - 1];
+    pub fn get_latest_move(&self) -> (Option<PieceType>, i32) {
+        if !self.moves_history.is_empty() {
+            return self.moves_history[self.moves_history.len() - 1];
         }
         (None, 0)
     }
-
-    fn get_authorized_positions(
-        &mut self,
-        piece_type: Option<PieceType>,
-        piece_color: Option<PieceColor>,
-        coordinates: [i8; 2],
-    ) -> Vec<Vec<i8>> {
-        match (piece_type, piece_color) {
-            (Some(piece_type), Some(piece_color)) => {
-                self.authorized_positions_enum(coordinates, piece_type, piece_color, self.board)
-            }
-            _ => Vec::new(),
+fn get_authorized_positions(
+    &self,
+    piece_type: Option<PieceType>,
+    piece_color: Option<PieceColor>,
+    coordinates: [i8; 2],
+) -> Vec<Vec<i8>> {
+    match (piece_type, piece_color) {
+        (Some(piece_type), Some(piece_color)) => {
+            piece_type.authorized_positions(coordinates, piece_color, self.board, Some(self.get_latest_move()))
         }
+        _ => Vec::new(),
     }
-
+}
     pub fn switch_player_turn(&mut self) {
         match self.player_turn {
             PieceColor::White => self.player_turn = PieceColor::Black,
@@ -283,8 +242,8 @@ impl Board {
             from[0] as i32 * 1000 + from[1] as i32 * 100 + to[0] as i32 * 10 + to[1] as i32;
 
         let tuple = (piece_type_from, position_number);
-        // We store it in the historic
-        self.moves_historic.push(tuple);
+        // We store it in the history
+        self.moves_history.push(tuple);
         if self.is_latest_move_en_passant(from, to) {
             // we kill the pawn
             let row_index = to[0] as i32 - direction;
@@ -305,14 +264,14 @@ impl Board {
         }
     }
 
-    pub fn color_to_ratatui_enum(&mut self, piece_color: Option<PieceColor>) -> Color {
+    pub fn color_to_ratatui_enum(&self, piece_color: Option<PieceColor>) -> Color {
         match piece_color {
             Some(PieceColor::Black) => Color::Black,
             Some(PieceColor::White) => Color::White,
             None => Color::Red,
         }
     }
-    pub fn piece_type_to_string_enum(&mut self, piece_type: Option<PieceType>) -> &'static str {
+    pub fn piece_type_to_string_enum(&self, piece_type: Option<PieceType>) -> &'static str {
         match piece_type {
             Some(PieceType::Queen) => Queen::to_string(),
             Some(PieceType::King) => King::to_string(),
@@ -324,7 +283,7 @@ impl Board {
         }
     }
 
-    pub fn piece_type_to_utf_enum(&mut self, piece_type: Option<PieceType>) -> &'static str {
+    pub fn piece_type_to_utf_enum(&self, piece_type: Option<PieceType>) -> &'static str {
         match piece_type {
             Some(PieceType::Queen) => "♛",
             Some(PieceType::King) => "♚",
@@ -337,7 +296,7 @@ impl Board {
     }
 
     // Method to render the board
-    pub fn board_render(&mut self, area: Rect, frame: &mut Frame) {
+    pub fn board_render(&self, area: Rect, frame: &mut Frame) {
         let width = area.width / 8;
         let height = area.height / 8;
         let border_height = area.height / 2 - (4 * height);
@@ -438,10 +397,10 @@ impl Board {
         }
     }
 
-    pub fn historic_render(&mut self, area: Rect, frame: &mut Frame) {
-        // We write the historic board on the side
-        let historic_block = Block::default()
-            .title("Historic")
+    pub fn history_render(&self, area: Rect, frame: &mut Frame) {
+        // We write the history board on the side
+        let history_block = Block::default()
+            .title("History")
             .borders(Borders::ALL)
             .border_style(Style::default().fg(WHITE))
             .border_type(BorderType::Rounded)
@@ -449,19 +408,19 @@ impl Board {
 
         let mut lines: Vec<Line> = vec![];
 
-        for i in (0..self.moves_historic.len()).step_by(2) {
-            let piece_type_from = self.moves_historic[i].0.clone();
+        for i in (0..self.moves_history.len()).step_by(2) {
+            let piece_type_from = self.moves_history[i].0;
             let utf_icon_white = self.piece_type_to_utf_enum(piece_type_from);
-            let number_move = self.moves_historic[i].1.clone();
+            let number_move = self.moves_history[i].1;
             let move_white = convert_position_into_notation(number_move);
 
             let mut utf_icon_black = "   ";
             let mut move_black: String = "   ".to_string();
 
             // If there is something for black
-            if i + 1 < self.moves_historic.len() {
-                let piece_type_to = self.moves_historic[i + 1].0.clone();
-                let number = self.moves_historic[i + 1].1.clone();
+            if i + 1 < self.moves_history.len() {
+                let piece_type_to = self.moves_history[i + 1].0;
+                let number = self.moves_history[i + 1].1;
                 move_black =
                     convert_position_into_notation(number.to_string().parse::<i32>().unwrap());
                 utf_icon_black = self.piece_type_to_utf_enum(piece_type_to)
@@ -470,17 +429,17 @@ impl Board {
             lines.push(Line::from(vec![
                 Span::raw(format!("{}.  ", i / 2 + 1)), // line number
                 Span::styled(format!("{} ", utf_icon_white), Style::default().fg(WHITE)), // white symbol
-                Span::raw(format!("{}", move_white)), // white move
+                Span::raw(move_white.to_string()), // white move
                 Span::raw("     "),                   // separator
                 Span::styled(
                     format!("{} ", utf_icon_black),
                     Style::default().fg(Color::Black),
                 ), // white symbol
-                Span::raw(format!("{}", move_black)), // black move
+                Span::raw(move_black.to_string()), // black move
             ]));
         }
 
-        let historic_paragraph = Paragraph::new(lines).alignment(Alignment::Center);
+        let history_paragraph = Paragraph::new(lines).alignment(Alignment::Center);
 
         let height = area.height;
 
@@ -489,10 +448,10 @@ impl Board {
             .constraints([Constraint::Length(height - 1), Constraint::Length(1)].as_ref())
             .split(area);
 
-        frame.render_widget(historic_block.clone(), right_panel_layout[0]);
+        frame.render_widget(history_block.clone(), right_panel_layout[0]);
         frame.render_widget(
-            historic_paragraph,
-            historic_block.inner(right_panel_layout[0]),
+            history_paragraph,
+            history_block.inner(right_panel_layout[0]),
         );
 
         // Bottom paragraph help text
