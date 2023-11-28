@@ -15,18 +15,18 @@ impl Rook {
     }
 
     pub fn rook_moves(
-        coordinates: [i32; 2],
+        coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         allow_move_on_ally_positions: bool,
-    ) -> Vec<Vec<i32>> {
+    ) -> Vec<Vec<i8>> {
         // Pawns can only move in one direction depending on their color
-        let mut positions: Vec<Vec<i32>> = vec![];
+        let mut positions: Vec<Vec<i8>> = vec![];
 
         let (y, x) = (coordinates[0], coordinates[1]);
 
         // RIGHT ROW
-        for i in 1..8i32 {
+        for i in 1..8i8 {
             let new_x = x + i;
             let new_y = y;
             let new_coordinates = [new_y, new_x];
@@ -56,7 +56,7 @@ impl Rook {
         }
 
         // LEFT ROW
-        for i in 1..8i32 {
+        for i in 1..8i8 {
             let new_x = x - i;
             let new_y = y;
             let new_coordinates = [new_y, new_x];
@@ -86,7 +86,7 @@ impl Rook {
         }
 
         // BOTTOM ROW
-        for i in 1..8i32 {
+        for i in 1..8i8 {
             let new_x = x;
             let new_y = y + i;
             let new_coordinates = [new_y, new_x];
@@ -116,7 +116,7 @@ impl Rook {
         }
 
         // UP ROW
-        for i in 1..8i32 {
+        for i in 1..8i8 {
             let new_x = x;
             let new_y = y - i;
             let new_coordinates = [new_y, new_x];
@@ -149,18 +149,18 @@ impl Rook {
     }
 
     pub fn authorized_positions(
-        coordinates: [i32; 2],
+        coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-    ) -> Vec<Vec<i32>> {
+    ) -> Vec<Vec<i8>> {
         Self::rook_moves(coordinates, color, board, false)
     }
 
     pub fn protecting_positions(
-        coordinates: [i32; 2],
+        coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-    ) -> Vec<Vec<i32>> {
+    ) -> Vec<Vec<i8>> {
         Self::rook_moves(coordinates, color, board, true)
     }
 }

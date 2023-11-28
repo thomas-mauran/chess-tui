@@ -13,18 +13,18 @@ impl Bishop {
     }
 
     pub fn bishop_moves(
-        coordinates: [i32; 2],
+        coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         allow_move_on_ally_positions: bool,
-    ) -> Vec<Vec<i32>> {
-        let mut positions: Vec<Vec<i32>> = vec![];
+    ) -> Vec<Vec<i8>> {
+        let mut positions: Vec<Vec<i8>> = vec![];
 
         let y = coordinates[0];
         let x = coordinates[1];
 
         // for diagonal from piece to top left
-        for i in 1..8i32 {
+        for i in 1..8i8 {
             let new_x = x - i;
             let new_y = y - i;
             let new_coordinates = [new_y, new_x];
@@ -56,7 +56,7 @@ impl Bishop {
         }
 
         // for diagonal from piece to bottom right
-        for i in 1..8i32 {
+        for i in 1..8i8 {
             let new_x = x + i;
             let new_y = y + i;
             let new_coordinates = [new_y, new_x];
@@ -88,7 +88,7 @@ impl Bishop {
         }
 
         // for diagonal from piece to bottom left
-        for i in 1..8i32 {
+        for i in 1..8i8 {
             let new_x = x - i;
             let new_y = y + i;
             let new_coordinates = [new_y, new_x];
@@ -121,7 +121,7 @@ impl Bishop {
         }
 
         // for diagonal from piece to top right
-        for i in 1..8i32 {
+        for i in 1..8i8 {
             let new_x = x + i;
             let new_y = y - i;
             let new_coordinates = [new_y, new_x];
@@ -156,18 +156,18 @@ impl Bishop {
     }
 
     pub fn authorized_positions(
-        coordinates: [i32; 2],
+        coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-    ) -> Vec<Vec<i32>> {
+    ) -> Vec<Vec<i8>> {
         Self::bishop_moves(coordinates, color, board, false)
     }
 
     pub fn protecting_positions(
-        coordinates: [i32; 2],
+        coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-    ) -> Vec<Vec<i32>> {
+    ) -> Vec<Vec<i8>> {
         Self::bishop_moves(coordinates, color, board, true)
     }
 }

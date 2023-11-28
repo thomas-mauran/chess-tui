@@ -15,17 +15,17 @@ impl Pawn {
     }
 
     pub fn pawn_moves(
-        coordinates: [i32; 2],
+        coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         allow_move_on_ally_positions: bool,
         latest_move: (Option<PieceType>, i32),
-    ) -> Vec<Vec<i32>> {
+    ) -> Vec<Vec<i8>> {
         // Pawns can only move in one direction depending of their color
         // -1 if they are white (go up) +1 if they are black (go down)
         let direction = if color == PieceColor::White { -1 } else { 1 };
 
-        let mut positions: Vec<Vec<i32>> = vec![];
+        let mut positions: Vec<Vec<i8>> = vec![];
 
         let (y, x) = (coordinates[0], coordinates[1]);
 
@@ -93,16 +93,16 @@ impl Pawn {
         // We check for en passant
         match latest_move.0 {
             Some(PieceType::Pawn) => {
-                let from_y: i32 = latest_move.1 / 1000 % 10;
-                let from_x: i32 = latest_move.1 / 100 % 10;
-                let to_y: i32 = latest_move.1 / 10 % 10;
-                let to_x: i32 = latest_move.1 % 10;
-                let valid_y_start: i32;
-                let number_of_cells_move: i32;
+                let from_y: i8 = (latest_move.1 / 1000 % 10) as i8;
+                let from_x: i8 = (latest_move.1 / 100 % 10)as i8;
+                let to_y: i8 = (latest_move.1 / 10 % 10) as i8;
+                let to_x: i8 = (latest_move.1 % 10) as i8;
+                let valid_y_start: i8;
+                let number_of_cells_move: i8;
 
                 if color == PieceColor::White {
                     valid_y_start = 1;
-                    number_of_cells_move = to_y - from_y;
+                    number_of_cells_move = to_y  - from_y;
                 } else {
                     valid_y_start = 6;
                     number_of_cells_move = from_y - to_y;
@@ -111,7 +111,7 @@ impl Pawn {
                 // We check if the latest move was on the right start cell
                 // if it moved 2 cells
                 // and if the current pawn is next to this pawn latest position
-                if from_y == valid_y_start
+                if from_y == valid_y_start 
                     && number_of_cells_move == 2
                     && y == to_y
                     && (x == to_x - 1 || x == to_x + 1)
@@ -127,19 +127,19 @@ impl Pawn {
         cleaned_positions(positions)
     }
     pub fn authorized_positions(
-        coordinates: [i32; 2],
+        coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         latest_move: (Option<PieceType>, i32),
-    ) -> Vec<Vec<i32>> {
+    ) -> Vec<Vec<i8>> {
         Self::pawn_moves(coordinates, color, board, false, latest_move)
     }
 
     pub fn protecting_positions(
-        coordinates: [i32; 2],
+        coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-    ) -> Vec<Vec<i32>> {
+    ) -> Vec<Vec<i8>> {
         Self::pawn_moves(coordinates, color, board, true, (None, 0000))
     }
 }

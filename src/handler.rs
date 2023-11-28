@@ -20,6 +20,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         KeyCode::Up => app.board.cursor_up(),
         KeyCode::Down => app.board.cursor_down(),
         KeyCode::Char(' ') => app.board.select_cell(),
+        KeyCode::Char('h') => app.show_popup(),
         KeyCode::Esc => app.board.unselect_cell(),
         // Other handlers you could add here.
         _ => {}

@@ -17,10 +17,10 @@ use ratatui::{
 #[derive(Debug)]
 pub struct Board {
     pub board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-    pub cursor_coordinates: [i32; 2],
-    pub selected_coordinates: [i32; 2],
-    pub selected_piece_cursor: i32,
-    pub old_cursor_position: [i32; 2],
+    pub cursor_coordinates: [i8; 2],
+    pub selected_coordinates: [i8; 2],
+    pub selected_piece_cursor: i8,
+    pub old_cursor_position: [i8; 2],
     pub player_turn: PieceColor,
     pub moves_historic: Vec<(Option<PieceType>, i32)>,
 }
@@ -93,11 +93,11 @@ impl Board {
     // Getters
     pub fn authorized_positions_enum(
         &mut self,
-        selected_coordinates: [i32; 2],
+        selected_coordinates: [i8; 2],
         piece_type: PieceType,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-    ) -> Vec<Vec<i32>> {
+    ) -> Vec<Vec<i8>> {
         match piece_type {
             PieceType::Pawn => Pawn::authorized_positions(
                 selected_coordinates,
@@ -114,11 +114,11 @@ impl Board {
     }
 
     pub fn protected_positions_enum(
-        selected_coordinates: [i32; 2],
+        selected_coordinates: [i8; 2],
         piece_type: PieceType,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-    ) -> Vec<Vec<i32>> {
+    ) -> Vec<Vec<i8>> {
         match piece_type {
             PieceType::Pawn => Pawn::protecting_positions(selected_coordinates, color, board),
             PieceType::Rook => Rook::protecting_positions(selected_coordinates, color, board),
@@ -146,8 +146,8 @@ impl Board {
         &mut self,
         piece_type: Option<PieceType>,
         piece_color: Option<PieceColor>,
-        coordinates: [i32; 2],
-    ) -> Vec<Vec<i32>> {
+        coordinates: [i8; 2],
+    ) -> Vec<Vec<i8>> {
         match (piece_type, piece_color) {
             (Some(piece_type), Some(piece_color)) => {
                 self.authorized_positions_enum(coordinates, piece_type, piece_color, self.board)
@@ -193,7 +193,7 @@ impl Board {
         }
     }
 
-    fn move_selected_piece_cursor(&mut self, first_time_moving: bool, direction: i32) {
+    fn move_selected_piece_cursor(&mut self, first_time_moving: bool, direction: i8) {
         let piece_color = get_piece_color(self.board, self.selected_coordinates);
         let piece_type = get_piece_type(self.board, self.selected_coordinates);
 
@@ -205,9 +205,9 @@ impl Board {
                 0
             } else {
                 let new_cursor =
-                    (self.selected_piece_cursor + direction) % authorized_positions.len() as i32;
+                    (self.selected_piece_cursor + direction) % authorized_positions.len() as i8;
                 if new_cursor == -1 {
-                    authorized_positions.len() as i32 - 1
+                    authorized_positions.len() as i8 - 1
                 } else {
                     new_cursor
                 }
@@ -255,8 +255,8 @@ impl Board {
     }
 
     fn is_latest_move_en_passant(&self, from: [usize; 2], to: [usize; 2]) -> bool {
-        let piece_type_from = get_piece_type(self.board, [from[0] as i32, from[1] as i32]);
-        let piece_type_to = get_piece_type(self.board, [to[0] as i32, to[1] as i32]);
+        let piece_type_from = get_piece_type(self.board, [from[0] as i8, from[1] as i8]);
+        let piece_type_to = get_piece_type(self.board, [to[0] as i8, to[1] as i8]);
 
         let from_y: i32 = from[0] as i32;
         let from_x: i32 = from[1] as i32;
@@ -278,7 +278,7 @@ impl Board {
             1
         };
 
-        let piece_type_from = get_piece_type(self.board, [from[0] as i32, from[1] as i32]);
+        let piece_type_from = get_piece_type(self.board, [from[0] as i8, from[1] as i8]);
         let position_number: i32 =
             from[0] as i32 * 1000 + from[1] as i32 * 100 + to[0] as i32 * 10 + to[1] as i32;
 
@@ -364,7 +364,7 @@ impl Board {
             .split(area);
 
         // For each line we set 8 layout
-        for i in 0..8i32 {
+        for i in 0..8i8 {
             let lines = Layout::default()
                 .direction(Direction::Horizontal)
                 .constraints(
@@ -383,7 +383,7 @@ impl Board {
                     .as_ref(),
                 )
                 .split(columns[i as usize + 1]);
-            for j in 0..8i32 {
+            for j in 0..8i8 {
                 // Color of the cell to draw the board
                 let mut cell_color: Color = if (i + j) % 2 == 0 { WHITE } else { BLACK };
 
@@ -443,7 +443,7 @@ impl Board {
         let historic_block = Block::default()
             .title("Historic")
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::White))
+            .border_style(Style::default().fg(WHITE))
             .border_type(BorderType::Rounded)
             .padding(Padding::new(5, 10, 1, 2));
 
@@ -472,14 +472,35 @@ impl Board {
                 Span::styled(format!("{} ", utf_icon_white), Style::default().fg(WHITE)), // white symbol
                 Span::raw(format!("{}", move_white)), // white move
                 Span::raw("     "),                   // separator
-                Span::styled(format!("{} ", utf_icon_black), Style::default().fg(BLACK)), // white symbol
+                Span::styled(
+                    format!("{} ", utf_icon_black),
+                    Style::default().fg(Color::Black),
+                ), // white symbol
                 Span::raw(format!("{}", move_black)), // black move
             ]));
         }
 
         let historic_paragraph = Paragraph::new(lines).alignment(Alignment::Center);
 
-        frame.render_widget(historic_block.clone(), area);
-        frame.render_widget(historic_paragraph, historic_block.inner(area));
+        let height = area.height;
+
+        let right_panel_layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(height - 1), Constraint::Length(1)].as_ref())
+            .split(area);
+
+        frame.render_widget(historic_block.clone(), right_panel_layout[0]);
+        frame.render_widget(
+            historic_paragraph,
+            historic_block.inner(right_panel_layout[0]),
+        );
+
+        // Bottom paragraph help text
+        let text = vec![Line::from("Press h for help").alignment(Alignment::Center)];
+
+        let help_paragraph = Paragraph::new(text)
+            .block(Block::new())
+            .alignment(Alignment::Center);
+        frame.render_widget(help_paragraph, right_panel_layout[1]);
     }
 }

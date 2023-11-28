@@ -17,12 +17,12 @@ impl King {
     }
 
     pub fn king_moves(
-        coordinates: [i32; 2],
+        coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         allow_move_on_ally_positions: bool,
-    ) -> Vec<Vec<i32>> {
-        let mut positions: Vec<Vec<i32>> = vec![];
+    ) -> Vec<Vec<i8>> {
+        let mut positions: Vec<Vec<i8>> = vec![];
         let y = coordinates[0];
         let x = coordinates[1];
 
@@ -49,11 +49,11 @@ impl King {
     }
 
     pub fn authorized_positions(
-        coordinates: [i32; 2],
+        coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-    ) -> Vec<Vec<i32>> {
-        let mut positions: Vec<Vec<i32>> = vec![];
+    ) -> Vec<Vec<i8>> {
+        let mut positions: Vec<Vec<i8>> = vec![];
         let impossible_cells = get_all_checked_cells(board, color);
         let king_cells = King::king_moves(coordinates, color, board, false);
 
@@ -72,10 +72,10 @@ impl King {
 
     // This method is used to calculated the cells the king is actually covering and is used when the other king authorized position is called
     pub fn protecting_positions(
-        coordinates: [i32; 2],
+        coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-    ) -> Vec<Vec<i32>> {
+    ) -> Vec<Vec<i8>> {
         Self::king_moves(coordinates, color, board, true)
     }
 }

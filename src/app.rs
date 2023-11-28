@@ -11,6 +11,9 @@ pub struct App {
     pub running: bool,
     /// board
     pub board: Board,
+
+    /// show help popup
+    pub show_popup: bool,
 }
 
 impl Default for App {
@@ -18,6 +21,7 @@ impl Default for App {
         Self {
             running: true,
             board: Board::default(),
+            show_popup: false,
         }
     }
 }
@@ -26,6 +30,10 @@ impl App {
     /// Constructs a new instance of [`App`].
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn show_popup(&mut self) {
+        self.show_popup = !self.show_popup;
     }
 
     /// Handles the tick event of the terminal.

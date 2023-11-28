@@ -13,12 +13,12 @@ impl Knight {
     }
 
     pub fn knight_moves(
-        coordinates: [i32; 2],
+        coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         allow_move_on_ally_positions: bool,
-    ) -> Vec<Vec<i32>> {
-        let mut positions: Vec<Vec<i32>> = Vec::new();
+    ) -> Vec<Vec<i8>> {
+        let mut positions: Vec<Vec<i8>> = Vec::new();
 
         let (y, x) = (coordinates[0], coordinates[1]);
 
@@ -52,18 +52,18 @@ impl Knight {
     }
 
     pub fn authorized_positions(
-        coordinates: [i32; 2],
+        coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-    ) -> Vec<Vec<i32>> {
+    ) -> Vec<Vec<i8>> {
         Self::knight_moves(coordinates, color, board, false)
     }
 
     pub fn protecting_positions(
-        coordinates: [i32; 2],
+        coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-    ) -> Vec<Vec<i32>> {
+    ) -> Vec<Vec<i8>> {
         Self::knight_moves(coordinates, color, board, true)
     }
 }

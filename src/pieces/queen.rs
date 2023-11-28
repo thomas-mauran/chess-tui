@@ -17,12 +17,12 @@ impl Queen {
     }
 
     pub fn queen_moves(
-        coordinates: [i32; 2],
+        coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         allow_move_on_ally_positions: bool,
-    ) -> Vec<Vec<i32>> {
-        let mut positions: Vec<Vec<i32>> = vec![];
+    ) -> Vec<Vec<i8>> {
+        let mut positions: Vec<Vec<i8>> = vec![];
 
         // Queen = bishop concat rook
         positions.extend(Bishop::bishop_moves(
@@ -42,18 +42,18 @@ impl Queen {
     }
 
     pub fn authorized_positions(
-        coordinates: [i32; 2],
+        coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-    ) -> Vec<Vec<i32>> {
+    ) -> Vec<Vec<i8>> {
         Self::queen_moves(coordinates, color, board, false)
     }
 
     pub fn protecting_positions(
-        coordinates: [i32; 2],
+        coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-    ) -> Vec<Vec<i32>> {
+    ) -> Vec<Vec<i8>> {
         Self::queen_moves(coordinates, color, board, true)
     }
 }
