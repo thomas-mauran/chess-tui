@@ -103,7 +103,7 @@ pub fn col_to_letter(col: i8) -> String {
 
 pub fn convert_position_into_notation(position: String) -> String {
     let mut result: String = "".to_string();
-    let from_y = get_int_from_char(position.chars().nth(0));
+    let from_y = get_int_from_char(position.chars().next());
     let from_x = get_int_from_char(position.chars().nth(1));
     let to_y = get_int_from_char(position.chars().nth(2));
     let to_x = get_int_from_char(position.chars().nth(3));
@@ -143,7 +143,7 @@ pub fn get_latest_move(
 pub fn did_piece_already_move(move_history: &Vec<(Option<PieceType>, String)>, original_piece: (Option<PieceType>, [i8; 2])) -> bool{
     for entry in move_history{
         let position = entry.1.clone();
-        let from_y = get_int_from_char(position.chars().nth(0));
+        let from_y = get_int_from_char(position.chars().next());
         let from_x = get_int_from_char(position.chars().nth(1));
         // Here there is an entry with the same piece type and the same original position, meaning it moved at some point
         // println!("{:?}, oriignal: {:?}", [from_y, from_x], original_piece.1);
@@ -151,5 +151,5 @@ pub fn did_piece_already_move(move_history: &Vec<(Option<PieceType>, String)>, o
             return true;
         }
     }   
-    return false
+    false
 }

@@ -1,6 +1,6 @@
 use super::{Movable, PieceColor, PieceType, Position};
 use crate::utils::{
-    cleaned_positions, get_all_checked_cells, get_latest_move, get_piece_type, is_cell_color_ally,
+    cleaned_positions, get_all_checked_cells, get_piece_type, is_cell_color_ally,
     is_valid, is_vec_in_array, did_piece_already_move,
 };
 
@@ -60,28 +60,24 @@ impl Position for King {
             // We check if there is no pieces between tower and king
 
             // Big castle check
-            if !did_piece_already_move(&move_history, (Some(PieceType::Rook), [king_line, rook_big_castle_x])){
-                if King::check_castling_condition(
+            if !did_piece_already_move(&move_history, (Some(PieceType::Rook), [king_line, rook_big_castle_x])) && King::check_castling_condition(
                     board,
                     color,
                     0,
                     3,
                     &checked_cells,
                 ) {
-                    positions.push(vec![king_line, 0]);
-                }
+                positions.push(vec![king_line, 0]);
             }
             // Small castle check
-            if !did_piece_already_move(&move_history, (Some(PieceType::Rook), [king_line, rook_small_castle_x])){
-                if King::check_castling_condition(
+            if !did_piece_already_move(&move_history, (Some(PieceType::Rook), [king_line, rook_small_castle_x])) && King::check_castling_condition(
                     board,
                     color,
                     5,
                     7,
                     &checked_cells,
                 ) {
-                    positions.push(vec![king_line, 7]);
-                }
+                positions.push(vec![king_line, 7]);
             }
         }
 
@@ -141,7 +137,7 @@ impl King {
                     || !is_cell_color_ally(board, new_coordinates, color))
             {
                 valid_for_castling = false;
-            } else if i != 7 && i != 0 && get_piece_type(board, new_coordinates) != None {
+            } else if i != 7 && i != 0 && get_piece_type(board, new_coordinates).is_some() {
                 valid_for_castling = false;
             }
         }

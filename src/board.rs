@@ -5,7 +5,7 @@ use crate::{
         PieceColor, PieceType,
     },
     utils::{
-        convert_position_into_notation, get_latest_move, get_piece_color, get_piece_type,
+        convert_position_into_notation, get_piece_color, get_piece_type,
         get_player_turn_in_modulo, is_valid,
     },
 };
@@ -297,7 +297,7 @@ impl Board {
             self.board[to[0]][row_index as usize] = self.board[from[0]][from[1]];
 
             // We put the rook 3 cells from it's position
-            let row_index_rook = to[1] as i32 + direction_x * (distance * -1) - 1;
+            let row_index_rook = to[1] as i32 + direction_x * -distance - 1;
             self.board[to[0]][row_index_rook as usize] = self.board[to[0]][to[1]];
 
             // We remove the latest rook
