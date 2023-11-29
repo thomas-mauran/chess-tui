@@ -68,9 +68,9 @@ impl Default for Board {
                 ],
                 [
                     Some((PieceType::Rook, PieceColor::White)),
-                    None,
-                    None,
-                    None,
+                    Some((PieceType::Knight, PieceColor::White)),
+                    Some((PieceType::Bishop, PieceColor::White)),
+                    Some((PieceType::Queen, PieceColor::White)),
                     Some((PieceType::King, PieceColor::White)),
                     Some((PieceType::Bishop, PieceColor::White)),
                     Some((PieceType::Knight, PieceColor::White)),
@@ -111,7 +111,6 @@ impl Board {
                 piece_color,
                 self.board,
                 self.moves_history.clone(),
-                self.did_king_already_move(),
             ),
             _ => Vec::new(),
         }

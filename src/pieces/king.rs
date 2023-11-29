@@ -1,7 +1,7 @@
 use super::{Movable, PieceColor, PieceType, Position};
 use crate::utils::{
     cleaned_positions, get_all_checked_cells, get_latest_move, get_piece_type, is_cell_color_ally,
-    is_valid, is_vec_in_array,
+    is_valid, is_vec_in_array, did_piece_already_move,
 };
 
 pub struct King;
@@ -46,40 +46,42 @@ impl Position for King {
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         move_history: Vec<(Option<PieceType>, String)>,
-        did_king_already_move: bool,
     ) -> Vec<Vec<i8>> {
         let mut positions: Vec<Vec<i8>> = vec![];
         let checked_cells = get_all_checked_cells(board, color, move_history.clone());
 
+        let rook_big_castle_x = 0;
+        let rook_small_castle_x = 7;
+        let king_x = 4;
+        let king_line = if color == PieceColor::White { 7 } else { 0 };
+
         // We check the condition for small and big castling
-        if !did_king_already_move {
+        if !did_piece_already_move(&move_history, (Some(PieceType::King), [king_line, king_x])) {
             // We check if there is no pieces between tower and king
-            let king_line = if color == PieceColor::White { 7 } else { 0 };
 
-            // TODO: check if the rook hasn't moved yet
-            // check big castling
-            // Check big castling
-            if King::check_castling_condition(
-                board,
-                color,
-                did_king_already_move,
-                0,
-                3,
-                &checked_cells,
-            ) {
-                positions.push(vec![king_line, 0]);
+            // Big castle check
+            if !did_piece_already_move(&move_history, (Some(PieceType::Rook), [king_line, rook_big_castle_x])){
+                if King::check_castling_condition(
+                    board,
+                    color,
+                    0,
+                    3,
+                    &checked_cells,
+                ) {
+                    positions.push(vec![king_line, 0]);
+                }
             }
-
-            // Check small castling
-            if King::check_castling_condition(
-                board,
-                color,
-                did_king_already_move,
-                5,
-                7,
-                &checked_cells,
-            ) {
-                positions.push(vec![king_line, 7]);
+            // Small castle check
+            if !did_piece_already_move(&move_history, (Some(PieceType::Rook), [king_line, rook_small_castle_x])){
+                if King::check_castling_condition(
+                    board,
+                    color,
+                    5,
+                    7,
+                    &checked_cells,
+                ) {
+                    positions.push(vec![king_line, 7]);
+                }
             }
         }
 
@@ -120,14 +122,10 @@ impl King {
     pub fn check_castling_condition(
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         color: PieceColor,
-        did_king_already_move: bool,
         start: i8,
         end: i8,
         checked_cells: &Vec<Vec<i8>>,
     ) -> bool {
-        if did_king_already_move {
-            return false;
-        }
         let king_line = if color == PieceColor::White { 7 } else { 0 };
 
         let mut valid_for_castling = true;
@@ -214,7 +212,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions =
-            King::authorized_positions([4, 4], PieceColor::White, board.board, vec![], false);
+            King::authorized_positions([4, 4], PieceColor::White, board.board, vec![]);
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -275,7 +273,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions =
-            King::authorized_positions([4, 4], PieceColor::White, board.board, vec![], false);
+            King::authorized_positions([4, 4], PieceColor::White, board.board, vec![]);
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -336,7 +334,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions =
-            King::authorized_positions([7, 4], PieceColor::White, board.board, vec![], false);
+            King::authorized_positions([7, 4], PieceColor::White, board.board, vec![]);
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -397,7 +395,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions =
-            King::authorized_positions([0, 4], PieceColor::Black, board.board, vec![], false);
+            King::authorized_positions([0, 4], PieceColor::Black, board.board, vec![]);
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -458,7 +456,68 @@ mod tests {
         right_positions.sort();
 
         let mut positions =
-            King::authorized_positions([0, 4], PieceColor::Black, board.board, vec![], false);
+            King::authorized_positions([0, 4], PieceColor::Black, board.board, vec![]);
+        positions.sort();
+
+        assert_eq!(right_positions, positions);
+    }
+
+    #[test]
+    fn big_castle_black_rook_already_moved() {
+        let custom_board = [
+            [
+                Some((PieceType::Rook, PieceColor::Black)),
+                Some((PieceType::Knight, PieceColor::Black)),
+                Some((PieceType::Bishop, PieceColor::Black)),
+                Some((PieceType::Queen, PieceColor::Black)),
+                Some((PieceType::King, PieceColor::Black)),
+                None,
+                None,
+                Some((PieceType::Rook, PieceColor::Black)),
+            ],
+            [
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                None,
+            ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+            ],
+            [
+                Some((PieceType::Rook, PieceColor::White)),
+                Some((PieceType::Knight, PieceColor::White)),
+                Some((PieceType::Bishop, PieceColor::White)),
+                Some((PieceType::Queen, PieceColor::White)),
+                Some((PieceType::King, PieceColor::White)),
+                Some((PieceType::Bishop, PieceColor::White)),
+                Some((PieceType::Knight, PieceColor::White)),
+                Some((PieceType::Rook, PieceColor::White)),
+            ],
+        ];
+        let mut board = Board::default();
+        board.set_board(custom_board);
+
+        let mut right_positions = vec![vec![0, 5]];
+        right_positions.sort();
+
+        let mut positions =
+            King::authorized_positions([0, 4], PieceColor::Black, board.board, vec![(Some(PieceType::Rook), "0747".to_string()), (Some(PieceType::Pawn), "6252".to_string()), (Some(PieceType::Rook), "4707".to_string())]);
         positions.sort();
 
         assert_eq!(right_positions, positions);

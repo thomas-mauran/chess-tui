@@ -130,7 +130,6 @@ impl Position for Pawn {
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         move_history: Vec<(Option<PieceType>, String)>,
-        _did_king_already_move: bool,
     ) -> Vec<Vec<i8>> {
         Self::piece_move(coordinates, color, board, false, move_history)
     }
@@ -195,8 +194,7 @@ mod tests {
             [4, 4],
             PieceColor::White,
             board.board,
-            vec![(None, "0000".to_string())],
-            false,
+            vec![(None, "0000".to_string())]
         );
         positions.sort();
         assert_eq!(right_positions, positions);
@@ -233,8 +231,7 @@ mod tests {
             [6, 4],
             PieceColor::White,
             board.board,
-            vec![(None, "0000".to_string())],
-            false,
+            vec![(None, "0000".to_string())]
         );
         positions.sort();
         assert_eq!(right_positions, positions);
@@ -280,8 +277,7 @@ mod tests {
             [1, 3],
             PieceColor::Black,
             board.board,
-            vec![(None, "0000".to_string())],
-            false,
+            vec![(None, "0000".to_string())]
         );
         positions.sort();
         assert_eq!(right_positions, positions);
@@ -327,8 +323,7 @@ mod tests {
             [1, 3],
             PieceColor::Black,
             board.board,
-            vec![(None, "0000".to_string())],
-            false,
+            vec![(None, "0000".to_string())]
         );
         positions.sort();
         assert_eq!(right_positions, positions);
@@ -365,8 +360,7 @@ mod tests {
             [3, 3],
             PieceColor::White,
             board.board,
-            vec![(Some(PieceType::Pawn), "1232".to_string())],
-            false,
+            vec![(Some(PieceType::Pawn), "1232".to_string())]
         );
         positions.sort();
         assert_eq!(right_positions, positions);
@@ -403,8 +397,7 @@ mod tests {
             [4, 2],
             PieceColor::Black,
             board.board,
-            vec![(Some(PieceType::Pawn), "6343".to_string())],
-            false,
+            vec![(Some(PieceType::Pawn), "6343".to_string())]
         );
         positions.sort();
         assert_eq!(right_positions, positions);
@@ -450,8 +443,7 @@ mod tests {
             [1, 1],
             PieceColor::Black,
             board.board,
-            vec![(Some(PieceType::Pawn), "6343".to_string())],
-            false,
+            vec![(Some(PieceType::Pawn), "6343".to_string())]
         );
         positions.sort();
         assert_eq!(right_positions, positions);

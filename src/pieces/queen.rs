@@ -41,7 +41,6 @@ impl Position for Queen {
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         _move_history: Vec<(Option<PieceType>, String)>,
-        _did_king_already_move: bool,
     ) -> Vec<Vec<i8>> {
         Self::piece_move(coordinates, color, board, false, _move_history)
     }
@@ -130,7 +129,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions =
-            Queen::authorized_positions([4, 4], PieceColor::White, board.board, vec![], false);
+            Queen::authorized_positions([4, 4], PieceColor::White, board.board, vec![]);
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -199,7 +198,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions =
-            Queen::authorized_positions([4, 4], PieceColor::White, board.board, vec![], false);
+            Queen::authorized_positions([4, 4], PieceColor::White, board.board, vec![]);
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -278,7 +277,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions =
-            Queen::authorized_positions([4, 4], PieceColor::White, board.board, vec![], false);
+            Queen::authorized_positions([4, 4], PieceColor::White, board.board, vec![]);
         positions.sort();
 
         assert_eq!(right_positions, positions);

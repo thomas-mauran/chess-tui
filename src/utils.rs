@@ -139,3 +139,17 @@ pub fn get_latest_move(
     }
     (None, "0000".to_string())
 }
+
+pub fn did_piece_already_move(move_history: &Vec<(Option<PieceType>, String)>, original_piece: (Option<PieceType>, [i8; 2])) -> bool{
+    for entry in move_history{
+        let position = entry.1.clone();
+        let from_y = get_int_from_char(position.chars().nth(0));
+        let from_x = get_int_from_char(position.chars().nth(1));
+        // Here there is an entry with the same piece type and the same original position, meaning it moved at some point
+        // println!("{:?}, oriignal: {:?}", [from_y, from_x], original_piece.1);
+        if entry.0 == original_piece.0 && [from_y, from_x] == original_piece.1{
+            return true;
+        }
+    }   
+    return false
+}

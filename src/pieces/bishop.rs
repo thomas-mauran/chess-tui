@@ -154,7 +154,6 @@ impl Position for Bishop {
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         move_history: Vec<(Option<PieceType>, String)>,
-        _did_king_already_move: bool,
     ) -> Vec<Vec<i8>> {
         Self::piece_move(coordinates, color, board, false, move_history)
     }
@@ -229,7 +228,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions =
-            Bishop::authorized_positions([4, 4], PieceColor::White, board.board, vec![], false);
+            Bishop::authorized_positions([4, 4], PieceColor::White, board.board, vec![]);
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -284,7 +283,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions =
-            Bishop::authorized_positions([4, 4], PieceColor::White, board.board, vec![], false);
+            Bishop::authorized_positions([4, 4], PieceColor::White, board.board, vec![]);
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -353,7 +352,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions =
-            Bishop::authorized_positions([4, 4], PieceColor::White, board.board, vec![], false);
+            Bishop::authorized_positions([4, 4], PieceColor::White, board.board, vec![]);
         positions.sort();
 
         assert_eq!(right_positions, positions);
