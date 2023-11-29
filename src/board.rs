@@ -5,8 +5,8 @@ use crate::{
         PieceColor, PieceType,
     },
     utils::{
-        convert_position_into_notation, get_piece_color, get_piece_type,
-        get_player_turn_in_modulo, is_valid,
+        convert_position_into_notation, get_piece_color, get_piece_type, get_player_turn_in_modulo,
+        is_valid,
     },
 };
 use ratatui::{
@@ -68,9 +68,9 @@ impl Default for Board {
                 ],
                 [
                     Some((PieceType::Rook, PieceColor::White)),
-                    Some((PieceType::Knight, PieceColor::White)),
-                    Some((PieceType::Bishop, PieceColor::White)),
-                    Some((PieceType::Queen, PieceColor::White)),
+                    None,
+                    None,
+                    None,
                     Some((PieceType::King, PieceColor::White)),
                     Some((PieceType::Bishop, PieceColor::White)),
                     Some((PieceType::Knight, PieceColor::White)),
@@ -291,13 +291,19 @@ impl Board {
             let to_x: i32 = to[1] as i32;
             let distance = from_x - to_x;
             let direction_x = if distance > 0 { -1 } else { 1 };
+            let mut row_index_rook = 0;
 
             let row_index = from[1] as i32 + direction_x * 2;
             // We put move the king 2 cells
             self.board[to[0]][row_index as usize] = self.board[from[0]][from[1]];
 
-            // We put the rook 3 cells from it's position
-            let row_index_rook = to[1] as i32 + direction_x * -distance - 1;
+            // We put the rook 3 cells from it's position if it's a big castling else 2 cells
+            // big castling
+            if distance == 4 {
+                row_index_rook = 3
+            } else if distance == -3 {
+                row_index_rook = 5
+            }
             self.board[to[0]][row_index_rook as usize] = self.board[to[0]][to[1]];
 
             // We remove the latest rook
