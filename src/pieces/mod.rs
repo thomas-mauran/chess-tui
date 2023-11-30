@@ -23,43 +23,38 @@ impl PieceType {
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         move_history: Vec<(Option<PieceType>, String)>,
+        is_king_checked: bool,
     ) -> Vec<Vec<i8>> {
         match self {
-            PieceType::Pawn => Pawn::authorized_positions(
-                coordinates,
-                color,
-                board,
-                move_history,
-            ),
-            PieceType::Rook => Rook::authorized_positions(
-                coordinates,
-                color,
-                board,
-                move_history,
-            ),
+            PieceType::Pawn => {
+                Pawn::authorized_positions(coordinates, color, board, move_history, is_king_checked)
+            }
+            PieceType::Rook => {
+                Rook::authorized_positions(coordinates, color, board, move_history, is_king_checked)
+            }
             PieceType::Bishop => Bishop::authorized_positions(
                 coordinates,
                 color,
                 board,
                 move_history,
+                is_king_checked,
             ),
             PieceType::Queen => Queen::authorized_positions(
                 coordinates,
                 color,
                 board,
                 move_history,
+                is_king_checked,
             ),
-            PieceType::King => King::authorized_positions(
-                coordinates,
-                color,
-                board,
-                move_history,
-            ),
+            PieceType::King => {
+                King::authorized_positions(coordinates, color, board, move_history, is_king_checked)
+            }
             PieceType::Knight => Knight::authorized_positions(
                 coordinates,
                 color,
                 board,
                 move_history,
+                is_king_checked,
             ),
         }
     }
@@ -116,6 +111,7 @@ pub trait Position {
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         move_history: Vec<(Option<PieceType>, String)>,
+        is_king_checked: bool,
     ) -> Vec<Vec<i8>>;
 
     fn protected_positions(

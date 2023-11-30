@@ -1,5 +1,7 @@
 use super::{Movable, PieceColor, PieceType, Position};
-use crate::utils::{cleaned_positions, is_cell_color_ally, is_valid};
+use crate::utils::{
+    cleaned_positions, impossible_positions_when_king_checked, is_cell_color_ally, is_valid,
+};
 pub struct Knight;
 
 impl Movable for Knight {
@@ -49,9 +51,22 @@ impl Position for Knight {
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-        _move_history: Vec<(Option<PieceType>, String)>,
+        move_history: Vec<(Option<PieceType>, String)>,
+        is_king_checked: bool,
     ) -> Vec<Vec<i8>> {
-        Self::piece_move(coordinates, color, board, false, _move_history)
+        // If the king is not checked we get then normal moves
+        if !is_king_checked {
+            Self::piece_move(coordinates, color, board, false, move_history)
+        } else {
+            // if the king is checked we clean all the position not resolving the check
+            impossible_positions_when_king_checked(
+                coordinates,
+                Self::piece_move(coordinates, color, board, false, move_history.clone()),
+                board,
+                color,
+                move_history,
+            )
+        }
     }
 
     fn protected_positions(
@@ -81,10 +96,11 @@ mod tests {
     use crate::{
         board::Board,
         pieces::{knight::Knight, PieceColor, PieceType, Position},
+        utils::is_getting_checked,
     };
 
     #[test]
-    fn piece_move_no_enemies() {
+    fn no_enemies() {
         let custom_board = [
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
@@ -120,14 +136,14 @@ mod tests {
         right_positions.sort();
 
         let mut positions =
-            Knight::authorized_positions([4, 4], PieceColor::White, board.board, vec![]);
+            Knight::authorized_positions([4, 4], PieceColor::White, board.board, vec![], false);
         positions.sort();
 
         assert_eq!(right_positions, positions);
     }
 
     #[test]
-    fn piece_move_enemy_and_ally() {
+    fn enemy_and_ally() {
         let custom_board = [
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
@@ -172,7 +188,127 @@ mod tests {
         right_positions.sort();
 
         let mut positions =
-            Knight::authorized_positions([7, 7], PieceColor::White, board.board, vec![]);
+            Knight::authorized_positions([7, 7], PieceColor::White, board.board, vec![], false);
+        positions.sort();
+
+        assert_eq!(right_positions, positions);
+    }
+
+    #[test]
+    fn king_checked_can_resolve() {
+        let custom_board = [
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::King, PieceColor::White)),
+                None,
+            ],
+            [
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::Knight, PieceColor::White)),
+                None,
+                None,
+            ],
+            [
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::Knight, PieceColor::Black)),
+            ],
+        ];
+        let mut board = Board::new(custom_board, PieceColor::White, vec![]);
+        board.set_board(custom_board);
+
+        let is_king_checked =
+            is_getting_checked(board.board, board.player_turn, board.moves_history);
+
+        let mut right_positions = vec![vec![7, 7]];
+        right_positions.sort();
+
+        let mut positions = Knight::authorized_positions(
+            [6, 5],
+            PieceColor::White,
+            board.board,
+            vec![],
+            is_king_checked,
+        );
+        positions.sort();
+
+        assert_eq!(right_positions, positions);
+    }
+
+    #[test]
+    fn king_checked_cant_resolve() {
+        let custom_board = [
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::King, PieceColor::White)),
+                None,
+            ],
+            [
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::Knight, PieceColor::White)),
+                None,
+                None,
+                None,
+            ],
+            [
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::Knight, PieceColor::Black)),
+            ],
+        ];
+        let mut board = Board::new(custom_board, PieceColor::White, vec![]);
+        board.set_board(custom_board);
+
+        let is_king_checked =
+            is_getting_checked(board.board, board.player_turn, board.moves_history);
+
+        let mut right_positions: Vec<Vec<i8>> = vec![];
+        right_positions.sort();
+
+        let mut positions = Knight::authorized_positions(
+            [6, 4],
+            PieceColor::White,
+            board.board,
+            vec![],
+            is_king_checked,
+        );
         positions.sort();
 
         assert_eq!(right_positions, positions);

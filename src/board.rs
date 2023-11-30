@@ -5,8 +5,8 @@ use crate::{
         PieceColor, PieceType,
     },
     utils::{
-        convert_position_into_notation, get_piece_color, get_piece_type, get_player_turn_in_modulo,
-        is_valid,
+        convert_position_into_notation, get_king_coordinates, get_piece_color, get_piece_type,
+        get_player_turn_in_modulo, is_getting_checked, is_valid,
     },
 };
 use ratatui::{
@@ -38,8 +38,8 @@ impl Default for Board {
                     Some((PieceType::Bishop, PieceColor::Black)),
                     Some((PieceType::Queen, PieceColor::Black)),
                     Some((PieceType::King, PieceColor::Black)),
-                    Some((PieceType::Bishop, PieceColor::Black)),
-                    Some((PieceType::Knight, PieceColor::Black)),
+                    None,
+                    None,
                     Some((PieceType::Rook, PieceColor::Black)),
                 ],
                 [
@@ -47,12 +47,21 @@ impl Default for Board {
                     Some((PieceType::Pawn, PieceColor::Black)),
                     Some((PieceType::Pawn, PieceColor::Black)),
                     Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
+                    None,
                     Some((PieceType::Pawn, PieceColor::Black)),
                     Some((PieceType::Pawn, PieceColor::Black)),
                     Some((PieceType::Pawn, PieceColor::Black)),
                 ],
-                [None, None, None, None, None, None, None, None],
+                [
+                    None,
+                    None,
+                    None,
+                    None,
+                    Some((PieceType::Pawn, PieceColor::Black)),
+                    None,
+                    None,
+                    None,
+                ],
                 [None, None, None, None, None, None, None, None],
                 [None, None, None, None, None, None, None, None],
                 [None, None, None, None, None, None, None, None],
@@ -61,20 +70,20 @@ impl Default for Board {
                     Some((PieceType::Pawn, PieceColor::White)),
                     Some((PieceType::Pawn, PieceColor::White)),
                     Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
+                    None,
                     Some((PieceType::Pawn, PieceColor::White)),
                     Some((PieceType::Pawn, PieceColor::White)),
                     Some((PieceType::Pawn, PieceColor::White)),
                 ],
                 [
                     Some((PieceType::Rook, PieceColor::White)),
-                    None,
-                    None,
+                    Some((PieceType::Knight, PieceColor::White)),
+                    Some((PieceType::Bishop, PieceColor::White)),
+                    Some((PieceType::Queen, PieceColor::White)),
+                    Some((PieceType::Rook, PieceColor::White)),
+                    Some((PieceType::Bishop, PieceColor::White)),
                     None,
                     Some((PieceType::King, PieceColor::White)),
-                    Some((PieceType::Bishop, PieceColor::White)),
-                    Some((PieceType::Knight, PieceColor::White)),
-                    Some((PieceType::Rook, PieceColor::White)),
                 ],
             ],
             cursor_coordinates: [4, 4],
@@ -88,11 +97,29 @@ impl Default for Board {
 }
 
 impl Board {
+    pub fn new(
+        board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        player_turn: PieceColor,
+        moves_history: Vec<(Option<PieceType>, String)>,
+    ) -> Self {
+        Self {
+            board,
+            cursor_coordinates: [4, 4],
+            selected_coordinates: [UNDEFINED_POSITION, UNDEFINED_POSITION],
+            selected_piece_cursor: 0,
+            old_cursor_position: [UNDEFINED_POSITION, UNDEFINED_POSITION],
+            player_turn,
+            moves_history,
+        }
+    }
     // Setters
     pub fn set_board(&mut self, board: [[Option<(PieceType, PieceColor)>; 8]; 8]) {
         self.board = board;
     }
 
+    pub fn set_player_turn(&mut self, player_turn: PieceColor) {
+        self.player_turn = player_turn;
+    }
     // Check if a cell has been selected
     fn is_cell_selected(&self) -> bool {
         self.selected_coordinates[0] != UNDEFINED_POSITION
@@ -111,6 +138,7 @@ impl Board {
                 piece_color,
                 self.board,
                 self.moves_history.clone(),
+                is_getting_checked(self.board, self.player_turn, self.moves_history.clone()),
             ),
             _ => Vec::new(),
         }
@@ -433,6 +461,16 @@ impl Board {
                         .bg(Color::LightBlue)
                         .add_modifier(Modifier::RAPID_BLINK);
                     frame.render_widget(cell.clone(), square);
+                } else if is_getting_checked(
+                    self.board,
+                    self.player_turn,
+                    self.moves_history.clone(),
+                ) && [i, j] == get_king_coordinates(self.board, self.player_turn)
+                {
+                    let cell = Block::default()
+                        .bg(Color::Magenta)
+                        .add_modifier(Modifier::SLOW_BLINK);
+                    frame.render_widget(cell.clone(), square);
                 }
                 // Draw the cell green if this is the selected cell
                 else if i == self.selected_coordinates[0] && j == self.selected_coordinates[1] {
@@ -442,6 +480,8 @@ impl Board {
                     let cell = Block::default().bg(cell_color);
                     frame.render_widget(cell.clone(), square);
                 }
+
+                // We check if the current king is getting checked
 
                 // Get piece and color
                 let piece_color = get_piece_color(self.board, [i, j]);
@@ -522,5 +562,212 @@ impl Board {
             .block(Block::new())
             .alignment(Alignment::Center);
         frame.render_widget(help_paragraph, right_panel_layout[1]);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        board::Board,
+        pieces::{PieceColor, PieceType},
+        utils::is_getting_checked,
+    };
+
+    #[test]
+    fn is_getting_checked_true() {
+        let custom_board = [
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::Rook, PieceColor::Black)),
+                None,
+                None,
+                None,
+            ],
+            [
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::King, PieceColor::White)),
+                None,
+                None,
+                None,
+            ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+        ];
+        let mut board = Board::default();
+        board.set_board(custom_board);
+
+        assert!(is_getting_checked(custom_board, PieceColor::White, vec![]));
+    }
+
+    #[test]
+    fn is_getting_checked_false() {
+        let custom_board = [
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::Rook, PieceColor::Black)),
+                None,
+                None,
+                None,
+            ],
+            [
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::Pawn, PieceColor::White)),
+                None,
+                None,
+                None,
+            ],
+            [
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::King, PieceColor::White)),
+                None,
+                None,
+                None,
+            ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+        ];
+        let mut board = Board::default();
+        board.set_board(custom_board);
+
+        assert!(!is_getting_checked(custom_board, PieceColor::White, vec![]));
+    }
+
+    #[test]
+    fn is_getting_checked_piece_in_front_false() {
+        let custom_board = [
+            [
+                Some((PieceType::Rook, PieceColor::Black)),
+                Some((PieceType::Knight, PieceColor::Black)),
+                Some((PieceType::Bishop, PieceColor::Black)),
+                Some((PieceType::Queen, PieceColor::Black)),
+                Some((PieceType::King, PieceColor::Black)),
+                None,
+                None,
+                Some((PieceType::Rook, PieceColor::Black)),
+            ],
+            [
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+            ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                None,
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+            ],
+            [
+                Some((PieceType::Rook, PieceColor::White)),
+                Some((PieceType::Knight, PieceColor::White)),
+                Some((PieceType::Bishop, PieceColor::White)),
+                Some((PieceType::Queen, PieceColor::White)),
+                Some((PieceType::Rook, PieceColor::White)),
+                Some((PieceType::Bishop, PieceColor::White)),
+                None,
+                Some((PieceType::King, PieceColor::White)),
+            ],
+        ];
+        let mut board = Board::default();
+        board.set_board(custom_board);
+
+        assert!(!is_getting_checked(custom_board, PieceColor::Black, vec![]));
+    }
+
+    #[test]
+    fn is_getting_checked_piece_in_with_gap_false() {
+        let custom_board = [
+            [
+                Some((PieceType::Rook, PieceColor::Black)),
+                Some((PieceType::Knight, PieceColor::Black)),
+                Some((PieceType::Bishop, PieceColor::Black)),
+                Some((PieceType::Queen, PieceColor::Black)),
+                Some((PieceType::King, PieceColor::Black)),
+                None,
+                None,
+                Some((PieceType::Rook, PieceColor::Black)),
+            ],
+            [
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                None,
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+            ],
+            [
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::Pawn, PieceColor::Black)),
+                None,
+                None,
+                None,
+            ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                None,
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+            ],
+            [
+                Some((PieceType::Rook, PieceColor::White)),
+                Some((PieceType::Knight, PieceColor::White)),
+                Some((PieceType::Bishop, PieceColor::White)),
+                Some((PieceType::Queen, PieceColor::White)),
+                Some((PieceType::Rook, PieceColor::White)),
+                Some((PieceType::Bishop, PieceColor::White)),
+                None,
+                Some((PieceType::King, PieceColor::White)),
+            ],
+        ];
+        let mut board = Board::default();
+        board.set_board(custom_board);
+
+        assert!(!is_getting_checked(custom_board, PieceColor::Black, vec![]));
     }
 }
