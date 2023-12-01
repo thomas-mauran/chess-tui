@@ -1,6 +1,6 @@
 use super::{Movable, PieceColor, PieceType, Position};
 use crate::utils::{
-    cleaned_positions, get_piece_color, impossible_positions_when_king_checked, is_cell_color_ally,
+    cleaned_positions, get_piece_color, impossible_positions_king_checked, is_cell_color_ally,
     is_piece_opposite_king, is_valid,
 };
 
@@ -171,21 +171,17 @@ impl Position for Rook {
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         move_history: Vec<(Option<PieceType>, String)>,
-        is_king_checked: bool,
+        _is_king_checked: bool,
     ) -> Vec<Vec<i8>> {
         // If the king is not checked we get then normal moves
-        if !is_king_checked {
-            Self::piece_move(coordinates, color, board, false, move_history)
-        } else {
-            // if the king is checked we clean all the position not resolving the check
-            impossible_positions_when_king_checked(
-                coordinates,
-                Self::piece_move(coordinates, color, board, false, move_history.clone()),
-                board,
-                color,
-                move_history,
-            )
-        }
+        // if the king is checked we clean all the position not resolving the check
+        impossible_positions_king_checked(
+            coordinates,
+            Self::piece_move(coordinates, color, board, false, move_history.clone()),
+            board,
+            color,
+            move_history,
+        )
     }
 
     fn protected_positions(
@@ -491,6 +487,65 @@ mod tests {
 
         let mut positions = Rook::authorized_positions(
             [5, 3],
+            PieceColor::Black,
+            board.board,
+            vec![],
+            is_king_checked,
+        );
+        positions.sort();
+
+        assert_eq!(right_positions, positions);
+    }
+    #[test]
+    fn nailing() {
+        let custom_board = [
+            [
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::King, PieceColor::Black)),
+                None,
+                None,
+                None,
+            ],
+            [
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::Rook, PieceColor::Black)),
+                None,
+                None,
+                None,
+            ],
+            [None, None, None, None, None, None, None, None],
+            [
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::Queen, PieceColor::White)),
+                None,
+                None,
+                None,
+            ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+        ];
+        let mut board = Board::new(custom_board, PieceColor::Black, vec![]);
+        board.set_board(custom_board);
+
+        let is_king_checked =
+            is_getting_checked(board.board, board.player_turn, board.moves_history);
+
+        let mut right_positions: Vec<Vec<i8>> = vec![vec![2, 4], vec![3, 4]];
+        right_positions.sort();
+
+        let mut positions = Rook::authorized_positions(
+            [1, 4],
             PieceColor::Black,
             board.board,
             vec![],

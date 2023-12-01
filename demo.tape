@@ -5,8 +5,6 @@ Require echo
 Set Margin 100
 Set MarginFill "#674EBB"
 
-Set Theme
-
 Set BorderRadius 10
 Set Shell zsh
 

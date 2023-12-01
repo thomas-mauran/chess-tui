@@ -89,7 +89,6 @@ pub fn get_all_protected_cells(
             }
         }
     }
-    // println!("{:?}", check_cells);
     check_cells
 }
 
@@ -190,7 +189,6 @@ pub fn is_getting_checked(
     let coordinates = get_king_coordinates(board, player_turn);
 
     let checked_cells = get_all_protected_cells(board, player_turn, move_history);
-    // println!("{:?}", checked_cells);
 
     for position in checked_cells {
         if position == coordinates {
@@ -200,7 +198,7 @@ pub fn is_getting_checked(
     false
 }
 
-pub fn impossible_positions_when_king_checked(
+pub fn impossible_positions_king_checked(
     original_coordinates: [i8; 2],
     positions: Vec<Vec<i8>>,
     board: [[Option<(PieceType, PieceColor)>; 8]; 8],
@@ -212,12 +210,13 @@ pub fn impossible_positions_when_king_checked(
         // We create a new board
         let mut new_board = Board::new(board, color, move_history.clone());
 
-        // We simnulate the move
+        // We simulate the move
+
         Board::move_piece_on_the_board(
             &mut new_board,
             [
                 original_coordinates[0] as usize,
-                original_coordinates[0] as usize,
+                original_coordinates[1] as usize,
             ],
             [position[0] as usize, position[1] as usize],
         );

@@ -33,58 +33,40 @@ impl Default for Board {
         Self {
             board: [
                 [
-                    Some((PieceType::Rook, PieceColor::Black)),
-                    Some((PieceType::Knight, PieceColor::Black)),
-                    Some((PieceType::Bishop, PieceColor::Black)),
-                    Some((PieceType::Queen, PieceColor::Black)),
+                    None,
+                    None,
+                    None,
+                    None,
                     Some((PieceType::King, PieceColor::Black)),
-                    Some((PieceType::Bishop, PieceColor::Black)),
+                    None,
+                    None,
+                    None,
+                ],
+                [
+                    None,
+                    None,
+                    None,
+                    None,
                     Some((PieceType::Knight, PieceColor::Black)),
-                    Some((PieceType::Rook, PieceColor::Black)),
-                ],
-                [
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                ],
-                [
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
                     None,
                     None,
                     None,
                 ],
                 [None, None, None, None, None, None, None, None],
-                [None, None, None, None, None, None, None, None],
-                [None, None, None, None, None, None, None, None],
                 [
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                ],
-                [
-                    Some((PieceType::Rook, PieceColor::White)),
-                    Some((PieceType::Knight, PieceColor::White)),
-                    Some((PieceType::Bishop, PieceColor::White)),
+                    None,
+                    None,
+                    None,
+                    None,
                     Some((PieceType::Queen, PieceColor::White)),
-                    Some((PieceType::King, PieceColor::White)),
-                    Some((PieceType::Bishop, PieceColor::White)),
-                    Some((PieceType::Knight, PieceColor::White)),
-                    Some((PieceType::King, PieceColor::White)),
+                    None,
+                    None,
+                    None,
                 ],
+                [None, None, None, None, None, None, None, None],
+                [None, None, None, None, None, None, None, None],
+                [None, None, None, None, None, None, None, None],
+                [None, None, None, None, None, None, None, None],
             ],
             cursor_coordinates: [4, 4],
             selected_coordinates: [UNDEFINED_POSITION, UNDEFINED_POSITION],
@@ -112,6 +94,7 @@ impl Board {
             moves_history,
         }
     }
+
     // Setters
     pub fn set_board(&mut self, board: [[Option<(PieceType, PieceColor)>; 8]; 8]) {
         self.board = board;
@@ -342,7 +325,7 @@ impl Board {
         self.board[from[0]][from[1]] = None;
 
         // We store it in the history
-        self.moves_history.push(tuple);
+        self.moves_history.push(tuple.clone());
     }
 
     pub fn unselect_cell(&mut self) {
