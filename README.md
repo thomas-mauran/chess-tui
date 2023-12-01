@@ -5,7 +5,8 @@ A chess TUI implementation in rust 🦀
 
 ![board](./examples/demo.gif)
 
-![GitHub CI](https://github.com/thomas-mauran/chess-tui/actions/workflows/ci.yml/badge.svg)
+![GitHub CI](https://github.com/thomas-mauran/chess-tui/actions/workflows/build_and_test.yml/badge.svg)
+![GHCR Push](https://github.com/thomas-mauran/chess-tui/actions/workflows/docker_push.yml/badge.svg)
  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ### Demo
@@ -13,7 +14,7 @@ A chess TUI implementation in rust 🦀
 **With docker**
 
 ```bash
-docker run --rm -it thomasmauran/chess-tui
+docker run --rm -it ghcr.io/thomas-mauran/chess-tui:main
 ```
 
 **With Cargo**

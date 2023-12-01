@@ -1,0 +1,19 @@
+name: Build and push docker image
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build_and_test:
+    name: Build and test
+    uses: ./.github/workflows/build_and_test.yml
+
+  docker_push:
+    name: Build & push Docker image
+    needs: build_and_test
+    uses: ./.github/workflows/docker_push.yml
+
+    
