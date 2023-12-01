@@ -1,3 +1,6 @@
+#[cfg(feature = "chess-tui")]
+extern crate chess_tui;
+
 use chess_tui::app::{App, AppResult};
 use chess_tui::event::{Event, EventHandler};
 use chess_tui::handler::handle_key_events;

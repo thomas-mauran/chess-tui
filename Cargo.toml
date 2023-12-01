@@ -1,6 +1,6 @@
 [package]
 name = "chess-tui"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Thomas Mauran"]
 license = "MIT"
 edition = "2021"
@@ -12,3 +12,7 @@ repository = "https://github.com/thomas-mauran/chess-tui"
 [dependencies]
 crossterm = "0.26.1"
 ratatui = "0.24.0"
+
+[features]
+chess-tui = []
+default = ["chess-tui"]
