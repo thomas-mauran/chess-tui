@@ -1,7 +1,7 @@
 use ratatui::{
     layout::{Constraint, Direction, Layout},
     prelude::{Alignment, Rect},
-    style::{Color, Style, Stylize},
+    style::{Style, Stylize},
     text::{Line},
     widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Wrap},
     Frame,
@@ -40,7 +40,7 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         .split(main_layout_horizontal[1]);
 
     // Board block representing the full board div
-    let board_block = Block::default().style(Style::default().bg(Color::Black));
+    let board_block = Block::default().style(Style::default());
 
     // We render the board_block in the center layout made above
     frame.render_widget(board_block.clone(), main_layout_vertical[1]);
