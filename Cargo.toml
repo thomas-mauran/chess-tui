@@ -1,9 +1,13 @@
 [package]
-name = "chess_tui"
+name = "chess-tui"
 version = "0.1.0"
-authors = ["{{authors}}"]
+authors = ["Thomas Mauran"]
 license = "MIT"
 edition = "2021"
+description = "A chess TUI implementation in rust 🦀"
+keywords = ["tui", "graphics", "chess", "game", "board"]
+homepage = "https://github.com/thomas-mauran/chess-tui"
+repository = "https://github.com/thomas-mauran/chess-tui"
 
 [dependencies]
 crossterm = "0.26.1"

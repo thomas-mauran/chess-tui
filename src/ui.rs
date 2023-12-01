@@ -40,7 +40,7 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         .split(main_layout_horizontal[1]);
 
     // Board block representing the full board div
-    let board_block = Block::default().style(Style::default().bg(Color::Rgb(210, 200, 190)));
+    let board_block = Block::default().style(Style::default().bg(Color::Black));
 
     // We render the board_block in the center layout made above
     frame.render_widget(board_block.clone(), main_layout_vertical[1]);
