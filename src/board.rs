@@ -414,7 +414,7 @@ impl Board {
                 }
             }
         }
-        return possible_moves.len();
+        possible_moves.len()
     }
 
     pub fn is_checkmate(&self) -> bool {
@@ -422,19 +422,11 @@ impl Board {
             return false;
         }
 
-        if self.number_of_authorized_positions() == 0 {
-            return true;
-        } else {
-            return false;
-        }
+        self.number_of_authorized_positions() == 0
     }
 
     pub fn is_pat(&self) -> bool {
-        if self.number_of_authorized_positions() == 0 {
-            return true;
-        } else {
-            return false;
-        }
+        self.number_of_authorized_positions() == 0
     }
 
     // Method to render the board
@@ -862,7 +854,7 @@ mod tests {
         ];
         let board = Board::new(custom_board, PieceColor::White, vec![]);
 
-        assert_eq!(Board::is_checkmate(&board), true);
+        assert!(Board::is_checkmate(&board));
     }
 
     #[test]
@@ -906,7 +898,7 @@ mod tests {
         ];
         let board = Board::new(custom_board, PieceColor::White, vec![]);
 
-        assert_eq!(Board::is_checkmate(&board), false);
+        assert!(!Board::is_checkmate(&board));
     }
 
     #[test]
@@ -959,7 +951,7 @@ mod tests {
         ];
         let board = Board::new(custom_board, PieceColor::White, vec![]);
 
-        assert_eq!(Board::is_checkmate(&board), false);
+        assert!(!Board::is_checkmate(&board));
     }
 
     #[test]
@@ -1003,7 +995,7 @@ mod tests {
         ];
         let board = Board::new(custom_board, PieceColor::White, vec![]);
 
-        assert_eq!(Board::is_pat(&board), true);
+        assert!(Board::is_pat(&board));
     }
 
     #[test]
@@ -1047,6 +1039,6 @@ mod tests {
         ];
         let board = Board::new(custom_board, PieceColor::White, vec![]);
 
-        assert_eq!(Board::is_pat(&board), false);
+        assert!(!Board::is_pat(&board));
     }
 }

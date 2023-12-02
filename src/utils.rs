@@ -236,11 +236,7 @@ pub fn impossible_positions_king_checked(
 pub fn is_piece_opposite_king(piece: Option<(PieceType, PieceColor)>, color: PieceColor) -> bool {
     match piece {
         Some((piece_type, piece_color)) => {
-            if piece_type == PieceType::King && piece_color == get_opposite_color(color) {
-                true
-            } else {
-                false
-            }
+            piece_type == PieceType::King && piece_color == get_opposite_color(color)
         }
         _ => false,
     }

@@ -89,7 +89,7 @@ impl Knight {
 mod tests {
     use crate::{
         board::Board,
-        pieces::{bishop::Bishop, knight::Knight, PieceColor, PieceType, Position},
+        pieces::{knight::Knight, PieceColor, PieceType, Position},
         utils::is_getting_checked,
     };
 

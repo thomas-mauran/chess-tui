@@ -14,5 +14,8 @@ jobs:
     name: Build & push Docker image
     needs: build_and_test
     uses: ./.github/workflows/docker_push.yml
-
-    
+  release_crate:
+    name: Release new crate
+    needs: build_and_test
+    uses: ./.github/workflows/release_cargo.yml
+    secrets: inherit

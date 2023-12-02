@@ -8,7 +8,7 @@ use ratatui::{
 };
 
 use crate::{app::App, constants::WHITE, pieces::PieceColor, utils::get_opposite_color};
-use std::fmt::format;
+
 
 /// Renders the user interface widgets.
 pub fn render(app: &mut App, frame: &mut Frame) {
