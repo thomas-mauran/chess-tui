@@ -43,4 +43,10 @@ impl App {
     pub fn quit(&mut self) {
         self.running = false;
     }
+
+    pub fn restart(&mut self) {
+        if self.board.is_pat || self.board.is_checkmate {
+            self.board = Board::default()
+        }
+    }
 }

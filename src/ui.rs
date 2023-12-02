@@ -2,12 +2,13 @@ use ratatui::{
     layout::{Constraint, Direction, Layout},
     prelude::{Alignment, Rect},
     style::{Style, Stylize},
-    text::{Line},
+    text::Line,
     widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Wrap},
     Frame,
 };
 
-use crate::{app::App, constants::WHITE};
+use crate::{app::App, constants::WHITE, pieces::PieceColor, utils::get_opposite_color};
+use std::fmt::format;
 
 /// Renders the user interface widgets.
 pub fn render(app: &mut App, frame: &mut Frame) {
@@ -54,11 +55,26 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         .history_render(board_block.inner(main_layout_vertical[3]), frame);
 
     if app.show_popup {
-        render_popup(frame)
+        render_help_popup(frame)
+    }
+
+    if app.board.is_pat {
+        render_end_popup(frame, "That's a draw".to_string())
+    }
+
+    if app.board.is_checkmate {
+        let victorious_player = get_opposite_color(app.board.player_turn);
+
+        let string_color = match victorious_player {
+            PieceColor::White => "White",
+            PieceColor::Black => "Black",
+        };
+
+        render_end_popup(frame, format!("{} Won !!!", string_color))
     }
 }
 
-pub fn render_popup(frame: &mut Frame) {
+pub fn render_help_popup(frame: &mut Frame) {
     let block = Block::default()
         .title("Help menu")
         .borders(Borders::ALL)
@@ -85,8 +101,13 @@ pub fn render_popup(frame: &mut Frame) {
             " the available cells for this piece. You can then hit SPACE_BAR again to move on that square".into(),
         ]),
         Line::from(""),
+        Line::from("q: Press q to quit "),
         Line::from(""),
-        Line::from(""),
+        Line::from(vec![
+            "Purple cell".magenta(),
+            ": When the king is getting checked the cell turns ".into(),
+            "purple.".magenta(),
+        ]),
         Line::from(""),
         Line::from(""),
 
@@ -123,4 +144,30 @@ fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
             Constraint::Percentage((100 - percent_x) / 2),
         ])
         .split(popup_layout[1])[1]
+}
+
+pub fn render_end_popup(frame: &mut Frame, sentence: String) {
+    let block = Block::default()
+        .title("Game ended")
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .padding(Padding::horizontal(1))
+        .border_style(Style::default().fg(WHITE));
+    let area = centered_rect(40, 40, frame.size());
+
+    let text = vec![
+        Line::from(sentence).alignment(Alignment::Center),
+        Line::from(""),
+        Line::from(""),
+        Line::from("Press R to start a new game").alignment(Alignment::Center),
+    ];
+
+    let paragraph = Paragraph::new(text)
+        .block(block.clone())
+        .alignment(Alignment::Left)
+        .wrap(Wrap { trim: true });
+
+    frame.render_widget(Clear, area); //this clears out the background
+    frame.render_widget(block, area);
+    frame.render_widget(paragraph, area);
 }

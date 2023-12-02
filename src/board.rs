@@ -26,6 +26,8 @@ pub struct Board {
     pub old_cursor_position: [i8; 2],
     pub player_turn: PieceColor,
     pub moves_history: Vec<(Option<PieceType>, String)>,
+    pub is_pat: bool,
+    pub is_checkmate: bool,
 }
 
 impl Default for Board {
@@ -52,16 +54,7 @@ impl Default for Board {
                     Some((PieceType::Pawn, PieceColor::Black)),
                     Some((PieceType::Pawn, PieceColor::Black)),
                 ],
-                [
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                ],
+                [None, None, None, None, None, None, None, None],
                 [None, None, None, None, None, None, None, None],
                 [None, None, None, None, None, None, None, None],
                 [None, None, None, None, None, None, None, None],
@@ -92,6 +85,8 @@ impl Default for Board {
             old_cursor_position: [UNDEFINED_POSITION, UNDEFINED_POSITION],
             player_turn: PieceColor::White,
             moves_history: vec![],
+            is_pat: false,
+            is_checkmate: false,
         }
     }
 }
@@ -110,6 +105,8 @@ impl Board {
             old_cursor_position: [UNDEFINED_POSITION, UNDEFINED_POSITION],
             player_turn,
             moves_history,
+            is_pat: false,
+            is_checkmate: false,
         }
     }
 
@@ -153,31 +150,39 @@ impl Board {
 
     // Methods to change the position of the cursor
     pub fn cursor_up(&mut self) {
-        if self.is_cell_selected() {
-            self.move_selected_piece_cursor(false, -1)
-        } else if self.cursor_coordinates[0] > 0 {
-            self.cursor_coordinates[0] -= 1
+        if !self.is_checkmate && !self.is_pat {
+            if self.is_cell_selected() {
+                self.move_selected_piece_cursor(false, -1)
+            } else if self.cursor_coordinates[0] > 0 {
+                self.cursor_coordinates[0] -= 1
+            }
         }
     }
     pub fn cursor_down(&mut self) {
-        if self.is_cell_selected() {
-            self.move_selected_piece_cursor(false, 1)
-        } else if self.cursor_coordinates[0] < 7 {
-            self.cursor_coordinates[0] += 1
+        if !self.is_checkmate && !self.is_pat {
+            if self.is_cell_selected() {
+                self.move_selected_piece_cursor(false, 1)
+            } else if self.cursor_coordinates[0] < 7 {
+                self.cursor_coordinates[0] += 1
+            }
         }
     }
     pub fn cursor_left(&mut self) {
-        if self.is_cell_selected() {
-            self.move_selected_piece_cursor(false, -1)
-        } else if self.cursor_coordinates[1] > 0 {
-            self.cursor_coordinates[1] -= 1
+        if !self.is_checkmate && !self.is_pat {
+            if self.is_cell_selected() {
+                self.move_selected_piece_cursor(false, -1)
+            } else if self.cursor_coordinates[1] > 0 {
+                self.cursor_coordinates[1] -= 1
+            }
         }
     }
     pub fn cursor_right(&mut self) {
-        if self.is_cell_selected() {
-            self.move_selected_piece_cursor(false, 1)
-        } else if self.cursor_coordinates[1] < 7 {
-            self.cursor_coordinates[1] += 1
+        if !self.is_checkmate && !self.is_pat {
+            if self.is_cell_selected() {
+                self.move_selected_piece_cursor(false, 1)
+            } else if self.cursor_coordinates[1] < 7 {
+                self.cursor_coordinates[1] += 1
+            }
         }
     }
 
@@ -229,31 +234,35 @@ impl Board {
 
     // Methods to select a cell on the board
     pub fn select_cell(&mut self) {
-        if !self.is_cell_selected() {
-            match get_piece_color(self.board, self.cursor_coordinates) {
-                Some(piece_color) => {
-                    if piece_color == self.player_turn {
-                        self.selected_coordinates = self.cursor_coordinates;
-                        self.old_cursor_position = self.cursor_coordinates;
-                        self.move_selected_piece_cursor(true, 1);
+        if !self.is_checkmate && !self.is_pat {
+            if !self.is_cell_selected() {
+                match get_piece_color(self.board, self.cursor_coordinates) {
+                    Some(piece_color) => {
+                        if piece_color == self.player_turn {
+                            self.selected_coordinates = self.cursor_coordinates;
+                            self.old_cursor_position = self.cursor_coordinates;
+                            self.move_selected_piece_cursor(true, 1);
+                        }
                     }
+                    _ => {}
                 }
-                _ => {}
-            }
-        } else {
-            // We already selected a piece
-            if is_valid(self.cursor_coordinates) {
-                let selected_coords_usize: [usize; 2] = [
-                    self.selected_coordinates[0] as usize,
-                    self.selected_coordinates[1] as usize,
-                ];
-                let cursor_coords_usize: [usize; 2] = [
-                    self.cursor_coordinates[0] as usize,
-                    self.cursor_coordinates[1] as usize,
-                ];
-                self.move_piece_on_the_board(selected_coords_usize, cursor_coords_usize);
-                self.unselect_cell();
-                self.switch_player_turn();
+            } else {
+                // We already selected a piece
+                if is_valid(self.cursor_coordinates) {
+                    let selected_coords_usize: [usize; 2] = [
+                        self.selected_coordinates[0] as usize,
+                        self.selected_coordinates[1] as usize,
+                    ];
+                    let cursor_coords_usize: [usize; 2] = [
+                        self.cursor_coordinates[0] as usize,
+                        self.cursor_coordinates[1] as usize,
+                    ];
+                    self.move_piece_on_the_board(selected_coords_usize, cursor_coords_usize);
+                    self.unselect_cell();
+                    self.switch_player_turn();
+                    self.is_pat = self.is_pat();
+                    self.is_checkmate = self.is_checkmate();
+                }
             }
         }
     }
@@ -386,6 +395,48 @@ impl Board {
         }
     }
 
+    pub fn number_of_authorized_positions(&self) -> usize {
+        let mut possible_moves: Vec<Vec<i8>> = vec![];
+
+        for i in 0..8 {
+            for j in 0..8 {
+                match self.board[i][j] {
+                    Some((piece_type, piece_color)) => {
+                        if piece_color == self.player_turn {
+                            possible_moves.extend(self.get_authorized_positions(
+                                Some(piece_type),
+                                Some(piece_color),
+                                [i as i8, j as i8],
+                            ))
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+        return possible_moves.len();
+    }
+
+    pub fn is_checkmate(&self) -> bool {
+        if !is_getting_checked(self.board, self.player_turn, self.moves_history.clone()) {
+            return false;
+        }
+
+        if self.number_of_authorized_positions() == 0 {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    pub fn is_pat(&self) -> bool {
+        if self.number_of_authorized_positions() == 0 {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     // Method to render the board
     pub fn board_render(&self, area: Rect, frame: &mut Frame) {
         let width = area.width / 8;
@@ -458,9 +509,7 @@ impl Board {
                 let square = lines[j as usize + 1];
                 // Draw the cell blue if this is the current cursor cell
                 if i == self.cursor_coordinates[0] && j == self.cursor_coordinates[1] {
-                    let cell = Block::default()
-                        .bg(Color::LightBlue)
-                        .add_modifier(Modifier::RAPID_BLINK);
+                    let cell = Block::default().bg(Color::LightBlue);
                     frame.render_widget(cell.clone(), square);
                 } else if is_getting_checked(
                     self.board,
@@ -535,7 +584,7 @@ impl Board {
                 Span::raw("     "),                // separator
                 Span::styled(
                     format!("{} ", utf_icon_black),
-                    Style::default().fg(Color::Black),
+                    Style::default().fg(Color::Rgb(69, 54, 49)),
                 ), // white symbol
                 Span::raw(move_black.to_string()), // black move
             ]));
@@ -770,5 +819,234 @@ mod tests {
         board.set_board(custom_board);
 
         assert!(!is_getting_checked(custom_board, PieceColor::Black, vec![]));
+    }
+
+    #[test]
+    fn is_checkmate_true() {
+        let custom_board = [
+            [
+                Some((PieceType::King, PieceColor::White)),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            ],
+            [None, None, None, None, None, None, None, None],
+            [
+                None,
+                Some((PieceType::Rook, PieceColor::Black)),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            ],
+            [
+                Some((PieceType::Queen, PieceColor::Black)),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+        ];
+        let board = Board::new(custom_board, PieceColor::White, vec![]);
+
+        assert_eq!(Board::is_checkmate(&board), true);
+    }
+
+    #[test]
+    fn is_checkmate_false() {
+        let custom_board = [
+            [
+                Some((PieceType::King, PieceColor::White)),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            ],
+            [None, None, None, None, None, None, None, None],
+            [
+                None,
+                Some((PieceType::Rook, PieceColor::Black)),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            ],
+            [
+                None,
+                None,
+                None,
+                Some((PieceType::Queen, PieceColor::Black)),
+                None,
+                None,
+                None,
+                None,
+            ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+        ];
+        let board = Board::new(custom_board, PieceColor::White, vec![]);
+
+        assert_eq!(Board::is_checkmate(&board), false);
+    }
+
+    #[test]
+    fn is_checkmate_false_2() {
+        let custom_board = [
+            [
+                Some((PieceType::King, PieceColor::White)),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            ],
+            [
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::Queen, PieceColor::White)),
+                None,
+            ],
+            [
+                None,
+                Some((PieceType::Rook, PieceColor::Black)),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            ],
+            [
+                Some((PieceType::Queen, PieceColor::Black)),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+        ];
+        let board = Board::new(custom_board, PieceColor::White, vec![]);
+
+        assert_eq!(Board::is_checkmate(&board), false);
+    }
+
+    #[test]
+    fn is_pat_true() {
+        let custom_board = [
+            [
+                Some((PieceType::King, PieceColor::White)),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            ],
+            [
+                None,
+                None,
+                Some((PieceType::Queen, PieceColor::Black)),
+                None,
+                None,
+                None,
+                None,
+                None,
+            ],
+            [
+                None,
+                Some((PieceType::Rook, PieceColor::Black)),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+        ];
+        let board = Board::new(custom_board, PieceColor::White, vec![]);
+
+        assert_eq!(Board::is_pat(&board), true);
+    }
+
+    #[test]
+    fn is_pat_false() {
+        let custom_board = [
+            [
+                Some((PieceType::King, PieceColor::White)),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            ],
+            [
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::Queen, PieceColor::Black)),
+                None,
+                None,
+                None,
+            ],
+            [
+                None,
+                None,
+                Some((PieceType::Rook, PieceColor::Black)),
+                None,
+                None,
+                None,
+                None,
+                None,
+            ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+        ];
+        let board = Board::new(custom_board, PieceColor::White, vec![]);
+
+        assert_eq!(Board::is_pat(&board), false);
     }
 }
