@@ -5,9 +5,8 @@ A chess TUI implementation in rust 🦀
 
 ![board](./examples/demo.gif)
 
-![GitHub CI](https://github.com/thomas-mauran/chess-tui/actions/workflows/build_and_test.yml/badge.svg)
-![GHCR Push](https://github.com/thomas-mauran/chess-tui/actions/workflows/docker_push.yml/badge.svg)
- [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+![GitHub CI](https://github.com/thomas-mauran/chess-tui/actions/workflows/flow_test_build.yml/badge.svg)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ### Demo
 
