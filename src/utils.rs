@@ -68,7 +68,7 @@ pub fn is_vec_in_array(array: Vec<Vec<i8>>, element: [i8; 2]) -> bool {
 pub fn get_all_protected_cells(
     board: [[Option<(PieceType, PieceColor)>; 8]; 8],
     player_turn: PieceColor,
-    move_history: Vec<(Option<PieceType>, String)>,
+    move_history: &Vec<(Option<PieceType>, String)>,
 ) -> Vec<Vec<i8>> {
     let mut check_cells: Vec<Vec<i8>> = vec![];
     for i in 0..8i8 {
@@ -84,7 +84,7 @@ pub fn get_all_protected_cells(
                         piece_type,
                         piece_color,
                         board,
-                        move_history.clone(),
+                        move_history,
                     ));
                 }
             }
@@ -185,7 +185,7 @@ pub fn get_king_coordinates(
 pub fn is_getting_checked(
     board: [[Option<(PieceType, PieceColor)>; 8]; 8],
     player_turn: PieceColor,
-    move_history: Vec<(Option<PieceType>, String)>,
+    move_history: &Vec<(Option<PieceType>, String)>,
 ) -> bool {
     let coordinates = get_king_coordinates(board, player_turn);
 
@@ -204,7 +204,7 @@ pub fn impossible_positions_king_checked(
     positions: Vec<Vec<i8>>,
     board: [[Option<(PieceType, PieceColor)>; 8]; 8],
     color: PieceColor,
-    move_history: Vec<(Option<PieceType>, String)>,
+    move_history: &Vec<(Option<PieceType>, String)>,
 ) -> Vec<Vec<i8>> {
     let mut cleaned_position: Vec<Vec<i8>> = vec![];
     for position in positions {
@@ -226,7 +226,7 @@ pub fn impossible_positions_king_checked(
         if !is_getting_checked(
             new_board.board,
             new_board.player_turn,
-            new_board.moves_history,
+            &new_board.move_history,
         ) {
             cleaned_position.push(position)
         };
