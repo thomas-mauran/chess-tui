@@ -89,11 +89,12 @@ pub fn render_help_popup(frame: &mut Frame) {
         .border_type(BorderType::Rounded)
         .padding(Padding::horizontal(1))
         .border_style(Style::default().fg(WHITE));
-    let area = centered_rect(40, 40, frame.size());
+    let area = centered_rect(40, 60, frame.size());
 
     let text = vec![
-        Line::from("-- Controls --").alignment(Alignment::Center),
         Line::from(""),
+        Line::from(""),
+        Line::from(vec!["Game controls:".underlined().bold()]),
         Line::from(""),
         Line::from(vec![
             "← ↑ ↓ →: Use the arrow keys to move the ".into(),
@@ -101,26 +102,31 @@ pub fn render_help_popup(frame: &mut Frame) {
             " cursor".into(),
         ]),
         Line::from(""),
-        Line::from(vec![
-            "SPACE_BAR: Select the piece you want to move to make the square ".into(),
-            "green.".green(),
-            " If you selected a piece you will see in ".into(),
-            "red".red(),
-            " the available cells for this piece. You can then hit SPACE_BAR again to move on that square".into(),
-        ]),
+        Line::from(vec!["SPACE_BAR: Interact with a cell".into()]),
         Line::from(""),
-        Line::from("q: Press q to quit "),
+        Line::from("q: Press q to quit the game"),
+        Line::from(""),
+        Line::from("Ctrl + or -: Zoom in or out to adjust pieces sizes"),
+        Line::from(""),
+        Line::from(""),
+        Line::from(vec!["Color codes:".underlined().bold()]),
+        Line::from(""),
+        Line::from(vec!["Blue cell".blue(), ": Your cursor ".into()]),
+        Line::from(""),
+        Line::from(vec!["Green cell".green(), ": Selected Piece ".into()]),
         Line::from(""),
         Line::from(vec![
             "Purple cell".magenta(),
-            ": When the king is getting checked the cell turns ".into(),
-            "purple.".magenta(),
+            ": The king is getting checked ".into(),
+        ]),
+        Line::from(""),
+        Line::from(vec![
+            "Red cell".light_red(),
+            ": Available cells for the selected piece ".into(),
         ]),
         Line::from(""),
         Line::from(""),
-
         Line::from("press h to close the help menu").alignment(Alignment::Center),
-
     ];
 
     let paragraph = Paragraph::new(text)
