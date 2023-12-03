@@ -23,7 +23,7 @@ pub struct Board {
     pub selected_piece_cursor: i8,
     pub old_cursor_position: [i8; 2],
     pub player_turn: PieceColor,
-    pub moves_history: Vec<(Option<PieceType>, String)>,
+    pub move_history: Vec<(Option<PieceType>, String)>,
     pub is_draw: bool,
     pub is_checkmate: bool,
     pub is_promotion: bool,
@@ -85,7 +85,7 @@ impl Default for Board {
             selected_piece_cursor: 0,
             old_cursor_position: [UNDEFINED_POSITION, UNDEFINED_POSITION],
             player_turn: PieceColor::White,
-            moves_history: vec![],
+            move_history: vec![],
             is_draw: false,
             is_checkmate: false,
             is_promotion: false,
@@ -99,7 +99,7 @@ impl Board {
     pub fn new(
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         player_turn: PieceColor,
-        moves_history: Vec<(Option<PieceType>, String)>,
+        move_history: Vec<(Option<PieceType>, String)>,
     ) -> Self {
         Self {
             board,
@@ -108,7 +108,7 @@ impl Board {
             selected_piece_cursor: 0,
             old_cursor_position: [UNDEFINED_POSITION, UNDEFINED_POSITION],
             player_turn,
-            moves_history,
+            move_history,
             is_draw: false,
             is_checkmate: false,
             is_promotion: false,
@@ -142,8 +142,8 @@ impl Board {
                 coordinates,
                 piece_color,
                 self.board,
-                self.moves_history.clone(),
-                is_getting_checked(self.board, self.player_turn, self.moves_history.clone()),
+                &self.move_history,
+                is_getting_checked(self.board, self.player_turn, &self.move_history),
             ),
             _ => Vec::new(),
         }
@@ -204,8 +204,8 @@ impl Board {
     }
 
     pub fn did_king_already_move(&self) -> bool {
-        for i in 0..self.moves_history.len() {
-            match self.moves_history[i] {
+        for i in 0..self.move_history.len() {
+            match self.move_history[i] {
                 (Some(piece_type), _) => {
                     if piece_type == PieceType::King
                         && get_player_turn_in_modulo(self.player_turn) == i % 2
@@ -289,7 +289,7 @@ impl Board {
     }
 
     pub fn promote_piece(&mut self) {
-        if let Some(position) = self.moves_history.last() {
+        if let Some(position) = self.move_history.last() {
             let to_y = get_int_from_char(position.1.chars().nth(2));
             let to_x = get_int_from_char(position.1.chars().nth(3));
 
@@ -377,7 +377,7 @@ impl Board {
         self.board[from[0]][from[1]] = None;
 
         // We store it in the history
-        self.moves_history.push(tuple.clone());
+        self.move_history.push(tuple.clone());
     }
 
     pub fn unselect_cell(&mut self) {
@@ -446,7 +446,7 @@ impl Board {
     }
 
     fn is_latest_move_promotion(&self) -> bool {
-        if let Some(position) = self.moves_history.last() {
+        if let Some(position) = self.move_history.last() {
             let to_y = get_int_from_char(position.1.chars().nth(2));
             let to_x = get_int_from_char(position.1.chars().nth(3));
 
@@ -468,7 +468,7 @@ impl Board {
     }
 
     pub fn is_checkmate(&self) -> bool {
-        if !is_getting_checked(self.board, self.player_turn, self.moves_history.clone()) {
+        if !is_getting_checked(self.board, self.player_turn, &self.move_history) {
             return false;
         }
 
@@ -476,9 +476,9 @@ impl Board {
     }
 
     pub fn draw_by_repetition(&self) -> bool {
-        if self.moves_history.len() >= 9 {
+        if self.move_history.len() >= 9 {
             let last_ten: Vec<(Option<PieceType>, String)> =
-                self.moves_history.iter().rev().take(9).cloned().collect();
+                self.move_history.iter().rev().take(9).cloned().collect();
 
             if (last_ten[0].clone(), last_ten[1].clone())
                 == (last_ten[4].clone(), last_ten[5].clone())
@@ -572,11 +572,8 @@ impl Board {
                 if i == self.cursor_coordinates[0] && j == self.cursor_coordinates[1] {
                     let cell = Block::default().bg(Color::LightBlue);
                     frame.render_widget(cell.clone(), square);
-                } else if is_getting_checked(
-                    self.board,
-                    self.player_turn,
-                    self.moves_history.clone(),
-                ) && [i, j] == get_king_coordinates(self.board, self.player_turn)
+                } else if is_getting_checked(self.board, self.player_turn, &self.move_history)
+                    && [i, j] == get_king_coordinates(self.board, self.player_turn)
                 {
                     let cell = Block::default()
                         .bg(Color::Magenta)
@@ -621,9 +618,9 @@ impl Board {
 
         let mut lines: Vec<Line> = vec![];
 
-        for i in (0..self.moves_history.len()).step_by(2) {
-            let piece_type_from = self.moves_history[i].0;
-            let number_move = &self.moves_history[i].1;
+        for i in (0..self.move_history.len()).step_by(2) {
+            let piece_type_from = self.move_history[i].0;
+            let number_move = &self.move_history[i].1;
 
             let utf_icon_white =
                 PieceType::piece_type_to_utf_enum(piece_type_from, Some(PieceColor::White));
@@ -633,9 +630,9 @@ impl Board {
             let mut move_black: String = "   ".to_string();
 
             // If there is something for black
-            if i + 1 < self.moves_history.len() {
-                let piece_type_to = self.moves_history[i + 1].0;
-                let number = &self.moves_history[i + 1].1;
+            if i + 1 < self.move_history.len() {
+                let piece_type_to = self.move_history[i + 1].0;
+                let number = &self.move_history[i + 1].1;
 
                 move_black = convert_position_into_notation(number.to_string());
                 utf_icon_black =
@@ -718,7 +715,7 @@ mod tests {
         let mut board = Board::default();
         board.set_board(custom_board);
 
-        assert!(is_getting_checked(custom_board, PieceColor::White, vec![]));
+        assert!(is_getting_checked(custom_board, PieceColor::White, &vec![]));
     }
 
     #[test]
@@ -763,7 +760,11 @@ mod tests {
         let mut board = Board::default();
         board.set_board(custom_board);
 
-        assert!(!is_getting_checked(custom_board, PieceColor::White, vec![]));
+        assert!(!is_getting_checked(
+            custom_board,
+            PieceColor::White,
+            &vec![]
+        ));
     }
 
     #[test]
@@ -817,7 +818,11 @@ mod tests {
         let mut board = Board::default();
         board.set_board(custom_board);
 
-        assert!(!is_getting_checked(custom_board, PieceColor::Black, vec![]));
+        assert!(!is_getting_checked(
+            custom_board,
+            PieceColor::Black,
+            &vec![]
+        ));
     }
 
     #[test]
@@ -880,7 +885,11 @@ mod tests {
         let mut board = Board::default();
         board.set_board(custom_board);
 
-        assert!(!is_getting_checked(custom_board, PieceColor::Black, vec![]));
+        assert!(!is_getting_checked(
+            custom_board,
+            PieceColor::Black,
+            &vec![]
+        ));
     }
 
     #[test]
