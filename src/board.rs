@@ -24,10 +24,11 @@ pub struct Board {
     pub old_cursor_position: [i8; 2],
     pub player_turn: PieceColor,
     pub moves_history: Vec<(Option<PieceType>, String)>,
-    pub is_pat: bool,
+    pub is_draw: bool,
     pub is_checkmate: bool,
     pub is_promotion: bool,
     pub promotion_cursor: i8,
+    pub consecutive_non_pawn_or_capture: i32,
 }
 
 impl Default for Board {
@@ -85,10 +86,11 @@ impl Default for Board {
             old_cursor_position: [UNDEFINED_POSITION, UNDEFINED_POSITION],
             player_turn: PieceColor::White,
             moves_history: vec![],
-            is_pat: false,
+            is_draw: false,
             is_checkmate: false,
             is_promotion: false,
             promotion_cursor: 0,
+            consecutive_non_pawn_or_capture: 0,
         }
     }
 }
@@ -107,10 +109,11 @@ impl Board {
             old_cursor_position: [UNDEFINED_POSITION, UNDEFINED_POSITION],
             player_turn,
             moves_history,
-            is_pat: false,
+            is_draw: false,
             is_checkmate: false,
             is_promotion: false,
             promotion_cursor: 0,
+            consecutive_non_pawn_or_capture: 0,
         }
     }
 
@@ -154,7 +157,7 @@ impl Board {
 
     // Methods to change the position of the cursor
     pub fn cursor_up(&mut self) {
-        if !self.is_checkmate && !self.is_pat && !self.is_promotion {
+        if !self.is_checkmate && !self.is_draw && !self.is_promotion {
             if self.is_cell_selected() {
                 self.move_selected_piece_cursor(false, -1)
             } else if self.cursor_coordinates[0] > 0 {
@@ -163,7 +166,7 @@ impl Board {
         }
     }
     pub fn cursor_down(&mut self) {
-        if !self.is_checkmate && !self.is_pat && !self.is_promotion {
+        if !self.is_checkmate && !self.is_draw && !self.is_promotion {
             if self.is_cell_selected() {
                 self.move_selected_piece_cursor(false, 1)
             } else if self.cursor_coordinates[0] < 7 {
@@ -179,7 +182,7 @@ impl Board {
             } else {
                 3
             };
-        } else if !self.is_checkmate && !self.is_pat {
+        } else if !self.is_checkmate && !self.is_draw {
             if self.is_cell_selected() {
                 self.move_selected_piece_cursor(false, -1)
             } else if self.cursor_coordinates[1] > 0 {
@@ -191,7 +194,7 @@ impl Board {
         // If we are doing a promotion the cursor is used for the popup
         if self.is_promotion {
             self.promotion_cursor = (self.promotion_cursor + 1) % 4;
-        } else if !self.is_checkmate && !self.is_pat {
+        } else if !self.is_checkmate && !self.is_draw {
             if self.is_cell_selected() {
                 self.move_selected_piece_cursor(false, 1)
             } else if self.cursor_coordinates[1] < 7 {
@@ -251,7 +254,7 @@ impl Board {
         // If we are doing a promotion the cursor is used for the popup
         if self.is_promotion {
             self.promote_piece();
-        } else if !self.is_checkmate && !self.is_pat {
+        } else if !self.is_checkmate && !self.is_draw {
             if !self.is_cell_selected() {
                 match get_piece_color(self.board, self.cursor_coordinates) {
                     Some(piece_color) => {
@@ -277,7 +280,7 @@ impl Board {
                     self.move_piece_on_the_board(selected_coords_usize, cursor_coords_usize);
                     self.unselect_cell();
                     self.switch_player_turn();
-                    self.is_pat = self.is_pat();
+                    self.is_draw = self.is_draw();
                 }
             }
         }
@@ -319,7 +322,18 @@ impl Board {
         };
 
         let piece_type_from = get_piece_type(self.board, [from[0] as i8, from[1] as i8]);
+        let piece_type_to = get_piece_type(self.board, [to[0] as i8, to[1] as i8]);
         let position_number: String = format!("{}{}{}{}", from[0], from[1], to[0], to[1]);
+
+        // We increment the consecutive_non_pawn_or_capture if the piece type is a pawn or if there is no capture
+        match (piece_type_from, piece_type_to) {
+            (Some(PieceType::Pawn), _) | (Some(_), Some(_)) => {
+                self.consecutive_non_pawn_or_capture = 0;
+            }
+            _ => {
+                self.consecutive_non_pawn_or_capture += 1;
+            }
+        }
 
         let tuple = (piece_type_from, position_number);
 
@@ -461,8 +475,27 @@ impl Board {
         self.number_of_authorized_positions() == 0
     }
 
-    pub fn is_pat(&self) -> bool {
+    pub fn draw_by_repetition(&self) -> bool {
+        if self.moves_history.len() >= 9 {
+            let last_ten: Vec<(Option<PieceType>, String)> =
+                self.moves_history.iter().rev().take(9).cloned().collect();
+
+            if (last_ten[0].clone(), last_ten[1].clone())
+                == (last_ten[4].clone(), last_ten[5].clone())
+                && last_ten[4].clone() == last_ten[8].clone()
+                && (last_ten[2].clone(), last_ten[3].clone())
+                    == (last_ten[6].clone(), last_ten[7].clone())
+            {
+                return true;
+            }
+        }
+        false
+    }
+
+    pub fn is_draw(&self) -> bool {
         self.number_of_authorized_positions() == 0
+            || self.consecutive_non_pawn_or_capture == 50
+            || self.draw_by_repetition()
     }
 
     // Method to render the board
@@ -992,7 +1025,7 @@ mod tests {
     }
 
     #[test]
-    fn is_pat_true() {
+    fn is_draw_true() {
         let custom_board = [
             [
                 Some((PieceType::King, PieceColor::White)),
@@ -1032,11 +1065,11 @@ mod tests {
         ];
         let board = Board::new(custom_board, PieceColor::White, vec![]);
 
-        assert!(board.is_pat());
+        assert!(board.is_draw());
     }
 
     #[test]
-    fn is_pat_false() {
+    fn is_draw_false() {
         let custom_board = [
             [
                 Some((PieceType::King, PieceColor::White)),
@@ -1076,7 +1109,7 @@ mod tests {
         ];
         let board = Board::new(custom_board, PieceColor::White, vec![]);
 
-        assert!(!board.is_pat());
+        assert!(!board.is_draw());
     }
 
     #[test]
@@ -1287,7 +1320,7 @@ mod tests {
     }
 
     #[test]
-    fn promote_and_pat() {
+    fn promote_and_draw() {
         let custom_board = [
             [None, None, None, None, None, None, None, None],
             [
@@ -1338,6 +1371,87 @@ mod tests {
 
         // The black king gets checkmated
         board.player_turn = PieceColor::White;
-        assert!(board.is_pat());
+        assert!(board.is_draw());
+    }
+    #[test]
+    fn fifty_moves_draw() {
+        let custom_board = [
+            [None, None, None, None, None, None, None, None],
+            [
+                None,
+                None,
+                Some((PieceType::King, PieceColor::White)),
+                None,
+                None,
+                None,
+                Some((PieceType::King, PieceColor::Black)),
+                None,
+            ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+        ];
+        // We setup the board
+        let mut board = Board::new(
+            custom_board,
+            PieceColor::White,
+            vec![
+                // We don't use the history for a fifty draw
+            ],
+        );
+
+        board.consecutive_non_pawn_or_capture = 49;
+        assert!(!board.is_draw());
+
+        // Move the pawn to a make the 50th move
+        board.move_piece_on_the_board([0, 6], [0, 5]);
+        assert!(board.is_draw());
+    }
+
+    #[test]
+    fn consecutive_position_draw() {
+        let custom_board = [
+            [
+                None,
+                None,
+                Some((PieceType::King, PieceColor::White)),
+                None,
+                None,
+                None,
+                Some((PieceType::King, PieceColor::Black)),
+                None,
+            ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+        ];
+        // We setup the board
+        let mut board = Board::new(
+            custom_board,
+            PieceColor::White,
+            vec![
+                (Some(PieceType::King), "0201".to_string()),
+                (Some(PieceType::King), "0605".to_string()),
+                (Some(PieceType::King), "0102".to_string()),
+                (Some(PieceType::King), "0506".to_string()),
+                (Some(PieceType::King), "0201".to_string()),
+                (Some(PieceType::King), "0605".to_string()),
+                (Some(PieceType::King), "0102".to_string()),
+                (Some(PieceType::King), "0506".to_string()),
+            ],
+        );
+
+        assert!(!board.is_draw());
+
+        // Move the king to replicate a third time the same position
+        board.move_piece_on_the_board([0, 2], [0, 1]);
+        assert!(board.is_draw());
     }
 }

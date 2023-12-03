@@ -45,7 +45,7 @@ impl App {
     }
 
     pub fn restart(&mut self) {
-        if self.board.is_pat || self.board.is_checkmate {
+        if self.board.is_draw || self.board.is_checkmate {
             self.board = Board::default()
         }
     }

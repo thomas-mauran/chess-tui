@@ -66,7 +66,7 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         render_promotion_popup(frame, app)
     }
 
-    if app.board.is_pat {
+    if app.board.is_draw {
         render_end_popup(frame, "That's a draw".to_string())
     }
 
