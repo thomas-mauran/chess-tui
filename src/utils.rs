@@ -3,6 +3,7 @@ use crate::{
     constants::UNDEFINED_POSITION,
     pieces::{PieceColor, PieceType},
 };
+use ratatui::style::Color;
 
 pub fn get_piece_color(
     board: [[Option<(PieceType, PieceColor)>; 8]; 8],
@@ -239,5 +240,13 @@ pub fn is_piece_opposite_king(piece: Option<(PieceType, PieceColor)>, color: Pie
             piece_type == PieceType::King && piece_color == get_opposite_color(color)
         }
         _ => false,
+    }
+}
+
+pub fn color_to_ratatui_enum(piece_color: Option<PieceColor>) -> Color {
+    match piece_color {
+        Some(PieceColor::Black) => Color::Black,
+        Some(PieceColor::White) => Color::White,
+        None => Color::Red,
     }
 }

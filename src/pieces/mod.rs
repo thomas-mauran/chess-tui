@@ -87,6 +87,39 @@ impl PieceType {
             }
         }
     }
+
+    pub fn piece_type_to_utf_enum(
+        piece_type: Option<PieceType>,
+        piece_color: Option<PieceColor>,
+    ) -> &'static str {
+        match (piece_type, piece_color) {
+            (Some(PieceType::Queen), Some(PieceColor::Black)) => "♕",
+            (Some(PieceType::Queen), Some(PieceColor::White)) => "♛",
+            (Some(PieceType::King), Some(PieceColor::Black)) => "♔",
+            (Some(PieceType::King), Some(PieceColor::White)) => "♚",
+            (Some(PieceType::Rook), Some(PieceColor::Black)) => "♖",
+            (Some(PieceType::Rook), Some(PieceColor::White)) => "♜",
+            (Some(PieceType::Bishop), Some(PieceColor::Black)) => "♗",
+            (Some(PieceType::Bishop), Some(PieceColor::White)) => "♝",
+            (Some(PieceType::Knight), Some(PieceColor::Black)) => "♘",
+            (Some(PieceType::Knight), Some(PieceColor::White)) => "♞",
+            (Some(PieceType::Pawn), Some(PieceColor::Black)) => "♙",
+            (Some(PieceType::Pawn), Some(PieceColor::White)) => "♟",
+            _ => "NONE",
+        }
+    }
+
+    pub fn piece_type_to_string_enum(piece_type: Option<PieceType>) -> &'static str {
+        match piece_type {
+            Some(PieceType::Queen) => Queen::to_string(),
+            Some(PieceType::King) => King::to_string(),
+            Some(PieceType::Rook) => Rook::to_string(),
+            Some(PieceType::Bishop) => Bishop::to_string(),
+            Some(PieceType::Knight) => Knight::to_string(),
+            Some(PieceType::Pawn) => Pawn::to_string(),
+            None => " ",
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
