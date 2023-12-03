@@ -5,8 +5,8 @@ use crate::{
         PieceColor, PieceType,
     },
     utils::{
-        convert_position_into_notation, get_king_coordinates, get_piece_color, get_piece_type,
-        get_player_turn_in_modulo, is_getting_checked, is_valid,
+        convert_position_into_notation, get_int_from_char, get_king_coordinates, get_piece_color,
+        get_piece_type, get_player_turn_in_modulo, is_getting_checked, is_valid,
     },
 };
 use ratatui::{
@@ -28,55 +28,57 @@ pub struct Board {
     pub moves_history: Vec<(Option<PieceType>, String)>,
     pub is_pat: bool,
     pub is_checkmate: bool,
+    pub is_promotion: bool,
+    pub promotion_cursor: i8,
 }
 
 impl Default for Board {
     fn default() -> Self {
         Self {
             board: [
+                [None, None, None, None, None, None, None, None],
                 [
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
                     Some((PieceType::Rook, PieceColor::Black)),
-                    Some((PieceType::Knight, PieceColor::Black)),
-                    Some((PieceType::Bishop, PieceColor::Black)),
-                    Some((PieceType::Queen, PieceColor::Black)),
+                    None,
+                ],
+                [None, None, None, None, None, None, None, None],
+                [None, None, None, None, None, None, None, None],
+                [None, None, None, None, None, None, None, None],
+                [
+                    None,
                     Some((PieceType::King, PieceColor::Black)),
-                    Some((PieceType::Bishop, PieceColor::Black)),
-                    Some((PieceType::Knight, PieceColor::Black)),
-                    Some((PieceType::Rook, PieceColor::Black)),
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
                 ],
                 [
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                ],
-                [None, None, None, None, None, None, None, None],
-                [None, None, None, None, None, None, None, None],
-                [None, None, None, None, None, None, None, None],
-                [None, None, None, None, None, None, None, None],
-                [
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                ],
-                [
-                    Some((PieceType::Rook, PieceColor::White)),
-                    Some((PieceType::Knight, PieceColor::White)),
-                    Some((PieceType::Bishop, PieceColor::White)),
-                    Some((PieceType::Queen, PieceColor::White)),
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
                     Some((PieceType::King, PieceColor::White)),
-                    Some((PieceType::Bishop, PieceColor::White)),
-                    Some((PieceType::Knight, PieceColor::White)),
-                    Some((PieceType::King, PieceColor::White)),
+                ],
+                [
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    Some((PieceType::Pawn, PieceColor::Black)),
+                    None,
+                    None,
                 ],
             ],
             cursor_coordinates: [4, 4],
@@ -87,6 +89,8 @@ impl Default for Board {
             moves_history: vec![],
             is_pat: false,
             is_checkmate: false,
+            is_promotion: false,
+            promotion_cursor: 0,
         }
     }
 }
@@ -107,6 +111,8 @@ impl Board {
             moves_history,
             is_pat: false,
             is_checkmate: false,
+            is_promotion: false,
+            promotion_cursor: 0,
         }
     }
 
@@ -150,7 +156,7 @@ impl Board {
 
     // Methods to change the position of the cursor
     pub fn cursor_up(&mut self) {
-        if !self.is_checkmate && !self.is_pat {
+        if !self.is_checkmate && !self.is_pat && !self.is_promotion {
             if self.is_cell_selected() {
                 self.move_selected_piece_cursor(false, -1)
             } else if self.cursor_coordinates[0] > 0 {
@@ -159,7 +165,7 @@ impl Board {
         }
     }
     pub fn cursor_down(&mut self) {
-        if !self.is_checkmate && !self.is_pat {
+        if !self.is_checkmate && !self.is_pat && !self.is_promotion {
             if self.is_cell_selected() {
                 self.move_selected_piece_cursor(false, 1)
             } else if self.cursor_coordinates[0] < 7 {
@@ -168,20 +174,34 @@ impl Board {
         }
     }
     pub fn cursor_left(&mut self) {
-        if !self.is_checkmate && !self.is_pat {
-            if self.is_cell_selected() {
-                self.move_selected_piece_cursor(false, -1)
-            } else if self.cursor_coordinates[1] > 0 {
-                self.cursor_coordinates[1] -= 1
+        // If we are doing a promotion the cursor is used for the popup
+        if self.is_promotion {
+            self.promotion_cursor = if self.promotion_cursor > 0 {
+                self.promotion_cursor - 1
+            } else {
+                3
+            };
+        } else {
+            if !self.is_checkmate && !self.is_pat {
+                if self.is_cell_selected() {
+                    self.move_selected_piece_cursor(false, -1)
+                } else if self.cursor_coordinates[1] > 0 {
+                    self.cursor_coordinates[1] -= 1
+                }
             }
         }
     }
     pub fn cursor_right(&mut self) {
-        if !self.is_checkmate && !self.is_pat {
-            if self.is_cell_selected() {
-                self.move_selected_piece_cursor(false, 1)
-            } else if self.cursor_coordinates[1] < 7 {
-                self.cursor_coordinates[1] += 1
+        // If we are doing a promotion the cursor is used for the popup
+        if self.is_promotion {
+            self.promotion_cursor = (self.promotion_cursor + 1) % 4;
+        } else {
+            if !self.is_checkmate && !self.is_pat {
+                if self.is_cell_selected() {
+                    self.move_selected_piece_cursor(false, 1)
+                } else if self.cursor_coordinates[1] < 7 {
+                    self.cursor_coordinates[1] += 1
+                }
             }
         }
     }
@@ -234,71 +254,69 @@ impl Board {
 
     // Methods to select a cell on the board
     pub fn select_cell(&mut self) {
-        if !self.is_checkmate && !self.is_pat {
-            if !self.is_cell_selected() {
-                match get_piece_color(self.board, self.cursor_coordinates) {
-                    Some(piece_color) => {
-                        if piece_color == self.player_turn {
-                            self.selected_coordinates = self.cursor_coordinates;
-                            self.old_cursor_position = self.cursor_coordinates;
-                            self.move_selected_piece_cursor(true, 1);
+        // If we are doing a promotion the cursor is used for the popup
+        if self.is_promotion {
+            self.promote_piece();
+        } else {
+            if !self.is_checkmate && !self.is_pat {
+                if !self.is_cell_selected() {
+                    match get_piece_color(self.board, self.cursor_coordinates) {
+                        Some(piece_color) => {
+                            if piece_color == self.player_turn {
+                                self.selected_coordinates = self.cursor_coordinates;
+                                self.old_cursor_position = self.cursor_coordinates;
+                                self.move_selected_piece_cursor(true, 1);
+                            }
                         }
+                        _ => {}
                     }
-                    _ => {}
-                }
-            } else {
-                // We already selected a piece
-                if is_valid(self.cursor_coordinates) {
-                    let selected_coords_usize: [usize; 2] = [
-                        self.selected_coordinates[0] as usize,
-                        self.selected_coordinates[1] as usize,
-                    ];
-                    let cursor_coords_usize: [usize; 2] = [
-                        self.cursor_coordinates[0] as usize,
-                        self.cursor_coordinates[1] as usize,
-                    ];
-                    self.move_piece_on_the_board(selected_coords_usize, cursor_coords_usize);
-                    self.unselect_cell();
-                    self.switch_player_turn();
-                    self.is_pat = self.is_pat();
-                    self.is_checkmate = self.is_checkmate();
+                } else {
+                    // We already selected a piece
+                    if is_valid(self.cursor_coordinates) {
+                        let selected_coords_usize: [usize; 2] = [
+                            self.selected_coordinates[0] as usize,
+                            self.selected_coordinates[1] as usize,
+                        ];
+                        let cursor_coords_usize: [usize; 2] = [
+                            self.cursor_coordinates[0] as usize,
+                            self.cursor_coordinates[1] as usize,
+                        ];
+                        self.move_piece_on_the_board(selected_coords_usize, cursor_coords_usize);
+                        self.unselect_cell();
+                        self.switch_player_turn();
+                        self.is_pat = self.is_pat();
+                    }
                 }
             }
         }
+        self.is_checkmate = self.is_checkmate();
+        self.is_promotion = self.is_latest_move_promotion();
     }
 
-    fn is_latest_move_en_passant(&self, from: [usize; 2], to: [usize; 2]) -> bool {
-        let piece_type_from = get_piece_type(self.board, [from[0] as i8, from[1] as i8]);
-        let piece_type_to = get_piece_type(self.board, [to[0] as i8, to[1] as i8]);
+    pub fn promote_piece(&mut self) {
+        if let Some(position) = self.moves_history.last() {
+            let to_y = get_int_from_char(position.1.chars().nth(2));
+            let to_x = get_int_from_char(position.1.chars().nth(3));
 
-        let from_y: i32 = from[0] as i32;
-        let from_x: i32 = from[1] as i32;
-        let to_y: i32 = to[0] as i32;
-        let to_x: i32 = to[1] as i32;
-        match (piece_type_from, piece_type_to) {
-            (Some(PieceType::Pawn), _) => {
-                // Check if it's a diagonal move, and the destination is an empty cell
-                from_y != to_y && from_x != to_x && self.board[to[0]][to[1]].is_none()
+            let new_piece = match self.promotion_cursor {
+                0 => PieceType::Queen,
+                1 => PieceType::Rook,
+                2 => PieceType::Bishop,
+                3 => PieceType::Knight,
+                _ => unreachable!("Promotion cursor out of boundaries"),
+            };
+
+            let current_piece_color = get_piece_color(self.board, [to_y, to_x]);
+            match current_piece_color {
+                Some(piece_color) => {
+                    // we replace the piece by the new piece type
+                    self.board[to_y as usize][to_x as usize] = Some((new_piece, piece_color));
+                }
+                _ => {}
             }
-            _ => false,
         }
-    }
-
-    fn is_latest_move_castling(&self, from: [usize; 2], to: [usize; 2]) -> bool {
-        let piece_type_from = get_piece_type(self.board, [from[0] as i8, from[1] as i8]);
-        let piece_type_to = get_piece_type(self.board, [to[0] as i8, to[1] as i8]);
-
-        let from_x: i32 = from[1] as i32;
-        let to_x: i32 = to[1] as i32;
-        let distance = (from_x - to_x).abs();
-
-        match (piece_type_from, piece_type_to) {
-            (Some(PieceType::King), _) => {
-                // Check if it's a move on more
-                distance > 1
-            }
-            _ => false,
-        }
+        self.is_promotion = false;
+        self.promotion_cursor = 0;
     }
 
     pub fn move_piece_on_the_board(&mut self, from: [usize; 2], to: [usize; 2]) {
@@ -349,6 +367,7 @@ impl Board {
         } else {
             self.board[to[0]][to[1]] = self.board[from[0]][from[1]];
         }
+
         self.board[from[0]][from[1]] = None;
 
         // We store it in the history
@@ -415,6 +434,62 @@ impl Board {
             }
         }
         possible_moves.len()
+    }
+
+    fn is_latest_move_en_passant(&self, from: [usize; 2], to: [usize; 2]) -> bool {
+        let piece_type_from = get_piece_type(self.board, [from[0] as i8, from[1] as i8]);
+        let piece_type_to = get_piece_type(self.board, [to[0] as i8, to[1] as i8]);
+
+        let from_y: i32 = from[0] as i32;
+        let from_x: i32 = from[1] as i32;
+        let to_y: i32 = to[0] as i32;
+        let to_x: i32 = to[1] as i32;
+        match (piece_type_from, piece_type_to) {
+            (Some(PieceType::Pawn), _) => {
+                // Check if it's a diagonal move, and the destination is an empty cell
+                from_y != to_y && from_x != to_x && self.board[to[0]][to[1]].is_none()
+            }
+            _ => false,
+        }
+    }
+
+    fn is_latest_move_castling(&self, from: [usize; 2], to: [usize; 2]) -> bool {
+        let piece_type_from = get_piece_type(self.board, [from[0] as i8, from[1] as i8]);
+        let piece_type_to = get_piece_type(self.board, [to[0] as i8, to[1] as i8]);
+
+        let from_x: i32 = from[1] as i32;
+        let to_x: i32 = to[1] as i32;
+        let distance = (from_x - to_x).abs();
+
+        match (piece_type_from, piece_type_to) {
+            (Some(PieceType::King), _) => {
+                // Check if it's a move on more
+                distance > 1
+            }
+            _ => false,
+        }
+    }
+
+    fn is_latest_move_promotion(&self) -> bool {
+        if let Some(position) = self.moves_history.last() {
+            let to_y = get_int_from_char(position.1.chars().nth(2));
+            let to_x = get_int_from_char(position.1.chars().nth(3));
+
+            if let Some(piece_type_from) = get_piece_type(self.board, [to_y as i8, to_x as i8]) {
+                if let Some(piece_color) = get_piece_color(self.board, [to_y as i8, to_x as i8]) {
+                    let last_row = if piece_color == PieceColor::White {
+                        0
+                    } else {
+                        7
+                    };
+
+                    if to_y as i8 == last_row && piece_type_from == PieceType::Pawn {
+                        return true;
+                    }
+                }
+            }
+        }
+        false
     }
 
     pub fn is_checkmate(&self) -> bool {
@@ -1040,5 +1115,267 @@ mod tests {
         let board = Board::new(custom_board, PieceColor::White, vec![]);
 
         assert!(!Board::is_pat(&board));
+    }
+
+    #[test]
+    fn is_promote_false() {
+        let custom_board = [
+            [
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::King, PieceColor::Black)),
+            ],
+            [
+                None,
+                None,
+                None,
+                Some((PieceType::Rook, PieceColor::White)),
+                None,
+                None,
+                None,
+                None,
+            ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [
+                None,
+                None,
+                None,
+                Some((PieceType::Pawn, PieceColor::White)),
+                None,
+                None,
+                None,
+                None,
+            ],
+            [
+                None,
+                Some((PieceType::King, PieceColor::White)),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            ],
+        ];
+        let board = Board::new(
+            custom_board,
+            PieceColor::Black,
+            vec![(Some(PieceType::Pawn), "7363".to_string())],
+        );
+
+        assert_eq!(Board::is_latest_move_promotion(&board), false);
+    }
+    #[test]
+    fn is_promote_true() {
+        let custom_board = [
+            [
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::Pawn, PieceColor::White)),
+                None,
+                None,
+                Some((PieceType::King, PieceColor::Black)),
+            ],
+            [
+                None,
+                None,
+                None,
+                Some((PieceType::Rook, PieceColor::White)),
+                None,
+                None,
+                None,
+                None,
+            ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [
+                None,
+                Some((PieceType::King, PieceColor::White)),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            ],
+        ];
+        let board = Board::new(
+            custom_board,
+            PieceColor::Black,
+            vec![(Some(PieceType::Pawn), "1404".to_string())],
+        );
+
+        assert_eq!(Board::is_latest_move_promotion(&board), true);
+    }
+
+    #[test]
+    fn promote_and_checkmate() {
+        let custom_board = [
+            [
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::King, PieceColor::Black)),
+            ],
+            [
+                None,
+                None,
+                None,
+                Some((PieceType::Rook, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                None,
+                None,
+                None,
+            ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [
+                None,
+                Some((PieceType::King, PieceColor::White)),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            ],
+        ];
+        // We setup the board
+        let mut board = Board::new(custom_board, PieceColor::White, vec![]);
+        assert_eq!(board.is_latest_move_promotion(), false);
+
+        // Move the pawn to a promote cell
+        board.move_piece_on_the_board([1, 4], [0, 4]);
+        assert_eq!(board.is_latest_move_promotion(), true);
+
+        // Promote the pawn
+        board.promote_piece();
+
+        // The black king gets checkmated
+        board.player_turn = PieceColor::Black;
+        assert_eq!(board.is_checkmate(), true);
+    }
+
+    #[test]
+    fn is_promote_true_black() {
+        let custom_board = [
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [
+                None,
+                Some((PieceType::King, PieceColor::Black)),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            ],
+            [
+                None,
+                None,
+                None,
+                Some((PieceType::Rook, PieceColor::Black)),
+                None,
+                None,
+                None,
+                None,
+            ],
+            [
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::Pawn, PieceColor::Black)),
+                None,
+                None,
+                Some((PieceType::King, PieceColor::White)),
+            ],
+        ];
+        let board = Board::new(
+            custom_board,
+            PieceColor::White,
+            vec![(Some(PieceType::Pawn), "6474".to_string())],
+        );
+
+        assert_eq!(board.is_latest_move_promotion(), true);
+    }
+
+    #[test]
+    fn promote_and_pat() {
+        let custom_board = [
+            [None, None, None, None, None, None, None, None],
+            [
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::Rook, PieceColor::Black)),
+                None,
+            ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [
+                None,
+                Some((PieceType::King, PieceColor::Black)),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            ],
+            [
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::Pawn, PieceColor::Black)),
+                None,
+                Some((PieceType::King, PieceColor::White)),
+            ],
+            [None, None, None, None, None, None, None, None],
+        ];
+        // We setup the board
+        let mut board = Board::new(custom_board, PieceColor::Black, vec![]);
+        assert_eq!(board.is_latest_move_promotion(), false);
+
+        // Move the pawn to a promote cell
+        board.move_piece_on_the_board([6, 5], [7, 5]);
+        assert_eq!(board.is_latest_move_promotion(), true);
+
+        // Promote the pawn
+        board.promote_piece();
+
+        // The black king gets checkmated
+        board.player_turn = PieceColor::White;
+        assert_eq!(board.is_pat(), true);
     }
 }

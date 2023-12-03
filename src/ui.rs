@@ -1,14 +1,18 @@
 use ratatui::{
     layout::{Constraint, Direction, Layout},
     prelude::{Alignment, Rect},
-    style::{Style, Stylize},
+    style::{Color, Style, Stylize},
     text::Line,
     widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Wrap},
     Frame,
 };
 
-use crate::{app::App, constants::WHITE, pieces::PieceColor, utils::get_opposite_color};
-
+use crate::{
+    app::App,
+    constants::WHITE,
+    pieces::{bishop::Bishop, knight::Knight, queen::Queen, rook::Rook, PieceColor},
+    utils::get_opposite_color,
+};
 
 /// Renders the user interface widgets.
 pub fn render(app: &mut App, frame: &mut Frame) {
@@ -56,6 +60,10 @@ pub fn render(app: &mut App, frame: &mut Frame) {
 
     if app.show_popup {
         render_help_popup(frame)
+    }
+
+    if app.board.is_promotion {
+        render_promotion_popup(frame, app)
     }
 
     if app.board.is_pat {
@@ -126,7 +134,7 @@ pub fn render_help_popup(frame: &mut Frame) {
 }
 
 /// helper function to create a centered rect using up certain percentage of the available rect `r`
-fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
+pub fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
     let popup_layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
@@ -170,4 +178,90 @@ pub fn render_end_popup(frame: &mut Frame, sentence: String) {
     frame.render_widget(Clear, area); //this clears out the background
     frame.render_widget(block, area);
     frame.render_widget(paragraph, area);
+}
+
+pub fn render_promotion_popup(frame: &mut Frame, app: &App) {
+    let block = Block::default()
+        .title("Pawn promotion")
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .padding(Padding::horizontal(1))
+        .border_style(Style::default().fg(WHITE));
+    let area = centered_rect(40, 40, frame.size());
+
+    let text = vec![
+        Line::from(""),
+        Line::from("-- Choose your pawn promotion --").alignment(Alignment::Center),
+        Line::from(""),
+    ];
+
+    let paragraph = Paragraph::new(text)
+        .block(Block::default())
+        .alignment(Alignment::Left)
+        .wrap(Wrap { trim: true });
+    frame.render_widget(Clear, area); //this clears out the background
+    frame.render_widget(block, area);
+    frame.render_widget(paragraph, area);
+
+    let inner_popup_layout_vertical = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(
+            [
+                Constraint::Ratio(1, 3),
+                Constraint::Ratio(1, 3),
+                Constraint::Ratio(1, 3),
+            ]
+            .as_ref(),
+        )
+        .split(area);
+
+    let inner_popup_layout_horizontal = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(
+            [
+                Constraint::Ratio(1, 4),
+                Constraint::Ratio(1, 4),
+                Constraint::Ratio(1, 4),
+                Constraint::Ratio(1, 4),
+            ]
+            .as_ref(),
+        )
+        .split(inner_popup_layout_vertical[1]);
+
+    let queen_p = Paragraph::new(Queen::to_string())
+        .block(Block::default())
+        .alignment(Alignment::Center)
+        .style(Style::default().bg(if app.board.promotion_cursor == 0 {
+            Color::LightBlue
+        } else {
+            Color::Reset // Set to the default background color when the condition is false
+        }));
+    frame.render_widget(queen_p, inner_popup_layout_horizontal[0]);
+    let rook_p = Paragraph::new(Rook::to_string())
+        .block(Block::default())
+        .alignment(Alignment::Center)
+        .style(Style::default().bg(if app.board.promotion_cursor == 1 {
+            Color::LightBlue
+        } else {
+            Color::Reset // Set to the default background color when the condition is false
+        }));
+    frame.render_widget(rook_p, inner_popup_layout_horizontal[1]);
+    let bishop_p = Paragraph::new(Bishop::to_string())
+        .block(Block::default())
+        .alignment(Alignment::Center)
+        .style(Style::default().bg(if app.board.promotion_cursor == 2 {
+            Color::LightBlue
+        } else {
+            Color::Reset // Set to the default background color when the condition is false
+        }));
+    frame.render_widget(bishop_p, inner_popup_layout_horizontal[2]);
+    let knight_p = Paragraph::new(Knight::to_string())
+        .block(Block::default())
+        .alignment(Alignment::Center)
+        .style(Style::default().bg(if app.board.promotion_cursor == 3 {
+            Color::LightBlue
+        } else {
+            Color::Reset // Set to the default background color when the condition is false
+        }));
+    frame.render_widget(knight_p, inner_popup_layout_horizontal[3]);
 }
