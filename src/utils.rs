@@ -115,10 +115,10 @@ pub fn convert_position_into_notation(position: String) -> String {
     let to_x = get_int_from_char(position.chars().nth(3));
 
     result += &col_to_letter(from_x);
-    result += &format!("{}", (8 - from_y) % 8).to_string();
+    result += &format!("{}", (8 - from_y) % 9).to_string();
     result += "-";
     result += &col_to_letter(to_x);
-    result += &format!("{}", (8 - to_y) % 8).to_string();
+    result += &format!("{}", (8 - to_y) % 9).to_string();
 
     result
 }
@@ -248,5 +248,20 @@ pub fn color_to_ratatui_enum(piece_color: Option<PieceColor>) -> Color {
         Some(PieceColor::Black) => Color::Black,
         Some(PieceColor::White) => Color::White,
         None => Color::Red,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::utils::convert_position_into_notation;
+
+    #[test]
+    fn convert_position_into_notation_1() {
+        assert_eq!(convert_position_into_notation("7152".to_string()), "b1-c3")
+    }
+
+    #[test]
+    fn convert_position_into_notation_2() {
+        assert_eq!(convert_position_into_notation("0257".to_string()), "c8-h3")
     }
 }
