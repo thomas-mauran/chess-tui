@@ -94,7 +94,7 @@ pub fn render_help_popup(frame: &mut Frame) {
     let text = vec![
         Line::from(""),
         Line::from(""),
-        Line::from(vec!["Game controls:".underlined().bold()]),
+        Line::from("Game controls:".underlined().bold()),
         Line::from(""),
         Line::from(vec![
             "← ↑ ↓ →: Use the arrow keys to move the ".into(),
