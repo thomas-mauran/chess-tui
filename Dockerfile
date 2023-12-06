@@ -7,4 +7,7 @@ COPY ./ ./
 # Build your program for release
 RUN cargo build --release
 
-ENTRYPOINT [ "/target/release/chess-tui" ]
+FROM debian:bookworm-slim AS runner
+COPY --from=builder /target/release/chess-tui /usr/bin/chess-tui
+
+ENTRYPOINT [ "/usr/bin/chess-tui" ]
