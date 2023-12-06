@@ -33,6 +33,14 @@ cargo build --release
 ./target/release/chess-tui
 ```
 
+**NetBSD**
+
+On NetBSD a pre-compiled binary is available from the official repositories. To install it, simply run:
+
+```
+pkgin install chess-tui
+```
+
 ### Features
 
 <details>
