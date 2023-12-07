@@ -256,6 +256,16 @@ impl Board {
             self.promote_piece();
         } else if !self.is_checkmate && !self.is_draw {
             if !self.is_cell_selected() {
+                // Check if the piece on the cell can move before selecting it
+                let piece_color = get_piece_color(self.board, self.cursor_coordinates);
+                let piece_type = get_piece_type(self.board, self.cursor_coordinates);
+
+                let authorized_positions= 
+                    self.get_authorized_positions(piece_type, piece_color, self.cursor_coordinates);
+
+                if authorized_positions.is_empty() {
+                    return;
+                }
                 match get_piece_color(self.board, self.cursor_coordinates) {
                     Some(piece_color) => {
                         if piece_color == self.player_turn {
