@@ -41,6 +41,14 @@ On NetBSD a pre-compiled binary is available from the official repositories. To 
 pkgin install chess-tui
 ```
 
+**Arch Linux**
+
+On Arch Linux a PKGBUILD is available from the [AUR](https://aur.archlinux.org/packages/chess-tui). To install it, simply use an aur-helper:
+
+```
+paru -S chess-tui
+```
+
 ### Features
 
 <details>
