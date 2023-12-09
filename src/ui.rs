@@ -1,24 +1,111 @@
 use ratatui::{
     layout::{Constraint, Direction, Layout},
     prelude::{Alignment, Rect},
-    style::{Color, Style, Stylize},
+    style::{Style, Stylize},
     text::Line,
-    widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Wrap},
+    widgets::{Block, Paragraph},
     Frame,
 };
 
 use crate::{
     app::App,
-    constants::WHITE,
-    pieces::{bishop::Bishop, knight::Knight, queen::Queen, rook::Rook, PieceColor},
+    constants::TITLE,
+    pieces::PieceColor,
+    popups::{render_credit_popup, render_end_popup, render_help_popup, render_promotion_popup},
     utils::get_opposite_color,
 };
 
 /// Renders the user interface widgets.
 pub fn render(app: &mut App, frame: &mut Frame) {
-    // Splitting the full tui in 3 vertical boxes and 3 horizontal boxes in the vertical[1]
     let main_area = frame.size();
 
+    if app.show_home_menu {
+        render_menu_ui(frame, app, main_area)
+    } else {
+        render_game_ui(frame, app, main_area)
+    }
+
+    if app.show_help_popup {
+        render_help_popup(frame)
+    }
+
+    if app.show_credit_popup {
+        render_credit_popup(frame)
+    }
+}
+
+/// helper function to create a centered rect using up certain percentage of the available rect `r`
+pub fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
+    let popup_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Percentage((100 - percent_y) / 2),
+            Constraint::Percentage(percent_y),
+            Constraint::Percentage((100 - percent_y) / 2),
+        ])
+        .split(r);
+
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage((100 - percent_x) / 2),
+            Constraint::Percentage(percent_x),
+            Constraint::Percentage((100 - percent_x) / 2),
+        ])
+        .split(popup_layout[1])[1]
+}
+
+// Method to render the home menu and the options
+pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
+    let main_layout_horizontal = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(
+            [
+                Constraint::Ratio(1, 5),
+                Constraint::Ratio(1, 5),
+                Constraint::Ratio(3, 5),
+            ]
+            .as_ref(),
+        )
+        .split(main_area);
+
+    // Title
+    let title_paragraph = Paragraph::new(TITLE)
+        .alignment(Alignment::Center)
+        .block(Block::default());
+    frame.render_widget(title_paragraph, main_layout_horizontal[0]);
+
+    // Board block representing the full board div
+    let text: Vec<Line<'_>> = vec![Line::from(""), Line::from("A chess game made in 🦀")];
+    let sub_title = Paragraph::new(text)
+        .alignment(Alignment::Center)
+        .block(Block::default());
+    frame.render_widget(sub_title, main_layout_horizontal[1]);
+
+    // Board block representing the full board div
+    let menu_items = vec!["Normal game", "Help", "Credits"];
+    let mut menu_body: Vec<Line<'_>> = vec![];
+
+    for i in 0..menu_items.len() {
+        menu_body.push(Line::from(""));
+        let mut text = if app.menu_cursor == i as u8 {
+            "> ".to_string()
+        } else {
+            "".to_string()
+        };
+        text.push_str(menu_items[i]);
+        menu_body.push(Line::from(text))
+    }
+
+    let sub_title = Paragraph::new(menu_body)
+        .bold()
+        .alignment(Alignment::Center)
+        .block(Block::default());
+    frame.render_widget(sub_title, main_layout_horizontal[2])
+}
+
+// Method to render the game board and handle game popups
+pub fn render_game_ui(frame: &mut Frame, app: &App, main_area: Rect) {
     let main_layout_horizontal = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
@@ -58,10 +145,6 @@ pub fn render(app: &mut App, frame: &mut Frame) {
     app.board
         .history_render(board_block.inner(main_layout_vertical[3]), frame);
 
-    if app.show_popup {
-        render_help_popup(frame)
-    }
-
     if app.board.is_promotion {
         render_promotion_popup(frame, app)
     }
@@ -80,196 +163,4 @@ pub fn render(app: &mut App, frame: &mut Frame) {
 
         render_end_popup(frame, format!("{} Won !!!", string_color))
     }
-}
-
-pub fn render_help_popup(frame: &mut Frame) {
-    let block = Block::default()
-        .title("Help menu")
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .padding(Padding::horizontal(1))
-        .border_style(Style::default().fg(WHITE));
-    let area = centered_rect(40, 60, frame.size());
-
-    let text = vec![
-        Line::from(""),
-        Line::from(""),
-        Line::from("Game controls:".underlined().bold()),
-        Line::from(""),
-        Line::from(vec![
-            "← ↑ ↓ →: Use the arrow keys to move the ".into(),
-            "blue".blue(),
-            " cursor".into(),
-        ]),
-        Line::from(""),
-        Line::from("SPACE_BAR: Select a piece"),
-        Line::from(""),
-        Line::from("ESCAPE: Deselect a piece",),
-        Line::from(""),
-        Line::from("q: Press q to quit the game"),
-        Line::from(""),
-        Line::from("Ctrl + or -: Zoom in or out to adjust pieces sizes"),
-        Line::from(""),
-        Line::from(""),
-        Line::from("Color codes:".underlined().bold()),
-        Line::from(""),
-        Line::from(vec!["Blue cell".blue(), ": Your cursor ".into()]),
-        Line::from(""),
-        Line::from(vec!["Green cell".green(), ": Selected Piece ".into()]),
-        Line::from(""),
-        Line::from(vec![
-            "Purple cell".magenta(),
-            ": The king is getting checked ".into(),
-        ]),
-        Line::from(""),
-        Line::from(vec![
-            "Red cell".light_red(),
-            ": Available cells for the selected piece ".into(),
-        ]),
-        Line::from(""),
-        Line::from(""),
-        Line::from("press h to close the help menu").alignment(Alignment::Center),
-    ];
-
-    let paragraph = Paragraph::new(text)
-        .block(block.clone())
-        .alignment(Alignment::Left)
-        .wrap(Wrap { trim: true });
-
-    frame.render_widget(Clear, area); //this clears out the background
-    frame.render_widget(block, area);
-    frame.render_widget(paragraph, area);
-}
-
-/// helper function to create a centered rect using up certain percentage of the available rect `r`
-pub fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
-    let popup_layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Percentage((100 - percent_y) / 2),
-            Constraint::Percentage(percent_y),
-            Constraint::Percentage((100 - percent_y) / 2),
-        ])
-        .split(r);
-
-    Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage((100 - percent_x) / 2),
-            Constraint::Percentage(percent_x),
-            Constraint::Percentage((100 - percent_x) / 2),
-        ])
-        .split(popup_layout[1])[1]
-}
-
-pub fn render_end_popup(frame: &mut Frame, sentence: String) {
-    let block = Block::default()
-        .title("Game ended")
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .padding(Padding::horizontal(1))
-        .border_style(Style::default().fg(WHITE));
-    let area = centered_rect(40, 40, frame.size());
-
-    let text = vec![
-        Line::from(sentence).alignment(Alignment::Center),
-        Line::from(""),
-        Line::from(""),
-        Line::from("Press R to start a new game").alignment(Alignment::Center),
-    ];
-
-    let paragraph = Paragraph::new(text)
-        .block(block.clone())
-        .alignment(Alignment::Left)
-        .wrap(Wrap { trim: true });
-
-    frame.render_widget(Clear, area); //this clears out the background
-    frame.render_widget(block, area);
-    frame.render_widget(paragraph, area);
-}
-
-pub fn render_promotion_popup(frame: &mut Frame, app: &App) {
-    let block = Block::default()
-        .title("Pawn promotion")
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .padding(Padding::horizontal(1))
-        .border_style(Style::default().fg(WHITE));
-    let area = centered_rect(40, 40, frame.size());
-
-    let text = vec![
-        Line::from(""),
-        Line::from("-- Choose your pawn promotion --").alignment(Alignment::Center),
-        Line::from(""),
-    ];
-
-    let paragraph = Paragraph::new(text)
-        .block(Block::default())
-        .alignment(Alignment::Left)
-        .wrap(Wrap { trim: true });
-    frame.render_widget(Clear, area); //this clears out the background
-    frame.render_widget(block, area);
-    frame.render_widget(paragraph, area);
-
-    let inner_popup_layout_vertical = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints(
-            [
-                Constraint::Ratio(1, 3),
-                Constraint::Ratio(1, 3),
-                Constraint::Ratio(1, 3),
-            ]
-            .as_ref(),
-        )
-        .split(area);
-
-    let inner_popup_layout_horizontal = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints(
-            [
-                Constraint::Ratio(1, 4),
-                Constraint::Ratio(1, 4),
-                Constraint::Ratio(1, 4),
-                Constraint::Ratio(1, 4),
-            ]
-            .as_ref(),
-        )
-        .split(inner_popup_layout_vertical[1]);
-
-    let queen_p = Paragraph::new(Queen::to_string())
-        .block(Block::default())
-        .alignment(Alignment::Center)
-        .style(Style::default().bg(if app.board.promotion_cursor == 0 {
-            Color::LightBlue
-        } else {
-            Color::Reset // Set to the default background color when the condition is false
-        }));
-    frame.render_widget(queen_p, inner_popup_layout_horizontal[0]);
-    let rook_p = Paragraph::new(Rook::to_string())
-        .block(Block::default())
-        .alignment(Alignment::Center)
-        .style(Style::default().bg(if app.board.promotion_cursor == 1 {
-            Color::LightBlue
-        } else {
-            Color::Reset // Set to the default background color when the condition is false
-        }));
-    frame.render_widget(rook_p, inner_popup_layout_horizontal[1]);
-    let bishop_p = Paragraph::new(Bishop::to_string())
-        .block(Block::default())
-        .alignment(Alignment::Center)
-        .style(Style::default().bg(if app.board.promotion_cursor == 2 {
-            Color::LightBlue
-        } else {
-            Color::Reset // Set to the default background color when the condition is false
-        }));
-    frame.render_widget(bishop_p, inner_popup_layout_horizontal[2]);
-    let knight_p = Paragraph::new(Knight::to_string())
-        .block(Block::default())
-        .alignment(Alignment::Center)
-        .style(Style::default().bg(if app.board.promotion_cursor == 3 {
-            Color::LightBlue
-        } else {
-            Color::Reset // Set to the default background color when the condition is false
-        }));
-    frame.render_widget(knight_p, inner_popup_layout_horizontal[3]);
 }

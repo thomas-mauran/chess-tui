@@ -1,6 +1,6 @@
 [package]
 name = "chess-tui"
-version = "1.0.1"
+version = "1.1.0"
 authors = ["Thomas Mauran"]
 license = "MIT"
 edition = "2021"
