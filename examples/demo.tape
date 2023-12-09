@@ -18,6 +18,11 @@ Set WindowBarSize 40
 Type "cargo run" Sleep 500ms  Enter
 
 Sleep 1s
+Down @0.3s
+Down @0.3s
+Down @0.3s
+Space @0.3s
+Sleep 3s
 
 Down @0.3s
 Down @0.3s

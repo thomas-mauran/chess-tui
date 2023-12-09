@@ -260,7 +260,7 @@ impl Board {
                 let piece_color = get_piece_color(self.board, self.cursor_coordinates);
                 let piece_type = get_piece_type(self.board, self.cursor_coordinates);
 
-                let authorized_positions= 
+                let authorized_positions =
                     self.get_authorized_positions(piece_type, piece_color, self.cursor_coordinates);
 
                 if authorized_positions.is_empty() {
@@ -570,9 +570,10 @@ impl Board {
                         self.selected_coordinates,
                     );
 
+                    // Draw grey if the color is in the authorized positions
                     for coords in positions.clone() {
                         if i == coords[0] && j == coords[1] {
-                            cell_color = Color::LightRed
+                            cell_color = Color::Rgb(100, 100, 100)
                         }
                     }
                 }
