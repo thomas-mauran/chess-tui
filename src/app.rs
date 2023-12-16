@@ -1,24 +1,23 @@
-use crate::board::Board;
+use crate::{board::Board, constants::Pages};
 use std::error;
 
 /// Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 
 /// Application.
-#[derive(Debug)]
 pub struct App {
     /// Is the application running?
     pub running: bool,
     /// board
     pub board: Board,
-    /// show help popup
+    /// Current page to render
+    pub current_page: Pages,
+    /// Used to show the help popup during the game or in the home menu
     pub show_help_popup: bool,
-    /// show credit popup
-    pub show_credit_popup: bool,
-    /// show home menu
-    pub show_home_menu: bool,
     /// menu current cursor
     pub menu_cursor: u8,
+    /// path of the chess engine
+    pub chess_engine_path: Option<String>,
 }
 
 impl Default for App {
@@ -26,10 +25,10 @@ impl Default for App {
         Self {
             running: true,
             board: Board::default(),
+            current_page: Pages::Home,
             show_help_popup: false,
-            show_credit_popup: false,
-            show_home_menu: true,
             menu_cursor: 0,
+            chess_engine_path: None,
         }
     }
 }
@@ -41,10 +40,18 @@ impl App {
     }
 
     pub fn toggle_help_popup(&mut self) {
-        self.show_help_popup = !self.show_help_popup;
+        if self.current_page == Pages::Home {
+            self.current_page = Pages::Help
+        } else {
+            self.current_page = Pages::Home
+        }
     }
     pub fn toggle_credit_popup(&mut self) {
-        self.show_credit_popup = !self.show_credit_popup;
+        if self.current_page == Pages::Home {
+            self.current_page = Pages::Credit
+        } else {
+            self.current_page = Pages::Home
+        }
     }
 
     /// Handles the tick event of the terminal.
@@ -59,12 +66,12 @@ impl App {
         if self.menu_cursor > 0 {
             self.menu_cursor -= 1
         } else {
-            self.menu_cursor = 2
+            self.menu_cursor = 3
         }
     }
 
     pub fn menu_cursor_down(&mut self) {
-        if self.menu_cursor < 2 {
+        if self.menu_cursor < 3 {
             self.menu_cursor += 1
         } else {
             self.menu_cursor = 0
@@ -79,9 +86,10 @@ impl App {
 
     pub fn menu_select(&mut self) {
         match self.menu_cursor {
-            0 => self.show_home_menu = false,
-            1 => self.show_help_popup = true,
-            2 => self.show_credit_popup = true,
+            0 => self.current_page = Pages::Solo,
+            1 => self.current_page = Pages::Bot,
+            2 => self.current_page = Pages::Help,
+            3 => self.current_page = Pages::Credit,
             _ => {}
         }
     }
