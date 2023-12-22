@@ -138,13 +138,13 @@ pub fn convert_position_into_notation(position: String) -> String {
 }
 
 pub fn convert_notation_into_position(notation: String) -> String {
-    let from_x = &letter_to_col(notation.chars().nth(0));
+    let from_x = &letter_to_col(notation.chars().next());
     let from_y = (&get_int_from_char(notation.chars().nth(1)) - 8).abs();
 
     let to_x = &letter_to_col(notation.chars().nth(2));
     let to_y = (&get_int_from_char(notation.chars().nth(3)) - 8).abs();
 
-    return format!("{}{}{}{}", from_y, from_x, to_y, to_x);
+    format!("{}{}{}{}", from_y, from_x, to_y, to_x)
 }
 
 pub fn get_player_turn_in_modulo(color: PieceColor) -> usize {
@@ -289,5 +289,13 @@ mod tests {
     #[test]
     fn convert_notation_into_position_1() {
         assert_eq!(convert_notation_into_position("c8b7".to_string()), "0211")
+    }
+    #[test]
+    fn convert_notation_into_position_2() {
+        assert_eq!(convert_notation_into_position("g7h8".to_string()), "1607")
+    }
+    #[test]
+    fn convert_notation_into_position_3() {
+        assert_eq!(convert_notation_into_position("g1f3".to_string()), "7655")
     }
 }

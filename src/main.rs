@@ -26,7 +26,7 @@ fn main() -> AppResult<()> {
 
     let config_path = dirs::home_dir().unwrap().join(".chess-tui");
 
-    if args.engine_path != "" {
+    if !args.engine_path.is_empty() {
         if !config_path.exists() {
             File::create(&config_path)?;
         }

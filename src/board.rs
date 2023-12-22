@@ -3,8 +3,8 @@ use crate::{
     pieces::{PieceColor, PieceType},
     utils::{
         color_to_ratatui_enum, convert_notation_into_position, convert_position_into_notation,
-        get_int_from_char, get_king_coordinates, get_piece_color, get_piece_type,
-        get_player_turn_in_modulo, is_getting_checked, is_valid,
+        did_piece_already_move, get_int_from_char, get_king_coordinates, get_piece_color,
+        get_piece_type, get_player_turn_in_modulo, is_getting_checked, is_valid,
     },
 };
 use ratatui::{
@@ -358,7 +358,7 @@ impl Board {
                             "" => {
                                 // Check if the string is not empty before using chars().last()
                                 if let Some(last_char) = result.chars().last() {
-                                    if last_char.is_digit(10) {
+                                    if last_char.is_ascii_digit() {
                                         let incremented_char = char::from_digit(
                                             last_char.to_digit(10).unwrap_or(0) + 1,
                                             10,
@@ -368,10 +368,10 @@ impl Board {
                                         result.pop();
                                         result.push_str(incremented_char.to_string().as_str());
                                     } else {
-                                        result.push_str("1");
+                                        result.push('1');
                                     }
                                 } else {
-                                    result.push_str("1");
+                                    result.push('1');
                                 }
                             }
                             letter => {
@@ -382,14 +382,32 @@ impl Board {
                     }
                 }
             }
-            result.push_str("/")
+            result.push('/')
         }
 
         // we remove the last / and specify the player turn (black)
         result.pop();
-        result.push_str(" b - - 0 1");
 
-        return result;
+        // We say it is blacks turn to play
+        result.push_str(" b");
+
+        // We add the castles availabilities for black
+        if !did_piece_already_move(&self.move_history, (Some(PieceType::King), [0, 4]))
+            && !is_getting_checked(self.board, PieceColor::Black, &self.move_history)
+        {
+            // Big castle check
+            if !did_piece_already_move(&self.move_history, (Some(PieceType::Rook), [0, 0])) {
+                result.push_str(" q");
+            }
+            // Small castle check
+            if !did_piece_already_move(&self.move_history, (Some(PieceType::Rook), [0, 7])) {
+                result.push('k');
+            }
+        }
+
+        result.push_str(" - 0 1");
+
+        result
     }
 
     pub fn promote_piece(&mut self) {
