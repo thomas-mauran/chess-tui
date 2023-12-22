@@ -126,7 +126,8 @@ impl PieceType {
             (Some(PieceType::Knight), Some(PieceColor::White)) => "N",
             (Some(PieceType::Pawn), Some(PieceColor::Black)) => "p",
             (Some(PieceType::Pawn), Some(PieceColor::White)) => "P",
-            _ => "",
+            (None, None) => "",
+            _ => unreachable!("Undefined piece and piece color tuple"),
         }
     }
 

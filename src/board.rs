@@ -86,7 +86,7 @@ impl Default for Board {
             selected_coordinates: [UNDEFINED_POSITION, UNDEFINED_POSITION],
             selected_piece_cursor: 0,
             old_cursor_position: [UNDEFINED_POSITION, UNDEFINED_POSITION],
-            player_turn: PieceColor::Black,
+            player_turn: PieceColor::White,
             move_history: vec![],
             is_draw: false,
             is_checkmate: false,
@@ -309,7 +309,6 @@ impl Board {
                     self.switch_player_turn();
                     // If we play against a bot we will play his move and switch the player turn again
                     if self.is_game_against_bot {
-                        println!("{:?}", self.move_history);
                         self.bot_move();
                         self.switch_player_turn();
                     }
@@ -329,14 +328,12 @@ impl Board {
 
         engine.set_position(&self.fen_position()).unwrap();
 
-        println!("here: {:?}", engine.bestmove());
-
         let best_move = engine.bestmove();
-        println!("{:?}", best_move);
         let movement = match best_move {
             Ok(movement) => movement,
             Err(_) => panic!("An error as occured"),
         };
+
         let converted_move = convert_notation_into_position(movement);
         let from_y = get_int_from_char(converted_move.chars().next());
         let from_x = get_int_from_char(converted_move.chars().nth(1));
@@ -376,6 +373,8 @@ impl Board {
                                     } else {
                                         result.push_str("1");
                                     }
+                                } else {
+                                    result.push_str("1");
                                 }
                             }
                             letter => {
@@ -1571,5 +1570,42 @@ mod tests {
         // Move the king to replicate a third time the same position
         board.move_piece_on_the_board([0, 2], [0, 1]);
         assert!(board.is_draw());
+    }
+
+    #[test]
+    fn fen_converter_1() {
+        let custom_board = [
+            [
+                None,
+                None,
+                Some((PieceType::King, PieceColor::Black)),
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::Rook, PieceColor::White)),
+            ],
+            [None, None, None, None, None, None, None, None],
+            [
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::King, PieceColor::White)),
+                None,
+                None,
+                None,
+            ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+        ];
+        // We setup the board
+        let board = Board::new(custom_board, PieceColor::White, vec![]);
+
+        // Move the king to replicate a third time the same position
+        assert_eq!(board.fen_position(), "2k4R/8/4K3/8/8/8/8/8 b - - 0 1");
     }
 }
