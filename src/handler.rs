@@ -44,12 +44,14 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         KeyCode::Char('h') => {
             if app.current_page == Pages::Home {
                 app.current_page = Pages::Help
+            } else if app.current_page == Pages::Help {
+                app.current_page = Pages::Home
             } else {
-                app.show_help_popup = true;
+                app.show_help_popup = !app.show_help_popup;
             }
         }
         KeyCode::Char('x') => {
-            if app.current_page == Pages::Solo {
+            if app.current_page == Pages::Solo || app.current_page == Pages::Bot {
                 app.show_help_popup = false;
             } else {
                 app.current_page = Pages::Home
