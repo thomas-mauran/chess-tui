@@ -88,7 +88,7 @@ impl PieceType {
         }
     }
 
-    pub fn piece_type_to_utf_enum(
+    pub fn piece_to_utf_enum(
         piece_type: Option<PieceType>,
         piece_color: Option<PieceColor>,
     ) -> &'static str {
@@ -106,6 +106,28 @@ impl PieceType {
             (Some(PieceType::Pawn), Some(PieceColor::Black)) => "♙",
             (Some(PieceType::Pawn), Some(PieceColor::White)) => "♟",
             _ => "NONE",
+        }
+    }
+
+    pub fn piece_to_fen_enum(
+        piece_type: Option<PieceType>,
+        piece_color: Option<PieceColor>,
+    ) -> &'static str {
+        match (piece_type, piece_color) {
+            (Some(PieceType::Queen), Some(PieceColor::Black)) => "q",
+            (Some(PieceType::Queen), Some(PieceColor::White)) => "Q",
+            (Some(PieceType::King), Some(PieceColor::Black)) => "k",
+            (Some(PieceType::King), Some(PieceColor::White)) => "K",
+            (Some(PieceType::Rook), Some(PieceColor::Black)) => "r",
+            (Some(PieceType::Rook), Some(PieceColor::White)) => "R",
+            (Some(PieceType::Bishop), Some(PieceColor::Black)) => "b",
+            (Some(PieceType::Bishop), Some(PieceColor::White)) => "B",
+            (Some(PieceType::Knight), Some(PieceColor::Black)) => "n",
+            (Some(PieceType::Knight), Some(PieceColor::White)) => "N",
+            (Some(PieceType::Pawn), Some(PieceColor::Black)) => "p",
+            (Some(PieceType::Pawn), Some(PieceColor::White)) => "P",
+            (None, None) => "",
+            _ => unreachable!("Undefined piece and piece color tuple"),
         }
     }
 

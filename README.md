@@ -80,3 +80,16 @@ You can find the roadmap of the project [here](https://github.com/users/thomas-m
 ### Crates.io
 
 The project is also available on crates.io [here](https://crates.io/crates/chess-tui)
+
+### Connect a chess engine
+
+You can play chess-tui with any UCI compatible chess engines. To do so you will need to use the -e command to give the chess engine binary path.
+
+Example:
+
+```bash
+chess-tui -e /your/bin/path
+```
+
+Here I installed stockfish using homebrew and gave chess-tui the path the the engine binary.
+This command will store in your home directory the chess engine path so you don't have to relink it everytime !

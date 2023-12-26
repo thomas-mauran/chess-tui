@@ -12,7 +12,36 @@ use ratatui::{
     Frame,
 };
 
-// This renders the popup for a promotion
+// This renders a popup when the selected game mode is bot and there is no chess engine path
+pub fn render_engine_path_error_popup(frame: &mut Frame) {
+    let block = Block::default()
+        .title("Error")
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .padding(Padding::horizontal(1))
+        .border_style(Style::default().fg(WHITE));
+    let area = centered_rect(40, 40, frame.size());
+
+    let text = vec![
+        Line::from("You didn't specify the chess engine path").alignment(Alignment::Center),
+        Line::from(""),
+        Line::from("To do so use the -e argument when running chess-tui to store an engine path"),
+        Line::from(""),
+        Line::from("Example: "),
+        Line::from("chess-tui -e /opt/homebrew/opt/stockfish"),
+    ];
+
+    let paragraph = Paragraph::new(text)
+        .block(block.clone())
+        .alignment(Alignment::Left)
+        .wrap(Wrap { trim: true });
+
+    frame.render_widget(Clear, area); //this clears out the background
+    frame.render_widget(block, area);
+    frame.render_widget(paragraph, area);
+}
+
+// This renders a popup for a promotion
 pub fn render_end_popup(frame: &mut Frame, sentence: String) {
     let block = Block::default()
         .title("Game ended")

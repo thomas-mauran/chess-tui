@@ -2,7 +2,8 @@ use crate::{
     constants::{BLACK, UNDEFINED_POSITION, WHITE},
     pieces::{PieceColor, PieceType},
     utils::{
-        color_to_ratatui_enum, convert_position_into_notation, get_int_from_char,
+        col_to_letter, color_to_ratatui_enum, convert_notation_into_position,
+        convert_position_into_notation, did_piece_already_move, get_int_from_char,
         get_king_coordinates, get_piece_color, get_piece_type, get_player_turn_in_modulo,
         is_getting_checked, is_valid,
     },
@@ -14,8 +15,8 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Padding, Paragraph},
     Frame,
 };
+use uci::Engine;
 
-#[derive(Debug)]
 pub struct Board {
     pub board: [[Option<(PieceType, PieceColor)>; 8]; 8],
     pub cursor_coordinates: [i8; 2],
@@ -29,6 +30,8 @@ pub struct Board {
     pub is_promotion: bool,
     pub promotion_cursor: i8,
     pub consecutive_non_pawn_or_capture: i32,
+    pub engine: Option<Engine>,
+    pub is_game_against_bot: bool,
 }
 
 impl Default for Board {
@@ -91,6 +94,8 @@ impl Default for Board {
             is_promotion: false,
             promotion_cursor: 0,
             consecutive_non_pawn_or_capture: 0,
+            engine: None,
+            is_game_against_bot: false,
         }
     }
 }
@@ -114,6 +119,8 @@ impl Board {
             is_promotion: false,
             promotion_cursor: 0,
             consecutive_non_pawn_or_capture: 0,
+            engine: None,
+            is_game_against_bot: false,
         }
     }
 
@@ -125,6 +132,17 @@ impl Board {
     pub fn set_player_turn(&mut self, player_turn: PieceColor) {
         self.player_turn = player_turn;
     }
+
+    pub fn set_engine(&mut self, engine_path: &str) {
+        // TODO: we don't see the panic message
+        self.is_game_against_bot = true;
+
+        self.engine = match Engine::new(engine_path) {
+            Ok(engine) => Some(engine),
+            _ => panic!("An error occcured with the selected chess engine path: {} Make sure you specified the right path using chess-tui -e", engine_path),
+        }
+    }
+
     // Check if a cell has been selected
     fn is_cell_selected(&self) -> bool {
         self.selected_coordinates[0] != UNDEFINED_POSITION
@@ -290,6 +308,11 @@ impl Board {
                     self.move_piece_on_the_board(selected_coords_usize, cursor_coords_usize);
                     self.unselect_cell();
                     self.switch_player_turn();
+                    // If we play against a bot we will play his move and switch the player turn again
+                    if self.is_game_against_bot {
+                        self.bot_move();
+                        self.switch_player_turn();
+                    }
                     self.is_draw = self.is_draw();
                 }
             }
@@ -298,6 +321,146 @@ impl Board {
         self.is_promotion = self.is_latest_move_promotion();
     }
 
+    pub fn bot_move(&mut self) {
+        let engine = match &self.engine {
+            Some(engine) => engine,
+            None => panic!("Missing the chess engine"),
+        };
+
+        engine.set_position(&self.fen_position()).unwrap();
+
+        let best_move = engine.bestmove();
+        let movement = match best_move {
+            Ok(movement) => movement,
+            Err(_) => panic!("An error as occured"),
+        };
+
+        let converted_move = convert_notation_into_position(movement);
+        let from_y = get_int_from_char(converted_move.chars().next());
+        let from_x = get_int_from_char(converted_move.chars().nth(1));
+        let to_y = get_int_from_char(converted_move.chars().nth(2));
+        let to_x = get_int_from_char(converted_move.chars().nth(3));
+
+        self.move_piece_on_the_board(
+            [from_y as usize, from_x as usize],
+            [to_y as usize, to_x as usize],
+        );
+    }
+    // Convert the history and game status to a FEN string
+    pub fn fen_position(&self) -> String {
+        let mut result = String::new();
+
+        for i in 0..8i8 {
+            for j in 0..8i8 {
+                match (
+                    get_piece_type(self.board, [i, j]),
+                    get_piece_color(self.board, [i, j]),
+                ) {
+                    (piece_type, piece_color) => {
+                        match PieceType::piece_to_fen_enum(piece_type, piece_color) {
+                            // Pattern match directly on the result of piece_to_fen_enum
+                            "" => {
+                                // Check if the string is not empty before using chars().last()
+                                if let Some(last_char) = result.chars().last() {
+                                    if last_char.is_ascii_digit() {
+                                        let incremented_char = char::from_digit(
+                                            last_char.to_digit(10).unwrap_or(0) + 1,
+                                            10,
+                                        )
+                                        .unwrap_or_default();
+                                        // Remove the old number and add the new incremented one
+                                        result.pop();
+                                        result.push_str(incremented_char.to_string().as_str());
+                                    } else {
+                                        result.push('1');
+                                    }
+                                } else {
+                                    result.push('1');
+                                }
+                            }
+                            letter => {
+                                // If the result is not an empty string, push '1'
+                                result.push_str(letter);
+                            }
+                        }
+                    }
+                }
+            }
+            result.push('/')
+        }
+
+        // we remove the last / and specify the player turn (black)
+        result.pop();
+
+        // We say it is blacks turn to play
+        result.push_str(" b");
+
+        // We add the castles availabilities for black
+        if !did_piece_already_move(&self.move_history, (Some(PieceType::King), [0, 4]))
+            && !is_getting_checked(self.board, PieceColor::Black, &self.move_history)
+        {
+            // king side black castle availability
+            if !did_piece_already_move(&self.move_history, (Some(PieceType::Rook), [0, 7])) {
+                result.push_str(" k");
+            }
+            // queen side black castle availability
+            if !did_piece_already_move(&self.move_history, (Some(PieceType::Rook), [0, 0])) {
+                result.push_str("q");
+            }
+        } else {
+            result.push_str(" -")
+        }
+
+        // We check if the latest move is a pawn moving 2 cells, meaning the next move can be en passant
+        if self.did_pawn_move_two_cells() {
+            // Use an if-let pattern for better readability
+            if let Some((_, latest_move_string)) = self.move_history.last() {
+                let mut converted_move: String = String::new();
+
+                if let (Some(from_y_char), Some(from_x_char)) = (
+                    latest_move_string.chars().nth(0),
+                    latest_move_string.chars().nth(1),
+                ) {
+                    let from_y = get_int_from_char(Some(from_y_char)) - 1;
+                    let from_x = get_int_from_char(Some(from_x_char));
+
+                    converted_move += &col_to_letter(from_x);
+                    converted_move += &format!("{}", 8 - from_y).to_string();
+
+                    result.push_str(" ");
+                    result.push_str(&converted_move);
+                }
+            }
+        } else {
+            result.push_str(" -");
+        }
+
+        result.push_str(" ");
+
+        result.push_str(&self.consecutive_non_pawn_or_capture.to_string());
+        result.push_str(" ");
+
+        result.push_str(&(self.move_history.len() / 2).to_string());
+
+        result
+    }
+
+    pub fn did_pawn_move_two_cells(&self) -> bool {
+        match self.move_history.last() {
+            Some((Some(piece_type), move_string)) => {
+                let from_y = get_int_from_char(move_string.chars().next());
+                let to_y = get_int_from_char(move_string.chars().nth(2));
+
+                let distance = (to_y - from_y).abs();
+
+                if piece_type == &PieceType::Pawn && distance == 2 {
+                    return true;
+                }
+                return false;
+            }
+            _ => false,
+        }
+    }
     pub fn promote_piece(&mut self) {
         if let Some(position) = self.move_history.last() {
             let to_y = get_int_from_char(position.1.chars().nth(2));
@@ -634,7 +797,7 @@ impl Board {
             let number_move = &self.move_history[i].1;
 
             let utf_icon_white =
-                PieceType::piece_type_to_utf_enum(piece_type_from, Some(PieceColor::White));
+                PieceType::piece_to_utf_enum(piece_type_from, Some(PieceColor::White));
             let move_white = convert_position_into_notation(number_move.to_string());
 
             let mut utf_icon_black = "   ";
@@ -647,7 +810,7 @@ impl Board {
 
                 move_black = convert_position_into_notation(number.to_string());
                 utf_icon_black =
-                    PieceType::piece_type_to_utf_enum(piece_type_to, Some(PieceColor::Black))
+                    PieceType::piece_to_utf_enum(piece_type_to, Some(PieceColor::Black))
             }
 
             lines.push(Line::from(vec![
@@ -1473,5 +1636,149 @@ mod tests {
         // Move the king to replicate a third time the same position
         board.move_piece_on_the_board([0, 2], [0, 1]);
         assert!(board.is_draw());
+    }
+
+    #[test]
+    fn fen_converter_1() {
+        let custom_board = [
+            [
+                None,
+                None,
+                Some((PieceType::King, PieceColor::Black)),
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::Rook, PieceColor::White)),
+            ],
+            [None, None, None, None, None, None, None, None],
+            [
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::King, PieceColor::White)),
+                None,
+                None,
+                None,
+            ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+        ];
+        // We setup the board
+        let board = Board::new(custom_board, PieceColor::White, vec![]);
+
+        // Move the king to replicate a third time the same position
+        assert_eq!(board.fen_position(), "2k4R/8/4K3/8/8/8/8/8 b - - 0 0");
+    }
+
+    #[test]
+    fn fen_converter_en_passant() {
+        let custom_board = [
+            [
+                None,
+                None,
+                Some((PieceType::King, PieceColor::Black)),
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::Rook, PieceColor::White)),
+            ],
+            [None, None, None, None, None, None, None, None],
+            [
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::King, PieceColor::White)),
+                None,
+                None,
+                None,
+            ],
+            [None, None, None, None, None, None, None, None],
+            [
+                None,
+                None,
+                Some((PieceType::Pawn, PieceColor::White)),
+                None,
+                None,
+                None,
+                None,
+                None,
+            ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+        ];
+        // We setup the board
+        let board = Board::new(
+            custom_board,
+            PieceColor::White,
+            vec![(Some(PieceType::Pawn), "6242".to_string())],
+        );
+
+        // Move the king to replicate a third time the same position
+        assert_eq!(board.fen_position(), "2k4R/8/4K3/8/2P5/8/8/8 b - c3 0 0");
+    }
+    #[test]
+    fn fen_converter_castling() {
+        let custom_board = [
+            [
+                Some((PieceType::Rook, PieceColor::Black)),
+                Some((PieceType::Knight, PieceColor::Black)),
+                Some((PieceType::Bishop, PieceColor::Black)),
+                Some((PieceType::Queen, PieceColor::Black)),
+                Some((PieceType::King, PieceColor::Black)),
+                Some((PieceType::Bishop, PieceColor::Black)),
+                Some((PieceType::Knight, PieceColor::Black)),
+                Some((PieceType::Rook, PieceColor::Black)),
+            ],
+            [
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+            ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+            ],
+            [
+                Some((PieceType::Rook, PieceColor::White)),
+                Some((PieceType::Knight, PieceColor::White)),
+                Some((PieceType::Bishop, PieceColor::White)),
+                Some((PieceType::Queen, PieceColor::White)),
+                Some((PieceType::King, PieceColor::White)),
+                Some((PieceType::Bishop, PieceColor::White)),
+                Some((PieceType::Knight, PieceColor::White)),
+                Some((PieceType::Rook, PieceColor::White)),
+            ],
+        ];
+        // We setup the board
+        let board = Board::new(custom_board, PieceColor::White, vec![]);
+
+        // Move the king to replicate a third time the same position
+        assert_eq!(
+            board.fen_position(),
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b kq - 0 0"
+        );
     }
 }
