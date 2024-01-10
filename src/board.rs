@@ -717,7 +717,7 @@ mod tests {
         let mut board = Board::default();
         board.set_board(custom_board);
 
-        assert!(is_getting_checked(custom_board, PieceColor::White, &vec![]));
+        assert!(is_getting_checked(custom_board, PieceColor::White, &[]));
     }
 
     #[test]
@@ -762,11 +762,7 @@ mod tests {
         let mut board = Board::default();
         board.set_board(custom_board);
 
-        assert!(!is_getting_checked(
-            custom_board,
-            PieceColor::White,
-            &vec![]
-        ));
+        assert!(!is_getting_checked(custom_board, PieceColor::White, &[]));
     }
 
     #[test]
@@ -820,11 +816,7 @@ mod tests {
         let mut board = Board::default();
         board.set_board(custom_board);
 
-        assert!(!is_getting_checked(
-            custom_board,
-            PieceColor::Black,
-            &vec![]
-        ));
+        assert!(!is_getting_checked(custom_board, PieceColor::Black, &[]));
     }
 
     #[test]
@@ -887,11 +879,7 @@ mod tests {
         let mut board = Board::default();
         board.set_board(custom_board);
 
-        assert!(!is_getting_checked(
-            custom_board,
-            PieceColor::Black,
-            &vec![]
-        ));
+        assert!(!is_getting_checked(custom_board, PieceColor::Black, &[]));
     }
 
     #[test]

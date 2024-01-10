@@ -207,7 +207,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions =
-            King::authorized_positions([4, 4], PieceColor::White, board.board, &vec![], false);
+            King::authorized_positions([4, 4], PieceColor::White, board.board, &[], false);
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -268,7 +268,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions =
-            King::authorized_positions([4, 4], PieceColor::White, board.board, &vec![], false);
+            King::authorized_positions([4, 4], PieceColor::White, board.board, &[], false);
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -329,7 +329,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions =
-            King::authorized_positions([4, 4], PieceColor::White, board.board, &vec![], false);
+            King::authorized_positions([4, 4], PieceColor::White, board.board, &[], false);
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -390,7 +390,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions =
-            King::authorized_positions([7, 4], PieceColor::White, board.board, &vec![], false);
+            King::authorized_positions([7, 4], PieceColor::White, board.board, &[], false);
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -451,7 +451,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions =
-            King::authorized_positions([0, 4], PieceColor::Black, board.board, &vec![], false);
+            King::authorized_positions([0, 4], PieceColor::Black, board.board, &[], false);
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -512,7 +512,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions =
-            King::authorized_positions([0, 4], PieceColor::Black, board.board, &vec![], false);
+            King::authorized_positions([0, 4], PieceColor::Black, board.board, &[], false);
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -579,7 +579,7 @@ mod tests {
             [0, 4],
             PieceColor::Black,
             board.board,
-            &vec![],
+            &[],
             is_king_checked,
         );
         positions.sort();
@@ -645,7 +645,7 @@ mod tests {
             [0, 4],
             PieceColor::Black,
             board.board,
-            &vec![
+            &[
                 (Some(PieceType::Rook), "0747".to_string()),
                 (Some(PieceType::Pawn), "6252".to_string()),
                 (Some(PieceType::Rook), "4707".to_string()),

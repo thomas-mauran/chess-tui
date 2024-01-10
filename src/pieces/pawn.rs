@@ -201,7 +201,7 @@ mod tests {
             [4, 4],
             PieceColor::White,
             board.board,
-            &vec![(None, "0000".to_string())],
+            &[(None, "0000".to_string())],
             false,
         );
         positions.sort();
@@ -239,7 +239,7 @@ mod tests {
             [6, 4],
             PieceColor::White,
             board.board,
-            &vec![(None, "0000".to_string())],
+            &[(None, "0000".to_string())],
             false,
         );
         positions.sort();
@@ -286,7 +286,7 @@ mod tests {
             [1, 3],
             PieceColor::Black,
             board.board,
-            &vec![(None, "0000".to_string())],
+            &[(None, "0000".to_string())],
             false,
         );
         positions.sort();
@@ -333,7 +333,7 @@ mod tests {
             [1, 3],
             PieceColor::Black,
             board.board,
-            &vec![(None, "0000".to_string())],
+            &[(None, "0000".to_string())],
             false,
         );
         positions.sort();
@@ -371,7 +371,7 @@ mod tests {
             [3, 3],
             PieceColor::White,
             board.board,
-            &vec![(Some(PieceType::Pawn), "1232".to_string())],
+            &[(Some(PieceType::Pawn), "1232".to_string())],
             false,
         );
         positions.sort();
@@ -409,7 +409,7 @@ mod tests {
             [4, 2],
             PieceColor::Black,
             board.board,
-            &vec![(Some(PieceType::Pawn), "6343".to_string())],
+            &[(Some(PieceType::Pawn), "6343".to_string())],
             false,
         );
         positions.sort();
@@ -456,7 +456,7 @@ mod tests {
             [1, 1],
             PieceColor::Black,
             board.board,
-            &vec![(Some(PieceType::Pawn), "6343".to_string())],
+            &[(Some(PieceType::Pawn), "6343".to_string())],
             false,
         );
         positions.sort();
@@ -506,7 +506,7 @@ mod tests {
             [2, 3],
             PieceColor::Black,
             board.board,
-            &vec![],
+            &[],
             is_king_checked,
         );
         positions.sort();
@@ -557,7 +557,7 @@ mod tests {
             [2, 4],
             PieceColor::Black,
             board.board,
-            &vec![],
+            &[],
             is_king_checked,
         );
         positions.sort();
@@ -617,7 +617,7 @@ mod tests {
             [1, 5],
             PieceColor::Black,
             board.board,
-            &vec![],
+            &[],
             is_king_checked,
         );
         positions.sort();

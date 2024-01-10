@@ -130,7 +130,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions =
-            Knight::authorized_positions([4, 4], PieceColor::White, board.board, &vec![], false);
+            Knight::authorized_positions([4, 4], PieceColor::White, board.board, &[], false);
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -182,7 +182,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions =
-            Knight::authorized_positions([7, 7], PieceColor::White, board.board, &vec![], false);
+            Knight::authorized_positions([7, 7], PieceColor::White, board.board, &[], false);
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -240,7 +240,7 @@ mod tests {
             [6, 5],
             PieceColor::White,
             board.board,
-            &vec![],
+            &[],
             is_king_checked,
         );
         positions.sort();
@@ -300,7 +300,7 @@ mod tests {
             [6, 4],
             PieceColor::White,
             board.board,
-            &vec![],
+            &[],
             is_king_checked,
         );
         positions.sort();
@@ -359,7 +359,7 @@ mod tests {
             [1, 4],
             PieceColor::Black,
             board.board,
-            &vec![],
+            &[],
             is_king_checked,
         );
         positions.sort();
