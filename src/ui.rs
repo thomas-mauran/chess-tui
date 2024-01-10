@@ -83,7 +83,7 @@ pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
     frame.render_widget(sub_title, main_layout_horizontal[1]);
 
     // Board block representing the full board div
-    let menu_items = vec!["Normal game", "Help", "Credits"];
+    let menu_items = ["Normal game", "Help", "Credits"];
     let mut menu_body: Vec<Line<'_>> = vec![];
 
     for i in 0..menu_items.len() {
