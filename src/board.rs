@@ -667,7 +667,7 @@ impl Board {
         );
 
         // Bottom paragraph help text
-        let text = vec![Line::from("Press h for help").alignment(Alignment::Center)];
+        let text = vec![Line::from("Press ? for help").alignment(Alignment::Center)];
 
         let help_paragraph = Paragraph::new(text)
             .block(Block::new())
