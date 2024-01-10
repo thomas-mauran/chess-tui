@@ -12,7 +12,7 @@ impl Movable for King {
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         allow_move_on_ally_positions: bool,
-        _move_history: &Vec<(Option<PieceType>, String)>,
+        _move_history: &[(Option<PieceType>, String)],
     ) -> Vec<Vec<i8>> {
         let mut positions: Vec<Vec<i8>> = vec![];
         let y = coordinates[0];
@@ -45,7 +45,7 @@ impl Position for King {
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-        move_history: &Vec<(Option<PieceType>, String)>,
+        move_history: &[(Option<PieceType>, String)],
         is_king_checked: bool,
     ) -> Vec<Vec<i8>> {
         let mut positions: Vec<Vec<i8>> = vec![];
@@ -97,7 +97,7 @@ impl Position for King {
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-        move_history: &Vec<(Option<PieceType>, String)>,
+        move_history: &[(Option<PieceType>, String)],
     ) -> Vec<Vec<i8>> {
         Self::piece_move(coordinates, color, board, true, move_history)
     }
@@ -119,7 +119,7 @@ impl King {
         color: PieceColor,
         start: i8,
         end: i8,
-        checked_cells: &Vec<Vec<i8>>,
+        checked_cells: &[Vec<i8>],
     ) -> bool {
         let king_line = if color == PieceColor::White { 7 } else { 0 };
 
@@ -128,7 +128,7 @@ impl King {
         for i in start..=end {
             let new_coordinates = [king_line, i];
 
-            if is_vec_in_array(checked_cells.clone(), new_coordinates) {
+            if is_vec_in_array(checked_cells.to_owned().clone(), new_coordinates) {
                 valid_for_castling = false;
             }
             if (i == 7 || i == 0)

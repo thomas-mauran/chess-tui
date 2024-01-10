@@ -22,7 +22,7 @@ impl PieceType {
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-        move_history: &Vec<(Option<PieceType>, String)>,
+        move_history: &[(Option<PieceType>, String)],
         is_king_checked: bool,
     ) -> Vec<Vec<i8>> {
         match self {
@@ -64,7 +64,7 @@ impl PieceType {
         piece_type: PieceType,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-        move_history: &Vec<(Option<PieceType>, String)>,
+        move_history: &[(Option<PieceType>, String)],
     ) -> Vec<Vec<i8>> {
         match piece_type {
             PieceType::Pawn => {
@@ -134,7 +134,7 @@ pub trait Movable {
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         allow_move_on_ally_positions: bool,
-        move_history: &Vec<(Option<PieceType>, String)>,
+        move_history: &[(Option<PieceType>, String)],
     ) -> Vec<Vec<i8>>;
 }
 
@@ -143,7 +143,7 @@ pub trait Position {
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-        move_history: &Vec<(Option<PieceType>, String)>,
+        move_history: &[(Option<PieceType>, String)],
         is_king_checked: bool,
     ) -> Vec<Vec<i8>>;
 
@@ -151,6 +151,6 @@ pub trait Position {
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-        move_history: &Vec<(Option<PieceType>, String)>,
+        move_history: &[(Option<PieceType>, String)],
     ) -> Vec<Vec<i8>>;
 }

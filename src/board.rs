@@ -266,15 +266,12 @@ impl Board {
                 if authorized_positions.is_empty() {
                     return;
                 }
-                match get_piece_color(self.board, self.cursor_coordinates) {
-                    Some(piece_color) => {
-                        if piece_color == self.player_turn {
-                            self.selected_coordinates = self.cursor_coordinates;
-                            self.old_cursor_position = self.cursor_coordinates;
-                            self.move_selected_piece_cursor(true, 1);
-                        }
+                if let Some(piece_color) = get_piece_color(self.board, self.cursor_coordinates) {
+                    if piece_color == self.player_turn {
+                        self.selected_coordinates = self.cursor_coordinates;
+                        self.old_cursor_position = self.cursor_coordinates;
+                        self.move_selected_piece_cursor(true, 1);
                     }
-                    _ => {}
                 }
             } else {
                 // We already selected a piece
@@ -312,12 +309,9 @@ impl Board {
             };
 
             let current_piece_color = get_piece_color(self.board, [to_y, to_x]);
-            match current_piece_color {
-                Some(piece_color) => {
-                    // we replace the piece by the new piece type
-                    self.board[to_y as usize][to_x as usize] = Some((new_piece, piece_color));
-                }
-                _ => {}
+            if let Some(piece_color) = current_piece_color {
+                // we replace the piece by the new piece type
+                self.board[to_y as usize][to_x as usize] = Some((new_piece, piece_color));
             }
         }
         self.is_promotion = false;
@@ -404,17 +398,14 @@ impl Board {
 
         for i in 0..8 {
             for j in 0..8 {
-                match self.board[i][j] {
-                    Some((piece_type, piece_color)) => {
-                        if piece_color == self.player_turn {
-                            possible_moves.extend(self.get_authorized_positions(
-                                Some(piece_type),
-                                Some(piece_color),
-                                [i as i8, j as i8],
-                            ))
-                        }
+                if let Some((piece_type, piece_color)) = self.board[i][j] {
+                    if piece_color == self.player_turn {
+                        possible_moves.extend(self.get_authorized_positions(
+                            Some(piece_type),
+                            Some(piece_color),
+                            [i as i8, j as i8],
+                        ))
                     }
-                    _ => {}
                 }
             }
         }

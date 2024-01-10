@@ -12,7 +12,7 @@ impl Movable for Pawn {
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         allow_move_on_ally_positions: bool,
-        move_history: &Vec<(Option<PieceType>, String)>,
+        move_history: &[(Option<PieceType>, String)],
     ) -> Vec<Vec<i8>> {
         // Pawns can only move in one direction depending of their color
         // -1 if they are white (go up) +1 if they are black (go down)
@@ -86,38 +86,35 @@ impl Movable for Pawn {
         // We check for en passant
         let latest_move = get_latest_move(move_history);
 
-        match latest_move {
-            (Some(PieceType::Pawn), piece_move) => {
-                let from_y = get_int_from_char(piece_move.chars().nth(0));
-                let from_x = get_int_from_char(piece_move.chars().nth(1));
-                let to_y = get_int_from_char(piece_move.chars().nth(2));
-                let to_x = get_int_from_char(piece_move.chars().nth(3));
+        if let (Some(PieceType::Pawn), piece_move) = latest_move {
+            let from_y = get_int_from_char(piece_move.chars().nth(0));
+            let from_x = get_int_from_char(piece_move.chars().nth(1));
+            let to_y = get_int_from_char(piece_move.chars().nth(2));
+            let to_x = get_int_from_char(piece_move.chars().nth(3));
 
-                let valid_y_start: i8;
-                let number_of_cells_move: i8;
+            let valid_y_start: i8;
+            let number_of_cells_move: i8;
 
-                if color == PieceColor::White {
-                    valid_y_start = 1;
-                    number_of_cells_move = to_y - from_y;
-                } else {
-                    valid_y_start = 6;
-                    number_of_cells_move = from_y - to_y;
-                };
+            if color == PieceColor::White {
+                valid_y_start = 1;
+                number_of_cells_move = to_y - from_y;
+            } else {
+                valid_y_start = 6;
+                number_of_cells_move = from_y - to_y;
+            };
 
-                // We check if the latest move was on the right start cell
-                // if it moved 2 cells
-                // and if the current pawn is next to this pawn latest position
-                if from_y == valid_y_start
-                    && number_of_cells_move == 2
-                    && y == to_y
-                    && (x == to_x - 1 || x == to_x + 1)
-                {
-                    let new_y = from_y + -direction;
-                    let new_x = from_x;
-                    positions.push([new_y, new_x].to_vec());
-                }
+            // We check if the latest move was on the right start cell
+            // if it moved 2 cells
+            // and if the current pawn is next to this pawn latest position
+            if from_y == valid_y_start
+                && number_of_cells_move == 2
+                && y == to_y
+                && (x == to_x - 1 || x == to_x + 1)
+            {
+                let new_y = from_y + -direction;
+                let new_x = from_x;
+                positions.push([new_y, new_x].to_vec());
             }
-            _ => {}
         }
 
         cleaned_positions(positions)
@@ -129,7 +126,7 @@ impl Position for Pawn {
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-        move_history: &Vec<(Option<PieceType>, String)>,
+        move_history: &[(Option<PieceType>, String)],
         _is_king_checked: bool,
     ) -> Vec<Vec<i8>> {
         // If the king is not checked we get then normal moves
@@ -147,7 +144,7 @@ impl Position for Pawn {
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-        move_history: &Vec<(Option<PieceType>, String)>,
+        move_history: &[(Option<PieceType>, String)],
     ) -> Vec<Vec<i8>> {
         Self::piece_move(coordinates, color, board, true, move_history)
     }

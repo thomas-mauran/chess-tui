@@ -68,7 +68,7 @@ pub fn is_vec_in_array(array: Vec<Vec<i8>>, element: [i8; 2]) -> bool {
 pub fn get_all_protected_cells(
     board: [[Option<(PieceType, PieceColor)>; 8]; 8],
     player_turn: PieceColor,
-    move_history: &Vec<(Option<PieceType>, String)>,
+    move_history: &[(Option<PieceType>, String)],
 ) -> Vec<Vec<i8>> {
     let mut check_cells: Vec<Vec<i8>> = vec![];
     for i in 0..8i8 {
@@ -138,7 +138,7 @@ pub fn get_int_from_char(ch: Option<char>) -> i8 {
 }
 
 pub fn get_latest_move(
-    move_history: &Vec<(Option<PieceType>, String)>,
+    move_history: &[(Option<PieceType>, String)],
 ) -> (Option<PieceType>, String) {
     if !move_history.is_empty() {
         return move_history[move_history.len() - 1].clone();
@@ -147,7 +147,7 @@ pub fn get_latest_move(
 }
 
 pub fn did_piece_already_move(
-    move_history: &Vec<(Option<PieceType>, String)>,
+    move_history: &[(Option<PieceType>, String)],
     original_piece: (Option<PieceType>, [i8; 2]),
 ) -> bool {
     for entry in move_history {
@@ -168,13 +168,10 @@ pub fn get_king_coordinates(
 ) -> [i8; 2] {
     for i in 0..8i32 {
         for j in 0..8i32 {
-            match board[i as usize][j as usize] {
-                Some((piece_type, piece_color)) => {
-                    if piece_type == PieceType::King && piece_color == player_turn {
-                        return [i as i8, j as i8];
-                    }
+            if let Some((piece_type, piece_color)) = board[i as usize][j as usize] {
+                if piece_type == PieceType::King && piece_color == player_turn {
+                    return [i as i8, j as i8];
                 }
-                None => {}
             }
         }
     }
@@ -185,7 +182,7 @@ pub fn get_king_coordinates(
 pub fn is_getting_checked(
     board: [[Option<(PieceType, PieceColor)>; 8]; 8],
     player_turn: PieceColor,
-    move_history: &Vec<(Option<PieceType>, String)>,
+    move_history: &[(Option<PieceType>, String)],
 ) -> bool {
     let coordinates = get_king_coordinates(board, player_turn);
 
@@ -204,12 +201,12 @@ pub fn impossible_positions_king_checked(
     positions: Vec<Vec<i8>>,
     board: [[Option<(PieceType, PieceColor)>; 8]; 8],
     color: PieceColor,
-    move_history: &Vec<(Option<PieceType>, String)>,
+    move_history: &[(Option<PieceType>, String)],
 ) -> Vec<Vec<i8>> {
     let mut cleaned_position: Vec<Vec<i8>> = vec![];
     for position in positions {
         // We create a new board
-        let mut new_board = Board::new(board, color, move_history.clone());
+        let mut new_board = Board::new(board, color, move_history.to_owned().clone());
 
         // We simulate the move
 
