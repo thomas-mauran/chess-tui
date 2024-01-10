@@ -134,9 +134,8 @@ impl King {
             if (i == 7 || i == 0)
                 && (get_piece_type(board, new_coordinates) != Some(PieceType::Rook)
                     || !is_cell_color_ally(board, new_coordinates, color))
+                || (i != 7 && i != 0 && get_piece_type(board, new_coordinates).is_some())
             {
-                valid_for_castling = false;
-            } else if i != 7 && i != 0 && get_piece_type(board, new_coordinates).is_some() {
                 valid_for_castling = false;
             }
         }
