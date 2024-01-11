@@ -10,7 +10,7 @@ impl Movable for Knight {
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         allow_move_on_ally_positions: bool,
-        _move_history: &Vec<(Option<PieceType>, String)>,
+        _move_history: &[(Option<PieceType>, String)],
     ) -> Vec<Vec<i8>> {
         let mut positions: Vec<Vec<i8>> = Vec::new();
 
@@ -51,7 +51,7 @@ impl Position for Knight {
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-        move_history: &Vec<(Option<PieceType>, String)>,
+        move_history: &[(Option<PieceType>, String)],
         _is_king_checked: bool,
     ) -> Vec<Vec<i8>> {
         impossible_positions_king_checked(
@@ -67,7 +67,7 @@ impl Position for Knight {
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-        _move_history: &Vec<(Option<PieceType>, String)>,
+        _move_history: &[(Option<PieceType>, String)],
     ) -> Vec<Vec<i8>> {
         Self::piece_move(coordinates, color, board, true, _move_history)
     }
@@ -130,7 +130,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions =
-            Knight::authorized_positions([4, 4], PieceColor::White, board.board, &vec![], false);
+            Knight::authorized_positions([4, 4], PieceColor::White, board.board, &[], false);
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -182,7 +182,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions =
-            Knight::authorized_positions([7, 7], PieceColor::White, board.board, &vec![], false);
+            Knight::authorized_positions([7, 7], PieceColor::White, board.board, &[], false);
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -240,7 +240,7 @@ mod tests {
             [6, 5],
             PieceColor::White,
             board.board,
-            &vec![],
+            &[],
             is_king_checked,
         );
         positions.sort();
@@ -300,7 +300,7 @@ mod tests {
             [6, 4],
             PieceColor::White,
             board.board,
-            &vec![],
+            &[],
             is_king_checked,
         );
         positions.sort();
@@ -359,7 +359,7 @@ mod tests {
             [1, 4],
             PieceColor::Black,
             board.board,
-            &vec![],
+            &[],
             is_king_checked,
         );
         positions.sort();
