@@ -2,9 +2,9 @@ use crate::{
     constants::{BLACK, UNDEFINED_POSITION, WHITE},
     pieces::{PieceColor, PieceType},
     utils::{
-        color_to_ratatui_enum, convert_position_into_notation, get_int_from_char,
-        get_king_coordinates, get_piece_color, get_piece_type, get_player_turn_in_modulo,
-        is_getting_checked, is_valid,
+        color_to_ratatui_enum, convert_notation_into_position, convert_position_into_notation,
+        get_int_from_char, get_king_coordinates, get_piece_color, get_piece_type,
+        get_player_turn_in_modulo, is_getting_checked, is_valid,
     },
 };
 use ratatui::{
@@ -14,8 +14,8 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Padding, Paragraph},
     Frame,
 };
+use uci::Engine;
 
-#[derive(Debug)]
 pub struct Board {
     pub board: [[Option<(PieceType, PieceColor)>; 8]; 8],
     pub cursor_coordinates: [i8; 2],
@@ -29,6 +29,8 @@ pub struct Board {
     pub is_promotion: bool,
     pub promotion_cursor: i8,
     pub consecutive_non_pawn_or_capture: i32,
+    pub engine: Option<Engine>,
+    pub is_game_against_bot: bool,
 }
 
 impl Default for Board {
@@ -91,6 +93,8 @@ impl Default for Board {
             is_promotion: false,
             promotion_cursor: 0,
             consecutive_non_pawn_or_capture: 0,
+            engine: None,
+            is_game_against_bot: false,
         }
     }
 }
@@ -114,6 +118,8 @@ impl Board {
             is_promotion: false,
             promotion_cursor: 0,
             consecutive_non_pawn_or_capture: 0,
+            engine: None,
+            is_game_against_bot: false,
         }
     }
 
@@ -125,6 +131,17 @@ impl Board {
     pub fn set_player_turn(&mut self, player_turn: PieceColor) {
         self.player_turn = player_turn;
     }
+
+    pub fn set_engine(&mut self, engine_path: &str) {
+        // TODO: we don't see the panic message
+        self.is_game_against_bot = true;
+
+        self.engine = match Engine::new(engine_path) {
+            Ok(engine) => Some(engine),
+            _ => panic!("An error occcured with the selected chess engine path: {} Make sure you specified the right path using chess-tui -e", engine_path),
+        }
+    }
+
     // Check if a cell has been selected
     fn is_cell_selected(&self) -> bool {
         self.selected_coordinates[0] != UNDEFINED_POSITION
@@ -287,12 +304,93 @@ impl Board {
                     self.move_piece_on_the_board(selected_coords_usize, cursor_coords_usize);
                     self.unselect_cell();
                     self.switch_player_turn();
+                    // If we play against a bot we will play his move and switch the player turn again
+                    if self.is_game_against_bot {
+                        println!("{:?}", self.move_history);
+                        self.bot_move();
+                        self.switch_player_turn();
+                    }
                     self.is_draw = self.is_draw();
                 }
             }
         }
         self.is_checkmate = self.is_checkmate();
         self.is_promotion = self.is_latest_move_promotion();
+    }
+
+    pub fn bot_move(&mut self) {
+        let engine = match &self.engine {
+            Some(engine) => engine,
+            None => panic!("Missing the chess engine"),
+        };
+
+        engine.set_position(&self.fen_position()).unwrap();
+
+        println!("here: {:?}", engine.bestmove());
+
+        let best_move = engine.bestmove();
+        println!("{:?}", best_move);
+        let movement = match best_move {
+            Ok(movement) => movement,
+            Err(_) => panic!("An error as occured"),
+        };
+        let converted_move = convert_notation_into_position(movement);
+        let from_y = get_int_from_char(converted_move.chars().next());
+        let from_x = get_int_from_char(converted_move.chars().nth(1));
+        let to_y = get_int_from_char(converted_move.chars().nth(2));
+        let to_x = get_int_from_char(converted_move.chars().nth(3));
+
+        self.move_piece_on_the_board(
+            [from_y as usize, from_x as usize],
+            [to_y as usize, to_x as usize],
+        );
+    }
+    // Convert the history and game status to a FEN string
+    pub fn fen_position(&self) -> String {
+        let mut result = String::new();
+
+        for i in 0..8i8 {
+            for j in 0..8i8 {
+                match (
+                    get_piece_type(self.board, [i, j]),
+                    get_piece_color(self.board, [i, j]),
+                ) {
+                    (piece_type, piece_color) => {
+                        match PieceType::piece_to_fen_enum(piece_type, piece_color) {
+                            // Pattern match directly on the result of piece_to_fen_enum
+                            "" => {
+                                // Check if the string is not empty before using chars().last()
+                                if let Some(last_char) = result.chars().last() {
+                                    if last_char.is_digit(10) {
+                                        let incremented_char = char::from_digit(
+                                            last_char.to_digit(10).unwrap_or(0) + 1,
+                                            10,
+                                        )
+                                        .unwrap_or_default();
+                                        // Remove the old number and add the new incremented one
+                                        result.pop();
+                                        result.push_str(incremented_char.to_string().as_str());
+                                    } else {
+                                        result.push_str("1");
+                                    }
+                                }
+                            }
+                            letter => {
+                                // If the result is not an empty string, push '1'
+                                result.push_str(letter);
+                            }
+                        }
+                    }
+                }
+            }
+            result.push_str("/")
+        }
+
+        // we remove the last / and specify the player turn (black)
+        result.pop();
+        result.push_str(" b - - 0 1");
+
+        return result;
     }
 
     pub fn promote_piece(&mut self) {
@@ -625,7 +723,7 @@ impl Board {
             let number_move = &self.move_history[i].1;
 
             let utf_icon_white =
-                PieceType::piece_type_to_utf_enum(piece_type_from, Some(PieceColor::White));
+                PieceType::piece_to_utf_enum(piece_type_from, Some(PieceColor::White));
             let move_white = convert_position_into_notation(number_move.to_string());
 
             let mut utf_icon_black = "   ";
@@ -638,7 +736,7 @@ impl Board {
 
                 move_black = convert_position_into_notation(number.to_string());
                 utf_icon_black =
-                    PieceType::piece_type_to_utf_enum(piece_type_to, Some(PieceColor::Black))
+                    PieceType::piece_to_utf_enum(piece_type_to, Some(PieceColor::Black))
             }
 
             lines.push(Line::from(vec![

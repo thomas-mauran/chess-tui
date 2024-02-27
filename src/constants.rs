@@ -12,3 +12,12 @@ pub const TITLE: &str = r#"
 ╚██████╗██║  ██║███████╗███████║███████║      ██║   ╚██████╔╝██║
  ╚═════╝╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝      ╚═╝    ╚═════╝ ╚═╝
 "#;
+
+#[derive(Debug, PartialEq)]
+pub enum Pages {
+    Home,
+    Solo,
+    Bot,
+    Help,
+    Credit,
+}
