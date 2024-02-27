@@ -9,9 +9,12 @@ use ratatui::{
 
 use crate::{
     app::App,
-    constants::TITLE,
+    constants::{Pages, TITLE},
     pieces::PieceColor,
-    popups::{render_credit_popup, render_end_popup, render_help_popup, render_promotion_popup},
+    popups::{
+        render_credit_popup, render_end_popup, render_engine_path_error_popup, render_help_popup,
+        render_promotion_popup,
+    },
     utils::get_opposite_color,
 };
 
@@ -19,17 +22,29 @@ use crate::{
 pub fn render(app: &mut App, frame: &mut Frame) {
     let main_area = frame.size();
 
-    if app.show_home_menu {
-        render_menu_ui(frame, app, main_area)
-    } else {
+    if app.current_page == Pages::Solo {
         render_game_ui(frame, app, main_area)
+    } else if app.current_page == Pages::Bot {
+        if app.board.engine.is_none() {
+            match &app.chess_engine_path {
+                Some(path) => {
+                    app.board.set_engine(path);
+                    render_game_ui(frame, app, main_area)
+                }
+                None => render_engine_path_error_popup(frame),
+            }
+        } else {
+            render_game_ui(frame, app, main_area)
+        }
+    } else {
+        render_menu_ui(frame, app, main_area)
     }
 
-    if app.show_help_popup {
+    if app.current_page == Pages::Help || app.show_help_popup {
         render_help_popup(frame)
     }
 
-    if app.show_credit_popup {
+    if app.current_page == Pages::Credit {
         render_credit_popup(frame)
     }
 }
@@ -83,7 +98,7 @@ pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
     frame.render_widget(sub_title, main_layout_horizontal[1]);
 
     // Board block representing the full board div
-    let menu_items = ["Normal game", "Help", "Credits"];
+    let menu_items = ["Normal game", "Play against a bot", "Help", "Credits"];
     let mut menu_body: Vec<Line<'_>> = vec![];
 
     for (i, menu_item) in menu_items.iter().enumerate() {

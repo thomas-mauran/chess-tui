@@ -107,6 +107,20 @@ pub fn col_to_letter(col: i8) -> String {
     }
 }
 
+pub fn letter_to_col(col: Option<char>) -> i8 {
+    match col {
+        Some('a') => 0,
+        Some('b') => 1,
+        Some('c') => 2,
+        Some('d') => 3,
+        Some('e') => 4,
+        Some('f') => 5,
+        Some('g') => 6,
+        Some('h') => 7,
+        _ => unreachable!("Col out of bound"),
+    }
+}
+
 pub fn convert_position_into_notation(position: String) -> String {
     let mut result: String = "".to_string();
     let from_y = get_int_from_char(position.chars().next());
@@ -115,12 +129,22 @@ pub fn convert_position_into_notation(position: String) -> String {
     let to_x = get_int_from_char(position.chars().nth(3));
 
     result += &col_to_letter(from_x);
-    result += &format!("{}", (8 - from_y) % 9).to_string();
+    result += &format!("{}", 8 - from_y).to_string();
     result += "-";
     result += &col_to_letter(to_x);
-    result += &format!("{}", (8 - to_y) % 9).to_string();
+    result += &format!("{}", 8 - to_y).to_string();
 
     result
+}
+
+pub fn convert_notation_into_position(notation: String) -> String {
+    let from_x = &letter_to_col(notation.chars().next());
+    let from_y = (&get_int_from_char(notation.chars().nth(1)) - 8).abs();
+
+    let to_x = &letter_to_col(notation.chars().nth(2));
+    let to_y = (&get_int_from_char(notation.chars().nth(3)) - 8).abs();
+
+    format!("{}{}{}{}", from_y, from_x, to_y, to_x)
 }
 
 pub fn get_player_turn_in_modulo(color: PieceColor) -> usize {
@@ -250,7 +274,7 @@ pub fn color_to_ratatui_enum(piece_color: Option<PieceColor>) -> Color {
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::convert_position_into_notation;
+    use crate::utils::{convert_notation_into_position, convert_position_into_notation};
 
     #[test]
     fn convert_position_into_notation_1() {
@@ -260,5 +284,18 @@ mod tests {
     #[test]
     fn convert_position_into_notation_2() {
         assert_eq!(convert_position_into_notation("0257".to_string()), "c8-h3")
+    }
+
+    #[test]
+    fn convert_notation_into_position_1() {
+        assert_eq!(convert_notation_into_position("c8b7".to_string()), "0211")
+    }
+    #[test]
+    fn convert_notation_into_position_2() {
+        assert_eq!(convert_notation_into_position("g7h8".to_string()), "1607")
+    }
+    #[test]
+    fn convert_notation_into_position_3() {
+        assert_eq!(convert_notation_into_position("g1f3".to_string()), "7655")
     }
 }

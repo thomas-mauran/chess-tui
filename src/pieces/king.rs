@@ -114,6 +114,7 @@ impl King {
     "
     }
 
+    // Check if nothing is in between the king and a rook and if none of those cells are getting checked
     pub fn check_castling_condition(
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         color: PieceColor,
