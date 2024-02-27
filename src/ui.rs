@@ -29,11 +29,13 @@ pub fn render(app: &mut App, frame: &mut Frame) {
             match &app.chess_engine_path {
                 Some(path) => {
                     app.board.set_engine(path);
+                    render_game_ui(frame, app, main_area)
                 }
                 None => render_engine_path_error_popup(frame),
             }
+        } else {
+            render_game_ui(frame, app, main_area)
         }
-        render_game_ui(frame, app, main_area)
     } else {
         render_menu_ui(frame, app, main_area)
     }

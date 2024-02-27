@@ -134,7 +134,6 @@ impl Board {
     }
 
     pub fn set_engine(&mut self, engine_path: &str) {
-        // TODO: we don't see the panic message
         self.is_game_against_bot = true;
 
         self.engine = match Engine::new(engine_path) {
@@ -307,8 +306,15 @@ impl Board {
                     self.switch_player_turn();
                     // If we play against a bot we will play his move and switch the player turn again
                     if self.is_game_against_bot {
-                        self.bot_move();
-                        self.switch_player_turn();
+                        self.is_promotion = self.is_latest_move_promotion();
+                        if self.is_promotion == false {
+                            self.is_checkmate = self.is_checkmate();
+                            self.is_promotion = self.is_latest_move_promotion();
+                            if !self.is_checkmate {
+                                self.bot_move();
+                                self.switch_player_turn();
+                            }
+                        }
                     }
                     self.is_draw = self.is_draw();
                 }
@@ -331,8 +337,8 @@ impl Board {
             Ok(movement) => movement,
             Err(_) => panic!("An error as occured"),
         };
-
         let converted_move = convert_notation_into_position(movement);
+
         let from_y = get_int_from_char(converted_move.chars().next());
         let from_x = get_int_from_char(converted_move.chars().nth(1));
         let to_y = get_int_from_char(converted_move.chars().nth(2));
@@ -482,6 +488,9 @@ impl Board {
     }
 
     pub fn move_piece_on_the_board(&mut self, from: [usize; 2], to: [usize; 2]) {
+        if !is_valid([from[0] as i8, from[1] as i8]) || !is_valid([to[0] as i8, to[1] as i8]) {
+            return;
+        }
         let direction_y: i32 = if self.player_turn == PieceColor::White {
             -1
         } else {
@@ -517,26 +526,37 @@ impl Board {
             // we set the king 2 cells on where it came from
 
             let from_x: i32 = from[1] as i32;
-            let to_x: i32 = to[1] as i32;
+            let mut to_x: i32 = to[1] as i32;
+
             let distance = from_x - to_x;
             let direction_x = if distance > 0 { -1 } else { 1 };
+
             let mut row_index_rook = 0;
 
-            let row_index = from[1] as i32 + direction_x * 2;
+            let row_index = from_x + direction_x * 2;
+
             // We put move the king 2 cells
             self.board[to[0]][row_index as usize] = self.board[from[0]][from[1]];
 
             // We put the rook 3 cells from it's position if it's a big castling else 2 cells
+            // If it is playing against a bot we will receive 4 -> 6  and 4 -> 2 for to_x instead of 4 -> 7 and 4 -> 0
             // big castling
-            if distance == 4 {
-                row_index_rook = 3
-            } else if distance == -3 {
-                row_index_rook = 5
+            if distance > 0 {
+                row_index_rook = 3;
+                if self.is_game_against_bot && self.player_turn == PieceColor::Black {
+                    to_x = 0;
+                }
+            } else if distance < 0 {
+                row_index_rook = 5;
+                if self.is_game_against_bot && self.player_turn == PieceColor::Black {
+                    to_x = 7;
+                }
             }
-            self.board[to[0]][row_index_rook as usize] = self.board[to[0]][to[1]];
+
+            self.board[to[0]][row_index_rook as usize] = self.board[to[0]][to_x as usize];
 
             // We remove the latest rook
-            self.board[to[0]][to[1]] = None;
+            self.board[to[0]][to_x as usize] = None;
         } else {
             self.board[to[0]][to[1]] = self.board[from[0]][from[1]];
         }
@@ -601,10 +621,7 @@ impl Board {
         let distance = (from_x - to_x).abs();
 
         match (piece_type_from, piece_type_to) {
-            (Some(PieceType::King), _) => {
-                // Check if it's a move on more
-                distance > 1
-            }
+            (Some(PieceType::King), _) => distance > 1,
             _ => false,
         }
     }
