@@ -72,6 +72,10 @@ paru -S chess-tui
   <summary>Piece Promotion</summary>
   no demo available yet
 </details>
+<details>
+  <summary>Play against a chess engine</summary>
+  <img src="./examples/play_against_bot.gif" alt="Play against a chess engine" />
+</details>
 
 ### Roadmap
 
