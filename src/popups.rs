@@ -55,7 +55,7 @@ pub fn render_end_popup(frame: &mut Frame, sentence: String) {
         Line::from(sentence).alignment(Alignment::Center),
         Line::from(""),
         Line::from(""),
-        Line::from("Press R to start a new game").alignment(Alignment::Center),
+        Line::from("Press 'R' to start a new game").alignment(Alignment::Center),
     ];
 
     let paragraph = Paragraph::new(text)
@@ -177,7 +177,7 @@ pub fn render_credit_popup(frame: &mut Frame) {
         Line::from(""),
         Line::from(""),
         Line::from(""),
-        Line::from("Press 'x' to close the popup").alignment(Alignment::Center),
+        Line::from("Press 'x' or `Esc` to close the popup.").alignment(Alignment::Center),
     ];
 
     // Assuming Alignment is an enum or struct you have defined
@@ -206,18 +206,19 @@ pub fn render_help_popup(frame: &mut Frame) {
         Line::from("Game controls:".underlined().bold()),
         Line::from(""),
         Line::from(vec![
-            "← ↑ ↓ →: Use the arrow keys to move the ".into(),
+            "←/h ↑/k ↓/j →/l: Use these keys to move the ".into(),
             "blue".blue(),
             " cursor".into(),
         ]),
         Line::from(""),
-        Line::from("Ctrl + or -: Zoom in or out to adjust pieces sizes"),
+        Line::from("`Ctrl` '+' or '-': Zoom in or out to adjust pieces sizes"),
+        Line::from("(Might differ in certain terminals)"),
         Line::from(""),
-        Line::from("SPACE_BAR: Select a piece"),
+        Line::from("`Space`: Select a piece"),
         Line::from(""),
-        Line::from("ESCAPE: Deselect a piece"),
+        Line::from("`Esc`: Deselect a piece, don't display popups"),
         Line::from(""),
-        Line::from("q: Press q to quit the game"),
+        Line::from("q: Quit the game"),
         Line::from(""),
         Line::from(""),
         Line::from("Color codes:".underlined().bold()),
@@ -234,7 +235,7 @@ pub fn render_help_popup(frame: &mut Frame) {
         Line::from("Grey cell: Available cells for the selected piece"),
         Line::from(""),
         Line::from(""),
-        Line::from("press x to close the popup").alignment(Alignment::Center),
+        Line::from("Press 'x' or `Esc` to close the popup.").alignment(Alignment::Center),
     ];
 
     let paragraph = Paragraph::new(text)
