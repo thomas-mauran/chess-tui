@@ -40,7 +40,7 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         render_menu_ui(frame, app, main_area)
     }
 
-    if app.current_page == Pages::Help || app.show_help_popup {
+    if app.show_help_popup {
         render_help_popup(frame)
     }
 

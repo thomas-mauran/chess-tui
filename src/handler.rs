@@ -42,28 +42,18 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             }
         }
         KeyCode::Char('?') => {
-            if app.current_page != Pages::Credit && !app.show_help_popup {
-                app.show_help_popup = true;
-            } else if app.show_help_popup {
-                app.show_help_popup = false;
+            if app.current_page != Pages::Credit {
+                app.toggle_help_popup();
             }
-        }
-        KeyCode::Char('x') => {
-            if app.current_page == Pages::Solo || app.current_page == Pages::Bot {
-                app.show_help_popup = false;
-            }
-            app.current_page = Pages::Home
         }
         KeyCode::Char('r') => app.restart(),
         KeyCode::Esc => {
-            if app.current_page == Pages::Credit
-                || app.current_page == Pages::Help
-                || app.current_page == Pages::Bot
-            {
-                app.current_page = Pages::Home
+            if app.show_help_popup {
+                app.show_help_popup = false;
+            } else if app.current_page == Pages::Credit {
+                app.current_page = Pages::Home;
             }
             app.board.unselect_cell();
-            app.show_help_popup = false;
         }
         // Other handlers you could add here.
         _ => {}

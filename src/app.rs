@@ -40,11 +40,7 @@ impl App {
     }
 
     pub fn toggle_help_popup(&mut self) {
-        if self.current_page == Pages::Home {
-            self.current_page = Pages::Help
-        } else {
-            self.current_page = Pages::Home
-        }
+        self.show_help_popup = !self.show_help_popup;
     }
     pub fn toggle_credit_popup(&mut self) {
         if self.current_page == Pages::Home {

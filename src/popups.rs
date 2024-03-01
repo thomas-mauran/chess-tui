@@ -177,7 +177,7 @@ pub fn render_credit_popup(frame: &mut Frame) {
         Line::from(""),
         Line::from(""),
         Line::from(""),
-        Line::from("Press 'x' or `Esc` to close the popup.").alignment(Alignment::Center),
+        Line::from("Press `Esc` to close the popup.").alignment(Alignment::Center),
     ];
 
     // Assuming Alignment is an enum or struct you have defined
@@ -235,7 +235,7 @@ pub fn render_help_popup(frame: &mut Frame) {
         Line::from("Grey cell: Available cells for the selected piece"),
         Line::from(""),
         Line::from(""),
-        Line::from("Press 'x' or `Esc` to close the popup.").alignment(Alignment::Center),
+        Line::from("Press `Esc` to close the popup.").alignment(Alignment::Center),
     ];
 
     let paragraph = Paragraph::new(text)
