@@ -562,6 +562,40 @@ impl Board {
         self.move_history.push(tuple.clone());
     }
 
+    fn hist_to_coord(hist_item: &str) -> Vec<usize> {
+        assert_eq!(hist_item.chars().count(), 2);
+        vec![
+            hist_item
+                .chars()
+                .next()
+                .unwrap()
+                .to_string()
+                .parse()
+                .unwrap(),
+            hist_item
+                .chars()
+                .nth(1)
+                .unwrap()
+                .to_string()
+                .parse()
+                .unwrap(),
+        ]
+    }
+
+    pub fn undo(&mut self) {
+        if let Some(prev_hist) = self.move_history.pop() {
+            let prev_move = prev_hist.1;
+
+            let to = Self::hist_to_coord(&prev_move[0..2]);
+            let from = Self::hist_to_coord(&prev_move[2..]);
+            self.board[to[0]][to[1]] = self.board[from[0]][from[1]];
+            // self.board[to[0]][to[1]] = self.board[from[0]][from[1]];
+            // self.board[to[0]][to[1]] = Some((PieceType::Pawn, PieceColor::Black));
+            self.board[from[0]][from[1]] = None;
+            self.switch_player_turn();
+        }
+    }
+
     pub fn unselect_cell(&mut self) {
         if self.is_cell_selected() {
             self.selected_coordinates[0] = UNDEFINED_POSITION;
