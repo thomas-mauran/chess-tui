@@ -307,7 +307,7 @@ impl Board {
                     // If we play against a bot we will play his move and switch the player turn again
                     if self.is_game_against_bot {
                         self.is_promotion = self.is_latest_move_promotion();
-                        if self.is_promotion == false {
+                        if !self.is_promotion {
                             self.is_checkmate = self.is_checkmate();
                             self.is_promotion = self.is_latest_move_promotion();
                             if !self.is_checkmate {
@@ -355,37 +355,32 @@ impl Board {
 
         for i in 0..8i8 {
             for j in 0..8i8 {
-                match (
+                let (piece_type, piece_color) = (
                     get_piece_type(self.board, [i, j]),
                     get_piece_color(self.board, [i, j]),
-                ) {
-                    (piece_type, piece_color) => {
-                        match PieceType::piece_to_fen_enum(piece_type, piece_color) {
-                            // Pattern match directly on the result of piece_to_fen_enum
-                            "" => {
-                                // Check if the string is not empty before using chars().last()
-                                if let Some(last_char) = result.chars().last() {
-                                    if last_char.is_ascii_digit() {
-                                        let incremented_char = char::from_digit(
-                                            last_char.to_digit(10).unwrap_or(0) + 1,
-                                            10,
-                                        )
+                );
+                match PieceType::piece_to_fen_enum(piece_type, piece_color) {
+                    // Pattern match directly on the result of piece_to_fen_enum
+                    "" => {
+                        // Check if the string is not empty before using chars().last()
+                        if let Some(last_char) = result.chars().last() {
+                            if last_char.is_ascii_digit() {
+                                let incremented_char =
+                                    char::from_digit(last_char.to_digit(10).unwrap_or(0) + 1, 10)
                                         .unwrap_or_default();
-                                        // Remove the old number and add the new incremented one
-                                        result.pop();
-                                        result.push_str(incremented_char.to_string().as_str());
-                                    } else {
-                                        result.push('1');
-                                    }
-                                } else {
-                                    result.push('1');
-                                }
+                                // Remove the old number and add the new incremented one
+                                result.pop();
+                                result.push_str(incremented_char.to_string().as_str());
+                            } else {
+                                result.push('1');
                             }
-                            letter => {
-                                // If the result is not an empty string, push '1'
-                                result.push_str(letter);
-                            }
+                        } else {
+                            result.push('1');
                         }
+                    }
+                    letter => {
+                        // If the result is not an empty string, push '1'
+                        result.push_str(letter);
                     }
                 }
             }
@@ -408,7 +403,7 @@ impl Board {
             }
             // queen side black castle availability
             if !did_piece_already_move(&self.move_history, (Some(PieceType::Rook), [0, 0])) {
-                result.push_str("q");
+                result.push('q');
             }
         } else {
             result.push_str(" -")
@@ -430,7 +425,7 @@ impl Board {
                     converted_move += &col_to_letter(from_x);
                     converted_move += &format!("{}", 8 - from_y).to_string();
 
-                    result.push_str(" ");
+                    result.push(' ');
                     result.push_str(&converted_move);
                 }
             }
@@ -438,10 +433,10 @@ impl Board {
             result.push_str(" -");
         }
 
-        result.push_str(" ");
+        result.push(' ');
 
         result.push_str(&self.consecutive_non_pawn_or_capture.to_string());
-        result.push_str(" ");
+        result.push(' ');
 
         result.push_str(&(self.move_history.len() / 2).to_string());
 
@@ -459,7 +454,7 @@ impl Board {
                 if piece_type == &PieceType::Pawn && distance == 2 {
                     return true;
                 }
-                return false;
+                false
             }
             _ => false,
         }
