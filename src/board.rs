@@ -584,12 +584,12 @@ impl Board {
     }
 
     /// move history of `self` contains this coordinate, either as moved to or from
-    fn history_has(&self, coordinate: &[usize], to: bool) -> Option<PieceType> {
+    fn history_has(&self, coord: &[usize], to: bool) -> Option<PieceType> {
         let hist = &self.move_history;
         if hist.is_empty() {
             return None;
         }
-        let looking_for = format!("{}{}", coordinate[0], coordinate[1]);
+        let looking_for = format!("{}{}", coord[0], coord[1]);
 
         let mut i = hist.len() - 1;
         while i > 0 {
@@ -603,7 +603,11 @@ impl Board {
             }
             i -= 1;
         }
+        // if let Some(pos) = Self::default().board[coord[0]][coord[1]] {
+        //     Some(pos.0)
+        // } else {
         None
+        // }
     }
 
     /// takeback
@@ -624,11 +628,13 @@ impl Board {
             self.board[from[0]][from[1]] =
                 // check if there was anything on the cell where it was before takeback:
                 // if anything has moved to this cell and not away from it, there probably was
-                if self.history_has(&from, true).is_some() && self.history_has(&from, false).is_none() {
+                if self.history_has(&from, true).is_some() && self.history_has(&from, false).is_none()  {
                     let piece_type = self.history_has(&from, true).unwrap();
                     Some((piece_type, self.player_turn))
+                } else if let Some((piece_type, _)) = Self::default().board[from[0]][from[1]] {
+                    Some((piece_type, self.player_turn))
                 } else {
-                    None
+                        None
                 };
 
             self.switch_player_turn();
