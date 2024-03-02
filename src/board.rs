@@ -585,10 +585,14 @@ impl Board {
 
     /// move history of `self` contains this coordinate, either as moved to or from
     fn history_has(&self, coordinate: &[usize], to: bool) -> Option<PieceType> {
-        let looking_for = format!("{}{}", coordinate[0], coordinate[1]);
         let hist = &self.move_history;
-        let mut i = 0;
-        while i < hist.len() {
+        if hist.is_empty() {
+            return None;
+        }
+        let looking_for = format!("{}{}", coordinate[0], coordinate[1]);
+
+        let mut i = hist.len() - 1;
+        while i > 0 {
             let hist_rec = &hist[i].1;
             if to {
                 if hist_rec[2..4] == looking_for {
@@ -597,7 +601,7 @@ impl Board {
             } else if hist_rec[0..2] == looking_for {
                 return hist[i].0;
             }
-            i += 1;
+            i -= 1;
         }
         None
     }
