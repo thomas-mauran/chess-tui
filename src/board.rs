@@ -603,7 +603,7 @@ impl Board {
     }
 
     /// takeback
-    pub fn undo(&mut self) {
+    pub fn takeback(&mut self) {
         if let Some((_, prev_move)) = self.move_history.pop() {
             let to = Self::hist_to_coord(&prev_move[0..2]);
             let from = Self::hist_to_coord(&prev_move[2..]);

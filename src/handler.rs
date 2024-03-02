@@ -56,7 +56,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             app.board.unselect_cell();
         }
         KeyCode::Backspace => {
-            app.board.undo();
+            app.board.takeback();
         }
         // Other handlers you could add here.
         _ => {}
