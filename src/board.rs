@@ -583,19 +583,19 @@ impl Board {
         ]
     }
 
-    fn history_has(&self, coordinate: &[usize], to: bool) -> Option<usize> {
+    /// move history of `self` contains this coordinate, either as moved to or from
+    fn history_has(&self, coordinate: &[usize], to: bool) -> Option<PieceType> {
         let looking_for = format!("{}{}", coordinate[0], coordinate[1]);
-        println!("looking for: {}", looking_for);
         let hist = &self.move_history;
         let mut i = 0;
         while i < hist.len() {
             let hist_rec = &hist[i].1;
             if to {
                 if hist_rec[2..4] == looking_for {
-                    return Some(i);
+                    return hist[i].0;
                 }
             } else if hist_rec[0..2] == looking_for {
-                return Some(i);
+                return hist[i].0;
             }
             i += 1;
         }
@@ -616,36 +616,13 @@ impl Board {
             //     board[from] = history[from]
             // }
 
-            // implementation that seems not to be working
-            // optionally fill the cell if something was taken off it
-            // self.board[from[0]][from[1]] =
-            // check if there was anything in the cell where it was before takeback
-            // if let Some((Some(_), kicked_hist_rec)) = &self.move_history.last() {
-            //     // get_piece_color(self.board, from.into_iter().take(2).collect());
-            //     // also check colour equality
-            //     let kicked = Self::hist_to_coord(&kicked_hist_rec[2..4]);
-            //     println!("kicked");
-            //     self.board[kicked[0]][kicked[1]]
-            // } else {
-            //     println!("none");
-            // None
-            // }
-            // ;
-
             // optionally fill the cell if something was taken off it
             self.board[from[0]][from[1]] =
                 // check if there was anything on the cell where it was before takeback:
                 // if anything has moved to this cell and not away from it, there probably was
                 if self.history_has(&from, true).is_some() && self.history_has(&from, false).is_none() {
-                    let i = self.history_has(&from, true).unwrap();
-                    let piece = self.move_history.get(i).unwrap();
-                    let result_piece: Option<(PieceType, PieceColor)>;
-                    if let Some(piece_type) = piece.0 {
-                        result_piece = Some((piece_type, self.player_turn ));
-                    } else {
-                        panic!("baba");
-                    }
-                    result_piece
+                    let piece_type = self.history_has(&from, true).unwrap();
+                    Some((piece_type, self.player_turn))
                 } else {
                     None
                 };
