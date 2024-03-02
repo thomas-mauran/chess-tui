@@ -216,7 +216,7 @@ pub fn render_help_popup(frame: &mut Frame) {
         Line::from(""),
         Line::from("`Space`: Select a piece"),
         Line::from(""),
-        Line::from("`Esc`: Deselect a piece, don't display popups"),
+        Line::from("`Esc`: Deselect a piece / hide popups"),
         Line::from(""),
         Line::from("q: Quit the game"),
         Line::from(""),
