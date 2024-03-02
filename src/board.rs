@@ -562,6 +562,7 @@ impl Board {
         self.move_history.push(tuple.clone());
     }
 
+    /// Convert history record to coordinates
     fn hist_to_coord(hist_item: &str) -> Vec<usize> {
         assert_eq!(hist_item.chars().count(), 2);
         vec![
@@ -582,16 +583,73 @@ impl Board {
         ]
     }
 
-    pub fn undo(&mut self) {
-        if let Some(prev_hist) = self.move_history.pop() {
-            let prev_move = prev_hist.1;
+    fn history_has(&self, coordinate: &[usize], to: bool) -> Option<usize> {
+        let looking_for = format!("{}{}", coordinate[0], coordinate[1]);
+        println!("looking for: {}", looking_for);
+        let hist = &self.move_history;
+        let mut i = 0;
+        while i < hist.len() {
+            let hist_rec = &hist[i].1;
+            if to {
+                if hist_rec[2..4] == looking_for {
+                    return Some(i);
+                }
+            } else if hist_rec[0..2] == looking_for {
+                return Some(i);
+            }
+            i += 1;
+        }
+        None
+    }
 
+    /// takeback
+    pub fn undo(&mut self) {
+        if let Some((_, prev_move)) = self.move_history.pop() {
             let to = Self::hist_to_coord(&prev_move[0..2]);
             let from = Self::hist_to_coord(&prev_move[2..]);
+
+            // take last moved piece back to where it came from
             self.board[to[0]][to[1]] = self.board[from[0]][from[1]];
-            // self.board[to[0]][to[1]] = self.board[from[0]][from[1]];
-            // self.board[to[0]][to[1]] = Some((PieceType::Pawn, PieceColor::Black));
-            self.board[from[0]][from[1]] = None;
+
+            // pseudo kind of code
+            // if history.contains(board[from], Moved::To) && !history.contains(board[from], Moved::From) {
+            //     board[from] = history[from]
+            // }
+
+            // implementation that seems not to be working
+            // optionally fill the cell if something was taken off it
+            // self.board[from[0]][from[1]] =
+            // check if there was anything in the cell where it was before takeback
+            // if let Some((Some(_), kicked_hist_rec)) = &self.move_history.last() {
+            //     // get_piece_color(self.board, from.into_iter().take(2).collect());
+            //     // also check colour equality
+            //     let kicked = Self::hist_to_coord(&kicked_hist_rec[2..4]);
+            //     println!("kicked");
+            //     self.board[kicked[0]][kicked[1]]
+            // } else {
+            //     println!("none");
+            // None
+            // }
+            // ;
+
+            // optionally fill the cell if something was taken off it
+            self.board[from[0]][from[1]] =
+                // check if there was anything on the cell where it was before takeback:
+                // if anything has moved to this cell and not away from it, there probably was
+                if self.history_has(&from, true).is_some() && self.history_has(&from, false).is_none() {
+                    let i = self.history_has(&from, true).unwrap();
+                    let piece = self.move_history.get(i).unwrap();
+                    let result_piece: Option<(PieceType, PieceColor)>;
+                    if let Some(piece_type) = piece.0 {
+                        result_piece = Some((piece_type, self.player_turn ));
+                    } else {
+                        panic!("baba");
+                    }
+                    result_piece
+                } else {
+                    None
+                };
+
             self.switch_player_turn();
         }
     }
