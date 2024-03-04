@@ -8,7 +8,7 @@ pub struct Queen;
 
 impl Movable for Queen {
     fn piece_move(
-        coordinates: Coord,
+        coordinates: &Coord,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         allow_move_on_ally_positions: bool,
@@ -18,14 +18,14 @@ impl Movable for Queen {
 
         // Queen = bishop concat rook
         positions.extend(Bishop::piece_move(
-            coordinates.clone(),
+            coordinates,
             color,
             board,
             allow_move_on_ally_positions,
             move_history,
         ));
         positions.extend(Rook::piece_move(
-            coordinates.clone(),
+            coordinates,
             color,
             board,
             allow_move_on_ally_positions,
@@ -38,22 +38,22 @@ impl Movable for Queen {
 
 impl Position for Queen {
     fn authorized_positions(
-        coordinates: Coord,
+        coordinates: &Coord,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         move_history: &[(Option<PieceType>, String)],
         _is_king_checked: bool,
     ) -> Vec<Coord> {
         impossible_positions_king_checked(
-            &coordinates,
-            Self::piece_move(coordinates.clone(), color, board, false, move_history),
+            coordinates,
+            Self::piece_move(coordinates, color, board, false, move_history),
             board,
             color,
             move_history,
         )
     }
     fn protected_positions(
-        coordinates: Coord,
+        coordinates: &Coord,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         move_history: &[(Option<PieceType>, String)],
@@ -138,7 +138,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = Queen::authorized_positions(
-            Coord::new(4, 4),
+            &Coord::new(4, 4),
             PieceColor::White,
             board.board,
             &[],
@@ -212,7 +212,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = Queen::authorized_positions(
-            Coord::new(4, 4),
+            &Coord::new(4, 4),
             PieceColor::White,
             board.board,
             &[],
@@ -296,7 +296,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = Queen::authorized_positions(
-            Coord::new(4, 4),
+            &Coord::new(4, 4),
             PieceColor::White,
             board.board,
             &[],
@@ -355,7 +355,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = Queen::authorized_positions(
-            Coord::new(5, 5),
+            &Coord::new(5, 5),
             PieceColor::Black,
             board.board,
             &[],
@@ -414,7 +414,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = Queen::authorized_positions(
-            Coord::new(5, 6),
+            &Coord::new(5, 6),
             PieceColor::Black,
             board.board,
             &[],
@@ -474,7 +474,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = Queen::authorized_positions(
-            Coord::new(1, 5),
+            &Coord::new(1, 5),
             PieceColor::Black,
             board.board,
             &[],
