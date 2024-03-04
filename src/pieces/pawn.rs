@@ -11,7 +11,7 @@ pub struct Pawn;
 
 impl Movable for Pawn {
     fn piece_move(
-        coordinates: Coord,
+        coordinates: &Coord,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         allow_move_on_ally_positions: bool,
@@ -126,7 +126,7 @@ impl Movable for Pawn {
 
 impl Position for Pawn {
     fn authorized_positions(
-        coordinates: Coord,
+        coordinates: &Coord,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         move_history: &[(Option<PieceType>, String)],
@@ -135,8 +135,8 @@ impl Position for Pawn {
         // If the king is not checked we get then normal moves
         // if the king is checked we clean all the position not resolving the check
         impossible_positions_king_checked(
-            &coordinates,
-            Self::piece_move(coordinates.clone(), color, board, false, move_history),
+            coordinates,
+            Self::piece_move(coordinates, color, board, false, move_history),
             board,
             color,
             move_history,
@@ -144,7 +144,7 @@ impl Position for Pawn {
     }
 
     fn protected_positions(
-        coordinates: Coord,
+        coordinates: &Coord,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         move_history: &[(Option<PieceType>, String)],
@@ -201,7 +201,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = Pawn::authorized_positions(
-            Coord::new(4, 4),
+            &Coord::new(4, 4),
             PieceColor::White,
             board.board,
             &[(None, "0000".to_string())],
@@ -239,7 +239,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = Pawn::authorized_positions(
-            Coord::new(6, 4),
+            &Coord::new(6, 4),
             PieceColor::White,
             board.board,
             &[(None, "0000".to_string())],
@@ -291,7 +291,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = Pawn::authorized_positions(
-            Coord::new(1, 3),
+            &Coord::new(1, 3),
             PieceColor::Black,
             board.board,
             &[(None, "0000".to_string())],
@@ -338,7 +338,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = Pawn::authorized_positions(
-            Coord::new(1, 3),
+            &Coord::new(1, 3),
             PieceColor::Black,
             board.board,
             &[(None, "0000".to_string())],
@@ -376,7 +376,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = Pawn::authorized_positions(
-            Coord::new(3, 3),
+            &Coord::new(3, 3),
             PieceColor::White,
             board.board,
             &[(Some(PieceType::Pawn), "1232".to_string())],
@@ -414,7 +414,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = Pawn::authorized_positions(
-            Coord::new(4, 2),
+            &Coord::new(4, 2),
             PieceColor::Black,
             board.board,
             &[(Some(PieceType::Pawn), "6343".to_string())],
@@ -461,7 +461,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = Pawn::authorized_positions(
-            Coord::new(1, 1),
+            &Coord::new(1, 1),
             PieceColor::Black,
             board.board,
             &[(Some(PieceType::Pawn), "6343".to_string())],
@@ -511,7 +511,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = Pawn::authorized_positions(
-            Coord::new(2, 3),
+            &Coord::new(2, 3),
             PieceColor::Black,
             board.board,
             &[],
@@ -562,7 +562,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = Pawn::authorized_positions(
-            Coord::new(2, 4),
+            &Coord::new(2, 4),
             PieceColor::Black,
             board.board,
             &[],
@@ -622,7 +622,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = Pawn::authorized_positions(
-            Coord::new(1, 5),
+            &Coord::new(1, 5),
             PieceColor::Black,
             board.board,
             &[],
