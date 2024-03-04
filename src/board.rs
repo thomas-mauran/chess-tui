@@ -48,7 +48,7 @@ impl Coord {
         Self { col: row, row: col }
     }
     pub fn to_hist(&self) -> String {
-        format!("{}{}", self.col, self.row)
+        format!("{}{}", self.row, self.col)
     }
     /// Convert history record to coordinates
     pub fn from_hist(hist_item: &str) -> Self {
@@ -695,9 +695,10 @@ impl Board {
         if let Some(position) = self.move_history.last() {
             let to_y = get_int_from_char(position.1.chars().nth(2));
             let to_x = get_int_from_char(position.1.chars().nth(3));
+            let to = Coord::new(to_y, to_x);
 
-            if let Some(piece_type_from) = get_piece_type(self.board, &Coord::new(to_y, to_x)) {
-                if let Some(piece_color) = get_piece_color(self.board, &Coord::new(to_y, to_x)) {
+            if let Some(piece_type_from) = get_piece_type(self.board, &to) {
+                if let Some(piece_color) = get_piece_color(self.board, &to) {
                     let last_row = if piece_color == PieceColor::White {
                         0
                     } else {
