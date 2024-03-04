@@ -56,14 +56,14 @@ impl Coord {
         Self::new(
             hist_item
                 .chars()
-                .nth(1)
+                .nth(0)
                 .unwrap()
                 .to_string()
                 .parse()
                 .unwrap(),
             hist_item
                 .chars()
-                .nth(0)
+                .nth(1)
                 .unwrap()
                 .to_string()
                 .parse()
