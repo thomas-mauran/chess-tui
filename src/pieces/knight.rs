@@ -1,45 +1,48 @@
 use super::{Movable, PieceColor, PieceType, Position};
-use crate::utils::{
-    cleaned_positions, impossible_positions_king_checked, is_cell_color_ally, is_valid,
+use crate::{
+    board::Coord,
+    utils::{cleaned_positions, impossible_positions_king_checked, is_cell_color_ally, is_valid},
 };
 pub struct Knight;
 
 impl Movable for Knight {
     fn piece_move(
-        coordinates: [i8; 2],
+        coordinates: Coord,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         allow_move_on_ally_positions: bool,
         _move_history: &[(Option<PieceType>, String)],
-    ) -> Vec<Vec<i8>> {
-        let mut positions: Vec<Vec<i8>> = Vec::new();
+    ) -> Vec<Coord> {
+        let mut positions: Vec<Coord> = Vec::new();
 
-        let (y, x) = (coordinates[0], coordinates[1]);
+        let (y, x) = (coordinates.row, coordinates.col);
 
         // Generate knight positions in all eight possible L-shaped moves
         let piece_move = [
-            (-2, -1),
-            (-2, 1),
-            (-1, -2),
-            (-1, 2),
-            (1, -2),
-            (1, 2),
-            (2, -1),
-            (2, 1),
+            Coord::new(-2, -1),
+            Coord::new(-2, 1),
+            Coord::new(-1, -2),
+            Coord::new(-1, 2),
+            Coord::new(1, -2),
+            Coord::new(1, 2),
+            Coord::new(2, -1),
+            Coord::new(2, 1),
         ];
 
-        for &(dy, dx) in &piece_move {
-            let new_coordinates = [y + dy, x + dx];
+        for &Coord { col: dx, row: dy } in &piece_move {
+            let new_coordinates = Coord::new(y + dy, x + dx);
 
-            if !is_valid(new_coordinates) {
+            if !is_valid(&new_coordinates) {
                 continue;
             }
 
-            if is_cell_color_ally(board, new_coordinates, color) && !allow_move_on_ally_positions {
+            if is_cell_color_ally(board, new_coordinates.clone(), color)
+                && !allow_move_on_ally_positions
+            {
                 continue;
             }
 
-            positions.push(new_coordinates.to_vec());
+            positions.push(new_coordinates);
         }
 
         cleaned_positions(positions)
@@ -48,15 +51,15 @@ impl Movable for Knight {
 
 impl Position for Knight {
     fn authorized_positions(
-        coordinates: [i8; 2],
+        coordinates: Coord,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         move_history: &[(Option<PieceType>, String)],
         _is_king_checked: bool,
-    ) -> Vec<Vec<i8>> {
+    ) -> Vec<Coord> {
         impossible_positions_king_checked(
-            coordinates,
-            Self::piece_move(coordinates, color, board, false, move_history),
+            &coordinates,
+            Self::piece_move(coordinates.clone(), color, board, false, move_history),
             board,
             color,
             move_history,
@@ -64,11 +67,11 @@ impl Position for Knight {
     }
 
     fn protected_positions(
-        coordinates: [i8; 2],
+        coordinates: Coord,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         _move_history: &[(Option<PieceType>, String)],
-    ) -> Vec<Vec<i8>> {
+    ) -> Vec<Coord> {
         Self::piece_move(coordinates, color, board, true, _move_history)
     }
 }
@@ -88,7 +91,7 @@ impl Knight {
 #[cfg(test)]
 mod tests {
     use crate::{
-        board::Board,
+        board::{Board, Coord},
         pieces::{knight::Knight, PieceColor, PieceType, Position},
         utils::is_getting_checked,
     };
@@ -118,19 +121,24 @@ mod tests {
         board.set_board(custom_board);
 
         let mut right_positions = vec![
-            vec![2, 3],
-            vec![2, 5],
-            vec![3, 2],
-            vec![3, 6],
-            vec![5, 2],
-            vec![5, 6],
-            vec![6, 3],
-            vec![6, 5],
+            Coord::new(2, 3),
+            Coord::new(2, 5),
+            Coord::new(3, 2),
+            Coord::new(3, 6),
+            Coord::new(5, 2),
+            Coord::new(5, 6),
+            Coord::new(6, 3),
+            Coord::new(6, 5),
         ];
         right_positions.sort();
 
-        let mut positions =
-            Knight::authorized_positions([4, 4], PieceColor::White, board.board, &[], false);
+        let mut positions = Knight::authorized_positions(
+            Coord::new(4, 4),
+            PieceColor::White,
+            board.board,
+            &[],
+            false,
+        );
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -178,11 +186,16 @@ mod tests {
         let mut board = Board::default();
         board.set_board(custom_board);
 
-        let mut right_positions = vec![vec![6, 5]];
+        let mut right_positions = vec![Coord::new(6, 5)];
         right_positions.sort();
 
-        let mut positions =
-            Knight::authorized_positions([7, 7], PieceColor::White, board.board, &[], false);
+        let mut positions = Knight::authorized_positions(
+            Coord::new(7, 7),
+            PieceColor::White,
+            board.board,
+            &[],
+            false,
+        );
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -233,11 +246,11 @@ mod tests {
         let is_king_checked =
             is_getting_checked(board.board, board.player_turn, &board.move_history);
 
-        let mut right_positions = vec![vec![7, 7]];
+        let mut right_positions = vec![Coord::new(7, 7)];
         right_positions.sort();
 
         let mut positions = Knight::authorized_positions(
-            [6, 5],
+            Coord::new(6, 5),
             PieceColor::White,
             board.board,
             &[],
@@ -293,11 +306,11 @@ mod tests {
         let is_king_checked =
             is_getting_checked(board.board, board.player_turn, &board.move_history);
 
-        let mut right_positions: Vec<Vec<i8>> = vec![];
+        let mut right_positions: Vec<Coord> = vec![];
         right_positions.sort();
 
         let mut positions = Knight::authorized_positions(
-            [6, 4],
+            Coord::new(6, 4),
             PieceColor::White,
             board.board,
             &[],
@@ -352,11 +365,11 @@ mod tests {
         let is_king_checked =
             is_getting_checked(board.board, board.player_turn, &board.move_history);
 
-        let mut right_positions: Vec<Vec<i8>> = vec![];
+        let mut right_positions: Vec<Coord> = vec![];
         right_positions.sort();
 
         let mut positions = Knight::authorized_positions(
-            [1, 4],
+            Coord::new(1, 4),
             PieceColor::Black,
             board.board,
             &[],

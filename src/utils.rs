@@ -1,22 +1,21 @@
 use crate::{
-    board::Board,
-    constants::UNDEFINED_POSITION,
+    board::{Board, Coord},
     pieces::{PieceColor, PieceType},
 };
 use ratatui::style::Color;
 
 pub fn get_piece_color(
     board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-    coordinates: [i8; 2],
+    coordinates: &Coord,
 ) -> Option<PieceColor> {
-    board[coordinates[0] as usize][coordinates[1] as usize].map(|(_, piece_color)| piece_color)
+    board[coordinates.row as usize][coordinates.col as usize].map(|(_, piece_color)| piece_color)
 }
 
 pub fn get_piece_type(
     board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-    coordinates: [i8; 2],
+    coordinates: &Coord,
 ) -> Option<PieceType> {
-    board[coordinates[0] as usize][coordinates[1] as usize].map(|(piece_type, _)| piece_type)
+    board[coordinates.row as usize][coordinates.col as usize].map(|(piece_type, _)| piece_type)
 }
 
 pub fn get_opposite_color(color: PieceColor) -> PieceColor {
@@ -27,10 +26,10 @@ pub fn get_opposite_color(color: PieceColor) -> PieceColor {
 }
 
 // method to clean the position array to remove impossible positions
-pub fn cleaned_positions(positions: Vec<Vec<i8>>) -> Vec<Vec<i8>> {
-    let mut cleaned_array: Vec<Vec<i8>> = vec![];
+pub fn cleaned_positions(positions: Vec<Coord>) -> Vec<Coord> {
+    let mut cleaned_array: Vec<Coord> = vec![];
     for position in positions {
-        if is_valid([position[0], position[1]]) {
+        if is_valid(&position) {
             cleaned_array.push(position);
         }
     }
@@ -40,28 +39,23 @@ pub fn cleaned_positions(positions: Vec<Vec<i8>>) -> Vec<Vec<i8>> {
 // Return true forally cell color; false for enemy
 pub fn is_cell_color_ally(
     board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-    coordinates: [i8; 2],
+    coordinates: Coord,
     color: PieceColor,
 ) -> bool {
-    match get_piece_color(board, coordinates) {
+    match get_piece_color(board, &coordinates) {
         Some(cell_color) => cell_color == color,
         None => false, // Treat empty cell as ally
     }
 }
 
-pub fn is_valid(coordinates: [i8; 2]) -> bool {
-    let (y, x) = (coordinates[0], coordinates[1]);
+pub fn is_valid(coordinates: &Coord) -> bool {
+    let (y, x) = (coordinates.row, coordinates.col);
 
     (0..8).contains(&y) && (0..8).contains(&x)
 }
 
-pub fn is_vec_in_array(array: Vec<Vec<i8>>, element: [i8; 2]) -> bool {
-    for position in array {
-        if position == element {
-            return true;
-        }
-    }
-    false
+pub fn is_vec_in_array(array: &[Coord], element: &Coord) -> bool {
+    array.contains(element)
 }
 
 // We get all the cells that are getting put in 'check'
@@ -69,18 +63,18 @@ pub fn get_all_protected_cells(
     board: [[Option<(PieceType, PieceColor)>; 8]; 8],
     player_turn: PieceColor,
     move_history: &[(Option<PieceType>, String)],
-) -> Vec<Vec<i8>> {
-    let mut check_cells: Vec<Vec<i8>> = vec![];
+) -> Vec<Coord> {
+    let mut check_cells: Vec<Coord> = vec![];
     for i in 0..8i8 {
         for j in 0..8i8 {
-            if get_piece_color(board, [i, j]) == Some(player_turn) {
+            if get_piece_color(board, &Coord::new(i, j)) == Some(player_turn) {
                 continue;
             }
             // get the current cell piece color and type protecting positions
-            if let Some(piece_color) = get_piece_color(board, [i, j]) {
-                if let Some(piece_type) = get_piece_type(board, [i, j]) {
+            if let Some(piece_color) = get_piece_color(board, &Coord::new(i, j)) {
+                if let Some(piece_type) = get_piece_type(board, &Coord::new(i, j)) {
                     check_cells.extend(PieceType::protected_positions(
-                        [i, j],
+                        Coord::new(i, j),
                         piece_type,
                         piece_color,
                         board,
@@ -172,14 +166,14 @@ pub fn get_latest_move(
 
 pub fn did_piece_already_move(
     move_history: &[(Option<PieceType>, String)],
-    original_piece: (Option<PieceType>, [i8; 2]),
+    original_piece: (Option<PieceType>, Coord),
 ) -> bool {
     for entry in move_history {
         let position = entry.1.clone();
         let from_y = get_int_from_char(position.chars().next());
         let from_x = get_int_from_char(position.chars().nth(1));
         // Here there is an entry with the same piece type and the same original position, meaning it moved at some point
-        if entry.0 == original_piece.0 && [from_y, from_x] == original_piece.1 {
+        if entry.0 == original_piece.0 && Coord::new(from_y, from_x) == original_piece.1 {
             return true;
         }
     }
@@ -189,17 +183,17 @@ pub fn did_piece_already_move(
 pub fn get_king_coordinates(
     board: [[Option<(PieceType, PieceColor)>; 8]; 8],
     player_turn: PieceColor,
-) -> [i8; 2] {
+) -> Coord {
     for i in 0..8i32 {
         for j in 0..8i32 {
             if let Some((piece_type, piece_color)) = board[i as usize][j as usize] {
                 if piece_type == PieceType::King && piece_color == player_turn {
-                    return [i as i8, j as i8];
+                    return Coord::new(i as i8, j as i8);
                 }
             }
         }
     }
-    [UNDEFINED_POSITION, UNDEFINED_POSITION]
+    Coord::default()
 }
 
 // Is getting checked
@@ -221,27 +215,20 @@ pub fn is_getting_checked(
 }
 
 pub fn impossible_positions_king_checked(
-    original_coordinates: [i8; 2],
-    positions: Vec<Vec<i8>>,
+    original_coordinates: &Coord,
+    positions: Vec<Coord>,
     board: [[Option<(PieceType, PieceColor)>; 8]; 8],
     color: PieceColor,
     move_history: &[(Option<PieceType>, String)],
-) -> Vec<Vec<i8>> {
-    let mut cleaned_position: Vec<Vec<i8>> = vec![];
+) -> Vec<Coord> {
+    let mut cleaned_position: Vec<Coord> = vec![];
     for position in positions {
         // We create a new board
         let mut new_board = Board::new(board, color, move_history.to_owned().clone());
 
         // We simulate the move
 
-        Board::move_piece_on_the_board(
-            &mut new_board,
-            [
-                original_coordinates[0] as usize,
-                original_coordinates[1] as usize,
-            ],
-            [position[0] as usize, position[1] as usize],
-        );
+        Board::move_piece_on_the_board(&mut new_board, original_coordinates, &position);
 
         // We check if the board is still checked with this move meaning it didn't resolve the problem
         if !is_getting_checked(
