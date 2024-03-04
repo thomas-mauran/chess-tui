@@ -44,8 +44,11 @@ pub struct Coord {
     pub row: i8,
 }
 impl Coord {
-    pub fn new(col: i8, row: i8) -> Self {
-        Self { col: row, row: col }
+    pub fn new<T: Into<i8>>(row: T, col: T) -> Self {
+        Self {
+            col: col.into(),
+            row: row.into(),
+        }
     }
     pub fn to_hist(&self) -> String {
         format!("{}{}", self.col, self.row)
@@ -59,7 +62,7 @@ impl Coord {
                 .nth(1)
                 .unwrap()
                 .to_string()
-                .parse()
+                .parse::<i8>()
                 .unwrap(),
             hist_item
                 .chars()
@@ -203,14 +206,26 @@ impl Board {
     }
 
     // Check if a cell has been selected
-    fn is_cell_selected(&self) -> bool {
+    pub fn is_cell_selected(&self) -> bool {
         self.selected_coordinates.row != UNDEFINED_POSITION
             && self.selected_coordinates.col != UNDEFINED_POSITION
     }
 
-    fn get_mut(&mut self, coord: &Coord) -> &mut Option<(PieceType, PieceColor)> {
-        &mut self.board[coord.row as usize][coord.col as usize]
+    // fn get_mut(&mut self, coord: &Coord) -> &mut Option<(PieceType, PieceColor)> {
+    //     &mut self.board[coord.row as usize][coord.col as usize]
+    // }
+    /// get `self.board` at `coord`
+    fn get(&self, coord: &Coord) -> Option<(PieceType, PieceColor)> {
+        self.board[coord.row as usize][coord.col as usize]
     }
+    /// set `self.board` at `coord` to `piece`
+    fn set(&mut self, coord: &Coord, piece: Option<(PieceType, PieceColor)>) {
+        self.board[coord.row as usize][coord.col as usize] = piece;
+    }
+    // /// set `self.board` at `coord` created from `x`,`y` to `piece`
+    // fn coord_set<T: Into<usize>>(&mut self, x: T, y: T, piece: Option<(PieceType, PieceColor)>) {
+    //     self.board[y.into()][x.into()] = piece;
+    // }
 
     fn get_authorized_positions(
         &self,
@@ -527,9 +542,10 @@ impl Board {
     }
     pub fn promote_piece(&mut self) {
         if let Some(position) = self.move_history.last() {
-            let to_y = get_int_from_char(position.1.chars().nth(2));
-            let to_x = get_int_from_char(position.1.chars().nth(3));
-
+            let to = Coord::new(
+                get_int_from_char(position.1.chars().nth(2)),
+                get_int_from_char(position.1.chars().nth(3)),
+            );
             let new_piece = match self.promotion_cursor {
                 0 => PieceType::Queen,
                 1 => PieceType::Rook,
@@ -538,10 +554,10 @@ impl Board {
                 _ => unreachable!("Promotion cursor out of boundaries"),
             };
 
-            let current_piece_color = get_piece_color(self.board, &Coord::new(to_x, to_y));
+            let current_piece_color = get_piece_color(self.board, &to);
             if let Some(piece_color) = current_piece_color {
                 // we replace the piece by the new piece type
-                self.board[to_y as usize][to_x as usize] = Some((new_piece, piece_color));
+                self.set(&to, Some((new_piece, piece_color)));
             }
         }
         self.is_promotion = false;
@@ -579,7 +595,8 @@ impl Board {
             // we kill the pawn
             let row_index = to.row as i32 - direction_y;
 
-            self.board[row_index as usize][to.col as usize] = None;
+            // self.board[row_index as usize][to.col as usize] = None;
+            self.set(&Coord::new(row_index as i8, to.col), None);
         }
 
         // We check for castling as the latest move
@@ -597,8 +614,7 @@ impl Board {
             let row_index = from_x + direction_x * 2;
 
             // We put move the king 2 cells
-            self.board[to.row as usize][row_index as usize] =
-                self.board[from.row as usize][from.col as usize];
+            self.set(&Coord::new(to.row, row_index as i8), self.get(from));
 
             // We put the rook 3 cells from it's position if it's a big castling else 2 cells
             // If it is playing against a bot we will receive 4 -> 6  and 4 -> 2 for to_x instead of 4 -> 7 and 4 -> 0
@@ -621,11 +637,12 @@ impl Board {
             // We remove the latest rook
             self.board[to.row as usize][to_x as usize] = None;
         } else {
-            self.board[to.row as usize][to.col as usize] =
-                self.board[from.row as usize][from.col as usize];
+            self.set(to, self.get(from));
+            // self.board[to.row as usize][to.col as usize] =
+            //     self.board[from.row as usize][from.col as usize];
         }
 
-        self.board[from.row as usize][from.col as usize] = None;
+        self.set(from, None);
 
         // We store it in the history
         self.move_history.push(tuple.clone());
@@ -650,11 +667,11 @@ impl Board {
             }
             i -= 1;
         }
-        // if let Some(pos) = Self::default().board[coord[0]][coord[1]] {
-        //     Some(pos.0)
-        // } else {
-        None
-        // }
+        if to {
+            Self::default().get(coord).map(|pos| pos.0)
+        } else {
+            None
+        }
     }
 
     /// takeback
@@ -664,8 +681,9 @@ impl Board {
             let from = Coord::from_hist(&prev_move[2..4]);
 
             // take last moved piece back to where it came from
-            self.board[to.row as usize][to.col as usize] =
-                self.board[from.row as usize][from.col as usize];
+            self.set(&to, self.get(&from));
+            // self.board[to.row as usize][to.col as usize] =
+            //     self.board[from.row as usize][from.col as usize];
 
             // pseudo kind of code
             // if history.contains(board[from], Moved::To) && !history.contains(board[from], Moved::From) {
@@ -673,17 +691,20 @@ impl Board {
             // }
 
             // optionally fill the cell if something was taken off it
-            self.board[from.row as usize][from.col as usize] =
+            // self.board[from.row as usize][from.col as usize] =
+            self.set(
+                &from,
                 // check if there was anything on the cell where it was before takeback:
                 // if anything has moved to this cell and not away from it, there probably was
-                if self.history_has(&from, true).is_some() && self.history_has(&from, false).is_none()  {
+                if self.history_has(&from, true).is_some()
+                    && self.history_has(&from, false).is_none()
+                {
                     let piece_type = self.history_has(&from, true).unwrap();
                     Some((piece_type, self.player_turn))
-                } else if let Some((piece_type, _)) = Self::default().board[from.row as usize][from.col as usize] {
-                    Some((piece_type, self.player_turn))
                 } else {
-                        None
-                };
+                    None
+                },
+            );
 
             self.switch_player_turn();
         }
