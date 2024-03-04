@@ -24,7 +24,7 @@ fn main() -> AppResult<()> {
     // Parse the cli arguments
     let args = Args::parse();
 
-    let config_path = dirs::home_dir().unwrap().join(".chess-tui");
+    let config_path = dirs::config_dir().unwrap().join(".chess-tui");
 
     if !args.engine_path.is_empty() {
         if !config_path.exists() {
