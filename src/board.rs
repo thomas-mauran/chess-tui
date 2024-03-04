@@ -605,18 +605,17 @@ impl Board {
         if self.is_latest_move_castling(from, to) {
             // we set the king 2 cells on where it came from
 
-            let from_x: i32 = from.col as i32;
             let mut to_x: i32 = to.col as i32;
 
-            let distance = from_x - to_x;
+            let distance = from.col as i32 - to_x;
             let direction_x = if distance > 0 { -1 } else { 1 };
 
             let mut row_index_rook = 0;
 
-            let row_index = from_x + direction_x * 2;
+            let row_index = from.col + direction_x * 2;
 
             // We put move the king 2 cells
-            self.set(&Coords::new(to.row, row_index as i8), self.get(from));
+            self.set(&Coords::new(to.row, row_index), self.get(from));
 
             // We put the rook 3 cells from it's position if it's a big castling else 2 cells
             // If it is playing against a bot we will receive 4 -> 6  and 4 -> 2 for to_x instead of 4 -> 7 and 4 -> 0
@@ -640,8 +639,6 @@ impl Board {
             self.board[to.row as usize][to_x as usize] = None;
         } else {
             self.set(to, self.get(from));
-            // self.board[to.row as usize][to.col as usize] =
-            //     self.board[from.row as usize][from.col as usize];
         }
 
         self.set(from, None);
@@ -670,6 +667,7 @@ impl Board {
             i -= 1;
         }
         if to {
+            // check starting positions
             Self::default().get(coord).map(|pos| pos.0)
         } else {
             None
@@ -684,8 +682,6 @@ impl Board {
 
             // take last moved piece back to where it came from
             self.set(&to, self.get(&from));
-            // self.board[to.row as usize][to.col as usize] =
-            //     self.board[from.row as usize][from.col as usize];
 
             // pseudo kind of code
             // if history.contains(board[from], Moved::To) && !history.contains(board[from], Moved::From) {
@@ -693,7 +689,6 @@ impl Board {
             // }
 
             // optionally fill the cell if something was taken off it
-            // self.board[from.row as usize][from.col as usize] =
             self.set(
                 &from,
                 // check if there was anything on the cell where it was before takeback:
@@ -707,6 +702,19 @@ impl Board {
                     None
                 },
             );
+
+            // check for promotions
+            if self.is_latest_move_promotion() {
+                todo!();
+            }
+            // check for castling
+            if self.is_latest_move_castling(&to, &from) {
+                todo!();
+            }
+            // check for en-passant
+            if self.is_latest_move_en_passant(&to, &from) {
+                todo!();
+            }
 
             self.switch_player_turn();
         }
@@ -743,16 +751,10 @@ impl Board {
         let piece_type_from = get_piece_type(self.board, from);
         let piece_type_to = get_piece_type(self.board, to);
 
-        let from_y = from.row as i32;
-        let from_x = from.col as i32;
-        let to_y = to.row as i32;
-        let to_x = to.col as i32;
         match (piece_type_from, piece_type_to) {
             (Some(PieceType::Pawn), _) => {
                 // Check if it's a diagonal move, and the destination is an empty cell
-                from_y != to_y
-                    && from_x != to_x
-                    && self.board[to.row as usize][to.col as usize].is_none()
+                from.row != to.row && from.col != to.col && self.get(to).is_none()
             }
             _ => false,
         }
@@ -762,9 +764,7 @@ impl Board {
         let piece_type_from = get_piece_type(self.board, from);
         let piece_type_to = get_piece_type(self.board, to);
 
-        let from_x = from.col as i32;
-        let to_x = to.col as i32;
-        let distance = (from_x - to_x).abs();
+        let distance = (from.col - to.col).abs();
 
         match (piece_type_from, piece_type_to) {
             (Some(PieceType::King), _) => distance > 1,
