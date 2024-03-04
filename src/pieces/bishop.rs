@@ -10,7 +10,7 @@ pub struct Bishop;
 
 impl Movable for Bishop {
     fn piece_move(
-        coordinates: &Coord,
+        coordinates: Coord,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         allow_move_on_ally_positions: bool,
@@ -167,7 +167,7 @@ impl Movable for Bishop {
 
 impl Position for Bishop {
     fn authorized_positions(
-        coordinates: &Coord,
+        coordinates: Coord,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         move_history: &[(Option<PieceType>, String)],
@@ -175,15 +175,15 @@ impl Position for Bishop {
     ) -> Vec<Coord> {
         // if the king is checked we clean all the position not resolving the check
         impossible_positions_king_checked(
-            coordinates,
-            Self::piece_move(coordinates, color, board, false, move_history),
+            &coordinates,
+            Self::piece_move(coordinates.clone(), color, board, false, move_history),
             board,
             color,
             move_history,
         )
     }
     fn protected_positions(
-        coordinates: &Coord,
+        coordinates: Coord,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         move_history: &[(Option<PieceType>, String)],
@@ -254,7 +254,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = Bishop::authorized_positions(
-            &Coord::new(4, 4),
+            Coord::new(4, 4),
             PieceColor::White,
             board.board,
             &[],
@@ -314,7 +314,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = Bishop::authorized_positions(
-            &Coord::new(4, 4),
+            Coord::new(4, 4),
             PieceColor::White,
             board.board,
             &[],
@@ -388,7 +388,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = Bishop::authorized_positions(
-            &Coord::new(4, 4),
+            Coord::new(4, 4),
             PieceColor::White,
             board.board,
             &[],
@@ -448,7 +448,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = Bishop::authorized_positions(
-            &Coord::new(5, 5),
+            Coord::new(5, 5),
             PieceColor::Black,
             board.board,
             &[],
@@ -508,7 +508,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = Bishop::authorized_positions(
-            &Coord::new(5, 6),
+            Coord::new(5, 6),
             PieceColor::Black,
             board.board,
             &[],
@@ -568,7 +568,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = Bishop::authorized_positions(
-            &Coord::new(1, 5),
+            Coord::new(1, 5),
             PieceColor::Black,
             board.board,
             &[],

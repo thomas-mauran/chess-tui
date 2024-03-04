@@ -11,7 +11,7 @@ pub struct Rook;
 
 impl Movable for Rook {
     fn piece_move(
-        coordinates: &Coord,
+        coordinates: Coord,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         allow_move_on_ally_positions: bool,
@@ -170,7 +170,7 @@ impl Movable for Rook {
 
 impl Position for Rook {
     fn authorized_positions(
-        coordinates: &Coord,
+        coordinates: Coord,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         move_history: &[(Option<PieceType>, String)],
@@ -179,8 +179,8 @@ impl Position for Rook {
         // If the king is not checked we get then normal moves
         // if the king is checked we clean all the position not resolving the check
         impossible_positions_king_checked(
-            coordinates,
-            Self::piece_move(coordinates, color, board, false, move_history),
+            &coordinates,
+            Self::piece_move(coordinates.clone(), color, board, false, move_history),
             board,
             color,
             move_history,
@@ -188,7 +188,7 @@ impl Position for Rook {
     }
 
     fn protected_positions(
-        coordinates: &Coord,
+        coordinates: Coord,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         move_history: &[(Option<PieceType>, String)],
@@ -260,7 +260,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = Rook::authorized_positions(
-            &Coord::new(4, 4),
+            Coord::new(4, 4),
             PieceColor::White,
             board.board,
             &[],
@@ -319,7 +319,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = Rook::authorized_positions(
-            &Coord::new(4, 4),
+            Coord::new(4, 4),
             PieceColor::White,
             board.board,
             &[],
@@ -384,7 +384,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = Rook::authorized_positions(
-            &Coord::new(4, 4),
+            Coord::new(4, 4),
             PieceColor::White,
             board.board,
             &[],
@@ -444,7 +444,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = Rook::authorized_positions(
-            &Coord::new(5, 2),
+            Coord::new(5, 2),
             PieceColor::Black,
             board.board,
             &[],
@@ -504,7 +504,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = Rook::authorized_positions(
-            &Coord::new(5, 3),
+            Coord::new(5, 3),
             PieceColor::Black,
             board.board,
             &[],
@@ -563,7 +563,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = Rook::authorized_positions(
-            &Coord::new(1, 4),
+            Coord::new(1, 4),
             PieceColor::Black,
             board.board,
             &[],

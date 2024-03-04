@@ -74,7 +74,7 @@ pub fn get_all_protected_cells(
             if let Some(piece_color) = get_piece_color(board, &Coord::new(i, j)) {
                 if let Some(piece_type) = get_piece_type(board, &Coord::new(i, j)) {
                     check_cells.extend(PieceType::protected_positions(
-                        &Coord::new(i, j),
+                        Coord::new(i, j),
                         piece_type,
                         piece_color,
                         board,
