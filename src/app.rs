@@ -88,7 +88,7 @@ impl App {
         match self.menu_cursor {
             0 => self.current_page = Pages::Solo,
             1 => self.current_page = Pages::Bot,
-            2 => self.current_page = Pages::Help,
+            2 => self.show_help_popup = true,
             3 => self.current_page = Pages::Credit,
             _ => {}
         }
