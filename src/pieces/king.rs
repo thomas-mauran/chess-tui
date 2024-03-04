@@ -11,7 +11,7 @@ pub struct King;
 
 impl Movable for King {
     fn piece_move(
-        coordinates: Coord,
+        coordinates: &Coord,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         allow_move_on_ally_positions: bool,
@@ -45,7 +45,7 @@ impl Movable for King {
 
 impl Position for King {
     fn authorized_positions(
-        coordinates: Coord,
+        coordinates: &Coord,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         move_history: &[(Option<PieceType>, String)],
@@ -108,7 +108,7 @@ impl Position for King {
 
     // This method is used to calculated the cells the king is actually covering and is used when the other king authorized position is called
     fn protected_positions(
-        coordinates: Coord,
+        coordinates: &Coord,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         move_history: &[(Option<PieceType>, String)],
@@ -222,7 +222,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = King::authorized_positions(
-            Coord::new(4, 4),
+            &Coord::new(4, 4),
             PieceColor::White,
             board.board,
             &[],
@@ -288,7 +288,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = King::authorized_positions(
-            Coord::new(4, 4),
+            &Coord::new(4, 4),
             PieceColor::White,
             board.board,
             &[],
@@ -354,7 +354,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = King::authorized_positions(
-            Coord::new(4, 4),
+            &Coord::new(4, 4),
             PieceColor::White,
             board.board,
             &[],
@@ -420,7 +420,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = King::authorized_positions(
-            Coord::new(7, 4),
+            &Coord::new(7, 4),
             PieceColor::White,
             board.board,
             &[],
@@ -486,7 +486,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = King::authorized_positions(
-            Coord::new(0, 4),
+            &Coord::new(0, 4),
             PieceColor::Black,
             board.board,
             &[],
@@ -552,7 +552,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = King::authorized_positions(
-            Coord::new(0, 4),
+            &Coord::new(0, 4),
             PieceColor::Black,
             board.board,
             &[],
@@ -621,7 +621,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = King::authorized_positions(
-            Coord::new(0, 4),
+            &Coord::new(0, 4),
             PieceColor::Black,
             board.board,
             &[],
@@ -687,7 +687,7 @@ mod tests {
         right_positions.sort();
 
         let mut positions = King::authorized_positions(
-            Coord::new(0, 4),
+            &Coord::new(0, 4),
             PieceColor::Black,
             board.board,
             &[
