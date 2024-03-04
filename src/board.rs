@@ -417,10 +417,12 @@ impl Board {
 
         let from_y = get_int_from_char(converted_move.chars().next());
         let from_x = get_int_from_char(converted_move.chars().nth(1));
+        let from = Coord::new(from_y, from_x);
         let to_y = get_int_from_char(converted_move.chars().nth(2));
         let to_x = get_int_from_char(converted_move.chars().nth(3));
+        let to = Coord::new(to_y, to_x);
 
-        self.move_piece_on_the_board(&Coord::new(from_x, from_y), &Coord::new(to_x, to_y));
+        self.move_piece_on_the_board(&from, &to);
     }
     // Convert the history and game status to a FEN string
     pub fn fen_position(&self) -> String {
