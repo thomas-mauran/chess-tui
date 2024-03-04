@@ -1,6 +1,6 @@
 use super::{Movable, PieceColor, PieceType, Position};
 use crate::{
-    board::Coord,
+    board::Coords,
     utils::{
         cleaned_positions, get_piece_color, impossible_positions_king_checked, is_cell_color_ally,
         is_piece_opposite_king, is_valid,
@@ -11,14 +11,14 @@ pub struct Rook;
 
 impl Movable for Rook {
     fn piece_move(
-        coordinates: &Coord,
+        coordinates: &Coords,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         allow_move_on_ally_positions: bool,
         _move_history: &[(Option<PieceType>, String)],
-    ) -> Vec<Coord> {
+    ) -> Vec<Coords> {
         // Pawns can only move in one direction depending on their color
-        let mut positions: Vec<Coord> = vec![];
+        let mut positions: Vec<Coords> = vec![];
 
         let (y, x) = (coordinates.row, coordinates.col);
 
@@ -26,7 +26,7 @@ impl Movable for Rook {
         for i in 1..8i8 {
             let new_x = x + i;
             let new_y = y;
-            let new_coordinates = Coord::new(new_y, new_x);
+            let new_coordinates = Coords::new(new_y, new_x);
 
             // Invalid coords
             if !is_valid(&new_coordinates) {
@@ -61,7 +61,7 @@ impl Movable for Rook {
         for i in 1..=8 {
             let new_x = x - i;
             let new_y = y;
-            let new_coordinates = Coord::new(new_y, new_x);
+            let new_coordinates = Coords::new(new_y, new_x);
 
             // Invalid coords
             if !is_valid(&new_coordinates) {
@@ -97,7 +97,7 @@ impl Movable for Rook {
         for i in 1..8i8 {
             let new_x = x;
             let new_y = y + i;
-            let new_coordinates = Coord::new(new_y, new_x);
+            let new_coordinates = Coords::new(new_y, new_x);
 
             // Invalid coords
             if !is_valid(&new_coordinates) {
@@ -133,7 +133,7 @@ impl Movable for Rook {
         for i in 1..8i8 {
             let new_x = x;
             let new_y = y - i;
-            let new_coordinates = Coord::new(new_y, new_x);
+            let new_coordinates = Coords::new(new_y, new_x);
 
             // Invalid coords
             if !is_valid(&new_coordinates) {
@@ -170,12 +170,12 @@ impl Movable for Rook {
 
 impl Position for Rook {
     fn authorized_positions(
-        coordinates: &Coord,
+        coordinates: &Coords,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         move_history: &[(Option<PieceType>, String)],
         _is_king_checked: bool,
-    ) -> Vec<Coord> {
+    ) -> Vec<Coords> {
         // If the king is not checked we get then normal moves
         // if the king is checked we clean all the position not resolving the check
         impossible_positions_king_checked(
@@ -188,11 +188,11 @@ impl Position for Rook {
     }
 
     fn protected_positions(
-        coordinates: &Coord,
+        coordinates: &Coords,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         move_history: &[(Option<PieceType>, String)],
-    ) -> Vec<Coord> {
+    ) -> Vec<Coords> {
         Self::piece_move(coordinates, color, board, true, move_history)
     }
 }
@@ -212,7 +212,7 @@ impl Rook {
 #[cfg(test)]
 mod tests {
     use crate::{
-        board::{Board, Coord},
+        board::{Board, Coords},
         pieces::{rook::Rook, PieceColor, PieceType, Position},
         utils::is_getting_checked,
     };
@@ -242,25 +242,25 @@ mod tests {
         board.set_board(custom_board);
 
         let mut right_positions = vec![
-            Coord::new(7, 4),
-            Coord::new(6, 4),
-            Coord::new(5, 4),
-            Coord::new(3, 4),
-            Coord::new(2, 4),
-            Coord::new(1, 4),
-            Coord::new(0, 4),
-            Coord::new(4, 0),
-            Coord::new(4, 1),
-            Coord::new(4, 2),
-            Coord::new(4, 3),
-            Coord::new(4, 5),
-            Coord::new(4, 6),
-            Coord::new(4, 7),
+            Coords::new(7, 4),
+            Coords::new(6, 4),
+            Coords::new(5, 4),
+            Coords::new(3, 4),
+            Coords::new(2, 4),
+            Coords::new(1, 4),
+            Coords::new(0, 4),
+            Coords::new(4, 0),
+            Coords::new(4, 1),
+            Coords::new(4, 2),
+            Coords::new(4, 3),
+            Coords::new(4, 5),
+            Coords::new(4, 6),
+            Coords::new(4, 7),
         ];
         right_positions.sort();
 
         let mut positions = Rook::authorized_positions(
-            &Coord::new(4, 4),
+            &Coords::new(4, 4),
             PieceColor::White,
             board.board,
             &[],
@@ -304,22 +304,22 @@ mod tests {
         board.set_board(custom_board);
 
         let mut right_positions = vec![
-            Coord::new(7, 4),
-            Coord::new(6, 4),
-            Coord::new(5, 4),
-            Coord::new(3, 4),
-            Coord::new(4, 0),
-            Coord::new(4, 1),
-            Coord::new(4, 2),
-            Coord::new(4, 3),
-            Coord::new(4, 5),
-            Coord::new(4, 6),
-            Coord::new(4, 7),
+            Coords::new(7, 4),
+            Coords::new(6, 4),
+            Coords::new(5, 4),
+            Coords::new(3, 4),
+            Coords::new(4, 0),
+            Coords::new(4, 1),
+            Coords::new(4, 2),
+            Coords::new(4, 3),
+            Coords::new(4, 5),
+            Coords::new(4, 6),
+            Coords::new(4, 7),
         ];
         right_positions.sort();
 
         let mut positions = Rook::authorized_positions(
-            &Coord::new(4, 4),
+            &Coords::new(4, 4),
             PieceColor::White,
             board.board,
             &[],
@@ -372,19 +372,19 @@ mod tests {
         board.set_board(custom_board);
 
         let mut right_positions = vec![
-            Coord::new(4, 0),
-            Coord::new(4, 1),
-            Coord::new(4, 2),
-            Coord::new(4, 3),
-            Coord::new(4, 5),
-            Coord::new(4, 6),
-            Coord::new(3, 4),
-            Coord::new(5, 4),
+            Coords::new(4, 0),
+            Coords::new(4, 1),
+            Coords::new(4, 2),
+            Coords::new(4, 3),
+            Coords::new(4, 5),
+            Coords::new(4, 6),
+            Coords::new(3, 4),
+            Coords::new(5, 4),
         ];
         right_positions.sort();
 
         let mut positions = Rook::authorized_positions(
-            &Coord::new(4, 4),
+            &Coords::new(4, 4),
             PieceColor::White,
             board.board,
             &[],
@@ -440,11 +440,11 @@ mod tests {
         let is_king_checked =
             is_getting_checked(board.board, board.player_turn, &board.move_history);
 
-        let mut right_positions = vec![Coord::new(4, 2)];
+        let mut right_positions = vec![Coords::new(4, 2)];
         right_positions.sort();
 
         let mut positions = Rook::authorized_positions(
-            &Coord::new(5, 2),
+            &Coords::new(5, 2),
             PieceColor::Black,
             board.board,
             &[],
@@ -500,11 +500,11 @@ mod tests {
         let is_king_checked =
             is_getting_checked(board.board, board.player_turn, &board.move_history);
 
-        let mut right_positions: Vec<Coord> = vec![];
+        let mut right_positions: Vec<Coords> = vec![];
         right_positions.sort();
 
         let mut positions = Rook::authorized_positions(
-            &Coord::new(5, 3),
+            &Coords::new(5, 3),
             PieceColor::Black,
             board.board,
             &[],
@@ -559,11 +559,11 @@ mod tests {
         let is_king_checked =
             is_getting_checked(board.board, board.player_turn, &board.move_history);
 
-        let mut right_positions: Vec<Coord> = vec![Coord::new(2, 4), Coord::new(3, 4)];
+        let mut right_positions: Vec<Coords> = vec![Coords::new(2, 4), Coords::new(3, 4)];
         right_positions.sort();
 
         let mut positions = Rook::authorized_positions(
-            &Coord::new(1, 4),
+            &Coords::new(1, 4),
             PieceColor::Black,
             board.board,
             &[],

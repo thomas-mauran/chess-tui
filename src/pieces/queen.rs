@@ -1,6 +1,6 @@
 use super::rook::Rook;
 use super::{Movable, PieceColor, PieceType, Position};
-use crate::board::Coord;
+use crate::board::Coords;
 use crate::pieces::bishop::Bishop;
 use crate::utils::{cleaned_positions, impossible_positions_king_checked};
 
@@ -8,13 +8,13 @@ pub struct Queen;
 
 impl Movable for Queen {
     fn piece_move(
-        coordinates: &Coord,
+        coordinates: &Coords,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         allow_move_on_ally_positions: bool,
         move_history: &[(Option<PieceType>, String)],
-    ) -> Vec<Coord> {
-        let mut positions: Vec<Coord> = vec![];
+    ) -> Vec<Coords> {
+        let mut positions: Vec<Coords> = vec![];
 
         // Queen = bishop concat rook
         positions.extend(Bishop::piece_move(
@@ -38,12 +38,12 @@ impl Movable for Queen {
 
 impl Position for Queen {
     fn authorized_positions(
-        coordinates: &Coord,
+        coordinates: &Coords,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         move_history: &[(Option<PieceType>, String)],
         _is_king_checked: bool,
-    ) -> Vec<Coord> {
+    ) -> Vec<Coords> {
         impossible_positions_king_checked(
             coordinates,
             Self::piece_move(coordinates, color, board, false, move_history),
@@ -53,11 +53,11 @@ impl Position for Queen {
         )
     }
     fn protected_positions(
-        coordinates: &Coord,
+        coordinates: &Coords,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         move_history: &[(Option<PieceType>, String)],
-    ) -> Vec<Coord> {
+    ) -> Vec<Coords> {
         Self::piece_move(coordinates, color, board, true, move_history)
     }
 }
@@ -77,7 +77,7 @@ impl Queen {
 #[cfg(test)]
 mod tests {
     use crate::{
-        board::{Board, Coord},
+        board::{Board, Coords},
         pieces::{queen::Queen, PieceColor, PieceType, Position},
         utils::is_getting_checked,
     };
@@ -107,38 +107,38 @@ mod tests {
         board.set_board(custom_board);
 
         let mut right_positions = vec![
-            Coord::new(0, 0),
-            Coord::new(0, 4),
-            Coord::new(1, 1),
-            Coord::new(1, 4),
-            Coord::new(1, 7),
-            Coord::new(2, 2),
-            Coord::new(2, 4),
-            Coord::new(2, 6),
-            Coord::new(3, 3),
-            Coord::new(3, 4),
-            Coord::new(3, 5),
-            Coord::new(4, 0),
-            Coord::new(4, 1),
-            Coord::new(4, 2),
-            Coord::new(4, 3),
-            Coord::new(4, 5),
-            Coord::new(4, 6),
-            Coord::new(4, 7),
-            Coord::new(5, 3),
-            Coord::new(5, 4),
-            Coord::new(5, 5),
-            Coord::new(6, 2),
-            Coord::new(6, 4),
-            Coord::new(6, 6),
-            Coord::new(7, 1),
-            Coord::new(7, 4),
-            Coord::new(7, 7),
+            Coords::new(0, 0),
+            Coords::new(0, 4),
+            Coords::new(1, 1),
+            Coords::new(1, 4),
+            Coords::new(1, 7),
+            Coords::new(2, 2),
+            Coords::new(2, 4),
+            Coords::new(2, 6),
+            Coords::new(3, 3),
+            Coords::new(3, 4),
+            Coords::new(3, 5),
+            Coords::new(4, 0),
+            Coords::new(4, 1),
+            Coords::new(4, 2),
+            Coords::new(4, 3),
+            Coords::new(4, 5),
+            Coords::new(4, 6),
+            Coords::new(4, 7),
+            Coords::new(5, 3),
+            Coords::new(5, 4),
+            Coords::new(5, 5),
+            Coords::new(6, 2),
+            Coords::new(6, 4),
+            Coords::new(6, 6),
+            Coords::new(7, 1),
+            Coords::new(7, 4),
+            Coords::new(7, 7),
         ];
         right_positions.sort();
 
         let mut positions = Queen::authorized_positions(
-            &Coord::new(4, 4),
+            &Coords::new(4, 4),
             PieceColor::White,
             board.board,
             &[],
@@ -183,36 +183,36 @@ mod tests {
         board.set_board(custom_board);
 
         let mut right_positions = vec![
-            Coord::new(0, 0),
-            Coord::new(0, 4),
-            Coord::new(1, 1),
-            Coord::new(1, 4),
-            Coord::new(2, 2),
-            Coord::new(2, 4),
-            Coord::new(3, 3),
-            Coord::new(3, 4),
-            Coord::new(3, 5),
-            Coord::new(4, 0),
-            Coord::new(4, 1),
-            Coord::new(4, 2),
-            Coord::new(4, 3),
-            Coord::new(4, 5),
-            Coord::new(4, 6),
-            Coord::new(4, 7),
-            Coord::new(5, 3),
-            Coord::new(5, 4),
-            Coord::new(5, 5),
-            Coord::new(6, 2),
-            Coord::new(6, 4),
-            Coord::new(6, 6),
-            Coord::new(7, 1),
-            Coord::new(7, 4),
-            Coord::new(7, 7),
+            Coords::new(0, 0),
+            Coords::new(0, 4),
+            Coords::new(1, 1),
+            Coords::new(1, 4),
+            Coords::new(2, 2),
+            Coords::new(2, 4),
+            Coords::new(3, 3),
+            Coords::new(3, 4),
+            Coords::new(3, 5),
+            Coords::new(4, 0),
+            Coords::new(4, 1),
+            Coords::new(4, 2),
+            Coords::new(4, 3),
+            Coords::new(4, 5),
+            Coords::new(4, 6),
+            Coords::new(4, 7),
+            Coords::new(5, 3),
+            Coords::new(5, 4),
+            Coords::new(5, 5),
+            Coords::new(6, 2),
+            Coords::new(6, 4),
+            Coords::new(6, 6),
+            Coords::new(7, 1),
+            Coords::new(7, 4),
+            Coords::new(7, 7),
         ];
         right_positions.sort();
 
         let mut positions = Queen::authorized_positions(
-            &Coord::new(4, 4),
+            &Coords::new(4, 4),
             PieceColor::White,
             board.board,
             &[],
@@ -275,28 +275,28 @@ mod tests {
         board.set_board(custom_board);
 
         let mut right_positions = vec![
-            Coord::new(1, 7),
-            Coord::new(2, 6),
-            Coord::new(3, 3),
-            Coord::new(3, 5),
-            Coord::new(4, 1),
-            Coord::new(4, 2),
-            Coord::new(4, 3),
-            Coord::new(4, 5),
-            Coord::new(4, 6),
-            Coord::new(4, 7),
-            Coord::new(5, 3),
-            Coord::new(5, 4),
-            Coord::new(5, 5),
-            Coord::new(6, 2),
-            Coord::new(6, 4),
-            Coord::new(7, 4),
+            Coords::new(1, 7),
+            Coords::new(2, 6),
+            Coords::new(3, 3),
+            Coords::new(3, 5),
+            Coords::new(4, 1),
+            Coords::new(4, 2),
+            Coords::new(4, 3),
+            Coords::new(4, 5),
+            Coords::new(4, 6),
+            Coords::new(4, 7),
+            Coords::new(5, 3),
+            Coords::new(5, 4),
+            Coords::new(5, 5),
+            Coords::new(6, 2),
+            Coords::new(6, 4),
+            Coords::new(7, 4),
         ];
 
         right_positions.sort();
 
         let mut positions = Queen::authorized_positions(
-            &Coord::new(4, 4),
+            &Coords::new(4, 4),
             PieceColor::White,
             board.board,
             &[],
@@ -351,11 +351,11 @@ mod tests {
         let is_king_checked =
             is_getting_checked(board.board, board.player_turn, &board.move_history);
 
-        let mut right_positions = vec![Coord::new(4, 4)];
+        let mut right_positions = vec![Coords::new(4, 4)];
         right_positions.sort();
 
         let mut positions = Queen::authorized_positions(
-            &Coord::new(5, 5),
+            &Coords::new(5, 5),
             PieceColor::Black,
             board.board,
             &[],
@@ -410,11 +410,11 @@ mod tests {
         let is_king_checked =
             is_getting_checked(board.board, board.player_turn, &board.move_history);
 
-        let mut right_positions: Vec<Coord> = vec![];
+        let mut right_positions: Vec<Coords> = vec![];
         right_positions.sort();
 
         let mut positions = Queen::authorized_positions(
-            &Coord::new(5, 6),
+            &Coords::new(5, 6),
             PieceColor::Black,
             board.board,
             &[],
@@ -470,11 +470,11 @@ mod tests {
         let is_king_checked =
             is_getting_checked(board.board, board.player_turn, &board.move_history);
 
-        let mut right_positions: Vec<Coord> = vec![Coord::new(2, 6), Coord::new(3, 7)];
+        let mut right_positions: Vec<Coords> = vec![Coords::new(2, 6), Coords::new(3, 7)];
         right_positions.sort();
 
         let mut positions = Queen::authorized_positions(
-            &Coord::new(1, 5),
+            &Coords::new(1, 5),
             PieceColor::Black,
             board.board,
             &[],

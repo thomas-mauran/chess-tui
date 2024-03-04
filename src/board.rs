@@ -30,7 +30,7 @@ use uci::Engine;
 /// _  _  _ 1
 /// _  _  _ 2
 #[derive(Debug, PartialEq, Eq, Ord, PartialOrd, Clone)]
-pub struct Coord {
+pub struct Coords {
     /// column/x/j/[1]
     /// |  |  |
     /// |  |  |
@@ -43,7 +43,7 @@ pub struct Coord {
     /// _  _  _ 2
     pub row: i8,
 }
-impl Coord {
+impl Coords {
     pub fn new<T: Into<i8>>(row: T, col: T) -> Self {
         Self {
             col: col.into(),
@@ -74,7 +74,7 @@ impl Coord {
         )
     }
 }
-impl Default for Coord {
+impl Default for Coords {
     fn default() -> Self {
         Self::new(UNDEFINED_POSITION, UNDEFINED_POSITION)
     }
@@ -82,10 +82,10 @@ impl Default for Coord {
 
 pub struct Board {
     pub board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-    pub cursor_coordinates: Coord,
-    pub selected_coordinates: Coord,
+    pub cursor_coordinates: Coords,
+    pub selected_coordinates: Coords,
     pub selected_piece_cursor: i8,
-    pub old_cursor_position: Coord,
+    pub old_cursor_position: Coords,
     pub player_turn: PieceColor,
     pub move_history: Vec<(Option<PieceType>, String)>,
     pub is_draw: bool,
@@ -146,10 +146,10 @@ impl Default for Board {
                     Some((PieceType::Rook, PieceColor::White)),
                 ],
             ],
-            cursor_coordinates: Coord::new(4, 4),
-            selected_coordinates: Coord::default(),
+            cursor_coordinates: Coords::new(4, 4),
+            selected_coordinates: Coords::default(),
             selected_piece_cursor: 0,
-            old_cursor_position: Coord::default(),
+            old_cursor_position: Coords::default(),
             player_turn: PieceColor::White,
             move_history: vec![],
             is_draw: false,
@@ -171,10 +171,10 @@ impl Board {
     ) -> Self {
         Self {
             board,
-            cursor_coordinates: Coord::new(4, 4),
-            selected_coordinates: Coord::default(),
+            cursor_coordinates: Coords::new(4, 4),
+            selected_coordinates: Coords::default(),
             selected_piece_cursor: 0,
-            old_cursor_position: Coord::default(),
+            old_cursor_position: Coords::default(),
             player_turn,
             move_history,
             is_draw: false,
@@ -215,11 +215,11 @@ impl Board {
     //     &mut self.board[coord.row as usize][coord.col as usize]
     // }
     /// get `self.board` at `coord`
-    fn get(&self, coord: &Coord) -> Option<(PieceType, PieceColor)> {
+    fn get(&self, coord: &Coords) -> Option<(PieceType, PieceColor)> {
         self.board[coord.row as usize][coord.col as usize]
     }
     /// set `self.board` at `coord` to `piece`
-    fn set(&mut self, coord: &Coord, piece: Option<(PieceType, PieceColor)>) {
+    fn set(&mut self, coord: &Coords, piece: Option<(PieceType, PieceColor)>) {
         self.board[coord.row as usize][coord.col as usize] = piece;
     }
     // /// set `self.board` at `coord` created from `x`,`y` to `piece`
@@ -231,8 +231,8 @@ impl Board {
         &self,
         piece_type: Option<PieceType>,
         piece_color: Option<PieceColor>,
-        coordinates: &Coord,
-    ) -> Vec<Coord> {
+        coordinates: &Coords,
+    ) -> Vec<Coords> {
         match (piece_type, piece_color) {
             (Some(piece_type), Some(piece_color)) => piece_type.authorized_positions(
                 coordinates,
@@ -341,7 +341,7 @@ impl Board {
                 self.cursor_coordinates = position.clone();
             }
         } else {
-            self.cursor_coordinates = Coord::default();
+            self.cursor_coordinates = Coords::default();
         }
     }
 
@@ -417,10 +417,10 @@ impl Board {
 
         let from_y = get_int_from_char(converted_move.chars().next());
         let from_x = get_int_from_char(converted_move.chars().nth(1));
-        let from = Coord::new(from_y, from_x);
+        let from = Coords::new(from_y, from_x);
         let to_y = get_int_from_char(converted_move.chars().nth(2));
         let to_x = get_int_from_char(converted_move.chars().nth(3));
-        let to = Coord::new(to_y, to_x);
+        let to = Coords::new(to_y, to_x);
 
         self.move_piece_on_the_board(&from, &to);
     }
@@ -431,8 +431,8 @@ impl Board {
         for i in 0..8i8 {
             for j in 0..8i8 {
                 let (piece_type, piece_color) = (
-                    get_piece_type(self.board, &Coord::new(i, j)),
-                    get_piece_color(self.board, &Coord::new(i, j)),
+                    get_piece_type(self.board, &Coords::new(i, j)),
+                    get_piece_color(self.board, &Coords::new(i, j)),
                 );
                 match PieceType::piece_to_fen_enum(piece_type, piece_color) {
                     // Pattern match directly on the result of piece_to_fen_enum
@@ -471,20 +471,20 @@ impl Board {
         // We add the castles availabilities for black
         if !did_piece_already_move(
             &self.move_history,
-            (Some(PieceType::King), Coord::new(0, 4)),
+            (Some(PieceType::King), Coords::new(0, 4)),
         ) && !is_getting_checked(self.board, PieceColor::Black, &self.move_history)
         {
             // king side black castle availability
             if !did_piece_already_move(
                 &self.move_history,
-                (Some(PieceType::Rook), Coord::new(0, 7)),
+                (Some(PieceType::Rook), Coords::new(0, 7)),
             ) {
                 result.push_str(" k");
             }
             // queen side black castle availability
             if !did_piece_already_move(
                 &self.move_history,
-                (Some(PieceType::Rook), Coord::new(0, 0)),
+                (Some(PieceType::Rook), Coords::new(0, 0)),
             ) {
                 result.push('q');
             }
@@ -544,7 +544,7 @@ impl Board {
     }
     pub fn promote_piece(&mut self) {
         if let Some(position) = self.move_history.last() {
-            let to = Coord::new(
+            let to = Coords::new(
                 get_int_from_char(position.1.chars().nth(2)),
                 get_int_from_char(position.1.chars().nth(3)),
             );
@@ -566,7 +566,7 @@ impl Board {
         self.promotion_cursor = 0;
     }
 
-    pub fn move_piece_on_the_board(&mut self, from: &Coord, to: &Coord) {
+    pub fn move_piece_on_the_board(&mut self, from: &Coords, to: &Coords) {
         if !is_valid(from) || !is_valid(to) {
             return;
         }
@@ -598,7 +598,7 @@ impl Board {
             let row_index = to.row as i32 - direction_y;
 
             // self.board[row_index as usize][to.col as usize] = None;
-            self.set(&Coord::new(row_index as i8, to.col), None);
+            self.set(&Coords::new(row_index as i8, to.col), None);
         }
 
         // We check for castling as the latest move
@@ -616,7 +616,7 @@ impl Board {
             let row_index = from_x + direction_x * 2;
 
             // We put move the king 2 cells
-            self.set(&Coord::new(to.row, row_index as i8), self.get(from));
+            self.set(&Coords::new(to.row, row_index as i8), self.get(from));
 
             // We put the rook 3 cells from it's position if it's a big castling else 2 cells
             // If it is playing against a bot we will receive 4 -> 6  and 4 -> 2 for to_x instead of 4 -> 7 and 4 -> 0
@@ -651,7 +651,7 @@ impl Board {
     }
 
     /// move history of `self` contains this coordinate, either as moved to or from
-    fn history_has(&self, coord: &Coord, to: bool) -> Option<PieceType> {
+    fn history_has(&self, coord: &Coords, to: bool) -> Option<PieceType> {
         let hist = &self.move_history;
         if hist.is_empty() {
             return None;
@@ -679,8 +679,8 @@ impl Board {
     /// takeback
     pub fn takeback(&mut self) {
         if let Some((_, prev_move)) = self.move_history.pop() {
-            let to = Coord::from_hist(&prev_move[0..2]);
-            let from = Coord::from_hist(&prev_move[2..4]);
+            let to = Coords::from_hist(&prev_move[0..2]);
+            let from = Coords::from_hist(&prev_move[2..4]);
 
             // take last moved piece back to where it came from
             self.set(&to, self.get(&from));
@@ -714,14 +714,14 @@ impl Board {
 
     pub fn unselect_cell(&mut self) {
         if self.is_cell_selected() {
-            self.selected_coordinates = Coord::default();
+            self.selected_coordinates = Coords::default();
             self.selected_piece_cursor = 0;
             self.cursor_coordinates = self.old_cursor_position.clone()
         }
     }
 
     pub fn number_of_authorized_positions(&self) -> usize {
-        let mut possible_moves: Vec<Coord> = vec![];
+        let mut possible_moves: Vec<Coords> = vec![];
 
         for i in 0..8 {
             for j in 0..8 {
@@ -730,7 +730,7 @@ impl Board {
                         possible_moves.extend(self.get_authorized_positions(
                             Some(piece_type),
                             Some(piece_color),
-                            &Coord::new(i as i8, j as i8),
+                            &Coords::new(i as i8, j as i8),
                         ))
                     }
                 }
@@ -739,7 +739,7 @@ impl Board {
         possible_moves.len()
     }
 
-    fn is_latest_move_en_passant(&self, from: &Coord, to: &Coord) -> bool {
+    fn is_latest_move_en_passant(&self, from: &Coords, to: &Coords) -> bool {
         let piece_type_from = get_piece_type(self.board, from);
         let piece_type_to = get_piece_type(self.board, to);
 
@@ -758,7 +758,7 @@ impl Board {
         }
     }
 
-    fn is_latest_move_castling(&self, from: &Coord, to: &Coord) -> bool {
+    fn is_latest_move_castling(&self, from: &Coords, to: &Coords) -> bool {
         let piece_type_from = get_piece_type(self.board, from);
         let piece_type_to = get_piece_type(self.board, to);
 
@@ -776,7 +776,7 @@ impl Board {
         if let Some(position) = self.move_history.last() {
             let to_y = get_int_from_char(position.1.chars().nth(2));
             let to_x = get_int_from_char(position.1.chars().nth(3));
-            let to = Coord::new(to_y, to_x);
+            let to = Coords::new(to_y, to_x);
 
             if let Some(piece_type_from) = get_piece_type(self.board, &to) {
                 if let Some(piece_color) = get_piece_color(self.board, &to) {
@@ -903,7 +903,7 @@ impl Board {
                     let cell = Block::default().bg(Color::LightBlue);
                     frame.render_widget(cell.clone(), square);
                 } else if is_getting_checked(self.board, self.player_turn, &self.move_history)
-                    && Coord::new(i, j) == get_king_coordinates(self.board, self.player_turn)
+                    && Coords::new(i, j) == get_king_coordinates(self.board, self.player_turn)
                 {
                     let cell = Block::default()
                         .bg(Color::Magenta)
@@ -922,8 +922,8 @@ impl Board {
                 // We check if the current king is getting checked
 
                 // Get piece and color
-                let piece_color = get_piece_color(self.board, &Coord::new(i, j));
-                let piece_type = get_piece_type(self.board, &Coord::new(i, j));
+                let piece_color = get_piece_color(self.board, &Coords::new(i, j));
+                let piece_type = get_piece_type(self.board, &Coords::new(i, j));
 
                 let color_enum = color_to_ratatui_enum(piece_color);
                 let piece_enum = PieceType::piece_type_to_string_enum(piece_type);
@@ -1007,7 +1007,7 @@ impl Board {
 #[cfg(test)]
 mod tests {
     use crate::{
-        board::{Board, Coord},
+        board::{Board, Coords},
         pieces::{PieceColor, PieceType},
         utils::is_getting_checked,
     };
@@ -1587,7 +1587,7 @@ mod tests {
         assert!(!board.is_latest_move_promotion());
 
         // Move the pawn to a promote cell
-        board.move_piece_on_the_board(&Coord::new(1, 4), &Coord::new(0, 4));
+        board.move_piece_on_the_board(&Coords::new(1, 4), &Coords::new(0, 4));
         assert!(board.is_latest_move_promotion());
 
         // Promote the pawn
@@ -1690,7 +1690,7 @@ mod tests {
         assert!(!board.is_latest_move_promotion());
 
         // Move the pawn to a promote cell
-        board.move_piece_on_the_board(&Coord::new(6, 5), &Coord::new(7, 5));
+        board.move_piece_on_the_board(&Coords::new(6, 5), &Coords::new(7, 5));
         assert!(board.is_latest_move_promotion());
 
         // Promote the pawn
@@ -1734,7 +1734,7 @@ mod tests {
         assert!(!board.is_draw());
 
         // Move the pawn to a make the 50th move
-        board.move_piece_on_the_board(&Coord::new(0, 6), &Coord::new(0, 5));
+        board.move_piece_on_the_board(&Coords::new(0, 6), &Coords::new(0, 5));
         assert!(board.is_draw());
     }
 
@@ -1778,7 +1778,7 @@ mod tests {
         assert!(!board.is_draw());
 
         // Move the king to replicate a third time the same position
-        board.move_piece_on_the_board(&Coord::new(0, 2), &Coord::new(0, 1));
+        board.move_piece_on_the_board(&Coords::new(0, 2), &Coords::new(0, 1));
         assert!(board.is_draw());
     }
 
