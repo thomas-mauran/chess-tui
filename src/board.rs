@@ -716,7 +716,13 @@ impl Board {
                     let piece_type = self.history_has(&from, true).unwrap();
                     Some((piece_type, self.player_turn))
                 } else if let Some((pt, pc)) = Self::default().get(&from) {
-                    Some((pt, pc))
+                    if get_piece_color(Self::default().board, &from) == Some(self.player_turn)
+                        && self.history_has(&from, false).is_none()
+                    {
+                        Some((pt, pc))
+                    } else {
+                        None
+                    }
                 } else {
                     None
                 },
