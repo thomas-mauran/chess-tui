@@ -578,7 +578,6 @@ impl Board {
 
         let piece_type_from = get_piece_type(self.board, from);
         let piece_type_to = get_piece_type(self.board, to);
-        let position_number: String = format!("{}{}", from.to_hist(), to.to_hist());
 
         // We increment the consecutive_non_pawn_or_capture if the piece type is a pawn or if there is no capture
         match (piece_type_from, piece_type_to) {
@@ -590,8 +589,6 @@ impl Board {
             }
         }
 
-        let tuple = (piece_type_from, position_number);
-
         // We check for en passant as the latest move
         if self.is_latest_move_en_passant(from, to) {
             // we kill the pawn
@@ -600,6 +597,8 @@ impl Board {
             // self.board[row_index as usize][to.col as usize] = None;
             self.set(&Coords::new(row_index as i8, to.col), None);
         }
+
+        let mut to_hist = Coords::new(to.row, to.col);
 
         // We check for castling as the latest move
         if self.is_latest_move_castling(from, to) {
@@ -637,12 +636,15 @@ impl Board {
 
             // We remove the latest rook
             self.board[to.row as usize][to_x as usize] = None;
+            to_hist.col = row_index;
         } else {
             self.set(to, self.get(from));
         }
 
         self.set(from, None);
 
+        let position_number: String = format!("{}{}", from.to_hist(), to_hist.to_hist());
+        let tuple = (piece_type_from, position_number);
         // We store it in the history
         self.move_history.push(tuple.clone());
     }
@@ -676,9 +678,24 @@ impl Board {
 
     /// takeback
     pub fn takeback(&mut self) {
-        if let Some((_, prev_move)) = self.move_history.pop() {
+        if let Some((Some(current_piece_type), prev_move)) = self.move_history.pop() {
             let to = Coords::from_hist(&prev_move[0..2]);
             let from = Coords::from_hist(&prev_move[2..4]);
+            let d = (from.col - to.col).abs();
+
+            // check for promotions
+            if self.is_latest_move_promotion() {
+                todo!();
+            }
+            // check for castling
+            else if current_piece_type == PieceType::King && d > 1 {
+                // check all 4 rooks, place back the one that was involved in castling
+                todo!();
+            }
+            // check for en-passant
+            else if self.is_latest_move_en_passant(&to, &from) {
+                todo!();
+            }
 
             // take last moved piece back to where it came from
             self.set(&to, self.get(&from));
@@ -698,23 +715,12 @@ impl Board {
                 {
                     let piece_type = self.history_has(&from, true).unwrap();
                     Some((piece_type, self.player_turn))
+                } else if let Some((pt, pc)) = Self::default().get(&from) {
+                    Some((pt, pc))
                 } else {
                     None
                 },
             );
-
-            // check for promotions
-            if self.is_latest_move_promotion() {
-                todo!();
-            }
-            // check for castling
-            if self.is_latest_move_castling(&to, &from) {
-                todo!();
-            }
-            // check for en-passant
-            if self.is_latest_move_en_passant(&to, &from) {
-                todo!();
-            }
 
             self.switch_player_turn();
         }
