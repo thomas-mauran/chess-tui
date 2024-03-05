@@ -713,21 +713,21 @@ impl Board {
             // check for castling
             else if piece_type == PieceType::King && (from.col - to.col).abs() > 1 {
                 // check all 4 rooks, place back the one that was involved in castling
+                let right_rook = Coords::new(from.row, from.col - 1);
+                let left_rook = Coords::new(from.row, from.col + 1);
                 match self.player_turn {
                     PieceColor::Black => {
-                        let right_white_rook = Coords::new(from.row, from.col - 1);
-                        let left_white_rook = Coords::new(from.row, from.col + 1);
                         if self
-                            .get(&right_white_rook)
+                            .get(&right_rook)
                             .is_some_and(|piece| piece.0 == PieceType::Rook)
                         {
-                            self.set(&right_white_rook, None);
+                            self.set(&right_rook, None);
                             self.set(
                                 &Coords::new(7, 7),
                                 Some((PieceType::Rook, PieceColor::White)),
                             );
                         } else {
-                            self.set(&left_white_rook, None);
+                            self.set(&left_rook, None);
                             self.set(
                                 &Coords::new(7, 0),
                                 Some((PieceType::Rook, PieceColor::White)),
@@ -735,19 +735,17 @@ impl Board {
                         }
                     }
                     PieceColor::White => {
-                        let left_black_rook = Coords::new(from.row, from.col + 1);
-                        let right_black_rook = Coords::new(from.row, from.col - 1);
                         if self
-                            .get(&right_black_rook)
-                            .is_some_and(|piece| piece.0 == pieces::PieceType::Rook)
+                            .get(&right_rook)
+                            .is_some_and(|piece| piece.0 == PieceType::Rook)
                         {
-                            self.set(&right_black_rook, None);
+                            self.set(&right_rook, None);
                             self.set(
                                 &Coords::new(0, 7),
                                 Some((PieceType::Rook, PieceColor::Black)),
                             )
                         } else {
-                            self.set(&left_black_rook, None);
+                            self.set(&left_rook, None);
                             self.set(
                                 &Coords::new(0, 0),
                                 Some((PieceType::Rook, PieceColor::Black)),
