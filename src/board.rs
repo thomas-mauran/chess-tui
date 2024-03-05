@@ -1,6 +1,6 @@
 use crate::{
     constants::{BLACK, UNDEFINED_POSITION, WHITE},
-    pieces::{PieceColor, PieceType},
+    pieces::{self, PieceColor, PieceType},
     utils::{
         col_to_letter, color_to_ratatui_enum, convert_notation_into_position,
         convert_position_into_notation, did_piece_already_move, get_int_from_char,
@@ -81,6 +81,30 @@ impl Default for Coords {
 }
 
 pub struct Board {
+    /// how it's stored:
+    ///
+    /// _ 0 1 2 3 4 5 6 7 _
+    /// 0 ♖ ♘ ♗ ♕ ♔ ♗ ♘ ♖ 0
+    /// 1 ♙ ♙ ♙ ♙ ♙ ♙ ♙ ♙ 1
+    /// 2 _ _ _ _ _ _ _ _ 2
+    /// 3 _ _ _ _ _ _ _ _ 3
+    /// 4 _ _ _ _ _ _ _ _ 4
+    /// 5 _ _ _ _ _ _ _ _ 5
+    /// 6 ♟ ♟ ♟ ♟ ♟ ♟ ♟ ♟ 6
+    /// 7 ♜ ♞ ♝ ♛ ♚ ♝ ♞ ♜ 7
+    /// _ 0 1 2 3 4 5 6 7 _
+    ///
+    /// how it's in real world:
+    /// _ a b c d e f g h _
+    /// 1 ♖ ♘ ♗ ♕ ♔ ♗ ♘ ♖ 1
+    /// 2 ♙ ♙ ♙ ♙ ♙ ♙ ♙ ♙ 2
+    /// 3 _ _ _ _ _ _ _ _ 3
+    /// 4 _ _ _ _ _ _ _ _ 4
+    /// 5 _ _ _ _ _ _ _ _ 5
+    /// 6 _ _ _ _ _ _ _ _ 6
+    /// 7 ♟ ♟ ♟ ♟ ♟ ♟ ♟ ♟ 7
+    /// 8 ♜ ♞ ♝ ♛ ♚ ♝ ♞ ♜ 8
+    /// _ a b c d e f g h _
     pub board: [[Option<(PieceType, PieceColor)>; 8]; 8],
     pub cursor_coordinates: Coords,
     pub selected_coordinates: Coords,
@@ -678,18 +702,27 @@ impl Board {
 
     /// takeback
     pub fn takeback(&mut self) {
-        if let Some((Some(current_piece_type), prev_move)) = self.move_history.pop() {
+        if let Some((Some(piece_type), prev_move)) = self.move_history.pop() {
             let to = Coords::from_hist(&prev_move[0..2]);
             let from = Coords::from_hist(&prev_move[2..4]);
-            let d = (from.col - to.col).abs();
-
             // check for promotions
             if self.is_latest_move_promotion() {
                 todo!();
             }
             // check for castling
-            else if current_piece_type == PieceType::King && d > 1 {
+            else if piece_type == PieceType::King && (from.col - to.col).abs() > 1 {
                 // check all 4 rooks, place back the one that was involved in castling
+                match self.player_turn {
+                    PieceColor::Black => {
+                        let right_white_rook = Coords::new(from.row, from.col - 1);
+                        if self
+                            .get(&right_white_rook)
+                            .is_some_and(|piece| piece.0 == pieces::PieceType::Rook)
+                        {
+                        }
+                    }
+                    PieceColor::White => todo!(),
+                }
                 todo!();
             }
             // check for en-passant
@@ -1936,5 +1969,14 @@ mod tests {
             board.fen_position(),
             "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b kq - 0 0"
         );
+    }
+
+    #[test]
+    fn takeback_basic() {
+        let mut board = Board::default();
+        board.move_piece_on_the_board(&Coords { col: 5, row: 2 }, &Coords { col: 5, row: 3 });
+        assert_ne!(Board::default().board, board.board);
+        board.takeback();
+        assert_eq!(Board::default().board, board.board);
     }
 }

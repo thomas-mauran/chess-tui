@@ -2,8 +2,10 @@
 extern crate chess_tui;
 
 use chess_tui::app::{App, AppResult};
+use chess_tui::board::Board;
 use chess_tui::event::{Event, EventHandler};
 use chess_tui::handler::handle_key_events;
+use chess_tui::pieces::PieceType;
 use chess_tui::tui::Tui;
 use clap::Parser;
 use ratatui::backend::CrosstermBackend;
@@ -24,7 +26,7 @@ fn main() -> AppResult<()> {
     // Parse the cli arguments
     let args = Args::parse();
 
-    let config_path = dirs::config_dir().unwrap().join(".chess-tui");
+    let config_path = dirs::config_dir().unwrap().join("chess-tui");
 
     if !args.engine_path.is_empty() {
         if !config_path.exists() {
