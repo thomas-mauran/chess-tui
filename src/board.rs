@@ -2,12 +2,11 @@ use std::cmp::Ordering;
 
 use crate::{
     constants::{BLACK, UNDEFINED_POSITION, WHITE},
-    pieces::{self, PieceColor, PieceType},
+    pieces::{PieceColor, PieceType},
     utils::{
         col_to_letter, color_to_ratatui_enum, convert_notation_into_position,
         convert_position_into_notation, did_piece_already_move, get_int_from_char,
-        get_king_coordinates, get_piece_color, get_piece_type, get_player_turn_in_modulo,
-        is_getting_checked, is_valid,
+        get_king_coordinates, get_piece_color, get_piece_type, is_getting_checked, is_valid,
     },
 };
 use ratatui::{
@@ -46,11 +45,31 @@ pub struct Coords {
     pub row: i8,
 }
 impl Coords {
+    /// warning! these arguments are not (x;y) but (y;x) coordinates
+    /// # Panics
+    ///
+    /// if `col` or `row` exceeds max: 7, or is lower than 0
+    ///
+    /// if you need an undefined position, use `Coords::default()`
     pub fn new<T: Into<i8>>(row: T, col: T) -> Self {
-        Self {
-            col: col.into(),
-            row: row.into(),
+        let row = row.into();
+        let col = col.into();
+        if row < -2 {
+            panic!("row < 0");
         }
+        if row > 9 {
+            panic!("row > 8");
+        }
+        if col < -2 {
+            panic!("col < 0");
+        }
+        if col > 9 {
+            panic!("col > 8");
+        }
+        // if !(0..=7).contains(&row) || !(0..=7).contains(&col) {
+        //     panic!("row or col is not valid as a coordinate: should be 0-7");
+        // }
+        Self { col, row }
     }
     pub fn to_hist(&self) -> String {
         format!("{}{}", self.row, self.col)
@@ -78,7 +97,22 @@ impl Coords {
 }
 impl Default for Coords {
     fn default() -> Self {
-        Self::new(UNDEFINED_POSITION, UNDEFINED_POSITION)
+        Coords {
+            col: UNDEFINED_POSITION,
+            row: UNDEFINED_POSITION,
+        }
+    }
+}
+
+pub type Piece = Option<(PieceType, PieceColor)>;
+pub type GameBoard = [[Piece; 8]; 8];
+
+trait IndexCoord {
+    fn get_coord(&self, coord: &Coords) -> Piece;
+}
+impl IndexCoord for GameBoard {
+    fn get_coord(&self, coord: &Coords) -> Piece {
+        self[coord.row as usize][coord.col as usize]
     }
 }
 
@@ -107,7 +141,7 @@ pub struct Board {
     /// 2 ♟ ♟ ♟ ♟ ♟ ♟ ♟ ♟ 2
     /// 1 ♜ ♞ ♝ ♛ ♚ ♝ ♞ ♜ 1
     /// _ a b c d e f g h _
-    pub board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+    pub board: GameBoard,
     pub cursor_coordinates: Coords,
     pub selected_coordinates: Coords,
     pub selected_piece_cursor: i8,
@@ -191,7 +225,7 @@ impl Default for Board {
 
 impl Board {
     pub fn new(
-        board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        board: GameBoard,
         player_turn: PieceColor,
         move_history: Vec<(Option<PieceType>, String)>,
     ) -> Self {
@@ -214,7 +248,7 @@ impl Board {
     }
 
     // Setters
-    pub fn set_board(&mut self, board: [[Option<(PieceType, PieceColor)>; 8]; 8]) {
+    pub fn set_board(&mut self, board: GameBoard) {
         self.board = board;
     }
 
@@ -237,19 +271,19 @@ impl Board {
             && self.selected_coordinates.col != UNDEFINED_POSITION
     }
 
-    // fn get_mut(&mut self, coord: &Coord) -> &mut Option<(PieceType, PieceColor)> {
+    // fn get_mut(&mut self, coord: &Coord) -> &mut Piece {
     //     &mut self.board[coord.row as usize][coord.col as usize]
     // }
     /// get `self.board` at `coord`
-    fn get(&self, coord: &Coords) -> Option<(PieceType, PieceColor)> {
+    fn get(&self, coord: &Coords) -> Piece {
         self.board[coord.row as usize][coord.col as usize]
     }
     /// set `self.board` at `coord` to `piece`
-    fn set(&mut self, coord: &Coords, piece: Option<(PieceType, PieceColor)>) {
+    fn set(&mut self, coord: &Coords, piece: Piece) {
         self.board[coord.row as usize][coord.col as usize] = piece;
     }
     // /// set `self.board` at `coord` created from `x`,`y` to `piece`
-    // fn coord_set<T: Into<usize>>(&mut self, x: T, y: T, piece: Option<(PieceType, PieceColor)>) {
+    // fn coord_set<T: Into<usize>>(&mut self, x: T, y: T, piece: Piece) {
     //     self.board[y.into()][x.into()] = piece;
     // }
 
@@ -329,9 +363,7 @@ impl Board {
         for i in 0..self.move_history.len() {
             match self.move_history[i] {
                 (Some(piece_type), _) => {
-                    if piece_type == PieceType::King
-                        && get_player_turn_in_modulo(self.player_turn) == i % 2
-                    {
+                    if piece_type == PieceType::King && self.player_turn as usize == i % 2 {
                         return true;
                     }
                 }
@@ -806,8 +838,8 @@ impl Board {
     pub fn number_of_authorized_positions(&self) -> usize {
         let mut possible_moves: Vec<Coords> = vec![];
 
-        for i in 0..8 {
-            for j in 0..8 {
+        for i in 0..7 {
+            for j in 0..7 {
                 if let Some((piece_type, piece_color)) = self.board[i][j] {
                     if piece_color == self.player_turn {
                         possible_moves.extend(self.get_authorized_positions(
@@ -1083,6 +1115,7 @@ impl Board {
 mod tests {
     use crate::{
         board::{Board, Coords},
+        constants::UNDEFINED_POSITION,
         pieces::{PieceColor, PieceType},
         utils::is_getting_checked,
     };
@@ -2026,4 +2059,42 @@ mod tests {
     // #[test]
     // fn takeback_castle() {
     // }
+
+    #[test]
+    fn coords_new_min() {
+        assert_eq!(Coords { col: 0, row: 0 }, Coords::new(0, 0));
+    }
+
+    #[test]
+    fn coords_new_max() {
+        assert_eq!(Coords { col: 7, row: 7 }, Coords::new(7, 7));
+    }
+
+    #[test]
+    fn coords_new() {
+        assert_eq!(Coords { col: 6, row: 1 }, Coords::new(1, 6));
+    }
+
+    #[test]
+    #[should_panic]
+    fn coords_new_too_big() {
+        Coords::new(8, 8);
+    }
+
+    #[test]
+    #[should_panic]
+    fn coords_new_too_small() {
+        Coords::new(-1, -1);
+    }
+
+    #[test]
+    fn coords_default() {
+        assert_eq!(
+            Coords {
+                col: UNDEFINED_POSITION,
+                row: UNDEFINED_POSITION
+            },
+            Coords::default()
+        );
+    }
 }

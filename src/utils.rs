@@ -1,20 +1,15 @@
 use crate::{
-    board::{Board, Coords},
+    board::{Board, Coords, GameBoard, Piece},
     pieces::{PieceColor, PieceType},
 };
 use ratatui::style::Color;
 
-pub fn get_piece_color(
-    board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-    coordinates: &Coords,
-) -> Option<PieceColor> {
+pub fn get_piece_color(board: GameBoard, coordinates: &Coords) -> Option<PieceColor> {
     board[coordinates.row as usize][coordinates.col as usize].map(|(_, piece_color)| piece_color)
+    // board.get(coordinates).map(|(_, piece_color)| piece_color)
 }
 
-pub fn get_piece_type(
-    board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-    coordinates: &Coords,
-) -> Option<PieceType> {
+pub fn get_piece_type(board: GameBoard, coordinates: &Coords) -> Option<PieceType> {
     board[coordinates.row as usize][coordinates.col as usize].map(|(piece_type, _)| piece_type)
 }
 
@@ -37,11 +32,7 @@ pub fn cleaned_positions(positions: Vec<Coords>) -> Vec<Coords> {
 }
 
 // Return true forally cell color; false for enemy
-pub fn is_cell_color_ally(
-    board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-    coordinates: Coords,
-    color: PieceColor,
-) -> bool {
+pub fn is_cell_color_ally(board: GameBoard, coordinates: Coords, color: PieceColor) -> bool {
     match get_piece_color(board, &coordinates) {
         Some(cell_color) => cell_color == color,
         None => false, // Treat empty cell as ally
@@ -60,7 +51,7 @@ pub fn is_vec_in_array(array: &[Coords], element: &Coords) -> bool {
 
 // We get all the cells that are getting put in 'check'
 pub fn get_all_protected_cells(
-    board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+    board: GameBoard,
     player_turn: PieceColor,
     move_history: &[(Option<PieceType>, String)],
 ) -> Vec<Coords> {
@@ -141,17 +132,13 @@ pub fn convert_notation_into_position(notation: String) -> String {
     format!("{}{}{}{}", from_y, from_x, to_y, to_x)
 }
 
-pub fn get_player_turn_in_modulo(color: PieceColor) -> usize {
-    match color {
-        PieceColor::White => 0,
-        PieceColor::Black => 1,
-    }
-}
-
 pub fn get_int_from_char(ch: Option<char>) -> i8 {
     match ch {
         Some(ch) => ch.to_digit(10).unwrap() as i8,
-        _ => -1,
+        _ => {
+            panic!("maaan!");
+            // -1
+        }
     }
 }
 
@@ -180,10 +167,7 @@ pub fn did_piece_already_move(
     false
 }
 // Method returning the coordinates of the king of a certain color
-pub fn get_king_coordinates(
-    board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-    player_turn: PieceColor,
-) -> Coords {
+pub fn get_king_coordinates(board: GameBoard, player_turn: PieceColor) -> Coords {
     for i in 0..8i32 {
         for j in 0..8i32 {
             if let Some((piece_type, piece_color)) = board[i as usize][j as usize] {
@@ -198,7 +182,7 @@ pub fn get_king_coordinates(
 
 // Is getting checked
 pub fn is_getting_checked(
-    board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+    board: GameBoard,
     player_turn: PieceColor,
     move_history: &[(Option<PieceType>, String)],
 ) -> bool {
@@ -217,7 +201,7 @@ pub fn is_getting_checked(
 pub fn impossible_positions_king_checked(
     original_coordinates: &Coords,
     positions: Vec<Coords>,
-    board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+    board: GameBoard,
     color: PieceColor,
     move_history: &[(Option<PieceType>, String)],
 ) -> Vec<Coords> {
@@ -242,7 +226,7 @@ pub fn impossible_positions_king_checked(
     cleaned_position
 }
 
-pub fn is_piece_opposite_king(piece: Option<(PieceType, PieceColor)>, color: PieceColor) -> bool {
+pub fn is_piece_opposite_king(piece: Piece, color: PieceColor) -> bool {
     match piece {
         Some((piece_type, piece_color)) => {
             piece_type == PieceType::King && piece_color == get_opposite_color(color)

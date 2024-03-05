@@ -1,4 +1,4 @@
-use crate::board::Coords;
+use crate::board::{Coords, GameBoard};
 
 use self::{bishop::Bishop, king::King, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook};
 
@@ -23,7 +23,7 @@ impl PieceType {
         self,
         coordinates: &Coords,
         color: PieceColor,
-        board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        board: GameBoard,
         move_history: &[(Option<PieceType>, String)],
         is_king_checked: bool,
     ) -> Vec<Coords> {
@@ -65,7 +65,7 @@ impl PieceType {
         selected_coordinates: &Coords,
         piece_type: PieceType,
         color: PieceColor,
-        board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        board: GameBoard,
         move_history: &[(Option<PieceType>, String)],
     ) -> Vec<Coords> {
         match piece_type {
@@ -148,15 +148,15 @@ impl PieceType {
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum PieceColor {
-    Black,
-    White,
+    White = 0,
+    Black = 1,
 }
 
 pub trait Movable {
     fn piece_move(
         coordinates: &Coords,
         color: PieceColor,
-        board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        board: GameBoard,
         allow_move_on_ally_positions: bool,
         move_history: &[(Option<PieceType>, String)],
     ) -> Vec<Coords>;
@@ -166,7 +166,7 @@ pub trait Position {
     fn authorized_positions(
         coordinates: &Coords,
         color: PieceColor,
-        board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        board: GameBoard,
         move_history: &[(Option<PieceType>, String)],
         is_king_checked: bool,
     ) -> Vec<Coords>;
@@ -174,7 +174,7 @@ pub trait Position {
     fn protected_positions(
         coordinates: &Coords,
         color: PieceColor,
-        board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        board: GameBoard,
         move_history: &[(Option<PieceType>, String)],
     ) -> Vec<Coords>;
 }

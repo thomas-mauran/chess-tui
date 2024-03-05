@@ -1,6 +1,6 @@
 use super::{Movable, PieceColor, PieceType, Position};
 use crate::{
-    board::Coords,
+    board::{Coords, GameBoard},
     utils::{
         cleaned_positions, get_int_from_char, get_latest_move, get_piece_color,
         impossible_positions_king_checked, is_cell_color_ally, is_valid,
@@ -13,7 +13,7 @@ impl Movable for Pawn {
     fn piece_move(
         coordinates: &Coords,
         color: PieceColor,
-        board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        board: GameBoard,
         allow_move_on_ally_positions: bool,
         move_history: &[(Option<PieceType>, String)],
     ) -> Vec<Coords> {
@@ -128,7 +128,7 @@ impl Position for Pawn {
     fn authorized_positions(
         coordinates: &Coords,
         color: PieceColor,
-        board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        board: GameBoard,
         move_history: &[(Option<PieceType>, String)],
         _is_king_checked: bool,
     ) -> Vec<Coords> {
@@ -146,7 +146,7 @@ impl Position for Pawn {
     fn protected_positions(
         coordinates: &Coords,
         color: PieceColor,
-        board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        board: GameBoard,
         move_history: &[(Option<PieceType>, String)],
     ) -> Vec<Coords> {
         Self::piece_move(coordinates, color, board, true, move_history)

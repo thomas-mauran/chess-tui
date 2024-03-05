@@ -1,6 +1,6 @@
 use super::rook::Rook;
 use super::{Movable, PieceColor, PieceType, Position};
-use crate::board::Coords;
+use crate::board::{Coords, GameBoard};
 use crate::pieces::bishop::Bishop;
 use crate::utils::{cleaned_positions, impossible_positions_king_checked};
 
@@ -10,7 +10,7 @@ impl Movable for Queen {
     fn piece_move(
         coordinates: &Coords,
         color: PieceColor,
-        board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        board: GameBoard,
         allow_move_on_ally_positions: bool,
         move_history: &[(Option<PieceType>, String)],
     ) -> Vec<Coords> {
@@ -40,7 +40,7 @@ impl Position for Queen {
     fn authorized_positions(
         coordinates: &Coords,
         color: PieceColor,
-        board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        board: GameBoard,
         move_history: &[(Option<PieceType>, String)],
         _is_king_checked: bool,
     ) -> Vec<Coords> {
@@ -55,7 +55,7 @@ impl Position for Queen {
     fn protected_positions(
         coordinates: &Coords,
         color: PieceColor,
-        board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        board: GameBoard,
         move_history: &[(Option<PieceType>, String)],
     ) -> Vec<Coords> {
         Self::piece_move(coordinates, color, board, true, move_history)
