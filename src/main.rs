@@ -2,10 +2,8 @@
 extern crate chess_tui;
 
 use chess_tui::app::{App, AppResult};
-use chess_tui::board::Board;
 use chess_tui::event::{Event, EventHandler};
 use chess_tui::handler::handle_key_events;
-use chess_tui::pieces::PieceType;
 use chess_tui::tui::Tui;
 use clap::Parser;
 use ratatui::backend::CrosstermBackend;

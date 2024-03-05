@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use crate::{
     constants::{BLACK, UNDEFINED_POSITION, WHITE},
     pieces::{self, PieceColor, PieceType},
@@ -96,14 +98,14 @@ pub struct Board {
     ///
     /// how it's in real world:
     /// _ a b c d e f g h _
-    /// 1 ♖ ♘ ♗ ♕ ♔ ♗ ♘ ♖ 1
-    /// 2 ♙ ♙ ♙ ♙ ♙ ♙ ♙ ♙ 2
-    /// 3 _ _ _ _ _ _ _ _ 3
-    /// 4 _ _ _ _ _ _ _ _ 4
-    /// 5 _ _ _ _ _ _ _ _ 5
+    /// 8 ♖ ♘ ♗ ♕ ♔ ♗ ♘ ♖ 8
+    /// 7 ♙ ♙ ♙ ♙ ♙ ♙ ♙ ♙ 7
     /// 6 _ _ _ _ _ _ _ _ 6
-    /// 7 ♟ ♟ ♟ ♟ ♟ ♟ ♟ ♟ 7
-    /// 8 ♜ ♞ ♝ ♛ ♚ ♝ ♞ ♜ 8
+    /// 5 _ _ _ _ _ _ _ _ 5
+    /// 4 _ _ _ _ _ _ _ _ 4
+    /// 3 _ _ _ _ _ _ _ _ 3
+    /// 2 ♟ ♟ ♟ ♟ ♟ ♟ ♟ ♟ 2
+    /// 1 ♜ ♞ ♝ ♛ ♚ ♝ ♞ ♜ 1
     /// _ a b c d e f g h _
     pub board: [[Option<(PieceType, PieceColor)>; 8]; 8],
     pub cursor_coordinates: Coords,
@@ -633,7 +635,7 @@ impl Board {
             let distance = from.col as i32 - to_x;
             let direction_x = if distance > 0 { -1 } else { 1 };
 
-            let mut row_index_rook = 0;
+            let row_index_rook;
 
             let row_index = from.col + direction_x * 2;
 
@@ -643,16 +645,20 @@ impl Board {
             // We put the rook 3 cells from it's position if it's a big castling else 2 cells
             // If it is playing against a bot we will receive 4 -> 6  and 4 -> 2 for to_x instead of 4 -> 7 and 4 -> 0
             // big castling
-            if distance > 0 {
-                row_index_rook = 3;
-                if self.is_game_against_bot && self.player_turn == PieceColor::Black {
-                    to_x = 0;
+            match distance.cmp(&0) {
+                Ordering::Less => {
+                    row_index_rook = 5;
+                    if self.is_game_against_bot && self.player_turn == PieceColor::Black {
+                        to_x = 7;
+                    }
                 }
-            } else if distance < 0 {
-                row_index_rook = 5;
-                if self.is_game_against_bot && self.player_turn == PieceColor::Black {
-                    to_x = 7;
+                Ordering::Greater => {
+                    row_index_rook = 3;
+                    if self.is_game_against_bot && self.player_turn == PieceColor::Black {
+                        to_x = 0;
+                    }
                 }
+                Ordering::Equal => unreachable!("having castled, a king's x axis has changed"),
             }
 
             self.board[to.row as usize][row_index_rook as usize] =
@@ -692,12 +698,7 @@ impl Board {
             }
             i -= 1;
         }
-        if to {
-            // check starting positions
-            Self::default().get(coord).map(|pos| pos.0)
-        } else {
-            None
-        }
+        None
     }
 
     /// takeback
@@ -715,15 +716,45 @@ impl Board {
                 match self.player_turn {
                     PieceColor::Black => {
                         let right_white_rook = Coords::new(from.row, from.col - 1);
+                        let left_white_rook = Coords::new(from.row, from.col + 1);
                         if self
                             .get(&right_white_rook)
-                            .is_some_and(|piece| piece.0 == pieces::PieceType::Rook)
+                            .is_some_and(|piece| piece.0 == PieceType::Rook)
                         {
+                            self.set(&right_white_rook, None);
+                            self.set(
+                                &Coords::new(7, 7),
+                                Some((PieceType::Rook, PieceColor::White)),
+                            );
+                        } else {
+                            self.set(&left_white_rook, None);
+                            self.set(
+                                &Coords::new(7, 0),
+                                Some((PieceType::Rook, PieceColor::White)),
+                            )
                         }
                     }
-                    PieceColor::White => todo!(),
+                    PieceColor::White => {
+                        let left_black_rook = Coords::new(from.row, from.col + 1);
+                        let right_black_rook = Coords::new(from.row, from.col - 1);
+                        if self
+                            .get(&right_black_rook)
+                            .is_some_and(|piece| piece.0 == pieces::PieceType::Rook)
+                        {
+                            self.set(&right_black_rook, None);
+                            self.set(
+                                &Coords::new(0, 7),
+                                Some((PieceType::Rook, PieceColor::Black)),
+                            )
+                        } else {
+                            self.set(&left_black_rook, None);
+                            self.set(
+                                &Coords::new(0, 0),
+                                Some((PieceType::Rook, PieceColor::Black)),
+                            )
+                        }
+                    }
                 }
-                todo!();
             }
             // check for en-passant
             else if self.is_latest_move_en_passant(&to, &from) {
@@ -749,6 +780,7 @@ impl Board {
                     let piece_type = self.history_has(&from, true).unwrap();
                     Some((piece_type, self.player_turn))
                 } else if let Some((pt, pc)) = Self::default().get(&from) {
+                    // faulty :(
                     if get_piece_color(Self::default().board, &from) == Some(self.player_turn)
                         && self.history_has(&from, false).is_none()
                     {
@@ -1974,9 +2006,26 @@ mod tests {
     #[test]
     fn takeback_basic() {
         let mut board = Board::default();
-        board.move_piece_on_the_board(&Coords { col: 5, row: 2 }, &Coords { col: 5, row: 3 });
+        board.move_piece_on_the_board(&Coords { col: 4, row: 6 }, &Coords { col: 4, row: 4 });
         assert_ne!(Board::default().board, board.board);
         board.takeback();
         assert_eq!(Board::default().board, board.board);
     }
+
+    #[test]
+    fn takeback_kick() {
+        let mut board = Board::default();
+        board.move_piece_on_the_board(&Coords { col: 4, row: 6 }, &Coords { col: 4, row: 4 });
+        board.move_piece_on_the_board(&Coords { col: 3, row: 1 }, &Coords { col: 3, row: 3 });
+        board.move_piece_on_the_board(&Coords { col: 4, row: 4 }, &Coords { col: 3, row: 3 });
+        assert_ne!(Board::default().board, board.board);
+        board.takeback();
+        board.takeback();
+        board.takeback();
+        assert_eq!(Board::default().board, board.board);
+    }
+
+    // #[test]
+    // fn takeback_castle() {
+    // }
 }
