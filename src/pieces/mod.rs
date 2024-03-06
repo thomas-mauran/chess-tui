@@ -151,6 +151,14 @@ pub enum PieceColor {
     White = 0,
     Black = 1,
 }
+impl PieceColor {
+    pub fn opposite(&self) -> Self {
+        match self {
+            PieceColor::White => PieceColor::Black,
+            PieceColor::Black => PieceColor::White,
+        }
+    }
+}
 
 pub trait Movable {
     fn piece_move(

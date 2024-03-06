@@ -317,10 +317,7 @@ impl Board {
         }
     }
     pub fn switch_player_turn(&mut self) {
-        match self.player_turn {
-            PieceColor::White => self.player_turn = PieceColor::Black,
-            PieceColor::Black => self.player_turn = PieceColor::White,
-        }
+        self.player_turn = self.player_turn.opposite();
     }
 
     // Methods to change the position of the cursor
@@ -751,12 +748,9 @@ impl Board {
         if let Some((Some(piece_type), prev_move)) = self.move_history.pop() {
             let to = Coords::from_hist(&prev_move[0..2]);
             let from = Coords::from_hist(&prev_move[2..4]);
-            // check for promotions
-            if self.is_latest_move_promotion() {
-                todo!("promotion takeback");
-            }
+
             // check for castling
-            else if piece_type == PieceType::King && (from.col - to.col).abs() > 1 {
+            if piece_type == PieceType::King && (from.col - to.col).abs() > 1 {
                 // check all 4 rooks, place back the one that was involved in castling
                 let right_rook = Coords::new(from.row, from.col - 1);
                 let left_rook = Coords::new(from.row, from.col + 1);
@@ -811,16 +805,21 @@ impl Board {
                     }
                 }
             }
-
-            // take last moved piece back to where it came from
-            self.set(&to, self.get(&from));
+            // check for promotions
+            if piece_type == PieceType::Pawn && (from.row == 0 || from.row == 7) {
+                // todo!("promotion takeback");
+                self.set(&to, Some((PieceType::Pawn, self.player_turn.opposite())));
+            } else {
+                // take last moved piece back to where it came from
+                self.set(&to, self.get(&from));
+            }
 
             // pseudo kind of code
             // if history.contains(board[from], Moved::To) && !history.contains(board[from], Moved::From) {
             //     board[from] = history[from]
             // }
 
-            // optionally fill the cell if something was taken off it
+            // optionally fill the cell that it moved to if something was taken off it
             self.set(
                 &from,
                 // check if there was anything on the cell where it was before takeback:
@@ -2071,6 +2070,23 @@ mod tests {
         board.move_piece_on_the_board(&Coords { col: 3, row: 1 }, &Coords { col: 3, row: 3 });
         board.move_piece_on_the_board(&Coords { col: 4, row: 4 }, &Coords { col: 3, row: 3 });
         assert_ne!(Board::default().board, board.board);
+        board.takeback();
+        board.takeback();
+        board.takeback();
+        assert_eq!(Board::default().board, board.board);
+    }
+
+    #[test]
+    fn takeback_en_passant() {
+        let mut board = Board::default();
+        board.move_piece_on_the_board(&Coords { col: 4, row: 6 }, &Coords { col: 4, row: 4 });
+        board.move_piece_on_the_board(&Coords { col: 5, row: 1 }, &Coords { col: 5, row: 3 });
+        board.move_piece_on_the_board(&Coords { col: 4, row: 4 }, &Coords { col: 4, row: 3 });
+        board.move_piece_on_the_board(&Coords { col: 3, row: 1 }, &Coords { col: 3, row: 3 });
+        board.move_piece_on_the_board(&Coords { col: 4, row: 4 }, &Coords { col: 3, row: 3 });
+        assert_ne!(Board::default().board, board.board);
+        board.takeback();
+        board.takeback();
         board.takeback();
         board.takeback();
         board.takeback();
