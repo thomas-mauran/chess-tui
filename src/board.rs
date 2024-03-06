@@ -810,39 +810,40 @@ impl Board {
                         self.set(&passant_to, Some((PieceType::Pawn, self.player_turn)));
                     }
                 }
-            } else {
-                // pseudo kind of code
-                // if history.contains(board[from], Moved::To) && !history.contains(board[from], Moved::From) {
-                //     board[from] = history[from]
-                // }
-
-                // optionally fill the cell if something was taken off it
-                self.set(
-                    &from,
-                    // check if there was anything on the cell where it was before takeback:
-                    // if anything has moved to this cell and not away from it, there probably was
-                    if self.history_has(&from, true).is_some()
-                        && self.history_has(&from, false).is_none()
-                    {
-                        let piece_type = self.history_has(&from, true).unwrap();
-                        Some((piece_type, self.player_turn))
-                    } else if let Some((pt, pc)) = Self::default().get(&from) {
-                        // faulty :(
-                        if get_piece_color(Self::default().board, &from) == Some(self.player_turn)
-                            && self.history_has(&from, false).is_none()
-                        {
-                            Some((pt, pc))
-                        } else {
-                            None
-                        }
-                    } else {
-                        None
-                    },
-                );
             }
 
             // take last moved piece back to where it came from
             self.set(&to, self.get(&from));
+
+            // pseudo kind of code
+            // if history.contains(board[from], Moved::To) && !history.contains(board[from], Moved::From) {
+            //     board[from] = history[from]
+            // }
+
+            // optionally fill the cell if something was taken off it
+            self.set(
+                &from,
+                // check if there was anything on the cell where it was before takeback:
+                // if anything has moved to this cell and not away from it, there probably was
+                if self.history_has(&from, true).is_some()
+                    && self.history_has(&from, false).is_none()
+                {
+                    let piece_type = self.history_has(&from, true).unwrap();
+                    Some((piece_type, self.player_turn))
+                } else if let Some((pt, pc)) = Self::default().get(&from) {
+                    // faulty :(
+                    if get_piece_color(Self::default().board, &from) == Some(self.player_turn)
+                        && self.history_has(&from, false).is_none()
+                    {
+                        Some((pt, pc))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                },
+            );
+
             self.switch_player_turn();
         }
     }
