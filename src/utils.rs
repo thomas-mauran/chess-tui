@@ -18,9 +18,9 @@ pub fn get_piece_color(board: &GameBoard, coordinates: &Coords) -> Option<PieceC
 pub fn get_piece_kind(board: &GameBoard, coordinates: &Coords) -> Option<PieceKind> {
     board[coordinates.row as usize][coordinates.col as usize].map(
         |Piece {
-             kind: piece_type,
+             kind: piece_kind,
              color: _,
-         }| piece_type,
+         }| piece_kind,
     )
 }
 
@@ -67,10 +67,10 @@ pub fn get_all_protected_cells(
             }
             // get the current cell piece color and type protecting positions
             if let Some(piece_color) = get_piece_color(&board, &Coords::new(i, j)) {
-                if let Some(piece_type) = get_piece_kind(&board, &Coords::new(i, j)) {
-                    check_cells.extend(PieceKind::protected_positions(
+                if let Some(piece_kind) = get_piece_kind(&board, &Coords::new(i, j)) {
+                    check_cells.extend(Piece::protected_positions(
                         &Coords::new(i, j),
-                        piece_type,
+                        piece_kind,
                         piece_color,
                         board,
                         move_history,

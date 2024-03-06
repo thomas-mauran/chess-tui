@@ -13,7 +13,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                 app.quit();
             }
             // Exit application on `Ctrl-C`
-            KeyCode::Char('c') | KeyCode::Char('C') => {
+            KeyCode::Char('c' | 'C') => {
                 if key_event.modifiers == KeyModifiers::CONTROL {
                     app.quit();
                 }
