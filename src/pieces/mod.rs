@@ -1,4 +1,4 @@
-use crate::board::{Coords, GameBoard};
+use crate::{board::GameBoard, notations::Coords};
 
 use self::{bishop::Bishop, king::King, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook};
 
@@ -8,8 +8,62 @@ pub mod knight;
 pub mod pawn;
 pub mod queen;
 pub mod rook;
+
+#[derive(Clone, Debug, PartialEq, Copy)]
+pub struct Piece {
+    pub kind: PieceKind,
+    pub color: PieceColor,
+}
+impl Piece {
+    pub fn new(piece_kind: PieceKind, piece_color: PieceColor) -> Self {
+        Piece {
+            kind: piece_kind,
+            color: piece_color,
+        }
+    }
+    pub fn from_char(piece_char: char) -> Option<Piece> {
+        let (color, kind) = match piece_char {
+            'P' => (PieceColor::White, PieceKind::Pawn),
+            'N' => (PieceColor::White, PieceKind::Knight),
+            'B' => (PieceColor::White, PieceKind::Bishop),
+            'R' => (PieceColor::White, PieceKind::Rook),
+            'Q' => (PieceColor::White, PieceKind::Queen),
+            'K' => (PieceColor::White, PieceKind::King),
+            'p' => (PieceColor::Black, PieceKind::Pawn),
+            'n' => (PieceColor::Black, PieceKind::Knight),
+            'b' => (PieceColor::Black, PieceKind::Bishop),
+            'r' => (PieceColor::Black, PieceKind::Rook),
+            'q' => (PieceColor::Black, PieceKind::Queen),
+            'k' => (PieceColor::Black, PieceKind::King),
+            _ => return None,
+        };
+
+        Some(Piece { color, kind })
+    }
+}
+
+impl ToString for Piece {
+    fn to_string(&self) -> String {
+        match (&self.color, &self.kind) {
+            (&PieceColor::White, &PieceKind::Pawn) => "P",
+            (&PieceColor::White, &PieceKind::Knight) => "N",
+            (&PieceColor::White, &PieceKind::Bishop) => "B",
+            (&PieceColor::White, &PieceKind::Rook) => "R",
+            (&PieceColor::White, &PieceKind::Queen) => "Q",
+            (&PieceColor::White, &PieceKind::King) => "K",
+            (&PieceColor::Black, &PieceKind::Pawn) => "p",
+            (&PieceColor::Black, &PieceKind::Knight) => "n",
+            (&PieceColor::Black, &PieceKind::Bishop) => "b",
+            (&PieceColor::Black, &PieceKind::Rook) => "r",
+            (&PieceColor::Black, &PieceKind::Queen) => "q",
+            (&PieceColor::Black, &PieceKind::King) => "k",
+        }
+        .to_owned()
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub enum PieceType {
+pub enum PieceKind {
     Pawn,
     Rook,
     Bishop,
@@ -18,40 +72,40 @@ pub enum PieceType {
     Knight,
 }
 
-impl PieceType {
+impl PieceKind {
     pub fn authorized_positions(
         self,
         coordinates: &Coords,
         color: PieceColor,
         board: GameBoard,
-        move_history: &[(Option<PieceType>, String)],
+        move_history: &[(Option<PieceKind>, String)],
         is_king_checked: bool,
     ) -> Vec<Coords> {
         match self {
-            PieceType::Pawn => {
+            PieceKind::Pawn => {
                 Pawn::authorized_positions(coordinates, color, board, move_history, is_king_checked)
             }
-            PieceType::Rook => {
+            PieceKind::Rook => {
                 Rook::authorized_positions(coordinates, color, board, move_history, is_king_checked)
             }
-            PieceType::Bishop => Bishop::authorized_positions(
+            PieceKind::Bishop => Bishop::authorized_positions(
                 coordinates,
                 color,
                 board,
                 move_history,
                 is_king_checked,
             ),
-            PieceType::Queen => Queen::authorized_positions(
+            PieceKind::Queen => Queen::authorized_positions(
                 coordinates,
                 color,
                 board,
                 move_history,
                 is_king_checked,
             ),
-            PieceType::King => {
+            PieceKind::King => {
                 King::authorized_positions(coordinates, color, board, move_history, is_king_checked)
             }
-            PieceType::Knight => Knight::authorized_positions(
+            PieceKind::Knight => Knight::authorized_positions(
                 coordinates,
                 color,
                 board,
@@ -63,84 +117,84 @@ impl PieceType {
 
     pub fn protected_positions(
         selected_coordinates: &Coords,
-        piece_type: PieceType,
+        piece_type: PieceKind,
         color: PieceColor,
         board: GameBoard,
-        move_history: &[(Option<PieceType>, String)],
+        move_history: &[(Option<PieceKind>, String)],
     ) -> Vec<Coords> {
         match piece_type {
-            PieceType::Pawn => {
+            PieceKind::Pawn => {
                 Pawn::protected_positions(selected_coordinates, color, board, move_history)
             }
-            PieceType::Rook => {
+            PieceKind::Rook => {
                 Rook::protected_positions(selected_coordinates, color, board, move_history)
             }
-            PieceType::Bishop => {
+            PieceKind::Bishop => {
                 Bishop::protected_positions(selected_coordinates, color, board, move_history)
             }
-            PieceType::Queen => {
+            PieceKind::Queen => {
                 Queen::protected_positions(selected_coordinates, color, board, move_history)
             }
-            PieceType::King => {
+            PieceKind::King => {
                 King::protected_positions(selected_coordinates, color, board, move_history)
             }
-            PieceType::Knight => {
+            PieceKind::Knight => {
                 Knight::protected_positions(selected_coordinates, color, board, move_history)
             }
         }
     }
 
     pub fn piece_to_utf_enum(
-        piece_type: Option<PieceType>,
+        piece_type: Option<PieceKind>,
         piece_color: Option<PieceColor>,
     ) -> &'static str {
         match (piece_type, piece_color) {
-            (Some(PieceType::Queen), Some(PieceColor::Black)) => "♕",
-            (Some(PieceType::Queen), Some(PieceColor::White)) => "♛",
-            (Some(PieceType::King), Some(PieceColor::Black)) => "♔",
-            (Some(PieceType::King), Some(PieceColor::White)) => "♚",
-            (Some(PieceType::Rook), Some(PieceColor::Black)) => "♖",
-            (Some(PieceType::Rook), Some(PieceColor::White)) => "♜",
-            (Some(PieceType::Bishop), Some(PieceColor::Black)) => "♗",
-            (Some(PieceType::Bishop), Some(PieceColor::White)) => "♝",
-            (Some(PieceType::Knight), Some(PieceColor::Black)) => "♘",
-            (Some(PieceType::Knight), Some(PieceColor::White)) => "♞",
-            (Some(PieceType::Pawn), Some(PieceColor::Black)) => "♙",
-            (Some(PieceType::Pawn), Some(PieceColor::White)) => "♟",
+            (Some(PieceKind::Queen), Some(PieceColor::Black)) => "♕",
+            (Some(PieceKind::Queen), Some(PieceColor::White)) => "♛",
+            (Some(PieceKind::King), Some(PieceColor::Black)) => "♔",
+            (Some(PieceKind::King), Some(PieceColor::White)) => "♚",
+            (Some(PieceKind::Rook), Some(PieceColor::Black)) => "♖",
+            (Some(PieceKind::Rook), Some(PieceColor::White)) => "♜",
+            (Some(PieceKind::Bishop), Some(PieceColor::Black)) => "♗",
+            (Some(PieceKind::Bishop), Some(PieceColor::White)) => "♝",
+            (Some(PieceKind::Knight), Some(PieceColor::Black)) => "♘",
+            (Some(PieceKind::Knight), Some(PieceColor::White)) => "♞",
+            (Some(PieceKind::Pawn), Some(PieceColor::Black)) => "♙",
+            (Some(PieceKind::Pawn), Some(PieceColor::White)) => "♟",
             _ => "NONE",
         }
     }
 
     pub fn piece_to_fen_enum(
-        piece_type: Option<PieceType>,
+        piece_type: Option<PieceKind>,
         piece_color: Option<PieceColor>,
     ) -> &'static str {
         match (piece_type, piece_color) {
-            (Some(PieceType::Queen), Some(PieceColor::Black)) => "q",
-            (Some(PieceType::Queen), Some(PieceColor::White)) => "Q",
-            (Some(PieceType::King), Some(PieceColor::Black)) => "k",
-            (Some(PieceType::King), Some(PieceColor::White)) => "K",
-            (Some(PieceType::Rook), Some(PieceColor::Black)) => "r",
-            (Some(PieceType::Rook), Some(PieceColor::White)) => "R",
-            (Some(PieceType::Bishop), Some(PieceColor::Black)) => "b",
-            (Some(PieceType::Bishop), Some(PieceColor::White)) => "B",
-            (Some(PieceType::Knight), Some(PieceColor::Black)) => "n",
-            (Some(PieceType::Knight), Some(PieceColor::White)) => "N",
-            (Some(PieceType::Pawn), Some(PieceColor::Black)) => "p",
-            (Some(PieceType::Pawn), Some(PieceColor::White)) => "P",
+            (Some(PieceKind::Queen), Some(PieceColor::Black)) => "q",
+            (Some(PieceKind::Queen), Some(PieceColor::White)) => "Q",
+            (Some(PieceKind::King), Some(PieceColor::Black)) => "k",
+            (Some(PieceKind::King), Some(PieceColor::White)) => "K",
+            (Some(PieceKind::Rook), Some(PieceColor::Black)) => "r",
+            (Some(PieceKind::Rook), Some(PieceColor::White)) => "R",
+            (Some(PieceKind::Bishop), Some(PieceColor::Black)) => "b",
+            (Some(PieceKind::Bishop), Some(PieceColor::White)) => "B",
+            (Some(PieceKind::Knight), Some(PieceColor::Black)) => "n",
+            (Some(PieceKind::Knight), Some(PieceColor::White)) => "N",
+            (Some(PieceKind::Pawn), Some(PieceColor::Black)) => "p",
+            (Some(PieceKind::Pawn), Some(PieceColor::White)) => "P",
             (None, None) => "",
             _ => unreachable!("Undefined piece and piece color tuple"),
         }
     }
 
-    pub fn piece_type_to_string_enum(piece_type: Option<PieceType>) -> &'static str {
+    pub fn piece_kind_to_string_enum(piece_type: Option<PieceKind>) -> &'static str {
         match piece_type {
-            Some(PieceType::Queen) => Queen::to_string(),
-            Some(PieceType::King) => King::to_string(),
-            Some(PieceType::Rook) => Rook::to_string(),
-            Some(PieceType::Bishop) => Bishop::to_string(),
-            Some(PieceType::Knight) => Knight::to_string(),
-            Some(PieceType::Pawn) => Pawn::to_string(),
+            Some(PieceKind::Queen) => Queen::to_string(),
+            Some(PieceKind::King) => King::to_string(),
+            Some(PieceKind::Rook) => Rook::to_string(),
+            Some(PieceKind::Bishop) => Bishop::to_string(),
+            Some(PieceKind::Knight) => Knight::to_string(),
+            Some(PieceKind::Pawn) => Pawn::to_string(),
             None => " ",
         }
     }
@@ -166,7 +220,7 @@ pub trait Movable {
         color: PieceColor,
         board: GameBoard,
         allow_move_on_ally_positions: bool,
-        move_history: &[(Option<PieceType>, String)],
+        move_history: &[(Option<PieceKind>, String)],
     ) -> Vec<Coords>;
 }
 
@@ -175,7 +229,7 @@ pub trait Position {
         coordinates: &Coords,
         color: PieceColor,
         board: GameBoard,
-        move_history: &[(Option<PieceType>, String)],
+        move_history: &[(Option<PieceKind>, String)],
         is_king_checked: bool,
     ) -> Vec<Coords>;
 
@@ -183,6 +237,6 @@ pub trait Position {
         coordinates: &Coords,
         color: PieceColor,
         board: GameBoard,
-        move_history: &[(Option<PieceType>, String)],
+        move_history: &[(Option<PieceKind>, String)],
     ) -> Vec<Coords>;
 }

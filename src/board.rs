@@ -1,10 +1,11 @@
 use crate::{
     constants::{BLACK, UNDEFINED_POSITION, WHITE},
-    pieces::{PieceColor, PieceType},
+    notations::Coords,
+    pieces::{Piece, PieceColor, PieceKind},
     utils::{
         col_to_letter, color_to_ratatui_enum, convert_notation_into_position,
         convert_position_into_notation, did_piece_already_move, get_int_from_char,
-        get_king_coordinates, get_piece_color, get_piece_type, is_getting_checked, is_valid,
+        get_king_coordinates, get_piece_color, get_piece_kind, is_getting_checked, is_valid,
     },
 };
 use ratatui::{
@@ -17,94 +18,7 @@ use ratatui::{
 use std::cmp::Ordering;
 use uci::Engine;
 
-/// Coordinates
-///
-/// Columns/x/j:
-/// |  |  |
-/// |  |  |
-/// |  |  |
-/// 0  1  2
-///
-/// Rows/y/i:
-/// _  _  _ 0
-/// _  _  _ 1
-/// _  _  _ 2
-#[derive(Debug, PartialEq, Eq, Ord, PartialOrd, Clone)]
-pub struct Coords {
-    /// column/x/j/[1]
-    /// |  |  |
-    /// |  |  |
-    /// |  |  |
-    /// 0  1  2
-    pub col: i8,
-    /// row/y/i/[0]
-    /// _  _  _ 0
-    /// _  _  _ 1
-    /// _  _  _ 2
-    pub row: i8,
-}
-impl Coords {
-    /// warning! these arguments are not (x;y) but (y;x) coordinates
-    /// # Panics
-    ///
-    /// should be: if `col` or `row` exceeds max: 7, or is lower than 0
-    ///
-    /// should be: if you need an undefined position, use `Coords::default()`
-    pub fn new<T: Into<i8>>(row: T, col: T) -> Self {
-        let row = row.into();
-        let col = col.into();
-        if row < -2 {
-            panic!("row < 0");
-        }
-        if row > 9 {
-            panic!("row > 8");
-        }
-        if col < -2 {
-            panic!("col < 0");
-        }
-        if col > 9 {
-            panic!("col > 8");
-        }
-        // if !(0..=7).contains(&row) || !(0..=7).contains(&col) {
-        //     panic!("row or col is not valid as a coordinate: should be 0-7");
-        // }
-        Self { col, row }
-    }
-    pub fn to_hist(&self) -> String {
-        format!("{}{}", self.row, self.col)
-    }
-    /// Convert history record to coordinates
-    pub fn from_hist(hist_item: &str) -> Self {
-        assert_eq!(hist_item.chars().count(), 2);
-        Self::new(
-            hist_item
-                .chars()
-                .nth(0)
-                .unwrap()
-                .to_string()
-                .parse::<i8>()
-                .unwrap(),
-            hist_item
-                .chars()
-                .nth(1)
-                .unwrap()
-                .to_string()
-                .parse()
-                .unwrap(),
-        )
-    }
-}
-impl Default for Coords {
-    fn default() -> Self {
-        Coords {
-            col: UNDEFINED_POSITION,
-            row: UNDEFINED_POSITION,
-        }
-    }
-}
-
-pub type Piece = Option<(PieceType, PieceColor)>;
-pub type GameBoard = [[Piece; 8]; 8];
+pub type GameBoard = [[Option<Piece>; 8]; 8];
 
 // trait IndexBoard {
 //     fn get_coord(&self, coords: &Coords) -> Piece;
@@ -159,7 +73,7 @@ pub struct Board {
     pub selected_piece_cursor: i8,
     pub old_cursor_position: Coords,
     pub player_turn: PieceColor,
-    pub move_history: Vec<(Option<PieceType>, String)>,
+    pub move_history: Vec<(Option<PieceKind>, String)>,
     pub is_draw: bool,
     pub is_checkmate: bool,
     pub is_promotion: bool,
@@ -174,48 +88,48 @@ impl Default for Board {
         Self {
             board: [
                 [
-                    Some((PieceType::Rook, PieceColor::Black)),
-                    Some((PieceType::Knight, PieceColor::Black)),
-                    Some((PieceType::Bishop, PieceColor::Black)),
-                    Some((PieceType::Queen, PieceColor::Black)),
-                    Some((PieceType::King, PieceColor::Black)),
-                    Some((PieceType::Bishop, PieceColor::Black)),
-                    Some((PieceType::Knight, PieceColor::Black)),
-                    Some((PieceType::Rook, PieceColor::Black)),
+                    Some(Piece::new(PieceKind::Rook, PieceColor::Black)),
+                    Some(Piece::new(PieceKind::Knight, PieceColor::Black)),
+                    Some(Piece::new(PieceKind::Bishop, PieceColor::Black)),
+                    Some(Piece::new(PieceKind::Queen, PieceColor::Black)),
+                    Some(Piece::new(PieceKind::King, PieceColor::Black)),
+                    Some(Piece::new(PieceKind::Bishop, PieceColor::Black)),
+                    Some(Piece::new(PieceKind::Knight, PieceColor::Black)),
+                    Some(Piece::new(PieceKind::Rook, PieceColor::Black)),
                 ],
                 [
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
+                    Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+                    Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+                    Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+                    Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+                    Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+                    Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+                    Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+                    Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
                 ],
                 [None, None, None, None, None, None, None, None],
                 [None, None, None, None, None, None, None, None],
                 [None, None, None, None, None, None, None, None],
                 [None, None, None, None, None, None, None, None],
                 [
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
+                    Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+                    Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+                    Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+                    Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+                    Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+                    Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+                    Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+                    Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
                 ],
                 [
-                    Some((PieceType::Rook, PieceColor::White)),
-                    Some((PieceType::Knight, PieceColor::White)),
-                    Some((PieceType::Bishop, PieceColor::White)),
-                    Some((PieceType::Queen, PieceColor::White)),
-                    Some((PieceType::King, PieceColor::White)),
-                    Some((PieceType::Bishop, PieceColor::White)),
-                    Some((PieceType::Knight, PieceColor::White)),
-                    Some((PieceType::Rook, PieceColor::White)),
+                    Some(Piece::new(PieceKind::Rook, PieceColor::White)),
+                    Some(Piece::new(PieceKind::Knight, PieceColor::White)),
+                    Some(Piece::new(PieceKind::Bishop, PieceColor::White)),
+                    Some(Piece::new(PieceKind::Queen, PieceColor::White)),
+                    Some(Piece::new(PieceKind::King, PieceColor::White)),
+                    Some(Piece::new(PieceKind::Bishop, PieceColor::White)),
+                    Some(Piece::new(PieceKind::Knight, PieceColor::White)),
+                    Some(Piece::new(PieceKind::Rook, PieceColor::White)),
                 ],
             ],
             cursor_coordinates: Coords::new(4, 4),
@@ -237,12 +151,12 @@ impl Default for Board {
 
 impl Board {
     pub fn new(
-        board: GameBoard,
+        board: &GameBoard,
         player_turn: PieceColor,
-        move_history: Vec<(Option<PieceType>, String)>,
+        move_history: Vec<(Option<PieceKind>, String)>,
     ) -> Self {
         Self {
-            board,
+            board: board.to_owned(),
             cursor_coordinates: Coords::new(4, 4),
             selected_coordinates: Coords::default(),
             selected_piece_cursor: 0,
@@ -287,11 +201,11 @@ impl Board {
     //     &mut self.board[coord.row as usize][coord.col as usize]
     // }
     /// get `self.board` at `coord`
-    fn get(&self, coord: &Coords) -> Piece {
+    fn get(&self, coord: &Coords) -> Option<Piece> {
         self.board[coord.row as usize][coord.col as usize]
     }
     /// set `self.board` at `coord` to `piece`
-    fn set(&mut self, coord: &Coords, piece: Piece) {
+    fn set(&mut self, coord: &Coords, piece: Option<Piece>) {
         self.board[coord.row as usize][coord.col as usize] = piece;
     }
     // /// set `self.board` at `coord` created from `x`,`y` to `piece`
@@ -301,12 +215,12 @@ impl Board {
 
     fn get_authorized_positions(
         &self,
-        piece_type: Option<PieceType>,
+        piece_kind: Option<PieceKind>,
         piece_color: Option<PieceColor>,
         coordinates: &Coords,
     ) -> Vec<Coords> {
-        match (piece_type, piece_color) {
-            (Some(piece_type), Some(piece_color)) => piece_type.authorized_positions(
+        match (piece_kind, piece_color) {
+            (Some(piece_kind), Some(piece_color)) => piece_kind.authorized_positions(
                 coordinates,
                 piece_color,
                 self.board,
@@ -371,8 +285,8 @@ impl Board {
     pub fn did_king_already_move(&self) -> bool {
         for i in 0..self.move_history.len() {
             match self.move_history[i] {
-                (Some(piece_type), _) => {
-                    if piece_type == PieceType::King && self.player_turn as usize == i % 2 {
+                (Some(piece_kind), _) => {
+                    if piece_kind == PieceKind::King && self.player_turn as usize == i % 2 {
                         return true;
                     }
                 }
@@ -383,11 +297,11 @@ impl Board {
     }
 
     fn move_selected_piece_cursor(&mut self, first_time_moving: bool, direction: i8) {
-        let piece_color = get_piece_color(self.board, &self.selected_coordinates);
-        let piece_type = get_piece_type(self.board, &self.selected_coordinates);
+        let piece_color = get_piece_color(&self.board, &self.selected_coordinates);
+        let piece_kind = get_piece_kind(&self.board, &self.selected_coordinates);
 
         let mut authorized_positions =
-            self.get_authorized_positions(piece_type, piece_color, &self.selected_coordinates);
+            self.get_authorized_positions(piece_kind, piece_color, &self.selected_coordinates);
 
         if !authorized_positions.is_empty() {
             self.selected_piece_cursor = if self.selected_piece_cursor == 0 && first_time_moving {
@@ -420,11 +334,11 @@ impl Board {
         } else if !self.is_checkmate && !self.is_draw {
             if !self.is_cell_selected() {
                 // Check if the piece on the cell can move before selecting it
-                let piece_color = get_piece_color(self.board, &self.cursor_coordinates);
-                let piece_type = get_piece_type(self.board, &self.cursor_coordinates);
+                let piece_color = get_piece_color(&self.board, &self.cursor_coordinates);
+                let piece_kind = get_piece_kind(&self.board, &self.cursor_coordinates);
 
                 let authorized_positions = self.get_authorized_positions(
-                    piece_type,
+                    piece_kind,
                     piece_color,
                     &self.cursor_coordinates,
                 );
@@ -432,7 +346,7 @@ impl Board {
                 if authorized_positions.is_empty() {
                     return;
                 }
-                if let Some(piece_color) = get_piece_color(self.board, &self.cursor_coordinates) {
+                if let Some(piece_color) = get_piece_color(&self.board, &self.cursor_coordinates) {
                     if piece_color == self.player_turn {
                         self.selected_coordinates = self.cursor_coordinates.clone();
                         self.old_cursor_position = self.cursor_coordinates.clone();
@@ -497,11 +411,11 @@ impl Board {
 
         for i in 0..8i8 {
             for j in 0..8i8 {
-                let (piece_type, piece_color) = (
-                    get_piece_type(self.board, &Coords::new(i, j)),
-                    get_piece_color(self.board, &Coords::new(i, j)),
+                let (piece_kind, piece_color) = (
+                    get_piece_kind(&self.board, &Coords::new(i, j)),
+                    get_piece_color(&self.board, &Coords::new(i, j)),
                 );
-                match PieceType::piece_to_fen_enum(piece_type, piece_color) {
+                match PieceKind::piece_to_fen_enum(piece_kind, piece_color) {
                     // Pattern match directly on the result of piece_to_fen_enum
                     "" => {
                         // Check if the string is not empty before using chars().last()
@@ -538,20 +452,20 @@ impl Board {
         // We add the castles availabilities for black
         if !did_piece_already_move(
             &self.move_history,
-            (Some(PieceType::King), Coords::new(0, 4)),
+            (Some(PieceKind::King), Coords::new(0, 4)),
         ) && !is_getting_checked(self.board, PieceColor::Black, &self.move_history)
         {
             // king side black castle availability
             if !did_piece_already_move(
                 &self.move_history,
-                (Some(PieceType::Rook), Coords::new(0, 7)),
+                (Some(PieceKind::Rook), Coords::new(0, 7)),
             ) {
                 result.push_str(" k");
             }
             // queen side black castle availability
             if !did_piece_already_move(
                 &self.move_history,
-                (Some(PieceType::Rook), Coords::new(0, 0)),
+                (Some(PieceKind::Rook), Coords::new(0, 0)),
             ) {
                 result.push('q');
             }
@@ -595,13 +509,13 @@ impl Board {
 
     pub fn did_pawn_move_two_cells(&self) -> bool {
         match self.move_history.last() {
-            Some((Some(piece_type), move_string)) => {
+            Some((Some(piece_kind), move_string)) => {
                 let from_y = get_int_from_char(move_string.chars().next());
                 let to_y = get_int_from_char(move_string.chars().nth(2));
 
                 let distance = (to_y - from_y).abs();
 
-                if piece_type == &PieceType::Pawn && distance == 2 {
+                if piece_kind == &PieceKind::Pawn && distance == 2 {
                     return true;
                 }
                 false
@@ -616,18 +530,18 @@ impl Board {
                 get_int_from_char(position.1.chars().nth(3)),
             );
             let new_piece = match self.promotion_cursor {
-                0 => PieceType::Queen,
-                1 => PieceType::Rook,
-                2 => PieceType::Bishop,
-                3 => PieceType::Knight,
+                0 => PieceKind::Queen,
+                1 => PieceKind::Rook,
+                2 => PieceKind::Bishop,
+                3 => PieceKind::Knight,
                 _ => unreachable!("Promotion cursor out of boundaries"),
             };
 
-            let current_piece_color = get_piece_color(self.board, &to);
+            let current_piece_color = get_piece_color(&self.board, &to);
             if let Some(piece_color) = current_piece_color {
-                // we replace the piece by the new piece type
+                // we replace the piece by the new piece kind
                 // self.board.set_coord(&to, Some((new_piece, piece_color)));
-                self.set(&to, Some((new_piece, piece_color)));
+                self.set(&to, Some(Piece::new(new_piece, piece_color)));
             }
         }
         self.is_promotion = false;
@@ -644,12 +558,12 @@ impl Board {
             1
         };
 
-        let piece_type_from = get_piece_type(self.board, from);
-        let piece_type_to = get_piece_type(self.board, to);
+        let piece_kind_from = get_piece_kind(&self.board, from);
+        let piece_kind_to = get_piece_kind(&self.board, to);
 
-        // We increment the consecutive_non_pawn_or_capture if the piece type is a pawn or if there is no capture
-        match (piece_type_from, piece_type_to) {
-            (Some(PieceType::Pawn), _) | (Some(_), Some(_)) => {
+        // We increment the consecutive_non_pawn_or_capture if the piece kind is a pawn or if there is no capture
+        match (piece_kind_from, piece_kind_to) {
+            (Some(PieceKind::Pawn), _) | (Some(_), Some(_)) => {
                 self.consecutive_non_pawn_or_capture = 0;
             }
             _ => {
@@ -716,13 +630,13 @@ impl Board {
         self.set(from, None);
 
         let position_number: String = format!("{}{}", from.to_hist(), to_hist.to_hist());
-        let tuple = (piece_type_from, position_number);
+        let tuple = (piece_kind_from, position_number);
         // We store it in the history
         self.move_history.push(tuple.clone());
     }
 
     /// move history of `self` contains this coordinate, either as moved to or from
-    fn history_has(&self, coord: &Coords, to: bool) -> Option<PieceType> {
+    fn history_has(&self, coord: &Coords, to: bool) -> Option<PieceKind> {
         let hist = &self.move_history;
         if hist.is_empty() {
             return None;
@@ -745,12 +659,12 @@ impl Board {
 
     /// takeback
     pub fn takeback(&mut self) {
-        if let Some((Some(piece_type), prev_move)) = self.move_history.pop() {
+        if let Some((Some(piece_kind), prev_move)) = self.move_history.pop() {
             let to = Coords::from_hist(&prev_move[0..2]);
             let from = Coords::from_hist(&prev_move[2..4]);
 
             // check for castling
-            if piece_type == PieceType::King && (from.col - to.col).abs() > 1 {
+            if piece_kind == PieceKind::King && (from.col - to.col).abs() > 1 {
                 // check all 4 rooks, place back the one that was involved in castling
                 let right_rook = Coords::new(from.row, from.col - 1);
                 let left_rook = Coords::new(from.row, from.col + 1);
@@ -758,57 +672,63 @@ impl Board {
                     PieceColor::Black => {
                         if self
                             .get(&right_rook)
-                            .is_some_and(|piece| piece.0 == PieceType::Rook)
+                            .is_some_and(|piece| piece.kind == PieceKind::Rook)
                         {
                             self.set(&right_rook, None);
                             self.set(
                                 &Coords::new(7, 7),
-                                Some((PieceType::Rook, PieceColor::White)),
+                                Some(Piece::new(PieceKind::Rook, PieceColor::White)),
                             );
                         } else {
                             self.set(&left_rook, None);
                             self.set(
                                 &Coords::new(7, 0),
-                                Some((PieceType::Rook, PieceColor::White)),
+                                Some(Piece::new(PieceKind::Rook, PieceColor::White)),
                             )
                         }
                     }
                     PieceColor::White => {
                         if self
                             .get(&right_rook)
-                            .is_some_and(|piece| piece.0 == PieceType::Rook)
+                            .is_some_and(|piece| piece.kind == PieceKind::Rook)
                         {
                             self.set(&right_rook, None);
                             self.set(
                                 &Coords::new(0, 7),
-                                Some((PieceType::Rook, PieceColor::Black)),
+                                Some(Piece::new(PieceKind::Rook, PieceColor::Black)),
                             )
                         } else {
                             self.set(&left_rook, None);
                             self.set(
                                 &Coords::new(0, 0),
-                                Some((PieceType::Rook, PieceColor::Black)),
+                                Some(Piece::new(PieceKind::Rook, PieceColor::Black)),
                             )
                         }
                     }
                 }
             }
             // check for en-passant
-            else if piece_type == PieceType::Pawn && to.row != from.row && to.col != from.col {
-                if let Some((Some(PieceType::Pawn), hist)) = self.move_history.last() {
+            else if piece_kind == PieceKind::Pawn && to.row != from.row && to.col != from.col {
+                if let Some((Some(PieceKind::Pawn), hist)) = self.move_history.last() {
                     let passant_from = Coords::from_hist(&hist[0..2]);
                     let passant_to = Coords::from_hist(&hist[2..4]);
                     if (passant_to.row - passant_from.row).abs() > 1
                         && (from.row - passant_to.row).abs() == 1
                     {
-                        self.set(&passant_to, Some((PieceType::Pawn, self.player_turn)));
+                        self.set(
+                            &passant_to,
+                            Some(Piece::new(PieceKind::Pawn, self.player_turn)),
+                        );
                     }
                 }
             }
             // check for promotions
-            if piece_type == PieceType::Pawn && (from.row == 0 || from.row == 7) {
+            if piece_kind == PieceKind::Pawn && (from.row == 0 || from.row == 7) {
                 // todo!("promotion takeback");
-                self.set(&to, Some((PieceType::Pawn, self.player_turn.opposite())));
+                self.set(
+                    &to,
+                    Some(Piece::new(PieceKind::Pawn, self.player_turn.opposite())),
+                );
             } else {
                 // take last moved piece back to where it came from
                 self.set(&to, self.get(&from));
@@ -827,14 +747,18 @@ impl Board {
                 if self.history_has(&from, true).is_some()
                     && self.history_has(&from, false).is_none()
                 {
-                    let piece_type = self.history_has(&from, true).unwrap();
-                    Some((piece_type, self.player_turn))
-                } else if let Some((pt, pc)) = Self::default().get(&from) {
+                    let piece_kind = self.history_has(&from, true).unwrap();
+                    Some(Piece::new(piece_kind, self.player_turn))
+                } else if let Some(Piece {
+                    kind: pk,
+                    color: pc,
+                }) = Self::default().get(&from)
+                {
                     // faulty :(
-                    if get_piece_color(Self::default().board, &from) == Some(self.player_turn)
+                    if get_piece_color(&Self::default().board, &from) == Some(self.player_turn)
                         && self.history_has(&from, false).is_none()
                     {
-                        Some((pt, pc))
+                        Some(Piece::new(pk, pc))
                     } else {
                         None
                     }
@@ -860,10 +784,14 @@ impl Board {
 
         for i in 0..7 {
             for j in 0..7 {
-                if let Some((piece_type, piece_color)) = self.board[i][j] {
+                if let Some(Piece {
+                    kind: piece_kind,
+                    color: piece_color,
+                }) = self.board[i][j]
+                {
                     if piece_color == self.player_turn {
                         possible_moves.extend(self.get_authorized_positions(
-                            Some(piece_type),
+                            Some(piece_kind),
                             Some(piece_color),
                             &Coords::new(i as i8, j as i8),
                         ))
@@ -875,11 +803,11 @@ impl Board {
     }
 
     fn is_latest_move_en_passant(&self, from: &Coords, to: &Coords) -> bool {
-        let piece_type_from = get_piece_type(self.board, from);
-        let piece_type_to = get_piece_type(self.board, to);
+        let piece_kind_from = get_piece_kind(&self.board, from);
+        let piece_kind_to = get_piece_kind(&self.board, to);
 
-        match (piece_type_from, piece_type_to) {
-            (Some(PieceType::Pawn), _) => {
+        match (piece_kind_from, piece_kind_to) {
+            (Some(PieceKind::Pawn), _) => {
                 // Check if it's a diagonal move, and the destination is an empty cell
                 from.row != to.row && from.col != to.col && self.get(to).is_none()
             }
@@ -888,13 +816,13 @@ impl Board {
     }
 
     fn is_latest_move_castling(&self, from: &Coords, to: &Coords) -> bool {
-        let piece_type_from = get_piece_type(self.board, from);
-        let piece_type_to = get_piece_type(self.board, to);
+        let piece_kind_from = get_piece_kind(&self.board, from);
+        let piece_kind_to = get_piece_kind(&self.board, to);
 
         let distance = (from.col - to.col).abs();
 
-        match (piece_type_from, piece_type_to) {
-            (Some(PieceType::King), _) => distance > 1,
+        match (piece_kind_from, piece_kind_to) {
+            (Some(PieceKind::King), _) => distance > 1,
             _ => false,
         }
     }
@@ -905,15 +833,15 @@ impl Board {
             let to_x = get_int_from_char(position.1.chars().nth(3));
             let to = Coords::new(to_y, to_x);
 
-            if let Some(piece_type_from) = get_piece_type(self.board, &to) {
-                if let Some(piece_color) = get_piece_color(self.board, &to) {
+            if let Some(piece_kind_from) = get_piece_kind(&self.board, &to) {
+                if let Some(piece_color) = get_piece_color(&self.board, &to) {
                     let last_row = if piece_color == PieceColor::White {
                         0
                     } else {
                         7
                     };
 
-                    if to_y == last_row && piece_type_from == PieceType::Pawn {
+                    if to_y == last_row && piece_kind_from == PieceKind::Pawn {
                         return true;
                     }
                 }
@@ -932,7 +860,7 @@ impl Board {
 
     pub fn draw_by_repetition(&self) -> bool {
         if self.move_history.len() >= 9 {
-            let last_ten: Vec<(Option<PieceType>, String)> =
+            let last_ten: Vec<(Option<PieceKind>, String)> =
                 self.move_history.iter().rev().take(9).cloned().collect();
 
             if (last_ten[0].clone(), last_ten[1].clone())
@@ -1006,12 +934,12 @@ impl Board {
 
                 // Draw the available moves for the selected piece
                 if self.is_cell_selected() {
-                    let selected_piece_type =
-                        get_piece_type(self.board, &self.selected_coordinates);
+                    let selected_piece_kind =
+                        get_piece_kind(&self.board, &self.selected_coordinates);
                     let selected_piece_color: Option<PieceColor> =
-                        get_piece_color(self.board, &self.selected_coordinates);
+                        get_piece_color(&self.board, &self.selected_coordinates);
                     let positions = self.get_authorized_positions(
-                        selected_piece_type,
+                        selected_piece_kind,
                         selected_piece_color,
                         &self.selected_coordinates,
                     );
@@ -1049,11 +977,11 @@ impl Board {
                 // We check if the current king is getting checked
 
                 // Get piece and color
-                let piece_color = get_piece_color(self.board, &Coords::new(i, j));
-                let piece_type = get_piece_type(self.board, &Coords::new(i, j));
+                let piece_color = get_piece_color(&self.board, &Coords::new(i, j));
+                let piece_kind = get_piece_kind(&self.board, &Coords::new(i, j));
 
                 let color_enum = color_to_ratatui_enum(piece_color);
-                let piece_enum = PieceType::piece_type_to_string_enum(piece_type);
+                let piece_enum = PieceKind::piece_kind_to_string_enum(piece_kind);
 
                 // Place the pieces on the board
                 let paragraph = Paragraph::new(piece_enum)
@@ -1076,11 +1004,11 @@ impl Board {
         let mut lines: Vec<Line> = vec![];
 
         for i in (0..self.move_history.len()).step_by(2) {
-            let piece_type_from = self.move_history[i].0;
+            let piece_kind_from = self.move_history[i].0;
             let number_move = &self.move_history[i].1;
 
             let utf_icon_white =
-                PieceType::piece_to_utf_enum(piece_type_from, Some(PieceColor::White));
+                PieceKind::piece_to_utf_enum(piece_kind_from, Some(PieceColor::White));
             let move_white = convert_position_into_notation(number_move.to_string());
 
             let mut utf_icon_black = "   ";
@@ -1088,12 +1016,12 @@ impl Board {
 
             // If there is something for black
             if i + 1 < self.move_history.len() {
-                let piece_type_to = self.move_history[i + 1].0;
+                let piece_kind_to = self.move_history[i + 1].0;
                 let number = &self.move_history[i + 1].1;
 
                 move_black = convert_position_into_notation(number.to_string());
                 utf_icon_black =
-                    PieceType::piece_to_utf_enum(piece_type_to, Some(PieceColor::Black))
+                    PieceKind::piece_to_utf_enum(piece_kind_to, Some(PieceColor::Black))
             }
 
             lines.push(Line::from(vec![
@@ -1136,9 +1064,12 @@ mod tests {
     use crate::{
         board::{Board, Coords},
         constants::UNDEFINED_POSITION,
-        pieces::{PieceColor, PieceType},
+        notations::fen,
+        pieces::{Piece, PieceColor, PieceKind},
         utils::is_getting_checked,
     };
+
+    use super::GameBoard;
 
     #[test]
     fn is_getting_checked_true() {
@@ -1151,7 +1082,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::Black)),
                 None,
                 None,
                 None,
@@ -1161,7 +1092,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::King, PieceColor::White)),
+                Some(Piece::new(PieceKind::King, PieceColor::White)),
                 None,
                 None,
                 None,
@@ -1186,7 +1117,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::Black)),
                 None,
                 None,
                 None,
@@ -1196,7 +1127,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
                 None,
                 None,
                 None,
@@ -1206,7 +1137,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::King, PieceColor::White)),
+                Some(Piece::new(PieceKind::King, PieceColor::White)),
                 None,
                 None,
                 None,
@@ -1225,48 +1156,48 @@ mod tests {
     fn is_getting_checked_piece_in_front_false() {
         let custom_board = [
             [
-                Some((PieceType::Rook, PieceColor::Black)),
-                Some((PieceType::Knight, PieceColor::Black)),
-                Some((PieceType::Bishop, PieceColor::Black)),
-                Some((PieceType::Queen, PieceColor::Black)),
-                Some((PieceType::King, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Knight, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Bishop, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Queen, PieceColor::Black)),
+                Some(Piece::new(PieceKind::King, PieceColor::Black)),
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::Black)),
             ],
             [
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
             ],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
                 None,
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
             ],
             [
-                Some((PieceType::Rook, PieceColor::White)),
-                Some((PieceType::Knight, PieceColor::White)),
-                Some((PieceType::Bishop, PieceColor::White)),
-                Some((PieceType::Queen, PieceColor::White)),
-                Some((PieceType::Rook, PieceColor::White)),
-                Some((PieceType::Bishop, PieceColor::White)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::White)),
+                Some(Piece::new(PieceKind::Knight, PieceColor::White)),
+                Some(Piece::new(PieceKind::Bishop, PieceColor::White)),
+                Some(Piece::new(PieceKind::Queen, PieceColor::White)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::White)),
+                Some(Piece::new(PieceKind::Bishop, PieceColor::White)),
                 None,
-                Some((PieceType::King, PieceColor::White)),
+                Some(Piece::new(PieceKind::King, PieceColor::White)),
             ],
         ];
         let mut board = Board::default();
@@ -1279,31 +1210,31 @@ mod tests {
     fn is_getting_checked_piece_in_with_gap_false() {
         let custom_board = [
             [
-                Some((PieceType::Rook, PieceColor::Black)),
-                Some((PieceType::Knight, PieceColor::Black)),
-                Some((PieceType::Bishop, PieceColor::Black)),
-                Some((PieceType::Queen, PieceColor::Black)),
-                Some((PieceType::King, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Knight, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Bishop, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Queen, PieceColor::Black)),
+                Some(Piece::new(PieceKind::King, PieceColor::Black)),
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::Black)),
             ],
             [
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
                 None,
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
             ],
             [
                 None,
                 None,
                 None,
                 None,
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
                 None,
                 None,
                 None,
@@ -1312,24 +1243,24 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
                 None,
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
             ],
             [
-                Some((PieceType::Rook, PieceColor::White)),
-                Some((PieceType::Knight, PieceColor::White)),
-                Some((PieceType::Bishop, PieceColor::White)),
-                Some((PieceType::Queen, PieceColor::White)),
-                Some((PieceType::Rook, PieceColor::White)),
-                Some((PieceType::Bishop, PieceColor::White)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::White)),
+                Some(Piece::new(PieceKind::Knight, PieceColor::White)),
+                Some(Piece::new(PieceKind::Bishop, PieceColor::White)),
+                Some(Piece::new(PieceKind::Queen, PieceColor::White)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::White)),
+                Some(Piece::new(PieceKind::Bishop, PieceColor::White)),
                 None,
-                Some((PieceType::King, PieceColor::White)),
+                Some(Piece::new(PieceKind::King, PieceColor::White)),
             ],
         ];
         let mut board = Board::default();
@@ -1342,7 +1273,7 @@ mod tests {
     fn is_checkmate_true() {
         let custom_board = [
             [
-                Some((PieceType::King, PieceColor::White)),
+                Some(Piece::new(PieceKind::King, PieceColor::White)),
                 None,
                 None,
                 None,
@@ -1354,7 +1285,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [
                 None,
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::Black)),
                 None,
                 None,
                 None,
@@ -1363,7 +1294,7 @@ mod tests {
                 None,
             ],
             [
-                Some((PieceType::Queen, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Queen, PieceColor::Black)),
                 None,
                 None,
                 None,
@@ -1377,7 +1308,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let board = Board::new(custom_board, PieceColor::White, vec![]);
+        let board = Board::new(&custom_board, PieceColor::White, vec![]);
 
         assert!(board.is_checkmate());
     }
@@ -1386,7 +1317,7 @@ mod tests {
     fn is_checkmate_false() {
         let custom_board = [
             [
-                Some((PieceType::King, PieceColor::White)),
+                Some(Piece::new(PieceKind::King, PieceColor::White)),
                 None,
                 None,
                 None,
@@ -1398,7 +1329,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [
                 None,
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::Black)),
                 None,
                 None,
                 None,
@@ -1410,7 +1341,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Queen, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Queen, PieceColor::Black)),
                 None,
                 None,
                 None,
@@ -1421,7 +1352,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let board = Board::new(custom_board, PieceColor::White, vec![]);
+        let board = Board::new(&custom_board, PieceColor::White, vec![]);
 
         assert!(!board.is_checkmate());
     }
@@ -1430,7 +1361,7 @@ mod tests {
     fn is_checkmate_false_2() {
         let custom_board = [
             [
-                Some((PieceType::King, PieceColor::White)),
+                Some(Piece::new(PieceKind::King, PieceColor::White)),
                 None,
                 None,
                 None,
@@ -1446,12 +1377,12 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Queen, PieceColor::White)),
+                Some(Piece::new(PieceKind::Queen, PieceColor::White)),
                 None,
             ],
             [
                 None,
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::Black)),
                 None,
                 None,
                 None,
@@ -1460,7 +1391,7 @@ mod tests {
                 None,
             ],
             [
-                Some((PieceType::Queen, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Queen, PieceColor::Black)),
                 None,
                 None,
                 None,
@@ -1474,7 +1405,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let board = Board::new(custom_board, PieceColor::White, vec![]);
+        let board = Board::new(&custom_board, PieceColor::White, vec![]);
 
         assert!(!board.is_checkmate());
     }
@@ -1483,7 +1414,7 @@ mod tests {
     fn is_draw_true() {
         let custom_board = [
             [
-                Some((PieceType::King, PieceColor::White)),
+                Some(Piece::new(PieceKind::King, PieceColor::White)),
                 None,
                 None,
                 None,
@@ -1495,7 +1426,7 @@ mod tests {
             [
                 None,
                 None,
-                Some((PieceType::Queen, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Queen, PieceColor::Black)),
                 None,
                 None,
                 None,
@@ -1504,7 +1435,7 @@ mod tests {
             ],
             [
                 None,
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::Black)),
                 None,
                 None,
                 None,
@@ -1518,7 +1449,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let board = Board::new(custom_board, PieceColor::White, vec![]);
+        let board = Board::new(&custom_board, PieceColor::White, vec![]);
 
         assert!(board.is_draw());
     }
@@ -1527,7 +1458,7 @@ mod tests {
     fn is_draw_false() {
         let custom_board = [
             [
-                Some((PieceType::King, PieceColor::White)),
+                Some(Piece::new(PieceKind::King, PieceColor::White)),
                 None,
                 None,
                 None,
@@ -1541,7 +1472,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Queen, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Queen, PieceColor::Black)),
                 None,
                 None,
                 None,
@@ -1549,7 +1480,7 @@ mod tests {
             [
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::Black)),
                 None,
                 None,
                 None,
@@ -1562,7 +1493,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let board = Board::new(custom_board, PieceColor::White, vec![]);
+        let board = Board::new(&custom_board, PieceColor::White, vec![]);
 
         assert!(!board.is_draw());
     }
@@ -1578,13 +1509,13 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::King, PieceColor::Black)),
+                Some(Piece::new(PieceKind::King, PieceColor::Black)),
             ],
             [
                 None,
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::White)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::White)),
                 None,
                 None,
                 None,
@@ -1598,7 +1529,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
                 None,
                 None,
                 None,
@@ -1606,7 +1537,7 @@ mod tests {
             ],
             [
                 None,
-                Some((PieceType::King, PieceColor::White)),
+                Some(Piece::new(PieceKind::King, PieceColor::White)),
                 None,
                 None,
                 None,
@@ -1616,9 +1547,9 @@ mod tests {
             ],
         ];
         let board = Board::new(
-            custom_board,
+            &custom_board,
             PieceColor::Black,
-            vec![(Some(PieceType::Pawn), "7363".to_string())],
+            vec![(Some(PieceKind::Pawn), "7363".to_string())],
         );
 
         assert!(!board.is_latest_move_promotion());
@@ -1631,16 +1562,16 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
                 None,
                 None,
-                Some((PieceType::King, PieceColor::Black)),
+                Some(Piece::new(PieceKind::King, PieceColor::Black)),
             ],
             [
                 None,
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::White)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::White)),
                 None,
                 None,
                 None,
@@ -1653,7 +1584,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [
                 None,
-                Some((PieceType::King, PieceColor::White)),
+                Some(Piece::new(PieceKind::King, PieceColor::White)),
                 None,
                 None,
                 None,
@@ -1663,9 +1594,9 @@ mod tests {
             ],
         ];
         let board = Board::new(
-            custom_board,
+            &custom_board,
             PieceColor::Black,
-            vec![(Some(PieceType::Pawn), "1404".to_string())],
+            vec![(Some(PieceKind::Pawn), "1404".to_string())],
         );
 
         assert!(board.is_latest_move_promotion());
@@ -1682,14 +1613,14 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::King, PieceColor::Black)),
+                Some(Piece::new(PieceKind::King, PieceColor::Black)),
             ],
             [
                 None,
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::White)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
                 None,
                 None,
                 None,
@@ -1701,7 +1632,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [
                 None,
-                Some((PieceType::King, PieceColor::White)),
+                Some(Piece::new(PieceKind::King, PieceColor::White)),
                 None,
                 None,
                 None,
@@ -1711,7 +1642,7 @@ mod tests {
             ],
         ];
         // We setup the board
-        let mut board = Board::new(custom_board, PieceColor::White, vec![]);
+        let mut board = Board::new(&custom_board, PieceColor::White, vec![]);
         assert!(!board.is_latest_move_promotion());
 
         // Move the pawn to a promote cell
@@ -1736,7 +1667,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [
                 None,
-                Some((PieceType::King, PieceColor::Black)),
+                Some(Piece::new(PieceKind::King, PieceColor::Black)),
                 None,
                 None,
                 None,
@@ -1748,7 +1679,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::Black)),
                 None,
                 None,
                 None,
@@ -1759,16 +1690,16 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
                 None,
                 None,
-                Some((PieceType::King, PieceColor::White)),
+                Some(Piece::new(PieceKind::King, PieceColor::White)),
             ],
         ];
         let board = Board::new(
-            custom_board,
+            &custom_board,
             PieceColor::White,
-            vec![(Some(PieceType::Pawn), "6474".to_string())],
+            vec![(Some(PieceKind::Pawn), "6474".to_string())],
         );
 
         assert!(board.is_latest_move_promotion());
@@ -1785,7 +1716,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::Black)),
                 None,
             ],
             [None, None, None, None, None, None, None, None],
@@ -1793,7 +1724,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [
                 None,
-                Some((PieceType::King, PieceColor::Black)),
+                Some(Piece::new(PieceKind::King, PieceColor::Black)),
                 None,
                 None,
                 None,
@@ -1807,14 +1738,14 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
                 None,
-                Some((PieceType::King, PieceColor::White)),
+                Some(Piece::new(PieceKind::King, PieceColor::White)),
             ],
             [None, None, None, None, None, None, None, None],
         ];
         // We setup the board
-        let mut board = Board::new(custom_board, PieceColor::Black, vec![]);
+        let mut board = Board::new(&custom_board, PieceColor::Black, vec![]);
         assert!(!board.is_latest_move_promotion());
 
         // Move the pawn to a promote cell
@@ -1835,11 +1766,11 @@ mod tests {
             [
                 None,
                 None,
-                Some((PieceType::King, PieceColor::White)),
+                Some(Piece::new(PieceKind::King, PieceColor::White)),
                 None,
                 None,
                 None,
-                Some((PieceType::King, PieceColor::Black)),
+                Some(Piece::new(PieceKind::King, PieceColor::Black)),
                 None,
             ],
             [None, None, None, None, None, None, None, None],
@@ -1851,7 +1782,7 @@ mod tests {
         ];
         // We setup the board
         let mut board = Board::new(
-            custom_board,
+            &custom_board,
             PieceColor::White,
             vec![
                 // We don't use the history for a fifty draw
@@ -1872,11 +1803,11 @@ mod tests {
             [
                 None,
                 None,
-                Some((PieceType::King, PieceColor::White)),
+                Some(Piece::new(PieceKind::King, PieceColor::White)),
                 None,
                 None,
                 None,
-                Some((PieceType::King, PieceColor::Black)),
+                Some(Piece::new(PieceKind::King, PieceColor::Black)),
                 None,
             ],
             [None, None, None, None, None, None, None, None],
@@ -1889,17 +1820,17 @@ mod tests {
         ];
         // We setup the board
         let mut board = Board::new(
-            custom_board,
+            &custom_board,
             PieceColor::White,
             vec![
-                (Some(PieceType::King), "0201".to_string()),
-                (Some(PieceType::King), "0605".to_string()),
-                (Some(PieceType::King), "0102".to_string()),
-                (Some(PieceType::King), "0506".to_string()),
-                (Some(PieceType::King), "0201".to_string()),
-                (Some(PieceType::King), "0605".to_string()),
-                (Some(PieceType::King), "0102".to_string()),
-                (Some(PieceType::King), "0506".to_string()),
+                (Some(PieceKind::King), "0201".to_string()),
+                (Some(PieceKind::King), "0605".to_string()),
+                (Some(PieceKind::King), "0102".to_string()),
+                (Some(PieceKind::King), "0506".to_string()),
+                (Some(PieceKind::King), "0201".to_string()),
+                (Some(PieceKind::King), "0605".to_string()),
+                (Some(PieceKind::King), "0102".to_string()),
+                (Some(PieceKind::King), "0506".to_string()),
             ],
         );
 
@@ -1916,12 +1847,12 @@ mod tests {
             [
                 None,
                 None,
-                Some((PieceType::King, PieceColor::Black)),
+                Some(Piece::new(PieceKind::King, PieceColor::Black)),
                 None,
                 None,
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::White)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::White)),
             ],
             [None, None, None, None, None, None, None, None],
             [
@@ -1929,7 +1860,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::King, PieceColor::White)),
+                Some(Piece::new(PieceKind::King, PieceColor::White)),
                 None,
                 None,
                 None,
@@ -1941,7 +1872,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
         ];
         // We setup the board
-        let board = Board::new(custom_board, PieceColor::White, vec![]);
+        let board = Board::new(&custom_board, PieceColor::White, vec![]);
 
         // Move the king to replicate a third time the same position
         assert_eq!(board.fen_position(), "2k4R/8/4K3/8/8/8/8/8 b - - 0 0");
@@ -1953,12 +1884,12 @@ mod tests {
             [
                 None,
                 None,
-                Some((PieceType::King, PieceColor::Black)),
+                Some(Piece::new(PieceKind::King, PieceColor::Black)),
                 None,
                 None,
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::White)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::White)),
             ],
             [None, None, None, None, None, None, None, None],
             [
@@ -1966,7 +1897,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::King, PieceColor::White)),
+                Some(Piece::new(PieceKind::King, PieceColor::White)),
                 None,
                 None,
                 None,
@@ -1975,7 +1906,7 @@ mod tests {
             [
                 None,
                 None,
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
                 None,
                 None,
                 None,
@@ -1988,9 +1919,9 @@ mod tests {
         ];
         // We setup the board
         let board = Board::new(
-            custom_board,
+            &custom_board,
             PieceColor::White,
-            vec![(Some(PieceType::Pawn), "6242".to_string())],
+            vec![(Some(PieceKind::Pawn), "6242".to_string())],
         );
 
         // Move the king to replicate a third time the same position
@@ -2000,52 +1931,52 @@ mod tests {
     fn fen_converter_castling() {
         let custom_board = [
             [
-                Some((PieceType::Rook, PieceColor::Black)),
-                Some((PieceType::Knight, PieceColor::Black)),
-                Some((PieceType::Bishop, PieceColor::Black)),
-                Some((PieceType::Queen, PieceColor::Black)),
-                Some((PieceType::King, PieceColor::Black)),
-                Some((PieceType::Bishop, PieceColor::Black)),
-                Some((PieceType::Knight, PieceColor::Black)),
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Knight, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Bishop, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Queen, PieceColor::Black)),
+                Some(Piece::new(PieceKind::King, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Bishop, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Knight, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::Black)),
             ],
             [
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
             ],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::White)),
             ],
             [
-                Some((PieceType::Rook, PieceColor::White)),
-                Some((PieceType::Knight, PieceColor::White)),
-                Some((PieceType::Bishop, PieceColor::White)),
-                Some((PieceType::Queen, PieceColor::White)),
-                Some((PieceType::King, PieceColor::White)),
-                Some((PieceType::Bishop, PieceColor::White)),
-                Some((PieceType::Knight, PieceColor::White)),
-                Some((PieceType::Rook, PieceColor::White)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::White)),
+                Some(Piece::new(PieceKind::Knight, PieceColor::White)),
+                Some(Piece::new(PieceKind::Bishop, PieceColor::White)),
+                Some(Piece::new(PieceKind::Queen, PieceColor::White)),
+                Some(Piece::new(PieceKind::King, PieceColor::White)),
+                Some(Piece::new(PieceKind::Bishop, PieceColor::White)),
+                Some(Piece::new(PieceKind::Knight, PieceColor::White)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::White)),
             ],
         ];
         // We setup the board
-        let board = Board::new(custom_board, PieceColor::White, vec![]);
+        let board = Board::new(&custom_board, PieceColor::White, vec![]);
 
         // Move the king to replicate a third time the same position
         assert_eq!(
@@ -2133,5 +2064,24 @@ mod tests {
             },
             Coords::default()
         );
+    }
+
+    fn internal_to_fen_board(int_board: GameBoard) -> fen::BoardState {
+        let starting_fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        let mut ext_board = fen::BoardState::from_fen(starting_fen).unwrap();
+        for row in int_board {
+            for piece in row {
+                ext_board.pieces.push(piece);
+            }
+        }
+        ext_board
+    }
+
+    #[test]
+    fn fen() {
+        let board = Board::default().board;
+        // let fenboard = ;
+        // let bobo = fen::BoardState::to()
+        // assert_eq!(fen::)
     }
 }

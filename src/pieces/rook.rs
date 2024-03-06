@@ -1,6 +1,7 @@
-use super::{Movable, PieceColor, PieceType, Position};
+use super::{Movable, PieceColor, PieceKind, Position};
 use crate::{
-    board::{Coords, GameBoard},
+    board::GameBoard,
+    notations::Coords,
     utils::{
         cleaned_positions, get_piece_color, impossible_positions_king_checked, is_cell_color_ally,
         is_piece_opposite_king, is_valid,
@@ -15,7 +16,7 @@ impl Movable for Rook {
         color: PieceColor,
         board: GameBoard,
         allow_move_on_ally_positions: bool,
-        _move_history: &[(Option<PieceType>, String)],
+        _move_history: &[(Option<PieceKind>, String)],
     ) -> Vec<Coords> {
         // Pawns can only move in one direction depending on their color
         let mut positions: Vec<Coords> = vec![];
@@ -34,7 +35,7 @@ impl Movable for Rook {
             }
 
             // Empty cell
-            if get_piece_color(board, &new_coordinates).is_none() {
+            if get_piece_color(&board, &new_coordinates).is_none() {
                 positions.push(new_coordinates);
                 continue;
             }
@@ -69,7 +70,7 @@ impl Movable for Rook {
             }
 
             // Empty piece
-            if get_piece_color(board, &new_coordinates).is_none() {
+            if get_piece_color(&board, &new_coordinates).is_none() {
                 positions.push(new_coordinates);
                 continue;
             }
@@ -105,7 +106,7 @@ impl Movable for Rook {
             }
 
             // Empty cell
-            if get_piece_color(board, &new_coordinates).is_none() {
+            if get_piece_color(&board, &new_coordinates).is_none() {
                 positions.push(new_coordinates);
                 continue;
             }
@@ -141,7 +142,7 @@ impl Movable for Rook {
             }
 
             // Empty cell
-            if get_piece_color(board, &new_coordinates).is_none() {
+            if get_piece_color(&board, &new_coordinates).is_none() {
                 positions.push(new_coordinates);
                 continue;
             }
@@ -173,7 +174,7 @@ impl Position for Rook {
         coordinates: &Coords,
         color: PieceColor,
         board: GameBoard,
-        move_history: &[(Option<PieceType>, String)],
+        move_history: &[(Option<PieceKind>, String)],
         _is_king_checked: bool,
     ) -> Vec<Coords> {
         // If the king is not checked we get then normal moves
@@ -191,7 +192,7 @@ impl Position for Rook {
         coordinates: &Coords,
         color: PieceColor,
         board: GameBoard,
-        move_history: &[(Option<PieceType>, String)],
+        move_history: &[(Option<PieceKind>, String)],
     ) -> Vec<Coords> {
         Self::piece_move(coordinates, color, board, true, move_history)
     }
@@ -212,8 +213,9 @@ impl Rook {
 #[cfg(test)]
 mod tests {
     use crate::{
-        board::{Board, Coords},
-        pieces::{rook::Rook, PieceColor, PieceType, Position},
+        board::Board,
+        notations::Coords,
+        pieces::{rook::Rook, Piece, PieceColor, PieceKind, Position},
         utils::is_getting_checked,
     };
 
@@ -229,7 +231,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::White)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::White)),
                 None,
                 None,
                 None,
@@ -281,7 +283,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
                 None,
                 None,
                 None,
@@ -291,7 +293,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::White)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::White)),
                 None,
                 None,
                 None,
@@ -340,7 +342,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
                 None,
                 None,
                 None,
@@ -350,9 +352,9 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::White)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::White)),
                 None,
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Pawn, PieceColor::Black)),
                 None,
             ],
             [None, None, None, None, None, None, None, None],
@@ -361,7 +363,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::White)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::White)),
                 None,
                 None,
                 None,
@@ -403,7 +405,7 @@ mod tests {
             [
                 None,
                 None,
-                Some((PieceType::King, PieceColor::Black)),
+                Some(Piece::new(PieceKind::King, PieceColor::Black)),
                 None,
                 None,
                 None,
@@ -414,7 +416,7 @@ mod tests {
             [
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::White)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::White)),
                 None,
                 None,
                 None,
@@ -424,7 +426,7 @@ mod tests {
             [
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::Black)),
                 None,
                 None,
                 None,
@@ -434,7 +436,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::new(custom_board, PieceColor::Black, vec![]);
+        let mut board = Board::new(&custom_board, PieceColor::Black, vec![]);
         board.set_board(custom_board);
 
         let is_king_checked =
@@ -463,7 +465,7 @@ mod tests {
             [
                 None,
                 None,
-                Some((PieceType::King, PieceColor::Black)),
+                Some(Piece::new(PieceKind::King, PieceColor::Black)),
                 None,
                 None,
                 None,
@@ -474,7 +476,7 @@ mod tests {
             [
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::White)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::White)),
                 None,
                 None,
                 None,
@@ -485,7 +487,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::Black)),
                 None,
                 None,
                 None,
@@ -494,7 +496,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::new(custom_board, PieceColor::Black, vec![]);
+        let mut board = Board::new(&custom_board, PieceColor::Black, vec![]);
         board.set_board(custom_board);
 
         let is_king_checked =
@@ -522,7 +524,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::King, PieceColor::Black)),
+                Some(Piece::new(PieceKind::King, PieceColor::Black)),
                 None,
                 None,
                 None,
@@ -532,7 +534,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some(Piece::new(PieceKind::Rook, PieceColor::Black)),
                 None,
                 None,
                 None,
@@ -543,7 +545,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Queen, PieceColor::White)),
+                Some(Piece::new(PieceKind::Queen, PieceColor::White)),
                 None,
                 None,
                 None,
@@ -553,7 +555,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::new(custom_board, PieceColor::Black, vec![]);
+        let mut board = Board::new(&custom_board, PieceColor::Black, vec![]);
         board.set_board(custom_board);
 
         let is_king_checked =
