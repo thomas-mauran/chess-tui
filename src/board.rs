@@ -1,5 +1,3 @@
-use std::cmp::Ordering;
-
 use crate::{
     constants::{BLACK, UNDEFINED_POSITION, WHITE},
     pieces::{PieceColor, PieceType},
@@ -16,6 +14,7 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Padding, Paragraph},
     Frame,
 };
+use std::cmp::Ordering;
 use uci::Engine;
 
 /// Coordinates
@@ -48,9 +47,9 @@ impl Coords {
     /// warning! these arguments are not (x;y) but (y;x) coordinates
     /// # Panics
     ///
-    /// if `col` or `row` exceeds max: 7, or is lower than 0
+    /// should be: if `col` or `row` exceeds max: 7, or is lower than 0
     ///
-    /// if you need an undefined position, use `Coords::default()`
+    /// should be: if you need an undefined position, use `Coords::default()`
     pub fn new<T: Into<i8>>(row: T, col: T) -> Self {
         let row = row.into();
         let col = col.into();
@@ -107,14 +106,27 @@ impl Default for Coords {
 pub type Piece = Option<(PieceType, PieceColor)>;
 pub type GameBoard = [[Piece; 8]; 8];
 
-trait IndexCoord {
-    fn get_coord(&self, coord: &Coords) -> Piece;
-}
-impl IndexCoord for GameBoard {
-    fn get_coord(&self, coord: &Coords) -> Piece {
-        self[coord.row as usize][coord.col as usize]
-    }
-}
+// trait IndexBoard {
+//     fn get_coord(&self, coords: &Coords) -> Piece;
+//     fn get_xy<T: Into<usize>>(&self, row: T, col: T) -> Piece;
+//     fn set_coord(&mut self, coords: &Coords, piece: Piece);
+//     fn set_xy<T: Into<usize>>(&mut self, row: T, col: T, piece: Piece);
+// }
+
+// impl IndexBoard for GameBoard {
+//     fn get_coord(&self, coords: &Coords) -> Piece {
+//         self[coords.row as usize][coords.col as usize]
+//     }
+//     fn get_xy<T: Into<usize>>(&self, row: T, col: T) -> Piece {
+//         self[row.into()][col.into()]
+//     }
+//     fn set_coord(&mut self, coords: &Coords, piece: Piece) {
+//         self[coords.row as usize][coords.col as usize] = piece;
+//     }
+//     fn set_xy<T: Into<usize>>(&mut self, row: T, col: T, piece: Piece) {
+//         self[row.into()][col.into()] = piece;
+//     }
+// }
 
 pub struct Board {
     /// how it's stored:
@@ -617,6 +629,7 @@ impl Board {
             let current_piece_color = get_piece_color(self.board, &to);
             if let Some(piece_color) = current_piece_color {
                 // we replace the piece by the new piece type
+                // self.board.set_coord(&to, Some((new_piece, piece_color)));
                 self.set(&to, Some((new_piece, piece_color)));
             }
         }
@@ -740,7 +753,7 @@ impl Board {
             let from = Coords::from_hist(&prev_move[2..4]);
             // check for promotions
             if self.is_latest_move_promotion() {
-                todo!();
+                todo!("promotion takeback");
             }
             // check for castling
             else if piece_type == PieceType::King && (from.col - to.col).abs() > 1 {
@@ -787,42 +800,49 @@ impl Board {
                 }
             }
             // check for en-passant
-            else if self.is_latest_move_en_passant(&to, &from) {
-                todo!();
+            else if piece_type == PieceType::Pawn && to.row != from.row && to.col != from.col {
+                if let Some((Some(PieceType::Pawn), hist)) = self.move_history.last() {
+                    let passant_from = Coords::from_hist(&hist[0..2]);
+                    let passant_to = Coords::from_hist(&hist[2..4]);
+                    if (passant_to.row - passant_from.row).abs() > 1
+                        && (from.row - passant_to.row).abs() == 1
+                    {
+                        self.set(&passant_to, Some((PieceType::Pawn, self.player_turn)));
+                    }
+                }
+            } else {
+                // pseudo kind of code
+                // if history.contains(board[from], Moved::To) && !history.contains(board[from], Moved::From) {
+                //     board[from] = history[from]
+                // }
+
+                // optionally fill the cell if something was taken off it
+                self.set(
+                    &from,
+                    // check if there was anything on the cell where it was before takeback:
+                    // if anything has moved to this cell and not away from it, there probably was
+                    if self.history_has(&from, true).is_some()
+                        && self.history_has(&from, false).is_none()
+                    {
+                        let piece_type = self.history_has(&from, true).unwrap();
+                        Some((piece_type, self.player_turn))
+                    } else if let Some((pt, pc)) = Self::default().get(&from) {
+                        // faulty :(
+                        if get_piece_color(Self::default().board, &from) == Some(self.player_turn)
+                            && self.history_has(&from, false).is_none()
+                        {
+                            Some((pt, pc))
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    },
+                );
             }
 
             // take last moved piece back to where it came from
             self.set(&to, self.get(&from));
-
-            // pseudo kind of code
-            // if history.contains(board[from], Moved::To) && !history.contains(board[from], Moved::From) {
-            //     board[from] = history[from]
-            // }
-
-            // optionally fill the cell if something was taken off it
-            self.set(
-                &from,
-                // check if there was anything on the cell where it was before takeback:
-                // if anything has moved to this cell and not away from it, there probably was
-                if self.history_has(&from, true).is_some()
-                    && self.history_has(&from, false).is_none()
-                {
-                    let piece_type = self.history_has(&from, true).unwrap();
-                    Some((piece_type, self.player_turn))
-                } else if let Some((pt, pc)) = Self::default().get(&from) {
-                    // faulty :(
-                    if get_piece_color(Self::default().board, &from) == Some(self.player_turn)
-                        && self.history_has(&from, false).is_none()
-                    {
-                        Some((pt, pc))
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                },
-            );
-
             self.switch_player_turn();
         }
     }
