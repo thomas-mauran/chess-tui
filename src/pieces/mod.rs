@@ -1,4 +1,7 @@
-use crate::{board::GameBoard, notations::Coords};
+use crate::{
+    board::{GameBoard, MoveHistory},
+    notations::Coords,
+};
 
 use self::{bishop::Bishop, king::King, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook};
 
@@ -44,7 +47,7 @@ impl Piece {
         &self,
         coordinates: &Coords,
         board: GameBoard,
-        move_history: &[(Option<PieceKind>, String)],
+        move_history: &MoveHistory,
         is_king_checked: bool,
     ) -> Vec<Coords> {
         match self.kind {
@@ -97,7 +100,7 @@ impl Piece {
         &self,
         selected_coordinates: &Coords,
         board: GameBoard,
-        move_history: &[(Option<PieceKind>, String)],
+        move_history: &MoveHistory,
     ) -> Vec<Coords> {
         match self.kind {
             PieceKind::Pawn => {
@@ -121,24 +124,20 @@ impl Piece {
         }
     }
 
-    pub fn piece_to_utf_enum(
-        piece_kind: Option<PieceKind>,
-        piece_color: Option<PieceColor>,
-    ) -> &'static str {
+    pub fn piece_to_utf_enum(piece_kind: PieceKind, piece_color: PieceColor) -> &'static str {
         match (piece_kind, piece_color) {
-            (Some(PieceKind::Queen), Some(PieceColor::Black)) => "♕",
-            (Some(PieceKind::Queen), Some(PieceColor::White)) => "♛",
-            (Some(PieceKind::King), Some(PieceColor::Black)) => "♔",
-            (Some(PieceKind::King), Some(PieceColor::White)) => "♚",
-            (Some(PieceKind::Rook), Some(PieceColor::Black)) => "♖",
-            (Some(PieceKind::Rook), Some(PieceColor::White)) => "♜",
-            (Some(PieceKind::Bishop), Some(PieceColor::Black)) => "♗",
-            (Some(PieceKind::Bishop), Some(PieceColor::White)) => "♝",
-            (Some(PieceKind::Knight), Some(PieceColor::Black)) => "♘",
-            (Some(PieceKind::Knight), Some(PieceColor::White)) => "♞",
-            (Some(PieceKind::Pawn), Some(PieceColor::Black)) => "♙",
-            (Some(PieceKind::Pawn), Some(PieceColor::White)) => "♟",
-            _ => "NONE",
+            (PieceKind::Queen, PieceColor::Black) => "♕",
+            (PieceKind::Queen, PieceColor::White) => "♛",
+            (PieceKind::King, PieceColor::Black) => "♔",
+            (PieceKind::King, PieceColor::White) => "♚",
+            (PieceKind::Rook, PieceColor::Black) => "♖",
+            (PieceKind::Rook, PieceColor::White) => "♜",
+            (PieceKind::Bishop, PieceColor::Black) => "♗",
+            (PieceKind::Bishop, PieceColor::White) => "♝",
+            (PieceKind::Knight, PieceColor::Black) => "♘",
+            (PieceKind::Knight, PieceColor::White) => "♞",
+            (PieceKind::Pawn, PieceColor::Black) => "♙",
+            (PieceKind::Pawn, PieceColor::White) => "♟",
         }
     }
 
@@ -241,7 +240,7 @@ pub trait Movable {
         color: PieceColor,
         board: GameBoard,
         allow_move_on_ally_positions: bool,
-        move_history: &[(Option<PieceKind>, String)],
+        move_history: &MoveHistory,
     ) -> Vec<Coords>;
 }
 
@@ -250,7 +249,7 @@ pub trait Position {
         coordinates: &Coords,
         color: PieceColor,
         board: GameBoard,
-        move_history: &[(Option<PieceKind>, String)],
+        move_history: &MoveHistory,
         is_king_checked: bool,
     ) -> Vec<Coords>;
 
@@ -258,6 +257,6 @@ pub trait Position {
         coordinates: &Coords,
         color: PieceColor,
         board: GameBoard,
-        move_history: &[(Option<PieceKind>, String)],
+        move_history: &MoveHistory,
     ) -> Vec<Coords>;
 }
