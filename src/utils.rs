@@ -53,10 +53,8 @@ pub fn get_all_protected_cells(
             // get the current cell piece color and type protecting positions
             if let Some(piece_color) = get_piece_color(&board, coords) {
                 if let Some(piece_kind) = get_piece_kind(&board, coords) {
-                    check_cells.extend(Piece::protected_positions(
+                    check_cells.extend(Piece::new(piece_kind, piece_color).protected_positions(
                         coords,
-                        piece_kind,
-                        piece_color,
                         board,
                         move_history,
                     ));

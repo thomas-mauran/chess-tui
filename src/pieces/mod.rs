@@ -94,30 +94,29 @@ impl Piece {
     }
 
     pub fn protected_positions(
+        &self,
         selected_coordinates: &Coords,
-        piece_kind: PieceKind,
-        color: PieceColor,
         board: GameBoard,
         move_history: &[(Option<PieceKind>, String)],
     ) -> Vec<Coords> {
-        match piece_kind {
+        match self.kind {
             PieceKind::Pawn => {
-                Pawn::protected_positions(selected_coordinates, color, board, move_history)
+                Pawn::protected_positions(selected_coordinates, self.color, board, move_history)
             }
             PieceKind::Rook => {
-                Rook::protected_positions(selected_coordinates, color, board, move_history)
+                Rook::protected_positions(selected_coordinates, self.color, board, move_history)
             }
             PieceKind::Bishop => {
-                Bishop::protected_positions(selected_coordinates, color, board, move_history)
+                Bishop::protected_positions(selected_coordinates, self.color, board, move_history)
             }
             PieceKind::Queen => {
-                Queen::protected_positions(selected_coordinates, color, board, move_history)
+                Queen::protected_positions(selected_coordinates, self.color, board, move_history)
             }
             PieceKind::King => {
-                King::protected_positions(selected_coordinates, color, board, move_history)
+                King::protected_positions(selected_coordinates, self.color, board, move_history)
             }
             PieceKind::Knight => {
-                Knight::protected_positions(selected_coordinates, color, board, move_history)
+                Knight::protected_positions(selected_coordinates, self.color, board, move_history)
             }
         }
     }
@@ -220,6 +219,18 @@ impl PieceColor {
         match self {
             PieceColor::White => PieceColor::Black,
             PieceColor::Black => PieceColor::White,
+        }
+    }
+    pub fn is_white(&self) -> bool {
+        match self {
+            PieceColor::White => true,
+            PieceColor::Black => false,
+        }
+    }
+    pub fn is_black(&self) -> bool {
+        match self {
+            PieceColor::Black => true,
+            PieceColor::White => false,
         }
     }
 }
