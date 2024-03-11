@@ -115,6 +115,7 @@ dependencies = [
  "crossterm 0.26.1",
  "dirs",
  "fern",
+ "log 0.4.21",
  "ratatui",
  "uci",
 ]

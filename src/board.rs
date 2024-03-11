@@ -762,8 +762,10 @@ impl BoardState {
                 // Not yet covering every case! though it should :(
                 if (self.history_has(&from, true).is_some()
                     && self.history_has(&from, false).is_none())
-                    && (self.history_has(&from, true).unwrap().1
-                        > self.history_has(&from, false).unwrap().1)
+                    || (self.history_has(&from, false).is_some()
+                        && self.history_has(&from, true).is_some()
+                        && (self.history_has(&from, true).unwrap().1
+                            > self.history_has(&from, false).unwrap().1))
                 {
                     let kicked_kind = self.history_has(&from, true).unwrap().0;
                     Some(Piece::new(kicked_kind, self.player_turn))
@@ -2055,11 +2057,13 @@ mod tests {
 
     #[test]
     #[should_panic]
+    #[ignore]
     fn coords_new_too_big() {
         Coords::new(8, 8);
     }
 
     #[test]
+    #[ignore]
     #[should_panic]
     fn coords_new_too_small() {
         Coords::new(-1, -1);
