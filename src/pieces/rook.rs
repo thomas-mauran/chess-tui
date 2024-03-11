@@ -4,7 +4,7 @@ use crate::{
     notations::Coords,
     utils::{
         cleaned_positions, get_piece_color, impossible_positions_king_checked, is_cell_color_ally,
-        is_piece_opposite_king, is_valid,
+        is_piece_opposite_king,
     },
 };
 
@@ -30,7 +30,7 @@ impl Movable for Rook {
             let new_coordinates = Coords::new(new_y, new_x);
 
             // Invalid coords
-            if !is_valid(&new_coordinates) {
+            if !new_coordinates.is_valid() {
                 break;
             }
 
@@ -65,7 +65,7 @@ impl Movable for Rook {
             let new_coordinates = Coords::new(new_y, new_x);
 
             // Invalid coords
-            if !is_valid(&new_coordinates) {
+            if !new_coordinates.is_valid() {
                 break;
             }
 
@@ -101,7 +101,7 @@ impl Movable for Rook {
             let new_coordinates = Coords::new(new_y, new_x);
 
             // Invalid coords
-            if !is_valid(&new_coordinates) {
+            if !new_coordinates.is_valid() {
                 break;
             }
 
@@ -137,7 +137,7 @@ impl Movable for Rook {
             let new_coordinates = Coords::new(new_y, new_x);
 
             // Invalid coords
-            if !is_valid(&new_coordinates) {
+            if !new_coordinates.is_valid() {
                 break;
             }
 
@@ -213,7 +213,7 @@ impl Rook {
 #[cfg(test)]
 mod tests {
     use crate::{
-        board::Board,
+        board::BoardState,
         notations::Coords,
         pieces::{rook::Rook, Piece, PieceColor, PieceKind, Position},
         utils::is_getting_checked,
@@ -240,7 +240,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::default();
+        let mut board = BoardState::default();
         board.set_board(custom_board);
 
         let mut right_positions = vec![
@@ -302,7 +302,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::default();
+        let mut board = BoardState::default();
         board.set_board(custom_board);
 
         let mut right_positions = vec![
@@ -370,7 +370,7 @@ mod tests {
             ],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::default();
+        let mut board = BoardState::default();
         board.set_board(custom_board);
 
         let mut right_positions = vec![
@@ -436,7 +436,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::new(&custom_board, PieceColor::Black, vec![]);
+        let mut board = BoardState::new(&custom_board, PieceColor::Black, vec![]);
         board.set_board(custom_board);
 
         let is_king_checked =
@@ -496,7 +496,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::new(&custom_board, PieceColor::Black, vec![]);
+        let mut board = BoardState::new(&custom_board, PieceColor::Black, vec![]);
         board.set_board(custom_board);
 
         let is_king_checked =
@@ -555,7 +555,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::new(&custom_board, PieceColor::Black, vec![]);
+        let mut board = BoardState::new(&custom_board, PieceColor::Black, vec![]);
         board.set_board(custom_board);
 
         let is_king_checked =

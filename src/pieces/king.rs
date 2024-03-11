@@ -4,7 +4,7 @@ use crate::{
     notations::Coords,
     utils::{
         cleaned_positions, did_piece_already_move, get_all_protected_cells, get_piece_kind,
-        is_cell_color_ally, is_valid, is_vec_in_array,
+        is_cell_color_ally,
     },
 };
 
@@ -31,7 +31,7 @@ impl Movable for King {
                 let new_y = y + dy;
 
                 let new_coordinates = Coords::new(new_y, new_x);
-                if is_valid(&new_coordinates)
+                if new_coordinates.is_valid()
                     && (!is_cell_color_ally(board, Coords::new(new_y, new_x), color)
                         || allow_move_on_ally_positions)
                 {
@@ -63,7 +63,7 @@ impl Position for King {
         // We check the condition for small and big castling
         if !did_piece_already_move(
             move_history,
-            (Some(PieceKind::King), Coords::new(king_line, king_x)),
+            (Some(PieceKind::King), &Coords::new(king_line, king_x)),
         ) && !is_king_checked
         {
             // We check if there is no pieces between tower and king
@@ -73,7 +73,7 @@ impl Position for King {
                 move_history,
                 (
                     Some(PieceKind::Rook),
-                    Coords::new(king_line, rook_big_castle_x),
+                    &Coords::new(king_line, rook_big_castle_x),
                 ),
             ) && King::check_castling_condition(board, color, 0, 3, &checked_cells)
             {
@@ -84,7 +84,7 @@ impl Position for King {
                 move_history,
                 (
                     Some(PieceKind::Rook),
-                    Coords::new(king_line, rook_small_castle_x),
+                    &Coords::new(king_line, rook_small_castle_x),
                 ),
             ) && King::check_castling_condition(board, color, 5, 7, &checked_cells)
             {
@@ -96,10 +96,7 @@ impl Position for King {
         let king_cells = King::piece_move(coordinates, color, board, false, move_history);
 
         for king_position in king_cells.clone() {
-            if !is_vec_in_array(
-                &checked_cells,
-                &Coords::new(king_position.row, king_position.col),
-            ) {
+            if checked_cells.contains(&king_position) {
                 positions.push(king_position);
             }
         }
@@ -144,7 +141,7 @@ impl King {
         for i in start..=end {
             let new_coordinates = Coords::new(king_line, i);
 
-            if is_vec_in_array(checked_cells, &new_coordinates) {
+            if checked_cells.contains(&new_coordinates) {
                 valid_for_castling = false;
             }
             if (i == 7 || i == 0)
@@ -163,7 +160,7 @@ impl King {
 #[cfg(test)]
 mod tests {
     use crate::{
-        board::Board,
+        board::BoardState,
         notations::Coords,
         pieces::{king::King, Piece, PieceColor, PieceKind, Position},
         utils::is_getting_checked,
@@ -217,7 +214,7 @@ mod tests {
             ],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::default();
+        let mut board = BoardState::default();
         board.set_board(custom_board);
 
         let mut right_positions = vec![Coords::new(4, 5), Coords::new(5, 4)];
@@ -283,7 +280,7 @@ mod tests {
             ],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::default();
+        let mut board = BoardState::default();
         board.set_board(custom_board);
 
         let mut right_positions = vec![Coords::new(3, 4)];
@@ -349,7 +346,7 @@ mod tests {
             ],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::default();
+        let mut board = BoardState::default();
         board.set_board(custom_board);
 
         let mut right_positions = vec![Coords::new(4, 5)];
@@ -415,7 +412,7 @@ mod tests {
                 Some(Piece::new(PieceKind::Rook, PieceColor::White)),
             ],
         ];
-        let mut board = Board::default();
+        let mut board = BoardState::default();
         board.set_board(custom_board);
 
         let mut right_positions = vec![Coords::new(7, 3), Coords::new(7, 0)];
@@ -481,7 +478,7 @@ mod tests {
                 Some(Piece::new(PieceKind::Rook, PieceColor::White)),
             ],
         ];
-        let mut board = Board::default();
+        let mut board = BoardState::default();
         board.set_board(custom_board);
 
         let mut right_positions = vec![Coords::new(0, 5), Coords::new(0, 7)];
@@ -547,7 +544,7 @@ mod tests {
                 None,
             ],
         ];
-        let mut board = Board::default();
+        let mut board = BoardState::default();
         board.set_board(custom_board);
 
         let mut right_positions = vec![Coords::new(0, 5)];
@@ -613,7 +610,7 @@ mod tests {
                 Some(Piece::new(PieceKind::King, PieceColor::White)),
             ],
         ];
-        let mut board = Board::new(&custom_board, PieceColor::Black, vec![]);
+        let mut board = BoardState::new(&custom_board, PieceColor::Black, vec![]);
         board.set_board(custom_board);
 
         let is_king_checked =
@@ -682,7 +679,7 @@ mod tests {
                 Some(Piece::new(PieceKind::Rook, PieceColor::White)),
             ],
         ];
-        let mut board = Board::default();
+        let mut board = BoardState::default();
         board.set_board(custom_board);
 
         let mut right_positions = vec![Coords::new(0, 5)];

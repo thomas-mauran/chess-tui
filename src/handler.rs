@@ -54,6 +54,10 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                 } else if app.current_page == Pages::Credit {
                     app.current_page = Pages::Home;
                 }
+                // if app.board.is_checkmate {
+                //     app.board.is_checkmate = false;
+                //     app.board.is_draw = false;
+                // }
                 app.board.unselect_cell();
             }
             KeyCode::Backspace => {

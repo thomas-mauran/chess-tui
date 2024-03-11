@@ -2,7 +2,7 @@ use super::{Movable, PieceColor, PieceKind, Position};
 use crate::{
     board::GameBoard,
     notations::Coords,
-    utils::{cleaned_positions, impossible_positions_king_checked, is_cell_color_ally, is_valid},
+    utils::{cleaned_positions, impossible_positions_king_checked, is_cell_color_ally},
 };
 pub struct Knight;
 
@@ -33,7 +33,7 @@ impl Movable for Knight {
         for &Coords { col: dx, row: dy } in &piece_move {
             let new_coordinates = Coords::new(y + dy, x + dx);
 
-            if !is_valid(&new_coordinates) {
+            if !new_coordinates.is_valid() {
                 continue;
             }
 
@@ -92,7 +92,7 @@ impl Knight {
 #[cfg(test)]
 mod tests {
     use crate::{
-        board::Board,
+        board::BoardState,
         notations::Coords,
         pieces::{knight::Knight, Piece, PieceColor, PieceKind, Position},
         utils::is_getting_checked,
@@ -119,7 +119,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::default();
+        let mut board = BoardState::default();
         board.set_board(custom_board);
 
         let mut right_positions = vec![
@@ -185,7 +185,7 @@ mod tests {
                 Some(Piece::new(PieceKind::Knight, PieceColor::White)),
             ],
         ];
-        let mut board = Board::default();
+        let mut board = BoardState::default();
         board.set_board(custom_board);
 
         let mut right_positions = vec![Coords::new(6, 5)];
@@ -242,7 +242,7 @@ mod tests {
                 Some(Piece::new(PieceKind::Knight, PieceColor::Black)),
             ],
         ];
-        let mut board = Board::new(&custom_board, PieceColor::White, vec![]);
+        let mut board = BoardState::new(&custom_board, PieceColor::White, vec![]);
         board.set_board(custom_board);
 
         let is_king_checked =
@@ -302,7 +302,7 @@ mod tests {
                 Some(Piece::new(PieceKind::Knight, PieceColor::Black)),
             ],
         ];
-        let mut board = Board::new(&custom_board, PieceColor::White, vec![]);
+        let mut board = BoardState::new(&custom_board, PieceColor::White, vec![]);
         board.set_board(custom_board);
 
         let is_king_checked =
@@ -361,7 +361,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::new(&custom_board, PieceColor::Black, vec![]);
+        let mut board = BoardState::new(&custom_board, PieceColor::Black, vec![]);
         board.set_board(custom_board);
 
         let is_king_checked =

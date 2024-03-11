@@ -79,7 +79,7 @@ impl Queen {
 #[cfg(test)]
 mod tests {
     use crate::{
-        board::Board,
+        board::BoardState,
         notations::Coords,
         pieces::{queen::Queen, Piece, PieceColor, PieceKind, Position},
         utils::is_getting_checked,
@@ -106,7 +106,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::default();
+        let mut board = BoardState::default();
         board.set_board(custom_board);
 
         let mut right_positions = vec![
@@ -182,7 +182,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::default();
+        let mut board = BoardState::default();
         board.set_board(custom_board);
 
         let mut right_positions = vec![
@@ -274,7 +274,7 @@ mod tests {
                 None,
             ],
         ];
-        let mut board = Board::default();
+        let mut board = BoardState::default();
         board.set_board(custom_board);
 
         let mut right_positions = vec![
@@ -348,7 +348,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::new(&custom_board, PieceColor::Black, vec![]);
+        let mut board = BoardState::new(&custom_board, PieceColor::Black, vec![]);
         board.set_board(custom_board);
 
         let is_king_checked =
@@ -407,7 +407,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::new(&custom_board, PieceColor::Black, vec![]);
+        let mut board = BoardState::new(&custom_board, PieceColor::Black, vec![]);
         board.set_board(custom_board);
 
         let is_king_checked =
@@ -467,7 +467,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::new(&custom_board, PieceColor::Black, vec![]);
+        let mut board = BoardState::new(&custom_board, PieceColor::Black, vec![]);
         board.set_board(custom_board);
 
         let is_king_checked =

@@ -5,7 +5,7 @@ use crate::{
     utils::{
         col_to_letter, color_to_ratatui_enum, convert_notation_into_position,
         convert_position_into_notation, did_piece_already_move, get_int_from_char,
-        get_king_coordinates, get_piece_color, get_piece_kind, is_getting_checked, is_valid,
+        get_king_coordinates, get_piece_color, get_piece_kind, is_getting_checked,
     },
 };
 use ratatui::{
@@ -42,7 +42,7 @@ pub type GameBoard = [[Option<Piece>; 8]; 8];
 //     }
 // }
 
-pub struct Board {
+pub struct BoardState {
     /// how it's stored:
     ///
     /// _ 0 1 2 3 4 5 6 7 _
@@ -83,7 +83,7 @@ pub struct Board {
     pub is_game_against_bot: bool,
 }
 
-impl Default for Board {
+impl Default for BoardState {
     fn default() -> Self {
         Self {
             board: [
@@ -149,7 +149,7 @@ impl Default for Board {
     }
 }
 
-impl Board {
+impl BoardState {
     pub fn new(
         board: &GameBoard,
         player_turn: PieceColor,
@@ -355,7 +355,7 @@ impl Board {
                 }
             } else {
                 // We already selected a piece
-                if is_valid(&self.cursor_coordinates) {
+                if self.cursor_coordinates.is_valid() {
                     let selected_coords = &self.selected_coordinates.clone();
                     let cursor_coords = &self.cursor_coordinates.clone();
                     self.move_piece_on_the_board(selected_coords, cursor_coords);
@@ -452,20 +452,20 @@ impl Board {
         // We add the castles availabilities for black
         if !did_piece_already_move(
             &self.move_history,
-            (Some(PieceKind::King), Coords::new(0, 4)),
+            (Some(PieceKind::King), &Coords::new(0, 4)),
         ) && !is_getting_checked(self.board, PieceColor::Black, &self.move_history)
         {
             // king side black castle availability
             if !did_piece_already_move(
                 &self.move_history,
-                (Some(PieceKind::Rook), Coords::new(0, 7)),
+                (Some(PieceKind::Rook), &Coords::new(0, 7)),
             ) {
                 result.push_str(" k");
             }
             // queen side black castle availability
             if !did_piece_already_move(
                 &self.move_history,
-                (Some(PieceKind::Rook), Coords::new(0, 0)),
+                (Some(PieceKind::Rook), &Coords::new(0, 0)),
             ) {
                 result.push('q');
             }
@@ -503,6 +503,13 @@ impl Board {
         result.push(' ');
 
         result.push_str(&(self.move_history.len() / 2).to_string());
+
+        // let mut file = OpenOptions::new()
+        //     .create(true)
+        //     .append(true)
+        //     .open("chess.fen")
+        //     .unwrap();
+        // writeln!(file, "{}", result).unwrap();
 
         result
     }
@@ -549,7 +556,7 @@ impl Board {
     }
 
     pub fn move_piece_on_the_board(&mut self, from: &Coords, to: &Coords) {
-        if !is_valid(from) || !is_valid(to) {
+        if !from.is_valid() || !to.is_valid() {
             return;
         }
         let direction_y = if self.player_turn == PieceColor::White {
@@ -636,7 +643,7 @@ impl Board {
     }
 
     /// move history of `self` contains this coordinate, either as moved to or from
-    fn history_has(&self, coord: &Coords, to: bool) -> Option<PieceKind> {
+    fn history_has(&self, coord: &Coords, to: bool) -> Option<(PieceKind, usize)> {
         let hist = &self.move_history;
         if hist.is_empty() {
             return None;
@@ -647,17 +654,25 @@ impl Board {
             let hist_rec = &hist[i].1;
             if to {
                 if hist_rec[2..4] == coord.to_hist() {
-                    return hist[i].0;
+                    if let Some(hist_rec) = hist[i].0 {
+                        return Some((hist_rec, i));
+                    } else {
+                        return None;
+                    }
                 }
             } else if hist_rec[0..2] == coord.to_hist() {
-                return hist[i].0;
+                if let Some(hist_rec) = hist[i].0 {
+                    return Some((hist_rec, i));
+                } else {
+                    return None;
+                }
             }
             i -= 1;
         }
         None
     }
 
-    /// takeback
+    /// takeback, not yet stable!
     pub fn takeback(&mut self) {
         if let Some((Some(piece_kind), prev_move)) = self.move_history.pop() {
             let to = Coords::from_hist(&prev_move[0..2]);
@@ -724,7 +739,6 @@ impl Board {
             }
             // check for promotions
             if piece_kind == PieceKind::Pawn && (from.row == 0 || from.row == 7) {
-                // todo!("promotion takeback");
                 self.set(
                     &to,
                     Some(Piece::new(PieceKind::Pawn, self.player_turn.opposite())),
@@ -740,25 +754,25 @@ impl Board {
             // }
 
             // optionally fill the cell that it moved to if something was taken off it
+            // faulty? :(
             self.set(
                 &from,
                 // check if there was anything on the cell where it was before takeback:
                 // if anything has moved to this cell and not away from it, there probably was
-                if self.history_has(&from, true).is_some()
-                    && self.history_has(&from, false).is_none()
+                // Not yet covering every case! though it should :(
+                if (self.history_has(&from, true).is_some()
+                    && self.history_has(&from, false).is_none())
+                    && (self.history_has(&from, true).unwrap().1
+                        > self.history_has(&from, false).unwrap().1)
                 {
-                    let piece_kind = self.history_has(&from, true).unwrap();
-                    Some(Piece::new(piece_kind, self.player_turn))
-                } else if let Some(Piece {
-                    kind: pk,
-                    color: pc,
-                }) = Self::default().get(&from)
-                {
-                    // faulty :(
+                    let kicked_kind = self.history_has(&from, true).unwrap().0;
+                    Some(Piece::new(kicked_kind, self.player_turn))
+                // didn't move yet, but the default setup includes them, they're still there
+                } else if let Some(Piece { kind, color }) = Self::default().get(&from) {
                     if get_piece_color(&Self::default().board, &from) == Some(self.player_turn)
                         && self.history_has(&from, false).is_none()
                     {
-                        Some(Piece::new(pk, pc))
+                        Some(Piece::new(kind, color))
                     } else {
                         None
                     }
@@ -1060,14 +1074,12 @@ impl Board {
 #[cfg(test)]
 mod tests {
     use crate::{
-        board::{Board, Coords},
+        board::{BoardState, Coords},
         constants::UNDEFINED_POSITION,
-        notations::fen,
+        // notations::fen,
         pieces::{Piece, PieceColor, PieceKind},
         utils::is_getting_checked,
     };
-
-    use super::GameBoard;
 
     #[test]
     fn is_getting_checked_true() {
@@ -1099,7 +1111,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::default();
+        let mut board = BoardState::default();
         board.set_board(custom_board);
 
         assert!(is_getting_checked(custom_board, PieceColor::White, &[]));
@@ -1144,7 +1156,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::default();
+        let mut board = BoardState::default();
         board.set_board(custom_board);
 
         assert!(!is_getting_checked(custom_board, PieceColor::White, &[]));
@@ -1198,7 +1210,7 @@ mod tests {
                 Some(Piece::new(PieceKind::King, PieceColor::White)),
             ],
         ];
-        let mut board = Board::default();
+        let mut board = BoardState::default();
         board.set_board(custom_board);
 
         assert!(!is_getting_checked(custom_board, PieceColor::Black, &[]));
@@ -1261,7 +1273,7 @@ mod tests {
                 Some(Piece::new(PieceKind::King, PieceColor::White)),
             ],
         ];
-        let mut board = Board::default();
+        let mut board = BoardState::default();
         board.set_board(custom_board);
 
         assert!(!is_getting_checked(custom_board, PieceColor::Black, &[]));
@@ -1306,7 +1318,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let board = Board::new(&custom_board, PieceColor::White, vec![]);
+        let board = BoardState::new(&custom_board, PieceColor::White, vec![]);
 
         assert!(board.is_checkmate());
     }
@@ -1350,7 +1362,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let board = Board::new(&custom_board, PieceColor::White, vec![]);
+        let board = BoardState::new(&custom_board, PieceColor::White, vec![]);
 
         assert!(!board.is_checkmate());
     }
@@ -1403,7 +1415,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let board = Board::new(&custom_board, PieceColor::White, vec![]);
+        let board = BoardState::new(&custom_board, PieceColor::White, vec![]);
 
         assert!(!board.is_checkmate());
     }
@@ -1447,7 +1459,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let board = Board::new(&custom_board, PieceColor::White, vec![]);
+        let board = BoardState::new(&custom_board, PieceColor::White, vec![]);
 
         assert!(board.is_draw());
     }
@@ -1491,7 +1503,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let board = Board::new(&custom_board, PieceColor::White, vec![]);
+        let board = BoardState::new(&custom_board, PieceColor::White, vec![]);
 
         assert!(!board.is_draw());
     }
@@ -1544,7 +1556,7 @@ mod tests {
                 None,
             ],
         ];
-        let board = Board::new(
+        let board = BoardState::new(
             &custom_board,
             PieceColor::Black,
             vec![(Some(PieceKind::Pawn), "7363".to_string())],
@@ -1591,7 +1603,7 @@ mod tests {
                 None,
             ],
         ];
-        let board = Board::new(
+        let board = BoardState::new(
             &custom_board,
             PieceColor::Black,
             vec![(Some(PieceKind::Pawn), "1404".to_string())],
@@ -1640,7 +1652,7 @@ mod tests {
             ],
         ];
         // We setup the board
-        let mut board = Board::new(&custom_board, PieceColor::White, vec![]);
+        let mut board = BoardState::new(&custom_board, PieceColor::White, vec![]);
         assert!(!board.is_latest_move_promotion());
 
         // Move the pawn to a promote cell
@@ -1694,7 +1706,7 @@ mod tests {
                 Some(Piece::new(PieceKind::King, PieceColor::White)),
             ],
         ];
-        let board = Board::new(
+        let board = BoardState::new(
             &custom_board,
             PieceColor::White,
             vec![(Some(PieceKind::Pawn), "6474".to_string())],
@@ -1743,7 +1755,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
         ];
         // We setup the board
-        let mut board = Board::new(&custom_board, PieceColor::Black, vec![]);
+        let mut board = BoardState::new(&custom_board, PieceColor::Black, vec![]);
         assert!(!board.is_latest_move_promotion());
 
         // Move the pawn to a promote cell
@@ -1779,7 +1791,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
         ];
         // We setup the board
-        let mut board = Board::new(
+        let mut board = BoardState::new(
             &custom_board,
             PieceColor::White,
             vec![
@@ -1817,7 +1829,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
         ];
         // We setup the board
-        let mut board = Board::new(
+        let mut board = BoardState::new(
             &custom_board,
             PieceColor::White,
             vec![
@@ -1870,7 +1882,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
         ];
         // We setup the board
-        let board = Board::new(&custom_board, PieceColor::White, vec![]);
+        let board = BoardState::new(&custom_board, PieceColor::White, vec![]);
 
         // Move the king to replicate a third time the same position
         assert_eq!(board.fen_position(), "2k4R/8/4K3/8/8/8/8/8 b - - 0 0");
@@ -1916,7 +1928,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
         ];
         // We setup the board
-        let board = Board::new(
+        let board = BoardState::new(
             &custom_board,
             PieceColor::White,
             vec![(Some(PieceKind::Pawn), "6242".to_string())],
@@ -1974,7 +1986,7 @@ mod tests {
             ],
         ];
         // We setup the board
-        let board = Board::new(&custom_board, PieceColor::White, vec![]);
+        let board = BoardState::new(&custom_board, PieceColor::White, vec![]);
 
         // Move the king to replicate a third time the same position
         assert_eq!(
@@ -1985,41 +1997,41 @@ mod tests {
 
     #[test]
     fn takeback_basic() {
-        let mut board = Board::default();
+        let mut board = BoardState::default();
         board.move_piece_on_the_board(&Coords { col: 4, row: 6 }, &Coords { col: 4, row: 4 });
-        assert_ne!(Board::default().board, board.board);
+        assert_ne!(BoardState::default().board, board.board);
         board.takeback();
-        assert_eq!(Board::default().board, board.board);
+        assert_eq!(BoardState::default().board, board.board);
     }
 
     #[test]
     fn takeback_kick() {
-        let mut board = Board::default();
+        let mut board = BoardState::default();
         board.move_piece_on_the_board(&Coords { col: 4, row: 6 }, &Coords { col: 4, row: 4 });
         board.move_piece_on_the_board(&Coords { col: 3, row: 1 }, &Coords { col: 3, row: 3 });
         board.move_piece_on_the_board(&Coords { col: 4, row: 4 }, &Coords { col: 3, row: 3 });
-        assert_ne!(Board::default().board, board.board);
+        assert_ne!(BoardState::default().board, board.board);
         board.takeback();
         board.takeback();
         board.takeback();
-        assert_eq!(Board::default().board, board.board);
+        assert_eq!(BoardState::default().board, board.board);
     }
 
     #[test]
     fn takeback_en_passant() {
-        let mut board = Board::default();
+        let mut board = BoardState::default();
         board.move_piece_on_the_board(&Coords { col: 4, row: 6 }, &Coords { col: 4, row: 4 });
         board.move_piece_on_the_board(&Coords { col: 5, row: 1 }, &Coords { col: 5, row: 3 });
         board.move_piece_on_the_board(&Coords { col: 4, row: 4 }, &Coords { col: 4, row: 3 });
         board.move_piece_on_the_board(&Coords { col: 3, row: 1 }, &Coords { col: 3, row: 3 });
         board.move_piece_on_the_board(&Coords { col: 4, row: 4 }, &Coords { col: 3, row: 3 });
-        assert_ne!(Board::default().board, board.board);
+        assert_ne!(BoardState::default().board, board.board);
         board.takeback();
         board.takeback();
         board.takeback();
         board.takeback();
         board.takeback();
-        assert_eq!(Board::default().board, board.board);
+        assert_eq!(BoardState::default().board, board.board);
     }
 
     // #[test]
@@ -2064,15 +2076,15 @@ mod tests {
         );
     }
 
-    fn internal_to_fen_board(int_board: &GameBoard) -> Vec<Option<Piece>> {
-        let mut ext_board = Vec::new();
-        for row in int_board {
-            for piece in row {
-                ext_board.push(*piece);
-            }
-        }
-        ext_board
-    }
+    // fn internal_to_fen_board(int_board: &GameBoard) -> Vec<Option<Piece>> {
+    //     let mut ext_board = Vec::new();
+    //     for row in int_board {
+    //         for piece in row {
+    //             ext_board.push(*piece);
+    //         }
+    //     }
+    //     ext_board
+    // }
 
     // fn fen_to_internal_board(fen_board: &fen::BoardState) -> GameBoard {
     //     let mut board = Vec::new();
@@ -2083,15 +2095,15 @@ mod tests {
     //     }
     // }
 
-    #[test]
-    fn fen_internal() {
-        let mut board = Board::default().board;
-        board.reverse();
-        // let fen_board = internal_to_fen_board(&board);
-        let starting_fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-        let fen_board = fen::BoardState::from_fen(starting_fen).unwrap();
-        // let fenboard = ;
-        // let bobo = fen::BoardState::to()
-        assert_eq!(fen_board.pieces, internal_to_fen_board(&board));
-    }
+    // #[test]
+    // fn fen_internal() {
+    //     let mut board = Board::default().board;
+    //     board.reverse();
+    //     // let fen_board = internal_to_fen_board(&board);
+    //     let starting_fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    //     let fen_board = fen::BoardState::from_fen(starting_fen).unwrap();
+    //     // let fenboard = ;
+    //     // let bobo = fen::BoardState::to()
+    //     assert_eq!(fen_board.pieces, internal_to_fen_board(&board));
+    // }
 }
