@@ -34,6 +34,16 @@ impl Default for App {
 }
 
 impl App {
+    // pub fn from_fen(fen: &str) -> {
+    //     Self {
+    //         running: true,
+    //         board: BoardState::from_fen(fen),
+    //         current_page: Pages::Hoem,
+    //         show_help_popup: todo!(),
+    //         menu_cursor: todo!(),
+    //         chess_engine_path: todo!(),
+    //     }
+    // }
     pub fn toggle_help_popup(&mut self) {
         self.show_help_popup = !self.show_help_popup;
     }

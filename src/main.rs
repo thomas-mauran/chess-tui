@@ -2,6 +2,7 @@
 extern crate chess_tui;
 
 use chess_tui::app::{App, AppResult};
+use chess_tui::board::BoardState;
 use chess_tui::event::{Event, EventHandler};
 use chess_tui::handler::handle_key_events;
 use chess_tui::tui::Tui;
@@ -19,6 +20,9 @@ struct Args {
     /// Path for the chess engine
     #[arg(short, long, default_value = "")]
     engine_path: String,
+    /// Fen to start the game from
+    #[arg(short, long, default_value = "")]
+    fen_position: String,
 }
 
 fn main() -> AppResult<()> {
@@ -56,6 +60,9 @@ fn main() -> AppResult<()> {
 
     // Create an application.
     let mut app = App::default();
+    if !args.fen_position.is_empty() {
+        app.board = BoardState::from_fen(args.fen_position.trim())?;
+    }
 
     // We store the chess engine path if there is one
     if let Ok(content) = fs::read_to_string(config_path) {
