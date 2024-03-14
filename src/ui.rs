@@ -15,6 +15,7 @@ use crate::{
         render_credit_popup, render_end_popup, render_engine_path_error_popup, render_help_popup,
         render_promotion_popup,
     },
+    utils::get_opposite_color,
 };
 
 /// Renders the user interface widgets.
@@ -168,7 +169,7 @@ pub fn render_game_ui(frame: &mut Frame, app: &App, main_area: Rect) {
     }
 
     if app.board.is_checkmate {
-        let victorious_player = app.board.player_turn.opposite();
+        let victorious_player = get_opposite_color(app.board.player_turn);
 
         let string_color = match victorious_player {
             PieceColor::White => "White",

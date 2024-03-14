@@ -27,6 +27,3 @@ pub mod utils;
 
 // popups render methods
 pub mod popups;
-
-// convert to or from pgn, fen, san
-pub mod notations;
