@@ -220,13 +220,13 @@ impl Board {
         coordinates: &Coords,
     ) -> Vec<Coords> {
         match (piece_kind, piece_color) {
-            (Some(piece_kind), Some(piece_color)) => Piece::new(piece_kind, piece_color)
-                .authorized_positions(
-                    coordinates,
-                    self.board,
-                    &self.move_history,
-                    is_getting_checked(self.board, self.player_turn, &self.move_history),
-                ),
+            (Some(piece_kind), Some(piece_color)) => piece_kind.authorized_positions(
+                coordinates,
+                piece_color,
+                self.board,
+                &self.move_history,
+                is_getting_checked(self.board, self.player_turn, &self.move_history),
+            ),
             _ => Vec::new(),
         }
     }
@@ -415,7 +415,7 @@ impl Board {
                     get_piece_kind(&self.board, &Coords::new(i, j)),
                     get_piece_color(&self.board, &Coords::new(i, j)),
                 );
-                match Piece::piece_to_fen_enum(piece_kind, piece_color) {
+                match PieceKind::piece_to_fen_enum(piece_kind, piece_color) {
                     // Pattern match directly on the result of piece_to_fen_enum
                     "" => {
                         // Check if the string is not empty before using chars().last()
@@ -1007,7 +1007,8 @@ impl Board {
             let piece_kind_from = self.move_history[i].0;
             let number_move = &self.move_history[i].1;
 
-            let utf_icon_white = Piece::piece_to_utf_enum(piece_kind_from, Some(PieceColor::White));
+            let utf_icon_white =
+                PieceKind::piece_to_utf_enum(piece_kind_from, Some(PieceColor::White));
             let move_white = convert_position_into_notation(number_move.to_string());
 
             let mut utf_icon_black = "   ";
@@ -1019,7 +1020,8 @@ impl Board {
                 let number = &self.move_history[i + 1].1;
 
                 move_black = convert_position_into_notation(number.to_string());
-                utf_icon_black = Piece::piece_to_utf_enum(piece_kind_to, Some(PieceColor::Black))
+                utf_icon_black =
+                    PieceKind::piece_to_utf_enum(piece_kind_to, Some(PieceColor::Black))
             }
 
             lines.push(Line::from(vec![
@@ -2064,34 +2066,22 @@ mod tests {
         );
     }
 
-    fn internal_to_fen_board(int_board: &GameBoard) -> Vec<Option<Piece>> {
-        let mut ext_board = Vec::new();
+    fn internal_to_fen_board(int_board: GameBoard) -> fen::BoardState {
+        let starting_fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        let mut ext_board = fen::BoardState::from_fen(starting_fen).unwrap();
         for row in int_board {
             for piece in row {
-                ext_board.push(*piece);
+                ext_board.pieces.push(piece);
             }
         }
         ext_board
     }
 
-    // fn fen_to_internal_board(fen_board: &fen::BoardState) -> GameBoard {
-    //     let mut board = Vec::new();
-    //     for row in fen_board.pieces.chunks(8) {
-    //         for piece in row {
-    //             board.push(piece);
-    //         }
-    //     }
-    // }
-
     #[test]
-    fn fen_internal() {
-        let mut board = Board::default().board;
-        board.reverse();
-        // let fen_board = internal_to_fen_board(&board);
-        let starting_fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-        let fen_board = fen::BoardState::from_fen(starting_fen).unwrap();
+    fn fen() {
+        let board = Board::default().board;
         // let fenboard = ;
         // let bobo = fen::BoardState::to()
-        assert_eq!(fen_board.pieces, internal_to_fen_board(&board));
+        // assert_eq!(fen::)
     }
 }
