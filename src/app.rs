@@ -34,6 +34,11 @@ impl Default for App {
 }
 
 impl App {
+    /// Constructs a new instance of [`App`].
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     pub fn toggle_help_popup(&mut self) {
         self.show_help_popup = !self.show_help_popup;
     }

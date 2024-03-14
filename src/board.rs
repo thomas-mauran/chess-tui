@@ -1,5 +1,5 @@
 use crate::{
-    constants::{BLACK, WHITE},
+    constants::{BLACK, UNDEFINED_POSITION, WHITE},
     notations::Coords,
     pieces::{Piece, PieceColor, PieceKind},
     utils::{
@@ -193,7 +193,8 @@ impl BoardState {
 
     // Check if a cell has been selected
     pub fn is_cell_selected(&self) -> bool {
-        self.selected_coordinates.undefined()
+        self.selected_coordinates.row != UNDEFINED_POSITION
+            && self.selected_coordinates.col != UNDEFINED_POSITION
     }
 
     // fn get_mut(&mut self, coord: &Coord) -> &mut Piece {
@@ -850,7 +851,11 @@ impl BoardState {
 
             if let Some(piece_kind_from) = get_piece_kind(&self.board, &to) {
                 if let Some(piece_color) = get_piece_color(&self.board, &to) {
-                    let last_row = if piece_color.is_white() { 0 } else { 7 };
+                    let last_row = if piece_color == PieceColor::White {
+                        0
+                    } else {
+                        7
+                    };
 
                     if to_y == last_row && piece_kind_from == PieceKind::Pawn {
                         return true;

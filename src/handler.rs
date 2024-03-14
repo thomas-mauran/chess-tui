@@ -61,10 +61,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                 app.board.unselect_cell();
             }
             KeyCode::Backspace => {
-                if app.current_page == Pages::Solo
-                    && !app.board.is_cell_selected()
-                    && !(app.board.is_checkmate || app.board.is_draw)
-                {
+                if app.current_page == Pages::Solo && !app.board.is_cell_selected() {
                     app.board.takeback();
                 }
             }

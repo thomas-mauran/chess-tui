@@ -19,21 +19,23 @@ impl Movable for King {
         _move_history: &[(Option<PieceKind>, String)],
     ) -> Vec<Coords> {
         let mut positions: Vec<Coords> = vec![];
+        let y = coordinates.row;
+        let x = coordinates.col;
 
         // can move on a complete row
         // Generate positions in all eight possible directions
         for &dy in &[-1, 0, 1] {
             for &dx in &[-1, 0, 1] {
                 // Skip the case where both dx and dy are zero (the current position)
-                let new_x = coordinates.col + dx;
-                let new_y = coordinates.row + dy;
+                let new_x = x + dx;
+                let new_y = y + dy;
 
                 let new_coordinates = Coords::new(new_y, new_x);
                 if new_coordinates.is_valid()
                     && (!is_cell_color_ally(board, Coords::new(new_y, new_x), color)
                         || allow_move_on_ally_positions)
                 {
-                    positions.push(Coords::new(coordinates.row + dy, coordinates.col + dx));
+                    positions.push(Coords::new(y + dy, x + dx));
                 }
             }
         }
@@ -56,7 +58,7 @@ impl Position for King {
         let rook_big_castle_x = 0;
         let rook_small_castle_x = 7;
         let king_x = 4;
-        let king_line = if color.is_white() { 7 } else { 0 };
+        let king_line = if color == PieceColor::White { 7 } else { 0 };
 
         // We check the condition for small and big castling
         if !did_piece_already_move(
@@ -132,7 +134,7 @@ impl King {
         end: i8,
         checked_cells: &[Coords],
     ) -> bool {
-        let king_line = if color.is_white() { 7 } else { 0 };
+        let king_line = if color == PieceColor::White { 7 } else { 0 };
 
         let mut valid_for_castling = true;
 
