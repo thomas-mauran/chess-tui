@@ -13,6 +13,8 @@ repository = "https://github.com/thomas-mauran/chess-tui"
 clap = { version = "4.4.11", features = ["derive"] }
 crossterm = "0.26.1"
 dirs = "5.0.1"
+fern = "0.6.2"
+log = "0.4.21"
 ratatui = "0.26.1"
 uci = "0.1.3"
 

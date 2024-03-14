@@ -111,6 +111,25 @@ impl PieceType {
         }
     }
 
+    pub fn from_char(piece_char: char) -> Option<(PieceType, PieceColor)> {
+        let (color, kind) = match piece_char {
+            'P' => (PieceColor::White, PieceType::Pawn),
+            'N' => (PieceColor::White, PieceType::Knight),
+            'B' => (PieceColor::White, PieceType::Bishop),
+            'R' => (PieceColor::White, PieceType::Rook),
+            'Q' => (PieceColor::White, PieceType::Queen),
+            'K' => (PieceColor::White, PieceType::King),
+            'p' => (PieceColor::Black, PieceType::Pawn),
+            'n' => (PieceColor::Black, PieceType::Knight),
+            'b' => (PieceColor::Black, PieceType::Bishop),
+            'r' => (PieceColor::Black, PieceType::Rook),
+            'q' => (PieceColor::Black, PieceType::Queen),
+            'k' => (PieceColor::Black, PieceType::King),
+            _ => return None,
+        };
+
+        Some((kind, color))
+    }
     pub fn piece_to_fen_enum(
         piece_type: Option<PieceType>,
         piece_color: Option<PieceColor>,

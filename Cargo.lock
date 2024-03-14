@@ -114,6 +114,8 @@ dependencies = [
  "clap",
  "crossterm 0.26.1",
  "dirs",
+ "fern",
+ "log 0.4.21",
  "ratatui",
  "uci",
 ]
@@ -244,6 +246,15 @@ name = "either"
 version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a26ae43d7bcc3b814de94796a5e736d4029efb0ee900c12e2d54c993ad1a1e07"
+
+[[package]]
+name = "fern"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d9f0c14694cbd524c8720dd69b0e3179344f04ebb5f90f2e4a440c6ea3b2f1ee"
+dependencies = [
+ "log 0.4.21",
+]
 
 [[package]]
 name = "getrandom"
