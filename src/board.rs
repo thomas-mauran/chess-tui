@@ -8,7 +8,6 @@ use crate::{
         get_king_coordinates, get_piece_color, get_piece_kind, is_getting_checked,
     },
 };
-use log::{info, warn};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style, Stylize},
@@ -17,7 +16,6 @@ use ratatui::{
     Frame,
 };
 use std::cmp::Ordering;
-use std::error::Error;
 use uci::Engine;
 
 pub type GameBoard = [[Option<Piece>; 8]; 8];
@@ -200,69 +198,6 @@ impl BoardState {
             engine: None,
             is_game_against_bot: false,
         }
-    }
-
-    pub fn from_fen(fen: &str) -> Result<Self, Box<dyn Error>> {
-        info!("{:?}", fen);
-        let mut fen = fen.split(' ');
-        if fen.clone().count() != 6 {
-            warn!("fen: not 6 fields");
-            return Err("incorrect fen position: not 6 fields".into());
-        }
-        let board_state = fen.next().unwrap();
-        let mut board = [[None; 8]; 8];
-        let mut j;
-        for (i, row) in board_state.split('/').enumerate() {
-            j = 0;
-            for ch in row.chars() {
-                info!("at row {}", i + 1);
-                if let Some(piece) = Piece::from_char(ch) {
-                    board[i][j] = Some(piece);
-                } else {
-                    info!(
-                        "found {}, at column {}, going till {}",
-                        ch,
-                        j,
-                        j + ch.to_digit(10).unwrap() as usize
-                    );
-                    for k in j..j + ch.to_digit(10).unwrap() as usize {
-                        // info!("{}", k);
-                        board[i][k] = None;
-                    }
-                    j += ch.to_digit(10).unwrap() as usize;
-                    continue;
-                }
-                j += 1;
-            }
-        }
-
-        let player_turn = match fen.next().unwrap().chars().next().unwrap() {
-            'w' => PieceColor::White,
-            'b' => PieceColor::Black,
-            invalid_color => {
-                return Err(format!(
-                    "color should be either w or b, \'{}\' is invalid",
-                    invalid_color
-                )
-                .into())
-            }
-        };
-        Ok(Self {
-            board,
-            cursor_coordinates: Coords::new(4, 4),
-            selected_coordinates: Coords::default(),
-            selected_piece_cursor: 0,
-            old_cursor_position: Coords::default(),
-            player_turn,
-            move_history: vec![],
-            is_draw: false,
-            is_checkmate: false,
-            is_promotion: false,
-            promotion_cursor: 0,
-            consecutive_non_pawn_or_capture: 0,
-            engine: None,
-            is_game_against_bot: false,
-        })
     }
 
     // Setters
@@ -932,15 +867,9 @@ impl BoardState {
 
     pub fn is_checkmate(&self) -> bool {
         if !is_getting_checked(self.board, self.player_turn, &self.move_history) {
-            info!("not getting checked");
             return false;
         }
-        eprintln!("getting checked");
 
-        eprintln!(
-            "number of auth pos: {}",
-            self.number_of_authorized_positions()
-        );
         self.number_of_authorized_positions() == 0
     }
 
@@ -2191,12 +2120,4 @@ mod tests {
     //     // let bobo = fen::BoardState::to()
     //     assert_eq!(fen_board.pieces, internal_to_fen_board(&board));
     // }
-
-    #[test]
-    fn from_fen() {
-        let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-        let board = BoardState::from_fen(fen).unwrap();
-
-        assert_eq!(board.board, BoardState::default().board);
-    }
 }
