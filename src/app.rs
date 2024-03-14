@@ -1,4 +1,4 @@
-use crate::{board::BoardState, constants::Pages};
+use crate::{board::Board, constants::Pages};
 use std::error;
 
 /// Application result type.
@@ -9,7 +9,7 @@ pub struct App {
     /// Is the application running?
     pub running: bool,
     /// board
-    pub board: BoardState,
+    pub board: Board,
     /// Current page to render
     pub current_page: Pages,
     /// Used to show the help popup during the game or in the home menu
@@ -24,7 +24,7 @@ impl Default for App {
     fn default() -> Self {
         Self {
             running: true,
-            board: BoardState::default(),
+            board: Board::default(),
             current_page: Pages::Home,
             show_help_popup: false,
             menu_cursor: 0,
@@ -76,7 +76,7 @@ impl App {
 
     pub fn restart(&mut self) {
         if self.board.is_draw || self.board.is_checkmate {
-            self.board = BoardState::default()
+            self.board = Board::default()
         }
     }
 
