@@ -1,6 +1,6 @@
 use super::{Movable, PieceColor, PieceKind, Position};
 use crate::{
-    board::{GameBoard, MoveHistory},
+    board::GameBoard,
     notations::Coords,
     utils::{
         cleaned_positions, get_int_from_char, get_latest_move, get_piece_color,
@@ -16,7 +16,7 @@ impl Movable for Pawn {
         color: PieceColor,
         board: GameBoard,
         allow_move_on_ally_positions: bool,
-        move_history: &MoveHistory,
+        move_history: &[(Option<PieceKind>, String)],
     ) -> Vec<Coords> {
         // Pawns can only move in one direction depending of their color
         // -1 if they are white (go up) +1 if they are black (go down)
@@ -89,7 +89,7 @@ impl Movable for Pawn {
         // We check for en passant
         let latest_move = get_latest_move(move_history);
 
-        if let Some((PieceKind::Pawn, piece_move)) = latest_move {
+        if let (Some(PieceKind::Pawn), piece_move) = latest_move {
             let from_y = get_int_from_char(piece_move.chars().nth(0));
             let from_x = get_int_from_char(piece_move.chars().nth(1));
             let to_y = get_int_from_char(piece_move.chars().nth(2));
@@ -129,7 +129,7 @@ impl Position for Pawn {
         coordinates: &Coords,
         color: PieceColor,
         board: GameBoard,
-        move_history: &MoveHistory,
+        move_history: &[(Option<PieceKind>, String)],
         _is_king_checked: bool,
     ) -> Vec<Coords> {
         // If the king is not checked we get then normal moves
@@ -147,7 +147,7 @@ impl Position for Pawn {
         coordinates: &Coords,
         color: PieceColor,
         board: GameBoard,
-        move_history: &MoveHistory,
+        move_history: &[(Option<PieceKind>, String)],
     ) -> Vec<Coords> {
         Self::piece_move(coordinates, color, board, true, move_history)
     }
@@ -205,7 +205,7 @@ mod tests {
             &Coords::new(4, 4),
             PieceColor::White,
             board.board,
-            &vec![],
+            &[(None, "0000".to_string())],
             false,
         );
         positions.sort();
@@ -243,7 +243,7 @@ mod tests {
             &Coords::new(6, 4),
             PieceColor::White,
             board.board,
-            &vec![],
+            &[(None, "0000".to_string())],
             false,
         );
         positions.sort();
@@ -295,7 +295,7 @@ mod tests {
             &Coords::new(1, 3),
             PieceColor::Black,
             board.board,
-            &vec![],
+            &[(None, "0000".to_string())],
             false,
         );
         positions.sort();
@@ -342,7 +342,7 @@ mod tests {
             &Coords::new(1, 3),
             PieceColor::Black,
             board.board,
-            &vec![],
+            &[(None, "0000".to_string())],
             false,
         );
         positions.sort();
@@ -380,7 +380,7 @@ mod tests {
             &Coords::new(3, 3),
             PieceColor::White,
             board.board,
-            &vec![(PieceKind::Pawn, "1232".to_string())],
+            &[(Some(PieceKind::Pawn), "1232".to_string())],
             false,
         );
         positions.sort();
@@ -418,7 +418,7 @@ mod tests {
             &Coords::new(4, 2),
             PieceColor::Black,
             board.board,
-            &vec![(PieceKind::Pawn, "6343".to_string())],
+            &[(Some(PieceKind::Pawn), "6343".to_string())],
             false,
         );
         positions.sort();
@@ -465,7 +465,7 @@ mod tests {
             &Coords::new(1, 1),
             PieceColor::Black,
             board.board,
-            &vec![(PieceKind::Pawn, "6343".to_string())],
+            &[(Some(PieceKind::Pawn), "6343".to_string())],
             false,
         );
         positions.sort();
@@ -515,7 +515,7 @@ mod tests {
             &Coords::new(2, 3),
             PieceColor::Black,
             board.board,
-            &vec![],
+            &[],
             is_king_checked,
         );
         positions.sort();
@@ -566,7 +566,7 @@ mod tests {
             &Coords::new(2, 4),
             PieceColor::Black,
             board.board,
-            &vec![],
+            &[],
             is_king_checked,
         );
         positions.sort();
@@ -626,7 +626,7 @@ mod tests {
             &Coords::new(1, 5),
             PieceColor::Black,
             board.board,
-            &vec![],
+            &[],
             is_king_checked,
         );
         positions.sort();

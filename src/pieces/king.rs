@@ -1,6 +1,6 @@
 use super::{Movable, PieceColor, PieceKind, Position};
 use crate::{
-    board::{GameBoard, MoveHistory},
+    board::GameBoard,
     notations::Coords,
     utils::{
         cleaned_positions, did_piece_already_move, get_all_protected_cells, get_piece_kind,
@@ -16,7 +16,7 @@ impl Movable for King {
         color: PieceColor,
         board: GameBoard,
         allow_move_on_ally_positions: bool,
-        _move_history: &MoveHistory,
+        _move_history: &[(Option<PieceKind>, String)],
     ) -> Vec<Coords> {
         let mut positions: Vec<Coords> = vec![];
 
@@ -47,7 +47,7 @@ impl Position for King {
         coordinates: &Coords,
         color: PieceColor,
         board: GameBoard,
-        move_history: &MoveHistory,
+        move_history: &[(Option<PieceKind>, String)],
         is_king_checked: bool,
     ) -> Vec<Coords> {
         let mut positions: Vec<Coords> = vec![];
@@ -61,7 +61,7 @@ impl Position for King {
         // We check the condition for small and big castling
         if !did_piece_already_move(
             move_history,
-            (PieceKind::King, &Coords::new(king_line, king_x)),
+            (Some(PieceKind::King), &Coords::new(king_line, king_x)),
         ) && !is_king_checked
         {
             // We check if there is no pieces between tower and king
@@ -69,7 +69,10 @@ impl Position for King {
             // Big castle check
             if !did_piece_already_move(
                 move_history,
-                (PieceKind::Rook, &Coords::new(king_line, rook_big_castle_x)),
+                (
+                    Some(PieceKind::Rook),
+                    &Coords::new(king_line, rook_big_castle_x),
+                ),
             ) && King::check_castling_condition(board, color, 0, 3, &checked_cells)
             {
                 positions.push(Coords::new(king_line, 0));
@@ -78,7 +81,7 @@ impl Position for King {
             if !did_piece_already_move(
                 move_history,
                 (
-                    PieceKind::Rook,
+                    Some(PieceKind::Rook),
                     &Coords::new(king_line, rook_small_castle_x),
                 ),
             ) && King::check_castling_condition(board, color, 5, 7, &checked_cells)
@@ -104,7 +107,7 @@ impl Position for King {
         coordinates: &Coords,
         color: PieceColor,
         board: GameBoard,
-        move_history: &MoveHistory,
+        move_history: &[(Option<PieceKind>, String)],
     ) -> Vec<Coords> {
         Self::piece_move(coordinates, color, board, true, move_history)
     }
@@ -219,7 +222,7 @@ mod tests {
             &Coords::new(4, 4),
             PieceColor::White,
             board.board,
-            &vec![],
+            &[],
             false,
         );
         positions.sort();
@@ -285,7 +288,7 @@ mod tests {
             &Coords::new(4, 4),
             PieceColor::White,
             board.board,
-            &vec![],
+            &[],
             false,
         );
         positions.sort();
@@ -351,7 +354,7 @@ mod tests {
             &Coords::new(4, 4),
             PieceColor::White,
             board.board,
-            &vec![],
+            &[],
             false,
         );
         positions.sort();
@@ -417,7 +420,7 @@ mod tests {
             &Coords::new(7, 4),
             PieceColor::White,
             board.board,
-            &vec![],
+            &[],
             false,
         );
         positions.sort();
@@ -483,7 +486,7 @@ mod tests {
             &Coords::new(0, 4),
             PieceColor::Black,
             board.board,
-            &vec![],
+            &[],
             false,
         );
         positions.sort();
@@ -549,7 +552,7 @@ mod tests {
             &Coords::new(0, 4),
             PieceColor::Black,
             board.board,
-            &vec![],
+            &[],
             false,
         );
         positions.sort();
@@ -618,7 +621,7 @@ mod tests {
             &Coords::new(0, 4),
             PieceColor::Black,
             board.board,
-            &vec![],
+            &[],
             is_king_checked,
         );
         positions.sort();
@@ -684,10 +687,10 @@ mod tests {
             &Coords::new(0, 4),
             PieceColor::Black,
             board.board,
-            &vec![
-                (PieceKind::Rook, "0747".to_string()),
-                (PieceKind::Pawn, "6252".to_string()),
-                (PieceKind::Rook, "4707".to_string()),
+            &[
+                (Some(PieceKind::Rook), "0747".to_string()),
+                (Some(PieceKind::Pawn), "6252".to_string()),
+                (Some(PieceKind::Rook), "4707".to_string()),
             ],
             false,
         );

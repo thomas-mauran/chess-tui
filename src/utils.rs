@@ -1,5 +1,5 @@
 use crate::{
-    board::{BoardState, GameBoard, MoveHistory},
+    board::{BoardState, GameBoard},
     notations::Coords,
     pieces::{Piece, PieceColor, PieceKind},
 };
@@ -41,7 +41,7 @@ pub fn is_cell_color_ally(board: GameBoard, coordinates: Coords, color: PieceCol
 pub fn get_all_protected_cells(
     board: GameBoard,
     player_turn: PieceColor,
-    move_history: &MoveHistory,
+    move_history: &[(Option<PieceKind>, String)],
 ) -> Vec<Coords> {
     let mut check_cells: Vec<Coords> = vec![];
     for i in 0..8i8 {
@@ -126,17 +126,18 @@ pub fn get_int_from_char(ch: Option<char>) -> i8 {
     }
 }
 
-pub fn get_latest_move(move_history: &MoveHistory) -> Option<(PieceKind, String)> {
+pub fn get_latest_move(
+    move_history: &[(Option<PieceKind>, String)],
+) -> (Option<PieceKind>, String) {
     if !move_history.is_empty() {
-        Some(move_history[move_history.len() - 1].clone())
-    } else {
-        None
+        return move_history[move_history.len() - 1].clone();
     }
+    (None, "0000".to_string())
 }
 
 pub fn did_piece_already_move(
-    move_history: &MoveHistory,
-    original_piece: (PieceKind, &Coords),
+    move_history: &[(Option<PieceKind>, String)],
+    original_piece: (Option<PieceKind>, &Coords),
 ) -> bool {
     for entry in move_history {
         let position = entry.1.clone();
@@ -167,7 +168,7 @@ pub fn get_king_coordinates(board: GameBoard, player_turn: PieceColor) -> Coords
 pub fn is_getting_checked(
     board: GameBoard,
     player_turn: PieceColor,
-    move_history: &MoveHistory,
+    move_history: &[(Option<PieceKind>, String)],
 ) -> bool {
     let coordinates = get_king_coordinates(board, player_turn);
 
@@ -186,7 +187,7 @@ pub fn impossible_positions_king_checked(
     positions: Vec<Coords>,
     board: GameBoard,
     color: PieceColor,
-    move_history: &MoveHistory,
+    move_history: &[(Option<PieceKind>, String)],
 ) -> Vec<Coords> {
     let mut cleaned_position: Vec<Coords> = vec![];
     for position in positions {
@@ -250,10 +251,4 @@ mod tests {
     fn convert_notation_into_position_3() {
         assert_eq!(convert_notation_into_position("g1f3".to_string()), "7655")
     }
-
-    // #[test]
-    // fn did_piece_already_move() {
-    //     let move_history = vec![Some()]
-    //     did_piece_already_move(move_history, )
-    // }
 }
