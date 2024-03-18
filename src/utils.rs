@@ -12,7 +12,7 @@ pub fn get_piece_type(board: GameBoard, coordinates: &Coords) -> Option<PieceTyp
     board[coordinates.row as usize][coordinates.col as usize].map(|(piece_type, _)| piece_type)
 }
 
-// method to clean the position array to remove impossible positions
+/// method to clean the position array to remove impossible positions
 pub fn cleaned_positions(positions: Vec<Coords>) -> Vec<Coords> {
     positions
         .into_iter()
@@ -20,7 +20,7 @@ pub fn cleaned_positions(positions: Vec<Coords>) -> Vec<Coords> {
         .collect()
 }
 
-// Return true forally cell color; false for enemy
+/// Return true for ally cell color; false for enemy
 pub fn is_cell_color_ally(board: GameBoard, coordinates: Coords, color: PieceColor) -> bool {
     match get_piece_color(board, &coordinates) {
         Some(cell_color) => cell_color == color,
@@ -28,7 +28,7 @@ pub fn is_cell_color_ally(board: GameBoard, coordinates: Coords, color: PieceCol
     }
 }
 
-// We get all the cells that are getting put in 'check'
+/// We get all the cells that are getting put in 'check'
 pub fn get_all_protected_cells(
     board: GameBoard,
     player_turn: PieceColor,
@@ -37,14 +37,15 @@ pub fn get_all_protected_cells(
     let mut check_cells: Vec<Coords> = vec![];
     for i in 0..8i8 {
         for j in 0..8i8 {
-            if get_piece_color(board, &Coords::new(i, j)) == Some(player_turn) {
+            let coords = &Coords::new(i, j);
+            if get_piece_color(board, coords) == Some(player_turn) {
                 continue;
             }
             // get the current cell piece color and type protecting positions
-            if let Some(piece_color) = get_piece_color(board, &Coords::new(i, j)) {
-                if let Some(piece_type) = get_piece_type(board, &Coords::new(i, j)) {
+            if let Some(piece_color) = get_piece_color(board, coords) {
+                if let Some(piece_type) = get_piece_type(board, coords) {
                     check_cells.extend(PieceType::protected_positions(
-                        &Coords::new(i, j),
+                        coords,
                         piece_type,
                         piece_color,
                         board,
@@ -86,20 +87,18 @@ pub fn letter_to_col(col: Option<char>) -> i8 {
 }
 
 pub fn convert_position_into_notation(position: String) -> String {
-    let mut result = String::new();
-
     let from_y = chtoi(position.chars().next());
     let from_x = chtoi(position.chars().nth(1));
     let to_y = chtoi(position.chars().nth(2));
     let to_x = chtoi(position.chars().nth(3));
 
-    result += &col_to_letter(from_x);
-    result += &format!("{}", 8 - from_y).to_string();
-    result += "-";
-    result += &col_to_letter(to_x);
-    result += &format!("{}", 8 - to_y).to_string();
-
-    result
+    format!(
+        "{}{}-{}{}",
+        &col_to_letter(from_x),
+        8 - from_y,
+        &col_to_letter(to_x),
+        8 - to_y
+    )
 }
 
 pub fn convert_notation_into_position(notation: String) -> String {
