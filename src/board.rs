@@ -33,7 +33,7 @@ pub type HistRec = (PieceType, String);
 /// _  _  _ 0
 /// _  _  _ 1
 /// _  _  _ 2
-#[derive(Debug, PartialEq, Eq, Ord, PartialOrd, Clone)]
+#[derive(PartialEq, Eq, Ord, PartialOrd, Clone)]
 pub struct Coords {
     /// column/x/j/[1]
     /// |  |  |
@@ -123,6 +123,14 @@ impl Default for Coords {
             col: UNDEFINED_POSITION,
             row: UNDEFINED_POSITION,
         }
+    }
+}
+impl std::fmt::Debug for Coords {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let col = col_to_letter(self.col);
+        let row = 8 - self.row;
+        write!(f, "{}{}", col, row)?;
+        Ok(())
     }
 }
 
@@ -1206,9 +1214,15 @@ impl Board {
         be_col: Option<char>,
         be_row: Option<i8>,
     ) -> Coords {
-        // let check_type = piece_type.is_some_and()
+        if let Some(pt) = be_type {
+            dbg!(pt);
+        }
         let mut can_go_to = Vec::new();
         for piece in self.mtov() {
+            if be_color == piece.1 && (be_type.is_some_and(|pt| pt == piece.0) || be_type.is_none())
+            {
+                dbg!(&piece);
+            }
             if self
                 .get_authorized_positions(Some(piece.0), Some(piece.1), &piece.2)
                 .contains(to)
@@ -1218,7 +1232,6 @@ impl Board {
                     || be_col.is_none())
                 && (be_row.is_some_and(|r| r == piece.2.row) || be_row.is_none())
             {
-                dbg!(&piece);
                 can_go_to.push(piece.2);
             }
         }
@@ -1236,6 +1249,7 @@ impl Board {
 
         let n = 10;
         for i in 1..n + 1 {
+            dbg!(&board);
             let start_pos = pgn_moves
                 .find(&format!("{}.", i))
                 .expect("invalid round number");
@@ -1253,7 +1267,7 @@ impl Board {
                 .to_owned();
             dbg!(&w);
 
-            let (w_to_coords, w_to_type, w_to_col, w_to_row) = if w.chars().count() == 2 {
+            let (w_to, w_to_type, w_to_col, w_to_row) = if w.chars().count() == 2 {
                 (Coords::from_basic_san(&w), None, None, None)
             } else if w.contains('O') {
                 if w == "O-O" {
@@ -1273,27 +1287,69 @@ impl Board {
                     None,
                 )
             };
-            dbg!(&w_to_coords);
+            dbg!(&w_to);
 
-            let can_move_to_w = board.can_move_to(
-                &w_to_coords,
-                PieceColor::White,
-                w_to_type,
-                w_to_col,
-                w_to_row,
-            );
-            dbg!(&can_move_to_w);
-            board.move_piece(&can_move_to_w, &w_to_coords);
+            let w_from = board.can_move_to(&w_to, PieceColor::White, w_to_type, w_to_col, w_to_row);
+            dbg!(&w_from);
+            board.set(&w_to, board.get(&w_from));
+            board.set(&w_from, None);
+            // board.move_piece(&from_w, &w_to);
 
-            let b = round.next().expect("round does not contain black's move");
+            dbg!(&board);
+            let mut b = round
+                .next()
+                .expect("round does not contain black's move")
+                .to_owned();
             dbg!(&b);
+            let (b_to, b_to_type, b_to_col, b_to_row) = if b.chars().count() == 2 {
+                (Coords::from_basic_san(&b), None, None, None)
+            } else if b.contains('O') {
+                if b == "O-O" {
+                    todo!("black castle kingside")
+                } else if b == "O-O-O" {
+                    todo!("black castle kingside")
+                } else {
+                    unreachable!("invalid black castle")
+                }
+            } else {
+                b = b.replace('x', "");
+                b = b.replace('+', "");
+                (
+                    Coords::from_basic_san(&b[b.len() - 2..b.len()]),
+                    Some(PieceType::from_char(b.chars().next().unwrap()).unwrap().0),
+                    None,
+                    None,
+                )
+            };
+            dbg!(&b_to);
 
-            // todo!("make san usable");
-            // todo!("move the right piece to usable san");
-            // todo!("do the same for black as well");
+            let b_from = board.can_move_to(&b_to, PieceColor::Black, b_to_type, b_to_col, b_to_row);
+            dbg!(&b_from);
+            board.set(&b_to, board.get(&b_from));
+            board.set(&b_from, None);
+            // board.move_piece(&from_b, &b_to);
+
+            // todo!("fn")
         }
 
         todo!("pgn import")
+    }
+}
+impl std::fmt::Debug for Board {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f)?;
+        for row in self.board {
+            for piece in row {
+                if let Some(p) = piece {
+                    write!(f, "{}", PieceType::piece_to_utf_enum(p.0, Some(p.1)))?;
+                } else {
+                    write!(f, " ")?;
+                }
+                write!(f, " ")?;
+            }
+            writeln!(f)?;
+        }
+        Ok(())
     }
 }
 
