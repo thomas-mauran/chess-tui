@@ -3,7 +3,7 @@ use crate::{
     board::{Coords, GameBoard},
     utils::{
         cleaned_positions, did_piece_already_move, get_all_protected_cells, get_piece_type,
-        is_cell_color_ally, is_vec_in_array,
+        is_cell_color_ally,
     },
 };
 
@@ -95,10 +95,7 @@ impl Position for King {
         let king_cells = King::piece_move(coordinates, color, board, false, move_history);
 
         for king_position in king_cells.clone() {
-            if !is_vec_in_array(
-                &checked_cells,
-                &Coords::new(king_position.row, king_position.col),
-            ) {
+            if !checked_cells.contains(&king_position) {
                 positions.push(king_position);
             }
         }
@@ -143,7 +140,7 @@ impl King {
         for i in start..=end {
             let new_coordinates = Coords::new(king_line, i);
 
-            if is_vec_in_array(checked_cells, &new_coordinates) {
+            if checked_cells.contains(&new_coordinates) {
                 valid_for_castling = false;
             }
             if (i == 7 || i == 0)

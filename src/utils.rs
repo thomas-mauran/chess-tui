@@ -39,10 +39,6 @@ pub fn is_cell_color_ally(board: GameBoard, coordinates: Coords, color: PieceCol
     }
 }
 
-pub fn is_vec_in_array(array: &[Coords], element: &Coords) -> bool {
-    array.contains(element)
-}
-
 // We get all the cells that are getting put in 'check'
 pub fn get_all_protected_cells(
     board: GameBoard,
@@ -129,10 +125,7 @@ pub fn convert_notation_into_position(notation: String) -> String {
 pub fn get_int_from_char(ch: Option<char>) -> i8 {
     match ch {
         Some(ch) => ch.to_digit(10).unwrap() as i8,
-        _ => {
-            panic!("maaan!");
-            // -1
-        }
+        _ => unreachable!("only valid numbers are passed"),
     }
 }
 
