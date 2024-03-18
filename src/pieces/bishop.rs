@@ -14,7 +14,7 @@ impl Movable for Bishop {
         color: PieceColor,
         board: GameBoard,
         allow_move_on_ally_positions: bool,
-        _move_history: &[(Option<PieceType>, String)],
+        _move_history: &[(PieceType, String)],
     ) -> Vec<Coords> {
         let mut positions: Vec<Coords> = vec![];
 
@@ -170,7 +170,7 @@ impl Position for Bishop {
         coordinates: &Coords,
         color: PieceColor,
         board: GameBoard,
-        move_history: &[(Option<PieceType>, String)],
+        move_history: &[(PieceType, String)],
         _is_king_checked: bool,
     ) -> Vec<Coords> {
         // if the king is checked we clean all the position not resolving the check
@@ -186,7 +186,7 @@ impl Position for Bishop {
         coordinates: &Coords,
         color: PieceColor,
         board: GameBoard,
-        move_history: &[(Option<PieceType>, String)],
+        move_history: &[(PieceType, String)],
     ) -> Vec<Coords> {
         Self::piece_move(coordinates, color, board, true, move_history)
     }

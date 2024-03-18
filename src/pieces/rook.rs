@@ -15,7 +15,7 @@ impl Movable for Rook {
         color: PieceColor,
         board: GameBoard,
         allow_move_on_ally_positions: bool,
-        _move_history: &[(Option<PieceType>, String)],
+        _move_history: &[(PieceType, String)],
     ) -> Vec<Coords> {
         // Pawns can only move in one direction depending on their color
         let mut positions: Vec<Coords> = vec![];
@@ -173,7 +173,7 @@ impl Position for Rook {
         coordinates: &Coords,
         color: PieceColor,
         board: GameBoard,
-        move_history: &[(Option<PieceType>, String)],
+        move_history: &[(PieceType, String)],
         _is_king_checked: bool,
     ) -> Vec<Coords> {
         // If the king is not checked we get then normal moves
@@ -191,7 +191,7 @@ impl Position for Rook {
         coordinates: &Coords,
         color: PieceColor,
         board: GameBoard,
-        move_history: &[(Option<PieceType>, String)],
+        move_history: &[(PieceType, String)],
     ) -> Vec<Coords> {
         Self::piece_move(coordinates, color, board, true, move_history)
     }

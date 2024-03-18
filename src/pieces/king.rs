@@ -15,7 +15,7 @@ impl Movable for King {
         color: PieceColor,
         board: GameBoard,
         allow_move_on_ally_positions: bool,
-        _move_history: &[(Option<PieceType>, String)],
+        _move_history: &[(PieceType, String)],
     ) -> Vec<Coords> {
         let mut positions: Vec<Coords> = vec![];
         let y = coordinates.row;
@@ -48,7 +48,7 @@ impl Position for King {
         coordinates: &Coords,
         color: PieceColor,
         board: GameBoard,
-        move_history: &[(Option<PieceType>, String)],
+        move_history: &[(PieceType, String)],
         is_king_checked: bool,
     ) -> Vec<Coords> {
         let mut positions: Vec<Coords> = vec![];
@@ -108,7 +108,7 @@ impl Position for King {
         coordinates: &Coords,
         color: PieceColor,
         board: GameBoard,
-        move_history: &[(Option<PieceType>, String)],
+        move_history: &[(PieceType, String)],
     ) -> Vec<Coords> {
         Self::piece_move(coordinates, color, board, true, move_history)
     }
@@ -688,9 +688,9 @@ mod tests {
             PieceColor::Black,
             board.board,
             &[
-                (Some(PieceType::Rook), "0747".to_string()),
-                (Some(PieceType::Pawn), "6252".to_string()),
-                (Some(PieceType::Rook), "4707".to_string()),
+                (PieceType::Rook, "0747".to_string()),
+                (PieceType::Pawn, "6252".to_string()),
+                (PieceType::Rook, "4707".to_string()),
             ],
             false,
         );

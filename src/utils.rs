@@ -43,7 +43,7 @@ pub fn is_cell_color_ally(board: GameBoard, coordinates: Coords, color: PieceCol
 pub fn get_all_protected_cells(
     board: GameBoard,
     player_turn: PieceColor,
-    move_history: &[(Option<PieceType>, String)],
+    move_history: &[(PieceType, String)],
 ) -> Vec<Coords> {
     let mut check_cells: Vec<Coords> = vec![];
     for i in 0..8i8 {
@@ -129,17 +129,15 @@ pub fn get_int_from_char(ch: Option<char>) -> i8 {
     }
 }
 
-pub fn get_latest_move(
-    move_history: &[(Option<PieceType>, String)],
-) -> (Option<PieceType>, String) {
+pub fn get_latest_move(move_history: &[(PieceType, String)]) -> Option<(PieceType, String)> {
     if !move_history.is_empty() {
-        return move_history[move_history.len() - 1].clone();
+        return Some(move_history[move_history.len() - 1].clone());
     }
-    (None, "0000".to_string())
+    None
 }
 
 pub fn did_piece_already_move(
-    move_history: &[(Option<PieceType>, String)],
+    move_history: &[(PieceType, String)],
     original_piece: (Option<PieceType>, Coords),
 ) -> bool {
     for entry in move_history {
@@ -147,7 +145,7 @@ pub fn did_piece_already_move(
         let from_y = get_int_from_char(position.chars().next());
         let from_x = get_int_from_char(position.chars().nth(1));
         // Here there is an entry with the same piece type and the same original position, meaning it moved at some point
-        if entry.0 == original_piece.0 && Coords::new(from_y, from_x) == original_piece.1 {
+        if entry.0 == original_piece.0.unwrap() && Coords::new(from_y, from_x) == original_piece.1 {
             return true;
         }
     }
@@ -171,7 +169,7 @@ pub fn get_king_coordinates(board: GameBoard, player_turn: PieceColor) -> Coords
 pub fn is_getting_checked(
     board: GameBoard,
     player_turn: PieceColor,
-    move_history: &[(Option<PieceType>, String)],
+    move_history: &[(PieceType, String)],
 ) -> bool {
     let coordinates = get_king_coordinates(board, player_turn);
 
@@ -190,7 +188,7 @@ pub fn impossible_positions_king_checked(
     positions: Vec<Coords>,
     board: GameBoard,
     color: PieceColor,
-    move_history: &[(Option<PieceType>, String)],
+    move_history: &[(PieceType, String)],
 ) -> Vec<Coords> {
     let mut cleaned_position: Vec<Coords> = vec![];
     for position in positions {
