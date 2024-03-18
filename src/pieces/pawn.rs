@@ -1,8 +1,8 @@
 use super::{Movable, PieceColor, PieceType, Position};
 use crate::{
-    board::{Coords, GameBoard},
+    board::{Coords, GameBoard, HistRec},
     utils::{
-        cleaned_positions, get_int_from_char, get_latest_move, get_piece_color,
+        chtoi, cleaned_positions, get_latest_move, get_piece_color,
         impossible_positions_king_checked, is_cell_color_ally,
     },
 };
@@ -15,7 +15,7 @@ impl Movable for Pawn {
         color: PieceColor,
         board: GameBoard,
         allow_move_on_ally_positions: bool,
-        move_history: &[(PieceType, String)],
+        move_history: &[HistRec],
     ) -> Vec<Coords> {
         // Pawns can only move in one direction depending of their color
         // -1 if they are white (go up) +1 if they are black (go down)
@@ -90,10 +90,10 @@ impl Movable for Pawn {
         let latest_move = get_latest_move(move_history);
 
         if let Some((PieceType::Pawn, piece_move)) = latest_move {
-            let from_y = get_int_from_char(piece_move.chars().nth(0));
-            let from_x = get_int_from_char(piece_move.chars().nth(1));
-            let to_y = get_int_from_char(piece_move.chars().nth(2));
-            let to_x = get_int_from_char(piece_move.chars().nth(3));
+            let from_y = chtoi(piece_move.chars().nth(0));
+            let from_x = chtoi(piece_move.chars().nth(1));
+            let to_y = chtoi(piece_move.chars().nth(2));
+            let to_x = chtoi(piece_move.chars().nth(3));
 
             let valid_y_start: i8;
             let number_of_cells_move: i8;
@@ -129,7 +129,7 @@ impl Position for Pawn {
         coordinates: &Coords,
         color: PieceColor,
         board: GameBoard,
-        move_history: &[(PieceType, String)],
+        move_history: &[HistRec],
         _is_king_checked: bool,
     ) -> Vec<Coords> {
         // If the king is not checked we get then normal moves
@@ -147,7 +147,7 @@ impl Position for Pawn {
         coordinates: &Coords,
         color: PieceColor,
         board: GameBoard,
-        move_history: &[(PieceType, String)],
+        move_history: &[HistRec],
     ) -> Vec<Coords> {
         Self::piece_move(coordinates, color, board, true, move_history)
     }

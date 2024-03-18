@@ -1,4 +1,4 @@
-use crate::board::{Coords, GameBoard};
+use crate::board::{Coords, GameBoard, HistRec};
 
 use self::{bishop::Bishop, king::King, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook};
 
@@ -24,7 +24,7 @@ impl PieceType {
         coordinates: &Coords,
         color: PieceColor,
         board: GameBoard,
-        move_history: &[(PieceType, String)],
+        move_history: &[HistRec],
         is_king_checked: bool,
     ) -> Vec<Coords> {
         match self {
@@ -66,7 +66,7 @@ impl PieceType {
         piece_type: PieceType,
         color: PieceColor,
         board: GameBoard,
-        move_history: &[(PieceType, String)],
+        move_history: &[HistRec],
     ) -> Vec<Coords> {
         match piece_type {
             PieceType::Pawn => {
@@ -185,7 +185,7 @@ pub trait Movable {
         color: PieceColor,
         board: GameBoard,
         allow_move_on_ally_positions: bool,
-        move_history: &[(PieceType, String)],
+        move_history: &[HistRec],
     ) -> Vec<Coords>;
 }
 
@@ -194,7 +194,7 @@ pub trait Position {
         coordinates: &Coords,
         color: PieceColor,
         board: GameBoard,
-        move_history: &[(PieceType, String)],
+        move_history: &[HistRec],
         is_king_checked: bool,
     ) -> Vec<Coords>;
 
@@ -202,6 +202,6 @@ pub trait Position {
         coordinates: &Coords,
         color: PieceColor,
         board: GameBoard,
-        move_history: &[(PieceType, String)],
+        move_history: &[HistRec],
     ) -> Vec<Coords>;
 }

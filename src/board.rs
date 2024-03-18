@@ -2,9 +2,9 @@ use crate::{
     constants::{BLACK, UNDEFINED_POSITION, WHITE},
     pieces::{PieceColor, PieceType},
     utils::{
-        col_to_letter, color_to_ratatui_enum, convert_notation_into_position,
-        convert_position_into_notation, did_piece_already_move, get_int_from_char,
-        get_king_coordinates, get_piece_color, get_piece_type, is_getting_checked,
+        chtoi, col_to_letter, color_to_ratatui_enum, convert_notation_into_position,
+        convert_position_into_notation, did_piece_already_move, get_king_coordinates,
+        get_piece_color, get_piece_type, is_getting_checked,
     },
 };
 use log::info;
@@ -17,6 +17,9 @@ use ratatui::{
 };
 use std::{cmp::Ordering, error::Error, fs::OpenOptions, io::Write};
 use uci::Engine;
+
+/// history record
+pub type HistRec = (PieceType, String);
 
 /// Coordinates
 ///
@@ -141,7 +144,7 @@ pub struct Board {
     pub selected_piece_cursor: i8,
     pub old_cursor_position: Coords,
     pub player_turn: PieceColor,
-    pub move_history: Vec<(PieceType, String)>,
+    pub move_history: Vec<HistRec>,
     pub is_draw: bool,
     pub is_checkmate: bool,
     pub is_promotion: bool,
@@ -218,11 +221,7 @@ impl Default for Board {
 }
 
 impl Board {
-    pub fn new(
-        board: GameBoard,
-        player_turn: PieceColor,
-        move_history: Vec<(PieceType, String)>,
-    ) -> Self {
+    pub fn new(board: GameBoard, player_turn: PieceColor, move_history: Vec<HistRec>) -> Self {
         Self {
             board,
             cursor_coordinates: Coords::new(4, 4),
@@ -515,11 +514,11 @@ impl Board {
         };
         let converted_move = convert_notation_into_position(movement);
 
-        let from_y = get_int_from_char(converted_move.chars().next());
-        let from_x = get_int_from_char(converted_move.chars().nth(1));
+        let from_y = chtoi(converted_move.chars().next());
+        let from_x = chtoi(converted_move.chars().nth(1));
         let from = Coords::new(from_y, from_x);
-        let to_y = get_int_from_char(converted_move.chars().nth(2));
-        let to_x = get_int_from_char(converted_move.chars().nth(3));
+        let to_y = chtoi(converted_move.chars().nth(2));
+        let to_x = chtoi(converted_move.chars().nth(3));
         let to = Coords::new(to_y, to_x);
 
         self.move_piece_on_the_board(&from, &to);
@@ -569,23 +568,15 @@ impl Board {
         result.push_str(" b");
 
         // We add the castles availabilities for black
-        if !did_piece_already_move(
-            &self.move_history,
-            (Some(PieceType::King), Coords::new(0, 4)),
-        ) && !is_getting_checked(self.board, PieceColor::Black, &self.move_history)
+        if !did_piece_already_move(&self.move_history, (PieceType::King, Coords::new(0, 4)))
+            && !is_getting_checked(self.board, PieceColor::Black, &self.move_history)
         {
             // king side black castle availability
-            if !did_piece_already_move(
-                &self.move_history,
-                (Some(PieceType::Rook), Coords::new(0, 7)),
-            ) {
+            if !did_piece_already_move(&self.move_history, (PieceType::Rook, Coords::new(0, 7))) {
                 result.push_str(" k");
             }
             // queen side black castle availability
-            if !did_piece_already_move(
-                &self.move_history,
-                (Some(PieceType::Rook), Coords::new(0, 0)),
-            ) {
+            if !did_piece_already_move(&self.move_history, (PieceType::Rook, Coords::new(0, 0))) {
                 result.push('q');
             }
         } else {
@@ -602,8 +593,8 @@ impl Board {
                     latest_move_string.chars().nth(0),
                     latest_move_string.chars().nth(1),
                 ) {
-                    let from_y = get_int_from_char(Some(from_y_char)) - 1;
-                    let from_x = get_int_from_char(Some(from_x_char));
+                    let from_y = chtoi(Some(from_y_char)) - 1;
+                    let from_x = chtoi(Some(from_x_char));
 
                     converted_move += &col_to_letter(from_x);
                     converted_move += &format!("{}", 8 - from_y).to_string();
@@ -639,8 +630,8 @@ impl Board {
     pub fn did_pawn_move_two_cells(&self) -> bool {
         match self.move_history.last() {
             Some((piece_type, move_string)) => {
-                let from_y = get_int_from_char(move_string.chars().next());
-                let to_y = get_int_from_char(move_string.chars().nth(2));
+                let from_y = chtoi(move_string.chars().next());
+                let to_y = chtoi(move_string.chars().nth(2));
 
                 let distance = (to_y - from_y).abs();
 
@@ -655,8 +646,8 @@ impl Board {
     pub fn promote_piece(&mut self) {
         if let Some(position) = self.move_history.last() {
             let to = Coords::new(
-                get_int_from_char(position.1.chars().nth(2)),
-                get_int_from_char(position.1.chars().nth(3)),
+                chtoi(position.1.chars().nth(2)),
+                chtoi(position.1.chars().nth(3)),
             );
             let new_piece = match self.promotion_cursor {
                 0 => PieceType::Queen,
@@ -950,8 +941,8 @@ impl Board {
 
     fn is_latest_move_promotion(&self) -> bool {
         if let Some(position) = self.move_history.last() {
-            let to_y = get_int_from_char(position.1.chars().nth(2));
-            let to_x = get_int_from_char(position.1.chars().nth(3));
+            let to_y = chtoi(position.1.chars().nth(2));
+            let to_x = chtoi(position.1.chars().nth(3));
             let to = Coords::new(to_y, to_x);
 
             if let Some(piece_type_from) = get_piece_type(self.board, &to) {
@@ -981,8 +972,7 @@ impl Board {
 
     pub fn draw_by_repetition(&self) -> bool {
         if self.move_history.len() >= 9 {
-            let last_ten: Vec<(PieceType, String)> =
-                self.move_history.iter().rev().take(9).cloned().collect();
+            let last_ten: Vec<HistRec> = self.move_history.iter().rev().take(9).cloned().collect();
 
             if (last_ten[0].clone(), last_ten[1].clone())
                 == (last_ten[4].clone(), last_ten[5].clone())

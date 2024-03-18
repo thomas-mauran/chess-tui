@@ -1,34 +1,23 @@
 use crate::{
-    board::{Board, Coords, GameBoard, Piece},
+    board::{Board, Coords, GameBoard, HistRec, Piece},
     pieces::{PieceColor, PieceType},
 };
 use ratatui::style::Color;
 
 pub fn get_piece_color(board: GameBoard, coordinates: &Coords) -> Option<PieceColor> {
     board[coordinates.row as usize][coordinates.col as usize].map(|(_, piece_color)| piece_color)
-    // board.get(coordinates).map(|(_, piece_color)| piece_color)
 }
 
 pub fn get_piece_type(board: GameBoard, coordinates: &Coords) -> Option<PieceType> {
     board[coordinates.row as usize][coordinates.col as usize].map(|(piece_type, _)| piece_type)
 }
 
-pub fn get_opposite_color(color: PieceColor) -> PieceColor {
-    match color {
-        PieceColor::Black => PieceColor::White,
-        PieceColor::White => PieceColor::Black,
-    }
-}
-
 // method to clean the position array to remove impossible positions
 pub fn cleaned_positions(positions: Vec<Coords>) -> Vec<Coords> {
-    let mut cleaned_array: Vec<Coords> = vec![];
-    for position in positions {
-        if position.is_valid() {
-            cleaned_array.push(position);
-        }
-    }
-    cleaned_array
+    positions
+        .into_iter()
+        .filter(|item| item.is_valid())
+        .collect()
 }
 
 // Return true forally cell color; false for enemy
@@ -43,7 +32,7 @@ pub fn is_cell_color_ally(board: GameBoard, coordinates: Coords, color: PieceCol
 pub fn get_all_protected_cells(
     board: GameBoard,
     player_turn: PieceColor,
-    move_history: &[(PieceType, String)],
+    move_history: &[HistRec],
 ) -> Vec<Coords> {
     let mut check_cells: Vec<Coords> = vec![];
     for i in 0..8i8 {
@@ -97,11 +86,12 @@ pub fn letter_to_col(col: Option<char>) -> i8 {
 }
 
 pub fn convert_position_into_notation(position: String) -> String {
-    let mut result: String = "".to_string();
-    let from_y = get_int_from_char(position.chars().next());
-    let from_x = get_int_from_char(position.chars().nth(1));
-    let to_y = get_int_from_char(position.chars().nth(2));
-    let to_x = get_int_from_char(position.chars().nth(3));
+    let mut result = String::new();
+
+    let from_y = chtoi(position.chars().next());
+    let from_x = chtoi(position.chars().nth(1));
+    let to_y = chtoi(position.chars().nth(2));
+    let to_x = chtoi(position.chars().nth(3));
 
     result += &col_to_letter(from_x);
     result += &format!("{}", 8 - from_y).to_string();
@@ -114,22 +104,23 @@ pub fn convert_position_into_notation(position: String) -> String {
 
 pub fn convert_notation_into_position(notation: String) -> String {
     let from_x = &letter_to_col(notation.chars().next());
-    let from_y = (&get_int_from_char(notation.chars().nth(1)) - 8).abs();
+    let from_y = (&chtoi(notation.chars().nth(1)) - 8).abs();
 
     let to_x = &letter_to_col(notation.chars().nth(2));
-    let to_y = (&get_int_from_char(notation.chars().nth(3)) - 8).abs();
+    let to_y = (&chtoi(notation.chars().nth(3)) - 8).abs();
 
     format!("{}{}{}{}", from_y, from_x, to_y, to_x)
 }
 
-pub fn get_int_from_char(ch: Option<char>) -> i8 {
+/// character to int conversion
+pub fn chtoi(ch: Option<char>) -> i8 {
     match ch {
         Some(ch) => ch.to_digit(10).unwrap() as i8,
-        _ => unreachable!("only valid numbers are passed"),
+        _ => unreachable!("only valid numbers are supposed to be passed"),
     }
 }
 
-pub fn get_latest_move(move_history: &[(PieceType, String)]) -> Option<(PieceType, String)> {
+pub fn get_latest_move(move_history: &[HistRec]) -> Option<HistRec> {
     if !move_history.is_empty() {
         return Some(move_history[move_history.len() - 1].clone());
     }
@@ -137,15 +128,15 @@ pub fn get_latest_move(move_history: &[(PieceType, String)]) -> Option<(PieceTyp
 }
 
 pub fn did_piece_already_move(
-    move_history: &[(PieceType, String)],
-    original_piece: (Option<PieceType>, Coords),
+    move_history: &[HistRec],
+    original_piece: (PieceType, Coords),
 ) -> bool {
     for entry in move_history {
         let position = entry.1.clone();
-        let from_y = get_int_from_char(position.chars().next());
-        let from_x = get_int_from_char(position.chars().nth(1));
+        let from_y = chtoi(position.chars().next());
+        let from_x = chtoi(position.chars().nth(1));
         // Here there is an entry with the same piece type and the same original position, meaning it moved at some point
-        if entry.0 == original_piece.0.unwrap() && Coords::new(from_y, from_x) == original_piece.1 {
+        if entry.0 == original_piece.0 && Coords::new(from_y, from_x) == original_piece.1 {
             return true;
         }
     }
@@ -153,11 +144,11 @@ pub fn did_piece_already_move(
 }
 // Method returning the coordinates of the king of a certain color
 pub fn get_king_coordinates(board: GameBoard, player_turn: PieceColor) -> Coords {
-    for i in 0..8i32 {
-        for j in 0..8i32 {
+    for i in 0..8i8 {
+        for j in 0..8i8 {
             if let Some((piece_type, piece_color)) = board[i as usize][j as usize] {
                 if piece_type == PieceType::King && piece_color == player_turn {
-                    return Coords::new(i as i8, j as i8);
+                    return Coords::new(i, j);
                 }
             }
         }
@@ -169,7 +160,7 @@ pub fn get_king_coordinates(board: GameBoard, player_turn: PieceColor) -> Coords
 pub fn is_getting_checked(
     board: GameBoard,
     player_turn: PieceColor,
-    move_history: &[(PieceType, String)],
+    move_history: &[HistRec],
 ) -> bool {
     let coordinates = get_king_coordinates(board, player_turn);
 
@@ -188,7 +179,7 @@ pub fn impossible_positions_king_checked(
     positions: Vec<Coords>,
     board: GameBoard,
     color: PieceColor,
-    move_history: &[(PieceType, String)],
+    move_history: &[HistRec],
 ) -> Vec<Coords> {
     let mut cleaned_position: Vec<Coords> = vec![];
     for position in positions {
@@ -214,7 +205,7 @@ pub fn impossible_positions_king_checked(
 pub fn is_piece_opposite_king(piece: Piece, color: PieceColor) -> bool {
     match piece {
         Some((piece_type, piece_color)) => {
-            piece_type == PieceType::King && piece_color == get_opposite_color(color)
+            piece_type == PieceType::King && piece_color == color.opposite()
         }
         _ => false,
     }

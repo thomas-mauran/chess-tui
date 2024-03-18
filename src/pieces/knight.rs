@@ -1,6 +1,6 @@
-use super::{Movable, PieceColor, PieceType, Position};
+use super::{Movable, PieceColor, Position};
 use crate::{
-    board::{Coords, GameBoard},
+    board::{Coords, GameBoard, HistRec},
     utils::{cleaned_positions, impossible_positions_king_checked, is_cell_color_ally},
 };
 pub struct Knight;
@@ -11,7 +11,7 @@ impl Movable for Knight {
         color: PieceColor,
         board: GameBoard,
         allow_move_on_ally_positions: bool,
-        _move_history: &[(PieceType, String)],
+        _move_history: &[HistRec],
     ) -> Vec<Coords> {
         let mut positions: Vec<Coords> = Vec::new();
 
@@ -54,7 +54,7 @@ impl Position for Knight {
         coordinates: &Coords,
         color: PieceColor,
         board: GameBoard,
-        move_history: &[(PieceType, String)],
+        move_history: &[HistRec],
         _is_king_checked: bool,
     ) -> Vec<Coords> {
         impossible_positions_king_checked(
@@ -70,7 +70,7 @@ impl Position for Knight {
         coordinates: &Coords,
         color: PieceColor,
         board: GameBoard,
-        _move_history: &[(PieceType, String)],
+        _move_history: &[HistRec],
     ) -> Vec<Coords> {
         Self::piece_move(coordinates, color, board, true, _move_history)
     }

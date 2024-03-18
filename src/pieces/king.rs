@@ -1,6 +1,6 @@
 use super::{Movable, PieceColor, PieceType, Position};
 use crate::{
-    board::{Coords, GameBoard},
+    board::{Coords, GameBoard, HistRec},
     utils::{
         cleaned_positions, did_piece_already_move, get_all_protected_cells, get_piece_type,
         is_cell_color_ally,
@@ -15,7 +15,7 @@ impl Movable for King {
         color: PieceColor,
         board: GameBoard,
         allow_move_on_ally_positions: bool,
-        _move_history: &[(PieceType, String)],
+        _move_history: &[HistRec],
     ) -> Vec<Coords> {
         let mut positions: Vec<Coords> = vec![];
         let y = coordinates.row;
@@ -48,7 +48,7 @@ impl Position for King {
         coordinates: &Coords,
         color: PieceColor,
         board: GameBoard,
-        move_history: &[(PieceType, String)],
+        move_history: &[HistRec],
         is_king_checked: bool,
     ) -> Vec<Coords> {
         let mut positions: Vec<Coords> = vec![];
@@ -62,7 +62,7 @@ impl Position for King {
         // We check the condition for small and big castling
         if !did_piece_already_move(
             move_history,
-            (Some(PieceType::King), Coords::new(king_line, king_x)),
+            (PieceType::King, Coords::new(king_line, king_x)),
         ) && !is_king_checked
         {
             // We check if there is no pieces between tower and king
@@ -70,10 +70,7 @@ impl Position for King {
             // Big castle check
             if !did_piece_already_move(
                 move_history,
-                (
-                    Some(PieceType::Rook),
-                    Coords::new(king_line, rook_big_castle_x),
-                ),
+                (PieceType::Rook, Coords::new(king_line, rook_big_castle_x)),
             ) && King::check_castling_condition(board, color, 0, 3, &checked_cells)
             {
                 positions.push(Coords::new(king_line, 0));
@@ -81,10 +78,7 @@ impl Position for King {
             // Small castle check
             if !did_piece_already_move(
                 move_history,
-                (
-                    Some(PieceType::Rook),
-                    Coords::new(king_line, rook_small_castle_x),
-                ),
+                (PieceType::Rook, Coords::new(king_line, rook_small_castle_x)),
             ) && King::check_castling_condition(board, color, 5, 7, &checked_cells)
             {
                 positions.push(Coords::new(king_line, 7));
@@ -108,7 +102,7 @@ impl Position for King {
         coordinates: &Coords,
         color: PieceColor,
         board: GameBoard,
-        move_history: &[(PieceType, String)],
+        move_history: &[HistRec],
     ) -> Vec<Coords> {
         Self::piece_move(coordinates, color, board, true, move_history)
     }

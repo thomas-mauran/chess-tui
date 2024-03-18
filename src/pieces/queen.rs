@@ -1,6 +1,6 @@
 use super::rook::Rook;
-use super::{Movable, PieceColor, PieceType, Position};
-use crate::board::{Coords, GameBoard};
+use super::{Movable, PieceColor, Position};
+use crate::board::{Coords, GameBoard, HistRec};
 use crate::pieces::bishop::Bishop;
 use crate::utils::{cleaned_positions, impossible_positions_king_checked};
 
@@ -12,7 +12,7 @@ impl Movable for Queen {
         color: PieceColor,
         board: GameBoard,
         allow_move_on_ally_positions: bool,
-        move_history: &[(PieceType, String)],
+        move_history: &[HistRec],
     ) -> Vec<Coords> {
         let mut positions: Vec<Coords> = vec![];
 
@@ -41,7 +41,7 @@ impl Position for Queen {
         coordinates: &Coords,
         color: PieceColor,
         board: GameBoard,
-        move_history: &[(PieceType, String)],
+        move_history: &[HistRec],
         _is_king_checked: bool,
     ) -> Vec<Coords> {
         impossible_positions_king_checked(
@@ -56,7 +56,7 @@ impl Position for Queen {
         coordinates: &Coords,
         color: PieceColor,
         board: GameBoard,
-        move_history: &[(PieceType, String)],
+        move_history: &[HistRec],
     ) -> Vec<Coords> {
         Self::piece_move(coordinates, color, board, true, move_history)
     }
