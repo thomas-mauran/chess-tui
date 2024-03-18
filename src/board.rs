@@ -476,7 +476,7 @@ impl Board {
                 if self.cursor_coordinates.is_valid() {
                     let selected_coords = &self.selected_coordinates.clone();
                     let cursor_coords = &self.cursor_coordinates.clone();
-                    self.move_piece_on_the_board(selected_coords, cursor_coords);
+                    self.move_piece(selected_coords, cursor_coords);
                     self.unselect_cell();
                     self.switch_player_turn();
                     // If we play against a bot we will play his move and switch the player turn again
@@ -521,7 +521,7 @@ impl Board {
         let to_x = chtoi(converted_move.chars().nth(3));
         let to = Coords::new(to_y, to_x);
 
-        self.move_piece_on_the_board(&from, &to);
+        self.move_piece(&from, &to);
     }
     // Convert the history and game status to a FEN string
     pub fn fen_position(&self) -> String {
@@ -668,7 +668,7 @@ impl Board {
         self.promotion_cursor = 0;
     }
 
-    pub fn move_piece_on_the_board(&mut self, from: &Coords, to: &Coords) {
+    pub fn move_piece(&mut self, from: &Coords, to: &Coords) {
         if !from.is_valid() || !to.is_valid() {
             return;
         }
@@ -1754,7 +1754,7 @@ mod tests {
         assert!(!board.is_latest_move_promotion());
 
         // Move the pawn to a promote cell
-        board.move_piece_on_the_board(&Coords::new(1, 4), &Coords::new(0, 4));
+        board.move_piece(&Coords::new(1, 4), &Coords::new(0, 4));
         assert!(board.is_latest_move_promotion());
 
         // Promote the pawn
@@ -1857,7 +1857,7 @@ mod tests {
         assert!(!board.is_latest_move_promotion());
 
         // Move the pawn to a promote cell
-        board.move_piece_on_the_board(&Coords::new(6, 5), &Coords::new(7, 5));
+        board.move_piece(&Coords::new(6, 5), &Coords::new(7, 5));
         assert!(board.is_latest_move_promotion());
 
         // Promote the pawn
@@ -1901,7 +1901,7 @@ mod tests {
         assert!(!board.is_draw());
 
         // Move the pawn to a make the 50th move
-        board.move_piece_on_the_board(&Coords::new(0, 6), &Coords::new(0, 5));
+        board.move_piece(&Coords::new(0, 6), &Coords::new(0, 5));
         assert!(board.is_draw());
     }
 
@@ -1945,7 +1945,7 @@ mod tests {
         assert!(!board.is_draw());
 
         // Move the king to replicate a third time the same position
-        board.move_piece_on_the_board(&Coords::new(0, 2), &Coords::new(0, 1));
+        board.move_piece(&Coords::new(0, 2), &Coords::new(0, 1));
         assert!(board.is_draw());
     }
 
@@ -2096,7 +2096,7 @@ mod tests {
     #[test]
     fn takeback_basic() {
         let mut board = Board::default();
-        board.move_piece_on_the_board(&Coords { col: 4, row: 6 }, &Coords { col: 4, row: 4 });
+        board.move_piece(&Coords { col: 4, row: 6 }, &Coords { col: 4, row: 4 });
         assert_ne!(Board::default().board, board.board);
         board.takeback();
         assert_eq!(Board::default().board, board.board);
@@ -2106,9 +2106,9 @@ mod tests {
     #[ignore]
     fn takeback_kick() {
         let mut board = Board::default();
-        board.move_piece_on_the_board(&Coords { col: 4, row: 6 }, &Coords { col: 4, row: 4 });
-        board.move_piece_on_the_board(&Coords { col: 3, row: 1 }, &Coords { col: 3, row: 3 });
-        board.move_piece_on_the_board(&Coords { col: 4, row: 4 }, &Coords { col: 3, row: 3 });
+        board.move_piece(&Coords { col: 4, row: 6 }, &Coords { col: 4, row: 4 });
+        board.move_piece(&Coords { col: 3, row: 1 }, &Coords { col: 3, row: 3 });
+        board.move_piece(&Coords { col: 4, row: 4 }, &Coords { col: 3, row: 3 });
         assert_ne!(Board::default().board, board.board);
         board.takeback();
         board.takeback();
@@ -2120,11 +2120,11 @@ mod tests {
     #[ignore]
     fn takeback_en_passant() {
         let mut board = Board::default();
-        board.move_piece_on_the_board(&Coords { col: 4, row: 6 }, &Coords { col: 4, row: 4 });
-        board.move_piece_on_the_board(&Coords { col: 5, row: 1 }, &Coords { col: 5, row: 3 });
-        board.move_piece_on_the_board(&Coords { col: 4, row: 4 }, &Coords { col: 4, row: 3 });
-        board.move_piece_on_the_board(&Coords { col: 3, row: 1 }, &Coords { col: 3, row: 3 });
-        board.move_piece_on_the_board(&Coords { col: 4, row: 4 }, &Coords { col: 3, row: 3 });
+        board.move_piece(&Coords { col: 4, row: 6 }, &Coords { col: 4, row: 4 });
+        board.move_piece(&Coords { col: 5, row: 1 }, &Coords { col: 5, row: 3 });
+        board.move_piece(&Coords { col: 4, row: 4 }, &Coords { col: 4, row: 3 });
+        board.move_piece(&Coords { col: 3, row: 1 }, &Coords { col: 3, row: 3 });
+        board.move_piece(&Coords { col: 4, row: 4 }, &Coords { col: 3, row: 3 });
         assert_ne!(Board::default().board, board.board);
         board.takeback();
         board.takeback();

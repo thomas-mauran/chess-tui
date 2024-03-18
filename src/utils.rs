@@ -187,7 +187,7 @@ pub fn impossible_positions_king_checked(
 
         // We simulate the move
 
-        Board::move_piece_on_the_board(&mut new_board, original_coordinates, &position);
+        Board::move_piece(&mut new_board, original_coordinates, &position);
 
         // We check if the board is still checked with this move meaning it didn't resolve the problem
         if !is_getting_checked(
