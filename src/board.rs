@@ -4,7 +4,7 @@ use crate::{
     utils::{
         chtoi, col_to_letter, color_to_ratatui_enum, convert_notation_into_position,
         convert_position_into_notation, did_piece_already_move, get_king_coordinates,
-        get_piece_color, get_piece_type, is_getting_checked,
+        get_piece_color, get_piece_type, is_getting_checked, letter_to_col,
     },
 };
 use log::info;
@@ -99,6 +99,22 @@ impl Coords {
     }
     pub fn is_valid(&self) -> bool {
         (0..8).contains(&self.row) && (0..8).contains(&self.col)
+    }
+    /// like e3 or b8
+    fn from_basic_san(san: &str) -> Self {
+        assert_eq!(san.chars().count(), 2);
+
+        let col_ch = san.chars().next();
+        let col = letter_to_col(col_ch);
+
+        let row_ch = san.chars().nth(1);
+        let row = 8 - chtoi(row_ch);
+
+        let coords = Self { col, row };
+
+        assert!(coords.is_valid());
+
+        coords
     }
 }
 impl Default for Coords {
@@ -339,11 +355,11 @@ impl Board {
         &self,
         piece_type: Option<PieceType>,
         piece_color: Option<PieceColor>,
-        coordinates: &Coords,
+        piece_position: &Coords,
     ) -> Vec<Coords> {
         match (piece_type, piece_color) {
             (Some(piece_type), Some(piece_color)) => piece_type.authorized_positions(
-                coordinates,
+                piece_position,
                 piece_color,
                 self.board,
                 &self.move_history,
@@ -896,22 +912,24 @@ impl Board {
     }
 
     pub fn number_of_authorized_positions(&self) -> usize {
-        let mut possible_moves: Vec<Coords> = vec![];
+        let mut possible_moves_count = 0;
 
         for i in 0..7 {
             for j in 0..7 {
                 if let Some((piece_type, piece_color)) = self.board[i][j] {
                     if piece_color == self.player_turn {
-                        possible_moves.extend(self.get_authorized_positions(
-                            Some(piece_type),
-                            Some(piece_color),
-                            &Coords::new(i as i8, j as i8),
-                        ))
+                        possible_moves_count += self
+                            .get_authorized_positions(
+                                Some(piece_type),
+                                Some(piece_color),
+                                &Coords::new(i as i8, j as i8),
+                            )
+                            .len();
                     }
                 }
             }
         }
-        possible_moves.len()
+        possible_moves_count
     }
 
     fn is_latest_move_en_passant(&self, from: &Coords, to: &Coords) -> bool {
@@ -1167,6 +1185,115 @@ impl Board {
             .block(Block::new())
             .alignment(Alignment::Center);
         frame.render_widget(help_paragraph, right_panel_layout[1]);
+    }
+
+    /// convert board from matrix (arrays) to vector
+    fn mtov(&self) -> Vec<(PieceType, PieceColor, Coords)> {
+        let mut pieces = Vec::new();
+        for (i, row) in self.board.iter().enumerate() {
+            for (j, piece) in row.iter().flatten().enumerate() {
+                pieces.push((piece.0, piece.1, Coords::new(i as i8, j as i8)));
+            }
+        }
+        pieces
+    }
+
+    fn can_move_to(
+        &self,
+        to: &Coords,
+        be_color: PieceColor,
+        be_type: Option<PieceType>,
+        be_col: Option<char>,
+        be_row: Option<i8>,
+    ) -> Coords {
+        // let check_type = piece_type.is_some_and()
+        let mut can_go_to = Vec::new();
+        for piece in self.mtov() {
+            if self
+                .get_authorized_positions(Some(piece.0), Some(piece.1), &piece.2)
+                .contains(to)
+                && piece.1 == be_color
+                && (be_type.is_some_and(|pt| pt == piece.0) || be_type.is_none())
+                && (be_col.is_some_and(|c| letter_to_col(Some(c)) == piece.2.col)
+                    || be_col.is_none())
+                && (be_row.is_some_and(|r| r == piece.2.row) || be_row.is_none())
+            {
+                dbg!(&piece);
+                can_go_to.push(piece.2);
+            }
+        }
+        assert_eq!(can_go_to.len(), 1);
+        can_go_to[0].clone()
+    }
+
+    /// example
+    /// 1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 d6 8. c3 O-O 9. h3 Nb8 10. d4 Nbd7
+    pub fn pgn_import(pgn: &str) -> Result<Board, Box<dyn Error>> {
+        let pgn_moves = "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 d6 8. c3 O-O 9. h3 Nb8 10. d4 Nbd7";
+        dbg!(&pgn_moves);
+
+        let mut board = Board::default();
+
+        let n = 10;
+        for i in 1..n + 1 {
+            let start_pos = pgn_moves
+                .find(&format!("{}.", i))
+                .expect("invalid round number");
+
+            let round = pgn_moves.chars().skip(start_pos).collect::<String>();
+            let mut round = round.split(' ');
+
+            let round_n = round.next().expect("round does not contain num");
+            dbg!(round_n);
+            assert_eq!(round_n, format!("{}.", i));
+
+            let mut w = round
+                .next()
+                .expect("round does not contain white's move")
+                .to_owned();
+            dbg!(&w);
+
+            let (w_to_coords, w_to_type, w_to_col, w_to_row) = if w.chars().count() == 2 {
+                (Coords::from_basic_san(&w), None, None, None)
+            } else if w.contains('O') {
+                if w == "O-O" {
+                    todo!("white castle kingside")
+                } else if w == "O-O-O" {
+                    todo!("white castle kingside")
+                } else {
+                    unreachable!("invalid white castle")
+                }
+            } else {
+                w = w.replace('x', "");
+                w = w.replace('+', "");
+                (
+                    Coords::from_basic_san(&w[w.len() - 2..w.len()]),
+                    Some(PieceType::from_char(w.chars().next().unwrap()).unwrap().0),
+                    None,
+                    None,
+                )
+            };
+            dbg!(&w_to_coords);
+
+            let can_move_to_w = board.can_move_to(
+                &w_to_coords,
+                PieceColor::White,
+                w_to_type,
+                w_to_col,
+                w_to_row,
+            );
+            dbg!(&can_move_to_w);
+            board.move_piece(&can_move_to_w, &w_to_coords);
+
+            let b = round.next().expect("round does not contain black's move");
+            dbg!(&b);
+
+            // todo!("make san usable");
+            // todo!("move the right piece to usable san");
+            // todo!("do the same for black as well");
+        }
+
+        todo!("pgn import")
     }
 }
 
@@ -2176,5 +2303,94 @@ mod tests {
             },
             Coords::default()
         );
+    }
+
+    #[test]
+    fn notation_to_coords_0() {
+        let nt = "a1";
+        assert_eq!(Coords { col: 0, row: 7 }, Coords::from_basic_san(nt));
+    }
+    #[test]
+    fn notation_to_coords_1() {
+        let nt = "h1";
+        assert_eq!(Coords { col: 7, row: 7 }, Coords::from_basic_san(nt));
+    }
+    #[test]
+    fn notation_to_coords_2() {
+        let nt = "a8";
+        assert_eq!(Coords { col: 0, row: 0 }, Coords::from_basic_san(nt));
+    }
+    #[test]
+    fn notation_to_coords_3() {
+        let nt = "h8";
+        assert_eq!(Coords { col: 7, row: 0 }, Coords::from_basic_san(nt));
+    }
+    #[test]
+    #[should_panic]
+    fn notation_to_coords_4() {
+        let nt = "h9";
+        Coords::from_basic_san(nt);
+    }
+    #[test]
+    #[should_panic]
+    fn notation_to_coords_5() {
+        let nt = "i0";
+        Coords::from_basic_san(nt);
+    }
+    #[test]
+    fn notation_to_coords_6() {
+        let nt = "e4";
+        assert_eq!(Coords { col: 4, row: 4 }, Coords::from_basic_san(nt));
+    }
+    #[test]
+    fn notation_to_coords_7() {
+        let nt = "e5";
+        assert_eq!(Coords { col: 4, row: 3 }, Coords::from_basic_san(nt));
+    }
+
+    #[test]
+    fn can_move_to_0() {
+        let board = Board::default();
+        let to_nt = "e4";
+        let to = Coords::from_basic_san(to_nt);
+
+        let from = board.can_move_to(&to, PieceColor::White, None, None, None);
+
+        let from_nt = "e2";
+        assert_eq!(Coords::from_basic_san(from_nt), from);
+    }
+    #[test]
+    fn can_move_to_1() {
+        let board = Board::default();
+        let to_nt = "d4";
+        let to = Coords::from_basic_san(to_nt);
+
+        let from = board.can_move_to(&to, PieceColor::White, None, None, None);
+
+        let from_nt = "d2";
+        assert_eq!(Coords::from_basic_san(from_nt), from);
+    }
+    #[test]
+    fn can_move_to_2() {
+        let board = Board::default();
+        let to_nt = "Nc3";
+        let to = Coords::from_basic_san(&to_nt[1..3]);
+
+        let from = board.can_move_to(&to, PieceColor::White, Some(PieceType::Knight), None, None);
+
+        let from_nt = "b1";
+        assert_eq!(Coords::from_basic_san(from_nt), from);
+    }
+
+    #[test]
+    fn auth_pos_0() {
+        let board = Board::default();
+
+        let auth_pos = board.get_authorized_positions(
+            Some(PieceType::King),
+            Some(PieceColor::White),
+            &Coords { col: 4, row: 7 },
+        );
+        assert_eq!(0, auth_pos.len());
     }
 }

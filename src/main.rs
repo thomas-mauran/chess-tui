@@ -23,6 +23,10 @@ struct Args {
     /// Fen to start the game from
     #[arg(short, long, default_value = "")]
     fen_position: String,
+
+    /// Pgn to start the game from
+    #[arg(short, long, default_value = "")]
+    pgn_position: String,
 }
 
 fn main() -> AppResult<()> {
@@ -47,6 +51,9 @@ fn main() -> AppResult<()> {
     let mut app = App::default();
     if !args.fen_position.is_empty() {
         app.board = Board::from_fen(args.fen_position.trim())?;
+    }
+    if !args.pgn_position.is_empty() {
+        app.board = Board::pgn_import(args.fen_position.trim())?;
     }
 
     // We store the chess engine path if there is one

@@ -186,7 +186,6 @@ pub fn impossible_positions_king_checked(
         let mut new_board = Board::new(board, color, move_history.to_owned().clone());
 
         // We simulate the move
-
         Board::move_piece(&mut new_board, original_coordinates, &position);
 
         // We check if the board is still checked with this move meaning it didn't resolve the problem
