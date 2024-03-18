@@ -3,7 +3,7 @@ use crate::{
     board::{Coords, GameBoard},
     utils::{
         cleaned_positions, get_piece_color, impossible_positions_king_checked, is_cell_color_ally,
-        is_piece_opposite_king, is_valid,
+        is_piece_opposite_king,
     },
 };
 pub struct Bishop;
@@ -28,7 +28,7 @@ impl Movable for Bishop {
             let new_coordinates = Coords::new(new_y, new_x);
 
             // Invalid coords
-            if !is_valid(&new_coordinates) {
+            if !&new_coordinates.is_valid() {
                 break;
             }
 
@@ -64,7 +64,7 @@ impl Movable for Bishop {
             let new_coordinates = Coords::new(new_y, new_x);
 
             // Invalid coords
-            if !is_valid(&new_coordinates) {
+            if !new_coordinates.is_valid() {
                 break;
             }
 
@@ -99,7 +99,7 @@ impl Movable for Bishop {
             let new_coordinates = Coords::new(new_y, new_x);
 
             // Invalid coords
-            if !is_valid(&new_coordinates) {
+            if !new_coordinates.is_valid() {
                 break;
             }
 
@@ -134,7 +134,7 @@ impl Movable for Bishop {
             let new_coordinates = Coords::new(new_y, new_x);
 
             // Invalid coords
-            if !is_valid(&new_coordinates) {
+            if !new_coordinates.is_valid() {
                 break;
             }
 

@@ -4,7 +4,7 @@ use crate::{
     utils::{
         col_to_letter, color_to_ratatui_enum, convert_notation_into_position,
         convert_position_into_notation, did_piece_already_move, get_int_from_char,
-        get_king_coordinates, get_piece_color, get_piece_type, is_getting_checked, is_valid,
+        get_king_coordinates, get_piece_color, get_piece_type, is_getting_checked,
     },
 };
 use log::info;
@@ -15,7 +15,7 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Padding, Paragraph},
     Frame,
 };
-use std::{cmp::Ordering, error::Error};
+use std::{cmp::Ordering, error::Error, fs::OpenOptions, io::Write};
 use uci::Engine;
 
 /// Coordinates
@@ -93,6 +93,9 @@ impl Coords {
                 .parse()
                 .unwrap(),
         )
+    }
+    pub fn is_valid(&self) -> bool {
+        (0..8).contains(&self.row) && (0..8).contains(&self.col)
     }
 }
 impl Default for Coords {
@@ -448,6 +451,7 @@ impl Board {
 
     // Methods to select a cell on the board
     pub fn select_cell(&mut self) {
+        self.export_fen_position();
         // If we are doing a promotion the cursor is used for the popup
         if self.is_promotion {
             self.promote_piece();
@@ -475,7 +479,7 @@ impl Board {
                 }
             } else {
                 // We already selected a piece
-                if is_valid(&self.cursor_coordinates) {
+                if self.cursor_coordinates.is_valid() {
                     let selected_coords = &self.selected_coordinates.clone();
                     let cursor_coords = &self.cursor_coordinates.clone();
                     self.move_piece_on_the_board(selected_coords, cursor_coords);
@@ -627,6 +631,16 @@ impl Board {
         result
     }
 
+    pub fn export_fen_position(&self) {
+        let mut f = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open("chess-tui.fen")
+            .expect("could not open chess-tui.fen");
+
+        writeln!(f, "{}", self.fen_position()).expect("could not save current fen position");
+    }
+
     pub fn did_pawn_move_two_cells(&self) -> bool {
         match self.move_history.last() {
             Some((Some(piece_type), move_string)) => {
@@ -669,7 +683,7 @@ impl Board {
     }
 
     pub fn move_piece_on_the_board(&mut self, from: &Coords, to: &Coords) {
-        if !is_valid(from) || !is_valid(to) {
+        if !from.is_valid() || !to.is_valid() {
             return;
         }
         let direction_y = if self.player_turn == PieceColor::White {

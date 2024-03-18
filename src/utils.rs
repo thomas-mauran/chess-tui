@@ -24,7 +24,7 @@ pub fn get_opposite_color(color: PieceColor) -> PieceColor {
 pub fn cleaned_positions(positions: Vec<Coords>) -> Vec<Coords> {
     let mut cleaned_array: Vec<Coords> = vec![];
     for position in positions {
-        if is_valid(&position) {
+        if position.is_valid() {
             cleaned_array.push(position);
         }
     }
@@ -37,12 +37,6 @@ pub fn is_cell_color_ally(board: GameBoard, coordinates: Coords, color: PieceCol
         Some(cell_color) => cell_color == color,
         None => false, // Treat empty cell as ally
     }
-}
-
-pub fn is_valid(coordinates: &Coords) -> bool {
-    let (y, x) = (coordinates.row, coordinates.col);
-
-    (0..8).contains(&y) && (0..8).contains(&x)
 }
 
 pub fn is_vec_in_array(array: &[Coords], element: &Coords) -> bool {
