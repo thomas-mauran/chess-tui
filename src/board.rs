@@ -784,20 +784,17 @@ impl Board {
                 // Get piece and color
                 let piece_color = get_piece_color(self.board, [i, j]);
                 let piece_type = get_piece_type(self.board, [i, j]);
+                let piece_enum =
+                    PieceType::piece_type_to_string_enum(piece_type, &self.display_mode);
 
                 let paragraph = match self.display_mode {
                     DisplayMode::DEFAULT => {
                         let color_enum = color_to_ratatui_enum(piece_color);
-                        let piece_enum =
-                            PieceType::piece_type_to_string_enum(piece_type, &self.display_mode);
 
                         // Place the pieces on the board
                         Paragraph::new(piece_enum).fg(color_enum)
                     }
                     DisplayMode::ASCII => {
-                        let piece_enum =
-                            PieceType::piece_type_to_string_enum(piece_type, &self.display_mode);
-
                         // Determine piece letter case
                         let piece_enum_case = match piece_color {
                             // pieces belonging to the player on top will be lower case
