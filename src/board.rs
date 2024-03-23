@@ -102,7 +102,7 @@ impl Default for Board {
             consecutive_non_pawn_or_capture: 0,
             engine: None,
             is_game_against_bot: false,
-            display_mode: DisplayMode::ASCII,
+            display_mode: DisplayMode::DEFAULT,
         }
     }
 }
@@ -128,7 +128,7 @@ impl Board {
             consecutive_non_pawn_or_capture: 0,
             engine: None,
             is_game_against_bot: false,
-            display_mode: DisplayMode::ASCII,
+            display_mode: DisplayMode::DEFAULT,
         }
     }
 
