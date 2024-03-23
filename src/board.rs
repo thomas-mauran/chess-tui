@@ -785,15 +785,35 @@ impl Board {
                 let piece_color = get_piece_color(self.board, [i, j]);
                 let piece_type = get_piece_type(self.board, [i, j]);
 
-                let color_enum = color_to_ratatui_enum(piece_color);
-                let piece_enum =
-                    PieceType::piece_type_to_string_enum(piece_type, &self.display_mode);
+                let paragraph = match self.display_mode {
+                    DisplayMode::DEFAULT => {
+                        let color_enum = color_to_ratatui_enum(piece_color);
+                        let piece_enum =
+                            PieceType::piece_type_to_string_enum(piece_type, &self.display_mode);
 
-                // Place the pieces on the board
-                let paragraph = Paragraph::new(piece_enum)
-                    .alignment(Alignment::Center)
-                    .fg(color_enum);
-                frame.render_widget(paragraph, square);
+                        // Place the pieces on the board
+                        Paragraph::new(piece_enum).fg(color_enum)
+                    }
+                    DisplayMode::ASCII => {
+                        let piece_enum =
+                            PieceType::piece_type_to_string_enum(piece_type, &self.display_mode);
+
+                        // Determine piece letter case
+                        let piece_enum_case = match piece_color {
+                            // pieces belonging to the player on top will be lower case
+                            Some(PieceColor::Black) => piece_enum.to_lowercase(),
+                            // pieces belonging to the player on bottom will be upper case
+                            Some(PieceColor::White) => piece_enum.to_uppercase(),
+                            // Pass through original value
+                            None => String::from(piece_enum),
+                        };
+
+                        // Place the pieces on the board
+                        Paragraph::new(piece_enum_case)
+                    }
+                };
+
+                frame.render_widget(paragraph.alignment(Alignment::Center), square);
             }
         }
     }

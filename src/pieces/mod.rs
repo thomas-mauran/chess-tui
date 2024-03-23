@@ -137,12 +137,12 @@ impl PieceType {
         display_mode: &DisplayMode,
     ) -> &'static str {
         match piece_type {
-            Some(PieceType::Queen) => Queen::to_string(&display_mode),
-            Some(PieceType::King) => King::to_string(&display_mode),
-            Some(PieceType::Rook) => Rook::to_string(&display_mode),
-            Some(PieceType::Bishop) => Bishop::to_string(&display_mode),
-            Some(PieceType::Knight) => Knight::to_string(&display_mode),
-            Some(PieceType::Pawn) => Pawn::to_string(&display_mode),
+            Some(PieceType::Queen) => Queen::to_string(display_mode),
+            Some(PieceType::King) => King::to_string(display_mode),
+            Some(PieceType::Rook) => Rook::to_string(display_mode),
+            Some(PieceType::Bishop) => Bishop::to_string(display_mode),
+            Some(PieceType::Knight) => Knight::to_string(display_mode),
+            Some(PieceType::Pawn) => Pawn::to_string(display_mode),
             None => " ",
         }
     }
