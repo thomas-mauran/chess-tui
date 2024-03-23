@@ -1,9 +1,9 @@
 use super::{Movable, PieceColor, PieceType, Position};
+use crate::board::DisplayMode;
 use crate::utils::{
     cleaned_positions, did_piece_already_move, get_all_protected_cells, get_piece_type,
     is_cell_color_ally, is_valid, is_vec_in_array,
 };
-
 pub struct King;
 
 impl Movable for King {
@@ -104,14 +104,19 @@ impl Position for King {
 }
 
 impl King {
-    pub fn to_string() -> &'static str {
-        "\
+    pub fn to_string(display_mode: &DisplayMode) -> &'static str {
+        match display_mode {
+            DisplayMode::DEFAULT => {
+                "\
       ✚\n\
     ▞▀▄▀▚\n\
     ▙▄█▄▟\n\
     ▐███▌\n\
    ▗█████▖\n\
     "
+            }
+            DisplayMode::ASCII => "K",
+        }
     }
 
     // Check if nothing is in between the king and a rook and if none of those cells are getting checked

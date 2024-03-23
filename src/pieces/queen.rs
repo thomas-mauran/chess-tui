@@ -1,5 +1,6 @@
 use super::rook::Rook;
 use super::{Movable, PieceColor, PieceType, Position};
+use crate::board::DisplayMode;
 use crate::pieces::bishop::Bishop;
 use crate::utils::{cleaned_positions, impossible_positions_king_checked};
 
@@ -62,14 +63,19 @@ impl Position for Queen {
 }
 
 impl Queen {
-    pub fn to_string() -> &'static str {
-        "\
+    pub fn to_string(display_mode: &DisplayMode) -> &'static str {
+        match display_mode {
+            DisplayMode::DEFAULT => {
+                "\
     \n\
 ◀█▟█▙█▶\n\
   ◥█◈█◤\n\
   ███\n\
 ▗█████▖\n\
     "
+            }
+            DisplayMode::ASCII => "Q",
+        }
     }
 }
 

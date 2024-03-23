@@ -1,4 +1,5 @@
 use self::{bishop::Bishop, king::King, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook};
+use super::board::DisplayMode;
 
 pub mod bishop;
 pub mod king;
@@ -131,14 +132,17 @@ impl PieceType {
         }
     }
 
-    pub fn piece_type_to_string_enum(piece_type: Option<PieceType>) -> &'static str {
+    pub fn piece_type_to_string_enum(
+        piece_type: Option<PieceType>,
+        display_mode: &DisplayMode,
+    ) -> &'static str {
         match piece_type {
-            Some(PieceType::Queen) => Queen::to_string(),
-            Some(PieceType::King) => King::to_string(),
-            Some(PieceType::Rook) => Rook::to_string(),
-            Some(PieceType::Bishop) => Bishop::to_string(),
-            Some(PieceType::Knight) => Knight::to_string(),
-            Some(PieceType::Pawn) => Pawn::to_string(),
+            Some(PieceType::Queen) => Queen::to_string(&display_mode),
+            Some(PieceType::King) => King::to_string(&display_mode),
+            Some(PieceType::Rook) => Rook::to_string(&display_mode),
+            Some(PieceType::Bishop) => Bishop::to_string(&display_mode),
+            Some(PieceType::Knight) => Knight::to_string(&display_mode),
+            Some(PieceType::Pawn) => Pawn::to_string(&display_mode),
             None => " ",
         }
     }

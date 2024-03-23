@@ -17,6 +17,11 @@ use ratatui::{
 };
 use uci::Engine;
 
+pub enum DisplayMode {
+    DEFAULT,
+    ASCII,
+}
+
 pub struct Board {
     pub board: [[Option<(PieceType, PieceColor)>; 8]; 8],
     pub cursor_coordinates: [i8; 2],
@@ -32,6 +37,7 @@ pub struct Board {
     pub consecutive_non_pawn_or_capture: i32,
     pub engine: Option<Engine>,
     pub is_game_against_bot: bool,
+    pub display_mode: DisplayMode,
 }
 
 impl Default for Board {
@@ -96,6 +102,7 @@ impl Default for Board {
             consecutive_non_pawn_or_capture: 0,
             engine: None,
             is_game_against_bot: false,
+            display_mode: DisplayMode::ASCII,
         }
     }
 }
@@ -121,6 +128,7 @@ impl Board {
             consecutive_non_pawn_or_capture: 0,
             engine: None,
             is_game_against_bot: false,
+            display_mode: DisplayMode::ASCII,
         }
     }
 
@@ -778,7 +786,8 @@ impl Board {
                 let piece_type = get_piece_type(self.board, [i, j]);
 
                 let color_enum = color_to_ratatui_enum(piece_color);
-                let piece_enum = PieceType::piece_type_to_string_enum(piece_type);
+                let piece_enum =
+                    PieceType::piece_type_to_string_enum(piece_type, &self.display_mode);
 
                 // Place the pieces on the board
                 let paragraph = Paragraph::new(piece_enum)
