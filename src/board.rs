@@ -807,6 +807,7 @@ impl Board {
 
                         // Place the pieces on the board
                         Paragraph::new(piece_enum_case)
+                            .block(Block::new().padding(Padding::vertical(square.height / 2)))
                     }
                 };
 
