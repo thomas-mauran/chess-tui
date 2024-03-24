@@ -18,6 +18,5 @@ pub enum Pages {
     Home,
     Solo,
     Bot,
-    Help,
     Credit,
 }
