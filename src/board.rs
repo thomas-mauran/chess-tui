@@ -775,7 +775,16 @@ impl Board {
                     let cell = Block::default().bg(Color::LightGreen);
                     frame.render_widget(cell.clone(), square);
                 } else {
-                    let cell = Block::default().bg(cell_color);
+                    let mut cell = Block::default();
+                    cell = match self.display_mode {
+                        DisplayMode::DEFAULT => cell.bg(cell_color),
+                        DisplayMode::ASCII => match cell_color {
+                            WHITE => cell.bg(Color::White).fg(Color::Black),
+                            BLACK => cell.bg(Color::Black).fg(Color::White),
+                            _ => cell.bg(cell_color),
+                        },
+                    };
+
                     frame.render_widget(cell.clone(), square);
                 }
 
@@ -807,6 +816,7 @@ impl Board {
 
                         // Place the pieces on the board
                         Paragraph::new(piece_enum_case)
+                            .bold()
                             .block(Block::new().padding(Padding::vertical(square.height / 2)))
                     }
                 };
