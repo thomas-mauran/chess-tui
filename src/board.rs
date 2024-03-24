@@ -805,19 +805,19 @@ impl Board {
                     }
                     DisplayMode::ASCII => {
                         // Determine piece letter case
-                        let piece_enum_case = match piece_color {
+                        let paragraph = match piece_color {
                             // pieces belonging to the player on top will be lower case
-                            Some(PieceColor::Black) => piece_enum.to_lowercase(),
+                            Some(PieceColor::Black) => Paragraph::new(piece_enum.to_lowercase()),
                             // pieces belonging to the player on bottom will be upper case
-                            Some(PieceColor::White) => piece_enum.to_uppercase(),
+                            Some(PieceColor::White) => {
+                                Paragraph::new(piece_enum.to_uppercase().underlined())
+                            }
                             // Pass through original value
-                            None => String::from(piece_enum),
+                            None => Paragraph::new(piece_enum),
                         };
 
                         // Place the pieces on the board
-                        Paragraph::new(piece_enum_case)
-                            .bold()
-                            .block(Block::new().padding(Padding::vertical(square.height / 2)))
+                        paragraph.block(Block::new().padding(Padding::vertical(square.height / 2)))
                     }
                 };
 
