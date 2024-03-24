@@ -2,10 +2,9 @@ use crate::{
     constants::{BLACK, UNDEFINED_POSITION, WHITE},
     pieces::{PieceColor, PieceType},
     utils::{
-        col_to_letter, color_to_ratatui_enum, convert_notation_into_position,
-        convert_position_into_notation, did_piece_already_move, get_int_from_char,
-        get_king_coordinates, get_piece_color, get_piece_type, get_player_turn_in_modulo,
-        is_getting_checked, is_valid,
+        col_to_letter, convert_notation_into_position, convert_position_into_notation,
+        did_piece_already_move, get_cell_paragraph, get_int_from_char, get_king_coordinates,
+        get_piece_color, get_piece_type, get_player_turn_in_modulo, is_getting_checked, is_valid,
     },
 };
 use ratatui::{
@@ -788,40 +787,10 @@ impl Board {
                     frame.render_widget(cell.clone(), square);
                 }
 
-                // We check if the current king is getting checked
-
                 // Get piece and color
-                let piece_color = get_piece_color(self.board, [i, j]);
-                let piece_type = get_piece_type(self.board, [i, j]);
-                let piece_enum =
-                    PieceType::piece_type_to_string_enum(piece_type, &self.display_mode);
+                let paragraph = get_cell_paragraph(self, [i, j], square);
 
-                let paragraph = match self.display_mode {
-                    DisplayMode::DEFAULT => {
-                        let color_enum = color_to_ratatui_enum(piece_color);
-
-                        // Place the pieces on the board
-                        Paragraph::new(piece_enum).fg(color_enum)
-                    }
-                    DisplayMode::ASCII => {
-                        // Determine piece letter case
-                        let paragraph = match piece_color {
-                            // pieces belonging to the player on top will be lower case
-                            Some(PieceColor::Black) => Paragraph::new(piece_enum.to_lowercase()),
-                            // pieces belonging to the player on bottom will be upper case
-                            Some(PieceColor::White) => {
-                                Paragraph::new(piece_enum.to_uppercase().underlined())
-                            }
-                            // Pass through original value
-                            None => Paragraph::new(piece_enum),
-                        };
-
-                        // Place the pieces on the board
-                        paragraph.block(Block::new().padding(Padding::vertical(square.height / 2)))
-                    }
-                };
-
-                frame.render_widget(paragraph.alignment(Alignment::Center), square);
+                frame.render_widget(paragraph, square);
             }
         }
     }
