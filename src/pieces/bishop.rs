@@ -1,7 +1,10 @@
 use super::{Movable, PieceColor, PieceType, Position};
-use crate::utils::{
-    cleaned_positions, get_piece_color, impossible_positions_king_checked, is_cell_color_ally,
-    is_piece_opposite_king, is_valid,
+use crate::{
+    board::HistRec,
+    utils::{
+        cleaned_positions, get_piece_color, impossible_positions_king_checked, is_cell_color_ally,
+        is_piece_opposite_king, is_valid,
+    },
 };
 pub struct Bishop;
 
@@ -11,7 +14,7 @@ impl Movable for Bishop {
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         allow_move_on_ally_positions: bool,
-        _move_history: &[(Option<PieceType>, String)],
+        _move_history: &[HistRec],
     ) -> Vec<Vec<i8>> {
         let mut positions: Vec<Vec<i8>> = vec![];
 
@@ -167,7 +170,7 @@ impl Position for Bishop {
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-        move_history: &[(Option<PieceType>, String)],
+        move_history: &[HistRec],
         _is_king_checked: bool,
     ) -> Vec<Vec<i8>> {
         // if the king is checked we clean all the position not resolving the check
@@ -183,7 +186,7 @@ impl Position for Bishop {
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-        move_history: &[(Option<PieceType>, String)],
+        move_history: &[HistRec],
     ) -> Vec<Vec<i8>> {
         Self::piece_move(coordinates, color, board, true, move_history)
     }
