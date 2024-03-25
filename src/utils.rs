@@ -1,9 +1,13 @@
 use crate::{
-    board::Board,
+    board::{Board, DisplayMode},
     constants::UNDEFINED_POSITION,
     pieces::{PieceColor, PieceType},
 };
-use ratatui::style::Color;
+use ratatui::{
+    layout::{Alignment, Rect},
+    style::{Color, Stylize},
+    widgets::{Block, Padding, Paragraph},
+};
 
 pub fn get_piece_color(
     board: [[Option<(PieceType, PieceColor)>; 8]; 8],
@@ -270,6 +274,42 @@ pub fn color_to_ratatui_enum(piece_color: Option<PieceColor>) -> Color {
         Some(PieceColor::White) => Color::White,
         None => Color::Red,
     }
+}
+
+pub fn get_cell_paragraph(
+    board: &Board,
+    cell_coordinates: [i8; 2],
+    bounding_rect: Rect,
+) -> Paragraph<'_> {
+    // Get piece and color
+    let piece_color = get_piece_color(board.board, cell_coordinates);
+    let piece_type = get_piece_type(board.board, cell_coordinates);
+    let piece_enum = PieceType::piece_type_to_string_enum(piece_type, &board.display_mode);
+
+    let paragraph = match board.display_mode {
+        DisplayMode::DEFAULT => {
+            let color_enum = color_to_ratatui_enum(piece_color);
+
+            // Place the pieces on the board
+            Paragraph::new(piece_enum).fg(color_enum)
+        }
+        DisplayMode::ASCII => {
+            // Determine piece letter case
+            let paragraph = match piece_color {
+                // pieces belonging to the player on top will be lower case
+                Some(PieceColor::Black) => Paragraph::new(piece_enum.to_lowercase()),
+                // pieces belonging to the player on bottom will be upper case
+                Some(PieceColor::White) => Paragraph::new(piece_enum.to_uppercase().underlined()),
+                // Pass through original value
+                None => Paragraph::new(piece_enum),
+            };
+
+            // Place the pieces on the board
+            paragraph.block(Block::new().padding(Padding::vertical(bounding_rect.height / 2)))
+        }
+    };
+
+    paragraph.alignment(Alignment::Center)
 }
 
 #[cfg(test)]

@@ -1,4 +1,4 @@
-use crate::{board::Board, constants::Pages};
+use crate::{board::Board, board::DisplayMode, constants::Pages};
 use std::error;
 
 /// Application result type.
@@ -66,12 +66,12 @@ impl App {
         if self.menu_cursor > 0 {
             self.menu_cursor -= 1
         } else {
-            self.menu_cursor = 3
+            self.menu_cursor = 4
         }
     }
 
     pub fn menu_cursor_down(&mut self) {
-        if self.menu_cursor < 3 {
+        if self.menu_cursor < 4 {
             self.menu_cursor += 1
         } else {
             self.menu_cursor = 0
@@ -88,8 +88,14 @@ impl App {
         match self.menu_cursor {
             0 => self.current_page = Pages::Solo,
             1 => self.current_page = Pages::Bot,
-            2 => self.current_page = Pages::Help,
-            3 => self.current_page = Pages::Credit,
+            2 => {
+                self.board.display_mode = match self.board.display_mode {
+                    DisplayMode::ASCII => DisplayMode::DEFAULT,
+                    DisplayMode::DEFAULT => DisplayMode::ASCII,
+                };
+            }
+            3 => self.current_page = Pages::Help,
+            4 => self.current_page = Pages::Credit,
             _ => {}
         }
     }
