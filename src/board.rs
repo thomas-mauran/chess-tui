@@ -17,6 +17,8 @@ use ratatui::{
 };
 use uci::Engine;
 
+pub type HistRec = (PieceType, String);
+
 pub struct Board {
     pub board: [[Option<(PieceType, PieceColor)>; 8]; 8],
     pub cursor_coordinates: [i8; 2],
@@ -24,7 +26,7 @@ pub struct Board {
     pub selected_piece_cursor: i8,
     pub old_cursor_position: [i8; 2],
     pub player_turn: PieceColor,
-    pub move_history: Vec<(Option<PieceType>, String)>,
+    pub move_history: Vec<HistRec>,
     pub is_draw: bool,
     pub is_checkmate: bool,
     pub is_promotion: bool,
@@ -104,7 +106,7 @@ impl Board {
     pub fn new(
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         player_turn: PieceColor,
-        move_history: Vec<(Option<PieceType>, String)>,
+        move_history: Vec<HistRec>,
     ) -> Self {
         Self {
             board,
@@ -223,7 +225,7 @@ impl Board {
     pub fn did_king_already_move(&self) -> bool {
         for i in 0..self.move_history.len() {
             match self.move_history[i] {
-                (Some(piece_type), _) => {
+                (piece_type, _) => {
                     if piece_type == PieceType::King
                         && get_player_turn_in_modulo(self.player_turn) == i % 2
                     {
@@ -399,15 +401,15 @@ impl Board {
         result.push_str(" b");
 
         // We add the castles availabilities for black
-        if !did_piece_already_move(&self.move_history, (Some(PieceType::King), [0, 4]))
+        if !did_piece_already_move(&self.move_history, (PieceType::King, [0, 4]))
             && !is_getting_checked(self.board, PieceColor::Black, &self.move_history)
         {
             // king side black castle availability
-            if !did_piece_already_move(&self.move_history, (Some(PieceType::Rook), [0, 7])) {
+            if !did_piece_already_move(&self.move_history, (PieceType::Rook, [0, 7])) {
                 result.push_str(" k");
             }
             // queen side black castle availability
-            if !did_piece_already_move(&self.move_history, (Some(PieceType::Rook), [0, 0])) {
+            if !did_piece_already_move(&self.move_history, (PieceType::Rook, [0, 0])) {
                 result.push_str("q");
             }
         } else {
@@ -450,7 +452,7 @@ impl Board {
 
     pub fn did_pawn_move_two_cells(&self) -> bool {
         match self.move_history.last() {
-            Some((Some(piece_type), move_string)) => {
+            Some((piece_type, move_string)) => {
                 let from_y = get_int_from_char(move_string.chars().next());
                 let to_y = get_int_from_char(move_string.chars().nth(2));
 
@@ -511,8 +513,6 @@ impl Board {
             }
         }
 
-        let tuple = (piece_type_from, position_number);
-
         // We check for en passant as the latest move
         if self.is_latest_move_en_passant(from, to) {
             // we kill the pawn
@@ -563,8 +563,10 @@ impl Board {
 
         self.board[from[0]][from[1]] = None;
 
-        // We store it in the history
-        self.move_history.push(tuple.clone());
+        if let Some(pt) = piece_type_from {
+            // We store it in the history
+            self.move_history.push((pt, position_number));
+        }
     }
 
     pub fn unselect_cell(&mut self) {
@@ -658,8 +660,7 @@ impl Board {
 
     pub fn draw_by_repetition(&self) -> bool {
         if self.move_history.len() >= 9 {
-            let last_ten: Vec<(Option<PieceType>, String)> =
-                self.move_history.iter().rev().take(9).cloned().collect();
+            let last_ten: Vec<HistRec> = self.move_history.iter().rev().take(9).cloned().collect();
 
             if (last_ten[0].clone(), last_ten[1].clone())
                 == (last_ten[4].clone(), last_ten[5].clone())
@@ -1342,7 +1343,7 @@ mod tests {
         let board = Board::new(
             custom_board,
             PieceColor::Black,
-            vec![(Some(PieceType::Pawn), "7363".to_string())],
+            vec![(PieceType::Pawn, "7363".to_string())],
         );
 
         assert!(!board.is_latest_move_promotion());
@@ -1389,7 +1390,7 @@ mod tests {
         let board = Board::new(
             custom_board,
             PieceColor::Black,
-            vec![(Some(PieceType::Pawn), "1404".to_string())],
+            vec![(PieceType::Pawn, "1404".to_string())],
         );
 
         assert!(board.is_latest_move_promotion());
@@ -1492,7 +1493,7 @@ mod tests {
         let board = Board::new(
             custom_board,
             PieceColor::White,
-            vec![(Some(PieceType::Pawn), "6474".to_string())],
+            vec![(PieceType::Pawn, "6474".to_string())],
         );
 
         assert!(board.is_latest_move_promotion());
@@ -1616,14 +1617,14 @@ mod tests {
             custom_board,
             PieceColor::White,
             vec![
-                (Some(PieceType::King), "0201".to_string()),
-                (Some(PieceType::King), "0605".to_string()),
-                (Some(PieceType::King), "0102".to_string()),
-                (Some(PieceType::King), "0506".to_string()),
-                (Some(PieceType::King), "0201".to_string()),
-                (Some(PieceType::King), "0605".to_string()),
-                (Some(PieceType::King), "0102".to_string()),
-                (Some(PieceType::King), "0506".to_string()),
+                (PieceType::King, "0201".to_string()),
+                (PieceType::King, "0605".to_string()),
+                (PieceType::King, "0102".to_string()),
+                (PieceType::King, "0506".to_string()),
+                (PieceType::King, "0201".to_string()),
+                (PieceType::King, "0605".to_string()),
+                (PieceType::King, "0102".to_string()),
+                (PieceType::King, "0506".to_string()),
             ],
         );
 
@@ -1714,7 +1715,7 @@ mod tests {
         let board = Board::new(
             custom_board,
             PieceColor::White,
-            vec![(Some(PieceType::Pawn), "6242".to_string())],
+            vec![(PieceType::Pawn, "6242".to_string())],
         );
 
         // Move the king to replicate a third time the same position

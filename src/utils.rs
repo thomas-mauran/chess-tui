@@ -1,5 +1,5 @@
 use crate::{
-    board::Board,
+    board::{Board, HistRec},
     constants::UNDEFINED_POSITION,
     pieces::{PieceColor, PieceType},
 };
@@ -68,7 +68,7 @@ pub fn is_vec_in_array(array: Vec<Vec<i8>>, element: [i8; 2]) -> bool {
 pub fn get_all_protected_cells(
     board: [[Option<(PieceType, PieceColor)>; 8]; 8],
     player_turn: PieceColor,
-    move_history: &[(Option<PieceType>, String)],
+    move_history: &[HistRec],
 ) -> Vec<Vec<i8>> {
     let mut check_cells: Vec<Vec<i8>> = vec![];
     for i in 0..8i8 {
@@ -161,18 +161,17 @@ pub fn get_int_from_char(ch: Option<char>) -> i8 {
     }
 }
 
-pub fn get_latest_move(
-    move_history: &[(Option<PieceType>, String)],
-) -> (Option<PieceType>, String) {
+pub fn get_latest_move(move_history: &[HistRec]) -> Option<HistRec> {
     if !move_history.is_empty() {
-        return move_history[move_history.len() - 1].clone();
+        Some(move_history[move_history.len() - 1].clone())
+    } else {
+        None
     }
-    (None, "0000".to_string())
 }
 
 pub fn did_piece_already_move(
-    move_history: &[(Option<PieceType>, String)],
-    original_piece: (Option<PieceType>, [i8; 2]),
+    move_history: &[HistRec],
+    original_piece: (PieceType, [i8; 2]),
 ) -> bool {
     for entry in move_history {
         let position = entry.1.clone();
@@ -206,7 +205,7 @@ pub fn get_king_coordinates(
 pub fn is_getting_checked(
     board: [[Option<(PieceType, PieceColor)>; 8]; 8],
     player_turn: PieceColor,
-    move_history: &[(Option<PieceType>, String)],
+    move_history: &[HistRec],
 ) -> bool {
     let coordinates = get_king_coordinates(board, player_turn);
 
@@ -225,7 +224,7 @@ pub fn impossible_positions_king_checked(
     positions: Vec<Vec<i8>>,
     board: [[Option<(PieceType, PieceColor)>; 8]; 8],
     color: PieceColor,
-    move_history: &[(Option<PieceType>, String)],
+    move_history: &[HistRec],
 ) -> Vec<Vec<i8>> {
     let mut cleaned_position: Vec<Vec<i8>> = vec![];
     for position in positions {

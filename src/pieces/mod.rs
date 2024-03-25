@@ -1,3 +1,5 @@
+use crate::board::HistRec;
+
 use self::{bishop::Bishop, king::King, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook};
 
 pub mod bishop;
@@ -22,7 +24,7 @@ impl PieceType {
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-        move_history: &[(Option<PieceType>, String)],
+        move_history: &[HistRec],
         is_king_checked: bool,
     ) -> Vec<Vec<i8>> {
         match self {
@@ -64,7 +66,7 @@ impl PieceType {
         piece_type: PieceType,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-        move_history: &[(Option<PieceType>, String)],
+        move_history: &[HistRec],
     ) -> Vec<Vec<i8>> {
         match piece_type {
             PieceType::Pawn => {
@@ -89,22 +91,22 @@ impl PieceType {
     }
 
     pub fn piece_to_utf_enum(
-        piece_type: Option<PieceType>,
+        piece_type: PieceType,
         piece_color: Option<PieceColor>,
     ) -> &'static str {
         match (piece_type, piece_color) {
-            (Some(PieceType::Queen), Some(PieceColor::Black)) => "♕",
-            (Some(PieceType::Queen), Some(PieceColor::White)) => "♛",
-            (Some(PieceType::King), Some(PieceColor::Black)) => "♔",
-            (Some(PieceType::King), Some(PieceColor::White)) => "♚",
-            (Some(PieceType::Rook), Some(PieceColor::Black)) => "♖",
-            (Some(PieceType::Rook), Some(PieceColor::White)) => "♜",
-            (Some(PieceType::Bishop), Some(PieceColor::Black)) => "♗",
-            (Some(PieceType::Bishop), Some(PieceColor::White)) => "♝",
-            (Some(PieceType::Knight), Some(PieceColor::Black)) => "♘",
-            (Some(PieceType::Knight), Some(PieceColor::White)) => "♞",
-            (Some(PieceType::Pawn), Some(PieceColor::Black)) => "♙",
-            (Some(PieceType::Pawn), Some(PieceColor::White)) => "♟",
+            (PieceType::Queen, Some(PieceColor::Black)) => "♕",
+            (PieceType::Queen, Some(PieceColor::White)) => "♛",
+            (PieceType::King, Some(PieceColor::Black)) => "♔",
+            (PieceType::King, Some(PieceColor::White)) => "♚",
+            (PieceType::Rook, Some(PieceColor::Black)) => "♖",
+            (PieceType::Rook, Some(PieceColor::White)) => "♜",
+            (PieceType::Bishop, Some(PieceColor::Black)) => "♗",
+            (PieceType::Bishop, Some(PieceColor::White)) => "♝",
+            (PieceType::Knight, Some(PieceColor::Black)) => "♘",
+            (PieceType::Knight, Some(PieceColor::White)) => "♞",
+            (PieceType::Pawn, Some(PieceColor::Black)) => "♙",
+            (PieceType::Pawn, Some(PieceColor::White)) => "♟",
             _ => "NONE",
         }
     }
@@ -156,7 +158,7 @@ pub trait Movable {
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         allow_move_on_ally_positions: bool,
-        move_history: &[(Option<PieceType>, String)],
+        move_history: &[HistRec],
     ) -> Vec<Vec<i8>>;
 }
 
@@ -165,7 +167,7 @@ pub trait Position {
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-        move_history: &[(Option<PieceType>, String)],
+        move_history: &[HistRec],
         is_king_checked: bool,
     ) -> Vec<Vec<i8>>;
 
@@ -173,6 +175,6 @@ pub trait Position {
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-        move_history: &[(Option<PieceType>, String)],
+        move_history: &[HistRec],
     ) -> Vec<Vec<i8>>;
 }
