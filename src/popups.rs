@@ -55,7 +55,7 @@ pub fn render_end_popup(frame: &mut Frame, sentence: String) {
         Line::from(sentence).alignment(Alignment::Center),
         Line::from(""),
         Line::from(""),
-        Line::from("Press 'R' to start a new game").alignment(Alignment::Center),
+        Line::from("Press `R` to start a new game").alignment(Alignment::Center),
     ];
 
     let paragraph = Paragraph::new(text)
