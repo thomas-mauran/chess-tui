@@ -34,11 +34,6 @@ impl Default for App {
 }
 
 impl App {
-    /// Constructs a new instance of [`App`].
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     pub fn toggle_help_popup(&mut self) {
         if self.current_page == Pages::Home {
             self.current_page = Pages::Help
