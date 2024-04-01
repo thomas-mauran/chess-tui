@@ -1,9 +1,9 @@
 use super::{Movable, PieceColor, PieceType, Position};
+use crate::board::DisplayMode;
 use crate::utils::{
     cleaned_positions, get_piece_color, impossible_positions_king_checked, is_cell_color_ally,
     is_piece_opposite_king, is_valid,
 };
-
 pub struct Rook;
 
 impl Movable for Rook {
@@ -195,14 +195,19 @@ impl Position for Rook {
 }
 
 impl Rook {
-    pub fn to_string() -> &'static str {
-        "\
+    pub fn to_string(display_mode: &DisplayMode) -> &'static str {
+        match display_mode {
+            DisplayMode::DEFAULT => {
+                "\
     \n\
     █▟█▙█\n\
     ▜███▛\n\
     ▐███▌\n\
    ▗█████▖\n\
     "
+            }
+            DisplayMode::ASCII => "R",
+        }
     }
 }
 

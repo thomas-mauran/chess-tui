@@ -1,4 +1,5 @@
 use super::{Movable, PieceColor, PieceType, Position};
+use crate::board::DisplayMode;
 use crate::utils::{
     cleaned_positions, impossible_positions_king_checked, is_cell_color_ally, is_valid,
 };
@@ -74,14 +75,19 @@ impl Position for Knight {
 }
 
 impl Knight {
-    pub fn to_string() -> &'static str {
-        "\
+    pub fn to_string(display_mode: &DisplayMode) -> &'static str {
+        match display_mode {
+            DisplayMode::DEFAULT => {
+                "\
     \n\
     ▟▛██▙\n\
    ▟█████\n\
    ▀▀▟██▌\n\
     ▟████\n\
     "
+            }
+            DisplayMode::ASCII => "N",
+        }
     }
 }
 

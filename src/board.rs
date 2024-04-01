@@ -2,10 +2,9 @@ use crate::{
     constants::{BLACK, UNDEFINED_POSITION, WHITE},
     pieces::{PieceColor, PieceType},
     utils::{
-        col_to_letter, color_to_ratatui_enum, convert_notation_into_position,
-        convert_position_into_notation, did_piece_already_move, get_int_from_char,
-        get_king_coordinates, get_piece_color, get_piece_type, get_player_turn_in_modulo,
-        is_getting_checked, is_valid,
+        col_to_letter, convert_notation_into_position, convert_position_into_notation,
+        did_piece_already_move, get_cell_paragraph, get_int_from_char, get_king_coordinates,
+        get_piece_color, get_piece_type, get_player_turn_in_modulo, is_getting_checked, is_valid,
     },
 };
 use ratatui::{
@@ -16,6 +15,11 @@ use ratatui::{
     Frame,
 };
 use uci::Engine;
+
+pub enum DisplayMode {
+    DEFAULT,
+    ASCII,
+}
 
 pub struct Board {
     pub board: [[Option<(PieceType, PieceColor)>; 8]; 8],
@@ -32,6 +36,7 @@ pub struct Board {
     pub consecutive_non_pawn_or_capture: i32,
     pub engine: Option<Engine>,
     pub is_game_against_bot: bool,
+    pub display_mode: DisplayMode,
 }
 
 impl Default for Board {
@@ -96,6 +101,7 @@ impl Default for Board {
             consecutive_non_pawn_or_capture: 0,
             engine: None,
             is_game_against_bot: false,
+            display_mode: DisplayMode::DEFAULT,
         }
     }
 }
@@ -121,6 +127,7 @@ impl Board {
             consecutive_non_pawn_or_capture: 0,
             engine: None,
             is_game_against_bot: false,
+            display_mode: DisplayMode::DEFAULT,
         }
     }
 
@@ -767,23 +774,22 @@ impl Board {
                     let cell = Block::default().bg(Color::LightGreen);
                     frame.render_widget(cell.clone(), square);
                 } else {
-                    let cell = Block::default().bg(cell_color);
+                    let mut cell = Block::default();
+                    cell = match self.display_mode {
+                        DisplayMode::DEFAULT => cell.bg(cell_color),
+                        DisplayMode::ASCII => match cell_color {
+                            WHITE => cell.bg(Color::White).fg(Color::Black),
+                            BLACK => cell.bg(Color::Black).fg(Color::White),
+                            _ => cell.bg(cell_color),
+                        },
+                    };
+
                     frame.render_widget(cell.clone(), square);
                 }
 
-                // We check if the current king is getting checked
-
                 // Get piece and color
-                let piece_color = get_piece_color(self.board, [i, j]);
-                let piece_type = get_piece_type(self.board, [i, j]);
+                let paragraph = get_cell_paragraph(self, [i, j], square);
 
-                let color_enum = color_to_ratatui_enum(piece_color);
-                let piece_enum = PieceType::piece_type_to_string_enum(piece_type);
-
-                // Place the pieces on the board
-                let paragraph = Paragraph::new(piece_enum)
-                    .alignment(Alignment::Center)
-                    .fg(color_enum);
                 frame.render_widget(paragraph, square);
             }
         }

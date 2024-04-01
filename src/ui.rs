@@ -9,6 +9,7 @@ use ratatui::{
 
 use crate::{
     app::App,
+    board::DisplayMode,
     constants::{Pages, TITLE},
     pieces::PieceColor,
     popups::{
@@ -97,8 +98,23 @@ pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
         .block(Block::default());
     frame.render_widget(sub_title, main_layout_horizontal[1]);
 
+    // Determine the "display mode" text
+    let display_mode_menu = {
+        let display_mode = match app.board.display_mode {
+            DisplayMode::DEFAULT => "Default",
+            DisplayMode::ASCII => "ASCII",
+        };
+        format!("Display mode: {}", display_mode)
+    };
+
     // Board block representing the full board div
-    let menu_items = ["Normal game", "Play against a bot", "Help", "Credits"];
+    let menu_items = [
+        "Normal game",
+        "Play against a bot",
+        &display_mode_menu,
+        "Help",
+        "Credits",
+    ];
     let mut menu_body: Vec<Line<'_>> = vec![];
 
     for (i, menu_item) in menu_items.iter().enumerate() {
