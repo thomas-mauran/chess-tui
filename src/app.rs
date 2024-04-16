@@ -35,11 +35,7 @@ impl Default for App {
 
 impl App {
     pub fn toggle_help_popup(&mut self) {
-        if self.current_page == Pages::Home {
-            self.current_page = Pages::Help
-        } else {
-            self.current_page = Pages::Home
-        }
+        self.show_help_popup = !self.show_help_popup;
     }
     pub fn toggle_credit_popup(&mut self) {
         if self.current_page == Pages::Home {
@@ -89,7 +85,7 @@ impl App {
                     DisplayMode::DEFAULT => DisplayMode::ASCII,
                 };
             }
-            3 => self.current_page = Pages::Help,
+            3 => self.show_help_popup = true,
             4 => self.current_page = Pages::Credit,
             _ => {}
         }
