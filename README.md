@@ -43,10 +43,10 @@ pkgin install chess-tui
 
 **Arch Linux**
 
-On Arch Linux a PKGBUILD is available from the [AUR](https://aur.archlinux.org/packages/chess-tui). To install it, simply use an aur-helper:
+You can install from official repositories:
 
 ```
-paru -S chess-tui
+pacman -S chess-tui
 ```
 
 ### Features
