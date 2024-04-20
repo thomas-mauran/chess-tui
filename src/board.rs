@@ -18,12 +18,14 @@ use uci::Engine;
 
 pub struct Board {
     pub board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+    pub display_board: [[Option<(PieceType, PieceColor)>; 8]; 8],
     pub cursor_coordinates: [i8; 2],
     pub selected_coordinates: [i8; 2],
     pub selected_piece_cursor: i8,
     pub old_cursor_position: [i8; 2],
     pub player_turn: PieceColor,
     pub move_history: Vec<PieceMove>,
+    pub history_position: usize,
     pub is_draw: bool,
     pub is_checkmate: bool,
     pub is_promotion: bool,
@@ -83,12 +85,59 @@ impl Default for Board {
                     Some((PieceType::Rook, PieceColor::White)),
                 ],
             ],
+            display_board: [
+                [
+                    Some((PieceType::Rook, PieceColor::Black)),
+                    Some((PieceType::Knight, PieceColor::Black)),
+                    Some((PieceType::Bishop, PieceColor::Black)),
+                    Some((PieceType::Queen, PieceColor::Black)),
+                    Some((PieceType::King, PieceColor::Black)),
+                    Some((PieceType::Bishop, PieceColor::Black)),
+                    Some((PieceType::Knight, PieceColor::Black)),
+                    Some((PieceType::Rook, PieceColor::Black)),
+                ],
+                [
+                    Some((PieceType::Pawn, PieceColor::Black)),
+                    Some((PieceType::Pawn, PieceColor::Black)),
+                    Some((PieceType::Pawn, PieceColor::Black)),
+                    Some((PieceType::Pawn, PieceColor::Black)),
+                    Some((PieceType::Pawn, PieceColor::Black)),
+                    Some((PieceType::Pawn, PieceColor::Black)),
+                    Some((PieceType::Pawn, PieceColor::Black)),
+                    Some((PieceType::Pawn, PieceColor::Black)),
+                ],
+                [None, None, None, None, None, None, None, None],
+                [None, None, None, None, None, None, None, None],
+                [None, None, None, None, None, None, None, None],
+                [None, None, None, None, None, None, None, None],
+                [
+                    Some((PieceType::Pawn, PieceColor::White)),
+                    Some((PieceType::Pawn, PieceColor::White)),
+                    Some((PieceType::Pawn, PieceColor::White)),
+                    Some((PieceType::Pawn, PieceColor::White)),
+                    Some((PieceType::Pawn, PieceColor::White)),
+                    Some((PieceType::Pawn, PieceColor::White)),
+                    Some((PieceType::Pawn, PieceColor::White)),
+                    Some((PieceType::Pawn, PieceColor::White)),
+                ],
+                [
+                    Some((PieceType::Rook, PieceColor::White)),
+                    Some((PieceType::Knight, PieceColor::White)),
+                    Some((PieceType::Bishop, PieceColor::White)),
+                    Some((PieceType::Queen, PieceColor::White)),
+                    Some((PieceType::King, PieceColor::White)),
+                    Some((PieceType::Bishop, PieceColor::White)),
+                    Some((PieceType::Knight, PieceColor::White)),
+                    Some((PieceType::Rook, PieceColor::White)),
+                ],
+            ],
             cursor_coordinates: [4, 4],
             selected_coordinates: [UNDEFINED_POSITION, UNDEFINED_POSITION],
             selected_piece_cursor: 0,
             old_cursor_position: [UNDEFINED_POSITION, UNDEFINED_POSITION],
             player_turn: PieceColor::White,
             move_history: vec![],
+            history_position: 0,
             is_draw: false,
             is_checkmate: false,
             is_promotion: false,
@@ -109,12 +158,14 @@ impl Board {
     ) -> Self {
         Self {
             board,
+            display_board: board,
             cursor_coordinates: [4, 4],
             selected_coordinates: [UNDEFINED_POSITION, UNDEFINED_POSITION],
             selected_piece_cursor: 0,
             old_cursor_position: [UNDEFINED_POSITION, UNDEFINED_POSITION],
             player_turn,
-            move_history,
+            move_history: move_history.clone(),
+            history_position: move_history.len(),
             is_draw: false,
             is_checkmate: false,
             is_promotion: false,
@@ -268,6 +319,13 @@ impl Board {
 
     // Methods to select a cell on the board
     pub fn select_cell(&mut self) {
+        // If looking at history, bring back to the present
+        if self.is_history_mode() {
+            self.display_board = self.board;
+            self.history_position = self.move_history.len();
+            return;
+        }
+
         // If we are doing a promotion the cursor is used for the popup
         if self.is_promotion {
             self.promote_piece();
@@ -486,6 +544,11 @@ impl Board {
                 // we replace the piece by the new piece type
                 self.board[last_move.to_y as usize][last_move.to_x as usize] =
                     Some((new_piece, piece_color));
+                self.display_board[last_move.to_y as usize][last_move.to_x as usize] =
+                    Some((new_piece, piece_color));
+
+                // Promotion happened, update the previous record
+                self.move_history[self.history_position - 1].promotion_piece = Some(new_piece);
             }
         }
         self.is_promotion = false;
@@ -497,14 +560,13 @@ impl Board {
         if !is_valid([from[0] as i8, from[1] as i8]) || !is_valid([to[0] as i8, to[1] as i8]) {
             return;
         }
-        let direction_y: i32 = if self.player_turn == PieceColor::White {
-            -1
-        } else {
-            1
-        };
 
-        let piece_type_from = get_piece_type(self.board, [from[0] as i8, from[1] as i8]);
-        let piece_type_to = get_piece_type(self.board, [to[0] as i8, to[1] as i8]);
+        // Check if we are in the history, this will be used to know if we need
+        // to update the real board later on
+        let history = self.is_history_mode();
+
+        let piece_type_from = get_piece_type(self.display_board, [from[0] as i8, from[1] as i8]);
+        let mut piece_type_to = get_piece_type(self.display_board, [to[0] as i8, to[1] as i8]);
 
         // Check if moving a piece
         let piece_type_from = match piece_type_from {
@@ -512,22 +574,32 @@ impl Board {
             None => return,
         };
 
-        // We increment the consecutive_non_pawn_or_capture if the piece type is a pawn or if there is no capture
-        match (piece_type_from, piece_type_to) {
-            (PieceType::Pawn, _) | (_, Some(_)) => {
-                self.consecutive_non_pawn_or_capture = 0;
-            }
-            _ => {
-                self.consecutive_non_pawn_or_capture += 1;
+        // piece_type_to is used for captures, ignore it if castling
+        if self.is_latest_move_castling(from, to) {
+            piece_type_to = None;
+        }
+
+        // We increment the consecutive_non_pawn_or_capture if the piece type is
+        // a pawn or if there is no capture and we are not looking at the
+        // history
+        if !history {
+            match (piece_type_from, piece_type_to) {
+                (PieceType::Pawn, _) | (_, Some(_)) => {
+                    self.consecutive_non_pawn_or_capture = 0;
+                }
+                _ => {
+                    self.consecutive_non_pawn_or_capture += 1;
+                }
             }
         }
 
         // We check for en passant as the latest move
+        let mut is_en_passant = false;
         if self.is_latest_move_en_passant(from, to) {
-            // we kill the pawn
-            let row_index = to[0] as i32 - direction_y;
+            is_en_passant = true;
 
-            self.board[row_index as usize][to[1]] = None;
+            // we kill the pawn
+            self.display_board[from[0]][to[1]] = None;
         }
 
         // We check for castling as the latest move
@@ -545,7 +617,7 @@ impl Board {
             let row_index = from_x + direction_x * 2;
 
             // We put move the king 2 cells
-            self.board[to[0]][row_index as usize] = self.board[from[0]][from[1]];
+            self.display_board[to[0]][row_index as usize] = self.display_board[from[0]][from[1]];
 
             // We put the rook 3 cells from it's position if it's a big castling else 2 cells
             // If it is playing against a bot we will receive 4 -> 6  and 4 -> 2 for to_x instead of 4 -> 7 and 4 -> 0
@@ -565,24 +637,50 @@ impl Board {
                 }
                 _ => unreachable!("Undefined distance for castling"),
             }
-            self.board[to[0]][row_index_rook as usize] = self.board[to[0]][to_x as usize];
+
+            self.display_board[to[0]][row_index_rook as usize] =
+                self.display_board[to[0]][to_x as usize];
 
             // We remove the latest rook
-            self.board[to[0]][to_x as usize] = None;
+            self.display_board[to[0]][to_x as usize] = None;
         } else {
-            self.board[to[0]][to[1]] = self.board[from[0]][from[1]];
+            self.display_board[to[0]][to[1]] = self.display_board[from[0]][from[1]];
         }
 
-        self.board[from[0]][from[1]] = None;
+        self.display_board[from[0]][from[1]] = None;
 
-        // We store it in the history
-        self.move_history.push(PieceMove {
-            piece_type: piece_type_from,
-            from_y: from[0] as i8,
-            from_x: from[1] as i8,
-            to_y: to[0] as i8,
-            to_x: to[1] as i8,
-        });
+        // History mode checks for en passant and promotions
+        if history {
+            if self.move_history[self.history_position].is_en_passant {
+                // we kill the pawn
+                self.display_board[from[0]][to[1]] = None;
+            }
+
+            if let Some(piece) = self.move_history[self.history_position].promotion_piece {
+                let mut color = PieceColor::Black;
+                if to[0] == 0 {
+                    color = PieceColor::White;
+                }
+
+                self.display_board[to[0]][to[1]] = Some((piece, color));
+            }
+        }
+
+        // We store it in the history if not looking at history and update board
+        self.history_position += 1;
+        if !history {
+            self.board = self.display_board;
+            self.move_history.push(PieceMove {
+                piece_type: piece_type_from,
+                piece_captured: piece_type_to,
+                from_y: from[0] as i8,
+                from_x: from[1] as i8,
+                to_y: to[0] as i8,
+                to_x: to[1] as i8,
+                is_en_passant,
+                promotion_piece: None,
+            });
+        }
     }
 
     // Method to get the number of authorized positions for the current player (used for the end condition)
@@ -625,8 +723,8 @@ impl Board {
 
     // Check if the latest move is castling
     fn is_latest_move_castling(&self, from: [usize; 2], to: [usize; 2]) -> bool {
-        let piece_type_from = get_piece_type(self.board, [from[0] as i8, from[1] as i8]);
-        let piece_type_to = get_piece_type(self.board, [to[0] as i8, to[1] as i8]);
+        let piece_type_from = get_piece_type(self.display_board, [from[0] as i8, from[1] as i8]);
+        let piece_type_to = get_piece_type(self.display_board, [to[0] as i8, to[1] as i8]);
 
         let from_x: i32 = from[1] as i32;
         let to_x: i32 = to[1] as i32;
@@ -745,11 +843,13 @@ impl Board {
                 // Color of the cell to draw the board
                 let mut cell_color: Color = if (i + j) % 2 == 0 { WHITE } else { BLACK };
 
-                // Draw the available moves for the selected piece
-                if self.is_cell_selected() {
-                    let selected_piece_type = get_piece_type(self.board, self.selected_coordinates);
+                // Draw the available moves for the selected piece and not
+                // looking at history
+                if self.is_cell_selected() && !self.is_history_mode() {
+                    let selected_piece_type =
+                        get_piece_type(self.display_board, self.selected_coordinates);
                     let selected_piece_color: Option<PieceColor> =
-                        get_piece_color(self.board, self.selected_coordinates);
+                        get_piece_color(self.display_board, self.selected_coordinates);
                     let positions = self.get_authorized_positions(
                         selected_piece_type,
                         selected_piece_color,
@@ -769,8 +869,11 @@ impl Board {
                 if i == self.cursor_coordinates[0] && j == self.cursor_coordinates[1] {
                     let cell = Block::default().bg(Color::LightBlue);
                     frame.render_widget(cell.clone(), square);
-                } else if is_getting_checked(self.board, self.player_turn, &self.move_history)
-                    && [i, j] == get_king_coordinates(self.board, self.player_turn)
+                } else if is_getting_checked(
+                    self.display_board,
+                    self.player_turn,
+                    &self.move_history,
+                ) && [i, j] == get_king_coordinates(self.display_board, self.player_turn)
                 {
                     let cell = Block::default()
                         .bg(Color::Magenta)
@@ -778,7 +881,10 @@ impl Board {
                     frame.render_widget(cell.clone(), square);
                 }
                 // Draw the cell green if this is the selected cell
-                else if i == self.selected_coordinates[0] && j == self.selected_coordinates[1] {
+                else if i == self.selected_coordinates[0]
+                    && j == self.selected_coordinates[1]
+                    && !self.is_history_mode()
+                {
                     let cell = Block::default().bg(Color::LightGreen);
                     frame.render_widget(cell.clone(), square);
                 } else {
@@ -846,13 +952,28 @@ impl Board {
                     PieceType::piece_to_utf_enum(piece_type_to, Some(PieceColor::Black))
             }
 
+            // Highlighting for history, i=0 on the first move but history_position=0 means 0 moves
+            // have been played (representing the beginning of the game)
+            let white_string = if i + 1 == self.history_position {
+                Span::styled(move_white.to_string(), Style::default().bg(WHITE))
+            } else {
+                Span::raw(move_white.to_string())
+            };
+
+            // i+1 is the move in history and we need to add 1 for blacks move as well
+            let black_string = if i + 2 == self.history_position {
+                Span::styled(move_black.to_string(), Style::default().bg(WHITE))
+            } else {
+                Span::raw(move_black.to_string())
+            };
+
             lines.push(Line::from(vec![
                 Span::raw(format!("{}.  ", i / 2 + 1)), // line number
                 Span::styled(format!("{} ", utf_icon_white), Style::default().fg(WHITE)), // white symbol
-                Span::raw(move_white.to_string()), // white move
-                Span::raw("     "),                // separator
+                white_string,       // white move
+                Span::raw("     "), // separator
                 Span::styled(format!("{} ", utf_icon_black), Style::default().fg(WHITE)), // white symbol
-                Span::raw(move_black.to_string()), // black move
+                black_string, // black move
             ]));
         }
 
@@ -878,6 +999,95 @@ impl Board {
             .block(Block::new())
             .alignment(Alignment::Center);
         frame.render_widget(help_paragraph, right_panel_layout[1]);
+    }
+
+    pub fn is_history_mode(&self) -> bool {
+        if self.board == self.display_board {
+            return false;
+        }
+        true
+    }
+
+    pub fn history_forward(&mut self) {
+        // Check if already up to date
+        if !self.is_history_mode() {
+            return;
+        }
+
+        self.move_piece_on_the_board(
+            [
+                self.move_history[self.history_position].from_y as usize,
+                self.move_history[self.history_position].from_x as usize,
+            ],
+            [
+                self.move_history[self.history_position].to_y as usize,
+                self.move_history[self.history_position].to_x as usize,
+            ],
+        );
+    }
+
+    pub fn history_backward(&mut self) {
+        // Check if at the beginning of the game
+        if self.history_position == 0 {
+            return;
+        }
+
+        let previous_move = self.move_history[self.history_position - 1];
+
+        // If it is whites turn we are undoing black's move
+        let color_move = if self.history_position % 2 == 0 {
+            PieceColor::Black
+        } else {
+            PieceColor::White
+        };
+        let color_not_move = if self.history_position % 2 == 0 {
+            PieceColor::White
+        } else {
+            PieceColor::Black
+        };
+
+        // Move the piece back to where it was using the color of the turn
+        self.display_board[previous_move.from_y as usize][previous_move.from_x as usize] =
+            Some((previous_move.piece_type, color_move));
+
+        // Replace with what was captured (opposite color of the turn), even if
+        // it was none
+        match previous_move.piece_captured {
+            Some(previous_piece) => {
+                self.display_board[previous_move.to_y as usize][previous_move.to_x as usize] =
+                    Some((previous_piece, color_not_move));
+            }
+            None => {
+                self.display_board[previous_move.to_y as usize][previous_move.to_x as usize] = None
+            }
+        }
+
+        // Check for castling
+        let distance = (previous_move.from_x - previous_move.to_x).abs();
+
+        if previous_move.piece_type == PieceType::King && distance > 1 {
+            // Add rook back where it was
+            self.display_board[previous_move.from_y as usize][previous_move.to_x as usize] =
+                Some((PieceType::Rook, color_move));
+
+            // Remove rook and king from previous spot, 0 is long castle
+            if previous_move.to_x == 0 {
+                self.display_board[previous_move.from_y as usize][2] = None; // King
+                self.display_board[previous_move.from_y as usize][3] = None; // Rook
+            } else {
+                self.display_board[previous_move.from_y as usize][5] = None; // Rook
+                self.display_board[previous_move.from_y as usize][6] = None; // King
+            }
+        }
+
+        // Check for en passant and replace pawn
+        if previous_move.is_en_passant {
+            self.display_board[previous_move.from_y as usize][previous_move.to_x as usize] =
+                Some((PieceType::Pawn, color_not_move));
+        }
+
+        // Decrement history position
+        self.history_position -= 1;
     }
 }
 
