@@ -1,4 +1,4 @@
-use super::{Movable, PieceColor, PieceType, Position};
+use super::{Movable, PieceColor, PieceMove, PieceType, Position};
 use crate::board::DisplayMode;
 use crate::utils::{
     cleaned_positions, get_piece_color, impossible_positions_king_checked, is_cell_color_ally,
@@ -12,7 +12,7 @@ impl Movable for Rook {
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         allow_move_on_ally_positions: bool,
-        _move_history: &[(Option<PieceType>, String)],
+        _move_history: &[PieceMove],
     ) -> Vec<Vec<i8>> {
         // Pawns can only move in one direction depending on their color
         let mut positions: Vec<Vec<i8>> = vec![];
@@ -170,7 +170,7 @@ impl Position for Rook {
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-        move_history: &[(Option<PieceType>, String)],
+        move_history: &[PieceMove],
         _is_king_checked: bool,
     ) -> Vec<Vec<i8>> {
         // If the king is not checked we get then normal moves
@@ -188,7 +188,7 @@ impl Position for Rook {
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-        move_history: &[(Option<PieceType>, String)],
+        move_history: &[PieceMove],
     ) -> Vec<Vec<i8>> {
         Self::piece_move(coordinates, color, board, true, move_history)
     }

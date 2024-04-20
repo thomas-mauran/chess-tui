@@ -1,6 +1,6 @@
 use crate::{
     constants::{BLACK, UNDEFINED_POSITION, WHITE},
-    pieces::{PieceColor, PieceType},
+    pieces::{PieceColor, PieceMove, PieceType},
     utils::{
         col_to_letter, convert_notation_into_position, convert_position_into_notation,
         did_piece_already_move, get_cell_paragraph, get_int_from_char, get_king_coordinates,
@@ -28,7 +28,7 @@ pub struct Board {
     pub selected_piece_cursor: i8,
     pub old_cursor_position: [i8; 2],
     pub player_turn: PieceColor,
-    pub move_history: Vec<(Option<PieceType>, String)>,
+    pub move_history: Vec<PieceMove>,
     pub is_draw: bool,
     pub is_checkmate: bool,
     pub is_promotion: bool,
@@ -110,7 +110,7 @@ impl Board {
     pub fn new(
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         player_turn: PieceColor,
-        move_history: Vec<(Option<PieceType>, String)>,
+        move_history: Vec<PieceMove>,
     ) -> Self {
         Self {
             board,
@@ -229,15 +229,10 @@ impl Board {
 
     pub fn did_king_already_move(&self) -> bool {
         for i in 0..self.move_history.len() {
-            match self.move_history[i] {
-                (Some(piece_type), _) => {
-                    if piece_type == PieceType::King
-                        && get_player_turn_in_modulo(self.player_turn) == i % 2
-                    {
-                        return true;
-                    }
-                }
-                _ => unreachable!("Invalid move in history"),
+            if self.move_history[i].piece_type == PieceType::King
+                && get_player_turn_in_modulo(self.player_turn) == i % 2
+            {
+                return true;
             }
         }
         false
@@ -424,22 +419,15 @@ impl Board {
         // We check if the latest move is a pawn moving 2 cells, meaning the next move can be en passant
         if self.did_pawn_move_two_cells() {
             // Use an if-let pattern for better readability
-            if let Some((_, latest_move_string)) = self.move_history.last() {
-                let mut converted_move: String = String::new();
+            if let Some(last_move) = self.move_history.last() {
+                let mut converted_move = String::new();
 
-                if let (Some(from_y_char), Some(from_x_char)) = (
-                    latest_move_string.chars().nth(0),
-                    latest_move_string.chars().nth(1),
-                ) {
-                    let from_y = get_int_from_char(Some(from_y_char)) - 1;
-                    let from_x = get_int_from_char(Some(from_x_char));
+                converted_move += &col_to_letter(last_move.from_x);
+                // FEN starts counting from 1 not 0
+                converted_move += &format!("{}", 8 - last_move.from_y + 1).to_string();
 
-                    converted_move += &col_to_letter(from_x);
-                    converted_move += &format!("{}", 8 - from_y).to_string();
-
-                    result.push_str(" ");
-                    result.push_str(&converted_move);
-                }
+                result.push_str(" ");
+                result.push_str(&converted_move);
             }
         } else {
             result.push_str(" -");
@@ -457,13 +445,10 @@ impl Board {
 
     pub fn did_pawn_move_two_cells(&self) -> bool {
         match self.move_history.last() {
-            Some((Some(piece_type), move_string)) => {
-                let from_y = get_int_from_char(move_string.chars().next());
-                let to_y = get_int_from_char(move_string.chars().nth(2));
+            Some(last_move) => {
+                let distance = (last_move.to_y - last_move.from_y).abs();
 
-                let distance = (to_y - from_y).abs();
-
-                if piece_type == &PieceType::Pawn && distance == 2 {
+                if last_move.piece_type == PieceType::Pawn && distance == 2 {
                     return true;
                 }
                 return false;
@@ -472,10 +457,7 @@ impl Board {
         }
     }
     pub fn promote_piece(&mut self) {
-        if let Some(position) = self.move_history.last() {
-            let to_y = get_int_from_char(position.1.chars().nth(2));
-            let to_x = get_int_from_char(position.1.chars().nth(3));
-
+        if let Some(last_move) = self.move_history.last() {
             let new_piece = match self.promotion_cursor {
                 0 => PieceType::Queen,
                 1 => PieceType::Rook,
@@ -484,10 +466,11 @@ impl Board {
                 _ => unreachable!("Promotion cursor out of boundaries"),
             };
 
-            let current_piece_color = get_piece_color(self.board, [to_y, to_x]);
+            let current_piece_color = get_piece_color(self.board, [last_move.to_y, last_move.to_x]);
             if let Some(piece_color) = current_piece_color {
                 // we replace the piece by the new piece type
-                self.board[to_y as usize][to_x as usize] = Some((new_piece, piece_color));
+                self.board[last_move.to_y as usize][last_move.to_x as usize] =
+                    Some((new_piece, piece_color));
             }
         }
         self.is_promotion = false;
@@ -506,19 +489,22 @@ impl Board {
 
         let piece_type_from = get_piece_type(self.board, [from[0] as i8, from[1] as i8]);
         let piece_type_to = get_piece_type(self.board, [to[0] as i8, to[1] as i8]);
-        let position_number: String = format!("{}{}{}{}", from[0], from[1], to[0], to[1]);
+
+        // Check if moving a piece
+        let piece_type_from = match piece_type_from {
+            Some(piece) => piece,
+            None => return,
+        };
 
         // We increment the consecutive_non_pawn_or_capture if the piece type is a pawn or if there is no capture
         match (piece_type_from, piece_type_to) {
-            (Some(PieceType::Pawn), _) | (Some(_), Some(_)) => {
+            (PieceType::Pawn, _) | (_, Some(_)) => {
                 self.consecutive_non_pawn_or_capture = 0;
             }
             _ => {
                 self.consecutive_non_pawn_or_capture += 1;
             }
         }
-
-        let tuple = (piece_type_from, position_number);
 
         // We check for en passant as the latest move
         if self.is_latest_move_en_passant(from, to) {
@@ -571,7 +557,13 @@ impl Board {
         self.board[from[0]][from[1]] = None;
 
         // We store it in the history
-        self.move_history.push(tuple.clone());
+        self.move_history.push(PieceMove {
+            piece_type: piece_type_from,
+            from_y: from[0] as i8,
+            from_x: from[1] as i8,
+            to_y: to[0] as i8,
+            to_x: to[1] as i8,
+        });
     }
 
     pub fn unselect_cell(&mut self) {
@@ -634,21 +626,17 @@ impl Board {
     }
 
     fn is_latest_move_promotion(&self) -> bool {
-        if let Some(position) = self.move_history.last() {
-            let to_y = get_int_from_char(position.1.chars().nth(2));
-            let to_x = get_int_from_char(position.1.chars().nth(3));
+        if let Some(last_move) = self.move_history.last() {
+            if let Some(piece_color) = get_piece_color(self.board, [last_move.to_y, last_move.to_x])
+            {
+                let last_row = if piece_color == PieceColor::White {
+                    0
+                } else {
+                    7
+                };
 
-            if let Some(piece_type_from) = get_piece_type(self.board, [to_y, to_x]) {
-                if let Some(piece_color) = get_piece_color(self.board, [to_y, to_x]) {
-                    let last_row = if piece_color == PieceColor::White {
-                        0
-                    } else {
-                        7
-                    };
-
-                    if to_y == last_row && piece_type_from == PieceType::Pawn {
-                        return true;
-                    }
+                if last_move.to_y == last_row && last_move.piece_type == PieceType::Pawn {
+                    return true;
                 }
             }
         }
@@ -665,7 +653,7 @@ impl Board {
 
     pub fn draw_by_repetition(&self) -> bool {
         if self.move_history.len() >= 9 {
-            let last_ten: Vec<(Option<PieceType>, String)> =
+            let last_ten: Vec<PieceMove> =
                 self.move_history.iter().rev().take(9).cloned().collect();
 
             if (last_ten[0].clone(), last_ten[1].clone())
@@ -807,22 +795,32 @@ impl Board {
         let mut lines: Vec<Line> = vec![];
 
         for i in (0..self.move_history.len()).step_by(2) {
-            let piece_type_from = self.move_history[i].0;
-            let number_move = &self.move_history[i].1;
+            let piece_type_from = self.move_history[i].piece_type;
 
             let utf_icon_white =
                 PieceType::piece_to_utf_enum(piece_type_from, Some(PieceColor::White));
-            let move_white = convert_position_into_notation(number_move.to_string());
+            let move_white = convert_position_into_notation(format!(
+                "{}{}{}{}",
+                self.move_history[i].from_y,
+                self.move_history[i].from_x,
+                self.move_history[i].to_y,
+                self.move_history[i].to_x
+            ));
 
             let mut utf_icon_black = "   ";
             let mut move_black: String = "   ".to_string();
 
             // If there is something for black
             if i + 1 < self.move_history.len() {
-                let piece_type_to = self.move_history[i + 1].0;
-                let number = &self.move_history[i + 1].1;
+                let piece_type_to = self.move_history[i + 1].piece_type;
 
-                move_black = convert_position_into_notation(number.to_string());
+                move_black = convert_position_into_notation(format!(
+                    "{}{}{}{}",
+                    self.move_history[i + 1].from_y,
+                    self.move_history[i + 1].from_x,
+                    self.move_history[i + 1].to_y,
+                    self.move_history[i + 1].to_x
+                ));
                 utf_icon_black =
                     PieceType::piece_to_utf_enum(piece_type_to, Some(PieceColor::Black))
             }
@@ -866,7 +864,7 @@ impl Board {
 mod tests {
     use crate::{
         board::Board,
-        pieces::{PieceColor, PieceType},
+        pieces::{PieceColor, PieceMove, PieceType},
         utils::is_getting_checked,
     };
 
@@ -1348,7 +1346,15 @@ mod tests {
         let board = Board::new(
             custom_board,
             PieceColor::Black,
-            vec![(Some(PieceType::Pawn), "7363".to_string())],
+            vec![
+                (PieceMove {
+                    piece_type: PieceType::Pawn,
+                    from_y: 7,
+                    from_x: 3,
+                    to_y: 6,
+                    to_x: 3,
+                }),
+            ],
         );
 
         assert!(!board.is_latest_move_promotion());
@@ -1395,7 +1401,15 @@ mod tests {
         let board = Board::new(
             custom_board,
             PieceColor::Black,
-            vec![(Some(PieceType::Pawn), "1404".to_string())],
+            vec![
+                (PieceMove {
+                    piece_type: PieceType::Pawn,
+                    from_y: 1,
+                    from_x: 4,
+                    to_y: 0,
+                    to_x: 4,
+                }),
+            ],
         );
 
         assert!(board.is_latest_move_promotion());
@@ -1498,7 +1512,15 @@ mod tests {
         let board = Board::new(
             custom_board,
             PieceColor::White,
-            vec![(Some(PieceType::Pawn), "6474".to_string())],
+            vec![
+                (PieceMove {
+                    piece_type: PieceType::Pawn,
+                    from_y: 6,
+                    from_x: 4,
+                    to_y: 7,
+                    to_x: 4,
+                }),
+            ],
         );
 
         assert!(board.is_latest_move_promotion());
@@ -1592,7 +1614,7 @@ mod tests {
         assert!(!board.is_draw());
 
         // Move the pawn to a make the 50th move
-        board.move_piece_on_the_board([0, 6], [0, 5]);
+        board.move_piece_on_the_board([1, 6], [1, 5]);
         assert!(board.is_draw());
     }
 
@@ -1622,14 +1644,62 @@ mod tests {
             custom_board,
             PieceColor::White,
             vec![
-                (Some(PieceType::King), "0201".to_string()),
-                (Some(PieceType::King), "0605".to_string()),
-                (Some(PieceType::King), "0102".to_string()),
-                (Some(PieceType::King), "0506".to_string()),
-                (Some(PieceType::King), "0201".to_string()),
-                (Some(PieceType::King), "0605".to_string()),
-                (Some(PieceType::King), "0102".to_string()),
-                (Some(PieceType::King), "0506".to_string()),
+                (PieceMove {
+                    piece_type: PieceType::King,
+                    from_y: 0,
+                    from_x: 2,
+                    to_y: 0,
+                    to_x: 1,
+                }),
+                (PieceMove {
+                    piece_type: PieceType::King,
+                    from_y: 0,
+                    from_x: 6,
+                    to_y: 0,
+                    to_x: 5,
+                }),
+                (PieceMove {
+                    piece_type: PieceType::King,
+                    from_y: 0,
+                    from_x: 1,
+                    to_y: 0,
+                    to_x: 2,
+                }),
+                (PieceMove {
+                    piece_type: PieceType::King,
+                    from_y: 0,
+                    from_x: 5,
+                    to_y: 0,
+                    to_x: 6,
+                }),
+                (PieceMove {
+                    piece_type: PieceType::King,
+                    from_y: 0,
+                    from_x: 2,
+                    to_y: 0,
+                    to_x: 1,
+                }),
+                (PieceMove {
+                    piece_type: PieceType::King,
+                    from_y: 0,
+                    from_x: 6,
+                    to_y: 0,
+                    to_x: 5,
+                }),
+                (PieceMove {
+                    piece_type: PieceType::King,
+                    from_y: 0,
+                    from_x: 1,
+                    to_y: 0,
+                    to_x: 2,
+                }),
+                (PieceMove {
+                    piece_type: PieceType::King,
+                    from_y: 0,
+                    from_x: 5,
+                    to_y: 0,
+                    to_x: 6,
+                }),
             ],
         );
 
@@ -1720,7 +1790,15 @@ mod tests {
         let board = Board::new(
             custom_board,
             PieceColor::White,
-            vec![(Some(PieceType::Pawn), "6242".to_string())],
+            vec![
+                (PieceMove {
+                    piece_type: PieceType::Pawn,
+                    from_y: 6,
+                    from_x: 2,
+                    to_y: 4,
+                    to_x: 2,
+                }),
+            ],
         );
 
         // Move the king to replicate a third time the same position

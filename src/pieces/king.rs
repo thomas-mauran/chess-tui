@@ -1,4 +1,4 @@
-use super::{Movable, PieceColor, PieceType, Position};
+use super::{Movable, PieceColor, PieceMove, PieceType, Position};
 use crate::board::DisplayMode;
 use crate::utils::{
     cleaned_positions, did_piece_already_move, get_all_protected_cells, get_piece_type,
@@ -12,7 +12,7 @@ impl Movable for King {
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         allow_move_on_ally_positions: bool,
-        _move_history: &[(Option<PieceType>, String)],
+        _move_history: &[PieceMove],
     ) -> Vec<Vec<i8>> {
         let mut positions: Vec<Vec<i8>> = vec![];
         let y = coordinates[0];
@@ -45,7 +45,7 @@ impl Position for King {
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-        move_history: &[(Option<PieceType>, String)],
+        move_history: &[PieceMove],
         is_king_checked: bool,
     ) -> Vec<Vec<i8>> {
         let mut positions: Vec<Vec<i8>> = vec![];
@@ -97,7 +97,7 @@ impl Position for King {
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-        move_history: &[(Option<PieceType>, String)],
+        move_history: &[PieceMove],
     ) -> Vec<Vec<i8>> {
         Self::piece_move(coordinates, color, board, true, move_history)
     }
@@ -154,7 +154,7 @@ impl King {
 mod tests {
     use crate::{
         board::Board,
-        pieces::{king::King, PieceColor, PieceType, Position},
+        pieces::{king::King, PieceColor, PieceMove, PieceType, Position},
         utils::is_getting_checked,
     };
 
@@ -652,9 +652,27 @@ mod tests {
             PieceColor::Black,
             board.board,
             &[
-                (Some(PieceType::Rook), "0747".to_string()),
-                (Some(PieceType::Pawn), "6252".to_string()),
-                (Some(PieceType::Rook), "4707".to_string()),
+                (PieceMove {
+                    piece_type: PieceType::Rook,
+                    from_y: 0,
+                    from_x: 7,
+                    to_y: 4,
+                    to_x: 7,
+                }),
+                (PieceMove {
+                    piece_type: PieceType::Pawn,
+                    from_y: 6,
+                    from_x: 2,
+                    to_y: 5,
+                    to_x: 2,
+                }),
+                (PieceMove {
+                    piece_type: PieceType::Rook,
+                    from_y: 4,
+                    from_x: 7,
+                    to_y: 0,
+                    to_x: 7,
+                }),
             ],
             false,
         );

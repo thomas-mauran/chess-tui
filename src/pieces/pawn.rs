@@ -1,8 +1,8 @@
-use super::{Movable, PieceColor, PieceType, Position};
+use super::{Movable, PieceColor, PieceMove, PieceType, Position};
 use crate::board::DisplayMode;
 use crate::utils::{
-    cleaned_positions, get_int_from_char, get_latest_move, get_piece_color,
-    impossible_positions_king_checked, is_cell_color_ally, is_valid,
+    cleaned_positions, get_latest_move, get_piece_color, impossible_positions_king_checked,
+    is_cell_color_ally, is_valid,
 };
 
 pub struct Pawn;
@@ -13,7 +13,7 @@ impl Movable for Pawn {
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         allow_move_on_ally_positions: bool,
-        move_history: &[(Option<PieceType>, String)],
+        move_history: &[PieceMove],
     ) -> Vec<Vec<i8>> {
         // Pawns can only move in one direction depending of their color
         // -1 if they are white (go up) +1 if they are black (go down)
@@ -85,35 +85,28 @@ impl Movable for Pawn {
         }
 
         // We check for en passant
-        let latest_move = get_latest_move(move_history);
-
-        if let (Some(PieceType::Pawn), piece_move) = latest_move {
-            let from_y = get_int_from_char(piece_move.chars().nth(0));
-            let from_x = get_int_from_char(piece_move.chars().nth(1));
-            let to_y = get_int_from_char(piece_move.chars().nth(2));
-            let to_x = get_int_from_char(piece_move.chars().nth(3));
-
+        if let Some(latest_move) = get_latest_move(move_history) {
             let valid_y_start: i8;
             let number_of_cells_move: i8;
 
             if color == PieceColor::White {
                 valid_y_start = 1;
-                number_of_cells_move = to_y - from_y;
+                number_of_cells_move = latest_move.to_y - latest_move.from_y;
             } else {
                 valid_y_start = 6;
-                number_of_cells_move = from_y - to_y;
+                number_of_cells_move = latest_move.from_y - latest_move.to_y;
             };
 
             // We check if the latest move was on the right start cell
             // if it moved 2 cells
             // and if the current pawn is next to this pawn latest position
-            if from_y == valid_y_start
+            if latest_move.from_y == valid_y_start
                 && number_of_cells_move == 2
-                && y == to_y
-                && (x == to_x - 1 || x == to_x + 1)
+                && y == latest_move.to_y
+                && (x == latest_move.to_x - 1 || x == latest_move.to_x + 1)
             {
-                let new_y = from_y + -direction;
-                let new_x = from_x;
+                let new_y = latest_move.from_y + -direction;
+                let new_x = latest_move.from_x;
                 positions.push([new_y, new_x].to_vec());
             }
         }
@@ -127,7 +120,7 @@ impl Position for Pawn {
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-        move_history: &[(Option<PieceType>, String)],
+        move_history: &[PieceMove],
         _is_king_checked: bool,
     ) -> Vec<Vec<i8>> {
         // If the king is not checked we get then normal moves
@@ -145,7 +138,7 @@ impl Position for Pawn {
         coordinates: [i8; 2],
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-        move_history: &[(Option<PieceType>, String)],
+        move_history: &[PieceMove],
     ) -> Vec<Vec<i8>> {
         Self::piece_move(coordinates, color, board, true, move_history)
     }
@@ -172,7 +165,7 @@ impl Pawn {
 mod tests {
     use crate::{
         board::Board,
-        pieces::{pawn::Pawn, PieceColor, PieceType, Position},
+        pieces::{pawn::Pawn, PieceColor, PieceMove, PieceType, Position},
         utils::is_getting_checked,
     };
 
@@ -203,13 +196,8 @@ mod tests {
         let mut right_positions = vec![vec![3, 4]];
         right_positions.sort();
 
-        let mut positions = Pawn::authorized_positions(
-            [4, 4],
-            PieceColor::White,
-            board.board,
-            &[(None, "0000".to_string())],
-            false,
-        );
+        let mut positions =
+            Pawn::authorized_positions([4, 4], PieceColor::White, board.board, &[], false);
         positions.sort();
         assert_eq!(right_positions, positions);
     }
@@ -241,13 +229,8 @@ mod tests {
         let mut right_positions = vec![vec![5, 4], vec![4, 4]];
         right_positions.sort();
 
-        let mut positions = Pawn::authorized_positions(
-            [6, 4],
-            PieceColor::White,
-            board.board,
-            &[(None, "0000".to_string())],
-            false,
-        );
+        let mut positions =
+            Pawn::authorized_positions([6, 4], PieceColor::White, board.board, &[], false);
         positions.sort();
         assert_eq!(right_positions, positions);
     }
@@ -288,13 +271,8 @@ mod tests {
         let mut right_positions = vec![vec![2, 3], vec![3, 3], vec![2, 4], vec![2, 2]];
         right_positions.sort();
 
-        let mut positions = Pawn::authorized_positions(
-            [1, 3],
-            PieceColor::Black,
-            board.board,
-            &[(None, "0000".to_string())],
-            false,
-        );
+        let mut positions =
+            Pawn::authorized_positions([1, 3], PieceColor::Black, board.board, &[], false);
         positions.sort();
         assert_eq!(right_positions, positions);
     }
@@ -335,13 +313,8 @@ mod tests {
         let mut right_positions = vec![vec![2, 4], vec![2, 2]];
         right_positions.sort();
 
-        let mut positions = Pawn::authorized_positions(
-            [1, 3],
-            PieceColor::Black,
-            board.board,
-            &[(None, "0000".to_string())],
-            false,
-        );
+        let mut positions =
+            Pawn::authorized_positions([1, 3], PieceColor::Black, board.board, &[], false);
         positions.sort();
         assert_eq!(right_positions, positions);
     }
@@ -377,7 +350,13 @@ mod tests {
             [3, 3],
             PieceColor::White,
             board.board,
-            &[(Some(PieceType::Pawn), "1232".to_string())],
+            &[(PieceMove {
+                piece_type: PieceType::Pawn,
+                from_y: 1,
+                from_x: 2,
+                to_y: 3,
+                to_x: 2,
+            })],
             false,
         );
         positions.sort();
@@ -415,7 +394,13 @@ mod tests {
             [4, 2],
             PieceColor::Black,
             board.board,
-            &[(Some(PieceType::Pawn), "6343".to_string())],
+            &[(PieceMove {
+                piece_type: PieceType::Pawn,
+                from_y: 6,
+                from_x: 3,
+                to_y: 4,
+                to_x: 3,
+            })],
             false,
         );
         positions.sort();
@@ -462,7 +447,13 @@ mod tests {
             [1, 1],
             PieceColor::Black,
             board.board,
-            &[(Some(PieceType::Pawn), "6343".to_string())],
+            &[(PieceMove {
+                piece_type: PieceType::Pawn,
+                from_y: 6,
+                from_x: 3,
+                to_y: 4,
+                to_x: 3,
+            })],
             false,
         );
         positions.sort();
