@@ -627,16 +627,19 @@ impl Board {
 
     fn is_latest_move_promotion(&self) -> bool {
         if let Some(last_move) = self.move_history.last() {
-            if let Some(piece_color) = get_piece_color(self.board, [last_move.to_y, last_move.to_x])
+            if let Some(piece_type_to) = get_piece_type(self.board, [last_move.to_y, last_move.to_x])
             {
-                let last_row = if piece_color == PieceColor::White {
-                    0
-                } else {
-                    7
-                };
+                if let Some(piece_color) = get_piece_color(self.board, [last_move.to_y, last_move.to_x])
+                {
+                    let last_row = if piece_color == PieceColor::White {
+                        0
+                    } else {
+                        7
+                    };
 
-                if last_move.to_y == last_row && last_move.piece_type == PieceType::Pawn {
-                    return true;
+                    if last_move.to_y == last_row && piece_type_to == PieceType::Pawn {
+                        return true;
+                    }
                 }
             }
         }
