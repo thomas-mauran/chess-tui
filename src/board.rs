@@ -1,3 +1,5 @@
+use core::fmt;
+
 use crate::{
     constants::{BLACK, UNDEFINED_POSITION, WHITE},
     pieces::{PieceColor, PieceMove, PieceType},
@@ -19,6 +21,15 @@ use uci::Engine;
 pub enum DisplayMode {
     DEFAULT,
     ASCII,
+}
+
+impl fmt::Display for DisplayMode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            DisplayMode::ASCII => write!(f, "ASCII"),
+            DisplayMode::DEFAULT => write!(f, "DEFAULT"),
+        }
+    }
 }
 
 pub struct Board {
@@ -627,9 +638,11 @@ impl Board {
 
     fn is_latest_move_promotion(&self) -> bool {
         if let Some(last_move) = self.move_history.last() {
-            if let Some(piece_type_to) = get_piece_type(self.board, [last_move.to_y, last_move.to_x])
+            if let Some(piece_type_to) =
+                get_piece_type(self.board, [last_move.to_y, last_move.to_x])
             {
-                if let Some(piece_color) = get_piece_color(self.board, [last_move.to_y, last_move.to_x])
+                if let Some(piece_color) =
+                    get_piece_color(self.board, [last_move.to_y, last_move.to_x])
                 {
                     let last_row = if piece_color == PieceColor::White {
                         0
