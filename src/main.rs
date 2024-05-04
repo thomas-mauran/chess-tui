@@ -127,3 +127,40 @@ fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResu
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use toml::Value;
+
+    #[test]
+    fn test_config_create() {
+        let args = Args {
+            engine_path: "test_engine_path".to_string(),
+        };
+
+        let folder_path = dirs::home_dir().unwrap().join(".test/chess-tui");
+        let config_path = dirs::home_dir()
+            .unwrap()
+            .join(".test/chess-tui/config.toml");
+
+        let result = config_create(&args, &folder_path, &config_path);
+
+        assert!(result.is_ok());
+        assert!(config_path.exists());
+
+        let content = fs::read_to_string(config_path).unwrap();
+        let config: Value = content.parse().unwrap();
+        let table = config.as_table().unwrap();
+
+        assert_eq!(
+            table.get("engine_path").unwrap().as_str().unwrap(),
+            "test_engine_path"
+        );
+        assert_eq!(
+            table.get("display_mode").unwrap().as_str().unwrap(),
+            "DEFAULT"
+        );
+    }
+}
