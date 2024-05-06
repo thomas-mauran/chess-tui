@@ -167,7 +167,7 @@ pub fn get_int_from_char(ch: Option<char>) -> i8 {
 
 pub fn get_latest_move(move_history: &[PieceMove]) -> Option<PieceMove> {
     if !move_history.is_empty() {
-        return Some(move_history[move_history.len() - 1].clone());
+        return Some(move_history[move_history.len() - 1]);
     }
     None
 }
