@@ -10,7 +10,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  lint:
+    name: Lint
+    uses: ./.github/workflows/lint.yml
+
   build_and_test:
+    needs: lint
     name: Build and test
     uses: ./.github/workflows/build_and_test.yml
 
@@ -18,6 +23,7 @@ jobs:
     name: Build & push Docker image
     needs: build_and_test
     uses: ./.github/workflows/docker_push.yml
+
   release_crate:
     name: Release new crate
     needs: build_and_test
