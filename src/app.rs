@@ -1,3 +1,4 @@
+use dirs::home_dir;
 use toml::Value;
 
 use crate::{board::Board, constants::DisplayMode, constants::Pages};
@@ -99,9 +100,8 @@ impl App {
     }
 
     pub fn update_config(&self) {
-        let config_path = dirs::home_dir()
-            .unwrap()
-            .join(".config/chess-tui/config.toml");
+        let home_dir = home_dir().expect("Could not get home directory");
+        let config_path = home_dir.join(".config/chess-tui/config.toml");
         let mut config = match fs::read_to_string(config_path.clone()) {
             Ok(content) => content
                 .parse::<Value>()
