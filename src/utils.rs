@@ -1,6 +1,6 @@
 use crate::{
-    board::{Board, DisplayMode},
-    constants::UNDEFINED_POSITION,
+    board::Board,
+    constants::{DisplayMode, UNDEFINED_POSITION},
     pieces::{PieceColor, PieceMove, PieceType},
 };
 use ratatui::{

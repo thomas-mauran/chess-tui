@@ -1,3 +1,6 @@
+use core::fmt;
+use std::path::PathBuf;
+
 use ratatui::style::Color;
 
 pub const UNDEFINED_POSITION: i8 = -1;
@@ -12,6 +15,35 @@ pub const TITLE: &str = r#"
 ╚██████╗██║  ██║███████╗███████║███████║      ██║   ╚██████╔╝██║
  ╚═════╝╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝      ╚═╝    ╚═════╝ ╚═╝
 "#;
+
+pub enum DisplayMode {
+    DEFAULT,
+    ASCII,
+}
+
+impl fmt::Display for DisplayMode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            DisplayMode::ASCII => write!(f, "ASCII"),
+            DisplayMode::DEFAULT => write!(f, "DEFAULT"),
+        }
+    }
+}
+
+// pub const HOME_DIR: str = match dirs::home_dir() {
+//     Some(dir) => dir,
+//     None => {
+//         eprintln!("Impossible to get your home directory");
+//         return ();
+//     }
+// };
+
+pub fn home_dir() -> Result<PathBuf, &'static str> {
+    match dirs::home_dir() {
+        Some(dir) => Ok(dir),
+        None => Err("Could not get home directory"),
+    }
+}
 
 #[derive(Debug, PartialEq)]
 pub enum Pages {

@@ -2,7 +2,7 @@
 extern crate chess_tui;
 
 use chess_tui::app::{App, AppResult};
-use chess_tui::board::DisplayMode;
+use chess_tui::constants::{home_dir, DisplayMode};
 use chess_tui::event::{Event, EventHandler};
 use chess_tui::handler::handle_key_events;
 use chess_tui::tui::Tui;
@@ -27,10 +27,9 @@ fn main() -> AppResult<()> {
     // Parse the cli arguments
     let args = Args::parse();
 
-    let folder_path = dirs::home_dir().unwrap().join(".config/chess-tui");
-    let config_path = dirs::home_dir()
-        .unwrap()
-        .join(".config/chess-tui/config.toml");
+    let home_dir = home_dir()?;
+    let folder_path = home_dir.join(".config/chess-tui");
+    let config_path = home_dir.join(".config/chess-tui/config.toml");
 
     // Create the configuration file
     config_create(&args, &folder_path, &config_path)?;
@@ -51,6 +50,7 @@ fn main() -> AppResult<()> {
             if let Some(display_mode) = config.get("display_mode") {
                 app.board.display_mode = match display_mode.as_str() {
                     Some("ASCII") => DisplayMode::ASCII,
+                    Some("DEFAULT") => DisplayMode::DEFAULT,
                     _ => DisplayMode::DEFAULT,
                 };
             }
@@ -140,10 +140,9 @@ mod tests {
             engine_path: "test_engine_path".to_string(),
         };
 
-        let folder_path = dirs::home_dir().unwrap().join(".test/chess-tui");
-        let config_path = dirs::home_dir()
-            .unwrap()
-            .join(".test/chess-tui/config.toml");
+        let home_dir = home_dir().expect("Failed to get home directory");
+        let folder_path = home_dir.join(".test/chess-tui");
+        let config_path = home_dir.join(".test/chess-tui/config.toml");
 
         let result = config_create(&args, &folder_path, &config_path);
 
@@ -162,5 +161,7 @@ mod tests {
             table.get("display_mode").unwrap().as_str().unwrap(),
             "DEFAULT"
         );
+        let removed = fs::remove_dir_all(home_dir.join(".test"));
+        assert!(removed.is_ok());
     }
 }

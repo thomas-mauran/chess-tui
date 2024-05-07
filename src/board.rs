@@ -1,7 +1,5 @@
-use core::fmt;
-
 use crate::{
-    constants::{BLACK, UNDEFINED_POSITION, WHITE},
+    constants::{DisplayMode, BLACK, UNDEFINED_POSITION, WHITE},
     pieces::{PieceColor, PieceMove, PieceType},
     utils::{
         col_to_letter, convert_notation_into_position, convert_position_into_notation,
@@ -17,20 +15,6 @@ use ratatui::{
     Frame,
 };
 use uci::Engine;
-
-pub enum DisplayMode {
-    DEFAULT,
-    ASCII,
-}
-
-impl fmt::Display for DisplayMode {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            DisplayMode::ASCII => write!(f, "ASCII"),
-            DisplayMode::DEFAULT => write!(f, "DEFAULT"),
-        }
-    }
-}
 
 pub struct Board {
     pub board: [[Option<(PieceType, PieceColor)>; 8]; 8],

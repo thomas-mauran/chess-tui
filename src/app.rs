@@ -1,6 +1,6 @@
 use toml::Value;
 
-use crate::{board::Board, board::DisplayMode, constants::Pages};
+use crate::{board::Board, constants::DisplayMode, constants::Pages};
 use std::{
     error,
     fs::{self, File},
