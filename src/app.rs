@@ -1,5 +1,12 @@
-use crate::{board::Board, board::DisplayMode, constants::Pages};
-use std::error;
+use dirs::home_dir;
+use toml::Value;
+
+use crate::{board::Board, constants::DisplayMode, constants::Pages};
+use std::{
+    error,
+    fs::{self, File},
+    io::Write,
+};
 
 /// Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
@@ -84,10 +91,32 @@ impl App {
                     DisplayMode::ASCII => DisplayMode::DEFAULT,
                     DisplayMode::DEFAULT => DisplayMode::ASCII,
                 };
+                self.update_config();
             }
             3 => self.show_help_popup = true,
             4 => self.current_page = Pages::Credit,
             _ => {}
         }
+    }
+
+    pub fn update_config(&self) {
+        let home_dir = home_dir().expect("Could not get home directory");
+        let config_path = home_dir.join(".config/chess-tui/config.toml");
+        let mut config = match fs::read_to_string(config_path.clone()) {
+            Ok(content) => content
+                .parse::<Value>()
+                .unwrap_or_else(|_| Value::Table(Default::default())),
+            Err(_) => Value::Table(Default::default()),
+        };
+
+        if let Some(table) = config.as_table_mut() {
+            table.insert(
+                "display_mode".to_string(),
+                Value::String(self.board.display_mode.to_string()),
+            );
+        }
+
+        let mut file = File::create(config_path.clone()).unwrap();
+        file.write_all(config.to_string().as_bytes()).unwrap();
     }
 }

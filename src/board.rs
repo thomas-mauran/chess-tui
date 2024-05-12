@@ -1,5 +1,5 @@
 use crate::{
-    constants::{BLACK, UNDEFINED_POSITION, WHITE},
+    constants::{DisplayMode, BLACK, UNDEFINED_POSITION, WHITE},
     pieces::{PieceColor, PieceMove, PieceType},
     utils::{
         col_to_letter, convert_notation_into_position, convert_position_into_notation,
@@ -15,11 +15,6 @@ use ratatui::{
     Frame,
 };
 use uci::Engine;
-
-pub enum DisplayMode {
-    DEFAULT,
-    ASCII,
-}
 
 pub struct Board {
     pub board: [[Option<(PieceType, PieceColor)>; 8]; 8],
@@ -627,9 +622,11 @@ impl Board {
 
     fn is_latest_move_promotion(&self) -> bool {
         if let Some(last_move) = self.move_history.last() {
-            if let Some(piece_type_to) = get_piece_type(self.board, [last_move.to_y, last_move.to_x])
+            if let Some(piece_type_to) =
+                get_piece_type(self.board, [last_move.to_y, last_move.to_x])
             {
-                if let Some(piece_color) = get_piece_color(self.board, [last_move.to_y, last_move.to_x])
+                if let Some(piece_color) =
+                    get_piece_color(self.board, [last_move.to_y, last_move.to_x])
                 {
                     let last_row = if piece_color == PieceColor::White {
                         0

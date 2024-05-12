@@ -9,8 +9,7 @@ use ratatui::{
 
 use crate::{
     app::App,
-    board::DisplayMode,
-    constants::{Pages, TITLE},
+    constants::{DisplayMode, Pages, TITLE},
     pieces::PieceColor,
     popups::{
         render_credit_popup, render_end_popup, render_engine_path_error_popup, render_help_popup,
