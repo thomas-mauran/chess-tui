@@ -1,5 +1,5 @@
 use crate::{
-    constants::{BLACK, UNDEFINED_POSITION, WHITE},
+    constants::{DisplayMode, BLACK, UNDEFINED_POSITION, WHITE},
     pieces::{PieceColor, PieceMove, PieceType},
     utils::{
         col_to_letter, convert_notation_into_position, convert_position_into_notation,
@@ -16,14 +16,6 @@ use ratatui::{
 };
 use uci::Engine;
 
-pub enum DisplayMode {
-    DEFAULT,
-    ASCII,
-}
-/*
-    The board struct is the main struct of the chess game
-    It contains all the information about the game state
-*/
 pub struct Board {
     pub board: [[Option<(PieceType, PieceColor)>; 8]; 8],
     pub cursor_coordinates: [i8; 2],

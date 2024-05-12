@@ -1,5 +1,5 @@
 use self::{bishop::Bishop, king::King, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook};
-use super::board::DisplayMode;
+use super::constants::DisplayMode;
 
 pub mod bishop;
 pub mod king;
