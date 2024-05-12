@@ -30,14 +30,6 @@ impl fmt::Display for DisplayMode {
     }
 }
 
-// pub const HOME_DIR: str = match dirs::home_dir() {
-//     Some(dir) => dir,
-//     None => {
-//         eprintln!("Impossible to get your home directory");
-//         return ();
-//     }
-// };
-
 pub fn home_dir() -> Result<PathBuf, &'static str> {
     match dirs::home_dir() {
         Some(dir) => Ok(dir),
