@@ -167,6 +167,7 @@ impl Board {
             _ => Vec::new(),
         }
     }
+
     pub fn switch_player_turn(&mut self) {
         match self.player_turn {
             PieceColor::White => self.player_turn = PieceColor::Black,
@@ -174,7 +175,7 @@ impl Board {
         }
     }
 
-    // Methods to change the position of the cursor
+    // Cursor movement methods
     pub fn cursor_up(&mut self) {
         if !self.is_checkmate && !self.is_draw && !self.is_promotion {
             if self.is_cell_selected() {
@@ -222,17 +223,19 @@ impl Board {
         }
     }
 
-    pub fn did_king_already_move(&self) -> bool {
-        for i in 0..self.move_history.len() {
-            if self.move_history[i].piece_type == PieceType::King
-                && get_player_turn_in_modulo(self.player_turn) == i % 2
-            {
-                return true;
-            }
+    // Method to unselect a cell
+    pub fn unselect_cell(&mut self) {
+        if self.is_cell_selected() {
+            self.selected_coordinates[0] = UNDEFINED_POSITION;
+            self.selected_coordinates[1] = UNDEFINED_POSITION;
+            self.selected_piece_cursor = 0;
+            self.cursor_coordinates = self.old_cursor_position
         }
-        false
     }
 
+    /* Method to move the selected piece cursor
+       We make sure that the cursor is in the authorized positions
+    */
     fn move_selected_piece_cursor(&mut self, first_time_moving: bool, direction: i8) {
         let piece_color = get_piece_color(self.board, self.selected_coordinates);
         let piece_type = get_piece_type(self.board, self.selected_coordinates);
@@ -304,7 +307,7 @@ impl Board {
                     // If we play against a bot we will play his move and switch the player turn again
                     if self.is_game_against_bot {
                         self.is_promotion = self.is_latest_move_promotion();
-                        if self.is_promotion == false {
+                        if !self.is_promotion {
                             self.is_checkmate = self.is_checkmate();
                             self.is_promotion = self.is_latest_move_promotion();
                             if !self.is_checkmate {
@@ -321,6 +324,21 @@ impl Board {
         self.is_promotion = self.is_latest_move_promotion();
     }
 
+    // Check if the king has already moved (used for castling)
+    pub fn did_king_already_move(&self) -> bool {
+        for i in 0..self.move_history.len() {
+            if self.move_history[i].piece_type == PieceType::King
+                && get_player_turn_in_modulo(self.player_turn) == i % 2
+            {
+                return true;
+            }
+        }
+        false
+    }
+
+    /* Method to make a move for the bot
+       We use the UCI protocol to communicate with the chess engine
+    */
     pub fn bot_move(&mut self) {
         let engine = match &self.engine {
             Some(engine) => engine,
@@ -346,45 +364,44 @@ impl Board {
             [to_y as usize, to_x as usize],
         );
     }
+
     // Convert the history and game status to a FEN string
     pub fn fen_position(&self) -> String {
         let mut result = String::new();
 
+        // We loop through the board and convert it to a FEN string
         for i in 0..8i8 {
             for j in 0..8i8 {
-                match (
+                // We get the piece type and color
+                let (piece_type, piece_color) = (
                     get_piece_type(self.board, [i, j]),
                     get_piece_color(self.board, [i, j]),
-                ) {
-                    (piece_type, piece_color) => {
-                        match PieceType::piece_to_fen_enum(piece_type, piece_color) {
-                            // Pattern match directly on the result of piece_to_fen_enum
-                            "" => {
-                                // Check if the string is not empty before using chars().last()
-                                if let Some(last_char) = result.chars().last() {
-                                    if last_char.is_ascii_digit() {
-                                        let incremented_char = char::from_digit(
-                                            last_char.to_digit(10).unwrap_or(0) + 1,
-                                            10,
-                                        )
+                );
+                let letter = PieceType::piece_to_fen_enum(piece_type, piece_color);
+                // Pattern match directly on the result of piece_to_fen_enum
+                match letter {
+                    "" => {
+                        // Check if the string is not empty before using chars().last()
+                        if let Some(last_char) = result.chars().last() {
+                            if last_char.is_ascii_digit() {
+                                let incremented_char =
+                                    char::from_digit(last_char.to_digit(10).unwrap_or(0) + 1, 10)
                                         .unwrap_or_default();
-                                        // Remove the old number and add the new incremented one
-                                        result.pop();
-                                        result.push_str(incremented_char.to_string().as_str());
-                                    } else {
-                                        result.push('1');
-                                    }
-                                } else {
-                                    result.push('1');
-                                }
+                                // Remove the old number and add the new incremented one
+                                result.pop();
+                                result.push_str(incremented_char.to_string().as_str());
+                            } else {
+                                result.push('1');
                             }
-                            letter => {
-                                // If the result is not an empty string, push '1'
-                                result.push_str(letter);
-                            }
+                        } else {
+                            result.push('1');
                         }
                     }
-                }
+                    letter => {
+                        // If the result is not an empty string, push '1'
+                        result.push_str(letter);
+                    }
+                };
             }
             result.push('/')
         }
@@ -405,7 +422,7 @@ impl Board {
             }
             // queen side black castle availability
             if !did_piece_already_move(&self.move_history, (Some(PieceType::Rook), [0, 0])) {
-                result.push_str("q");
+                result.push('q');
             }
         } else {
             result.push_str(" -")
@@ -421,23 +438,24 @@ impl Board {
                 // FEN starts counting from 1 not 0
                 converted_move += &format!("{}", 8 - last_move.from_y + 1).to_string();
 
-                result.push_str(" ");
+                result.push(' ');
                 result.push_str(&converted_move);
             }
         } else {
             result.push_str(" -");
         }
 
-        result.push_str(" ");
+        result.push(' ');
 
         result.push_str(&self.consecutive_non_pawn_or_capture.to_string());
-        result.push_str(" ");
+        result.push(' ');
 
         result.push_str(&(self.move_history.len() / 2).to_string());
 
         result
     }
 
+    // Check if the pawn moved two cells (used for en passant)
     pub fn did_pawn_move_two_cells(&self) -> bool {
         match self.move_history.last() {
             Some(last_move) => {
@@ -446,11 +464,13 @@ impl Board {
                 if last_move.piece_type == PieceType::Pawn && distance == 2 {
                     return true;
                 }
-                return false;
+                false
             }
             _ => false,
         }
     }
+
+    // Method to promote a pawn
     pub fn promote_piece(&mut self) {
         if let Some(last_move) = self.move_history.last() {
             let new_piece = match self.promotion_cursor {
@@ -472,6 +492,7 @@ impl Board {
         self.promotion_cursor = 0;
     }
 
+    // Move a piece from a cell to another
     pub fn move_piece_on_the_board(&mut self, from: [usize; 2], to: [usize; 2]) {
         if !is_valid([from[0] as i8, from[1] as i8]) || !is_valid([to[0] as i8, to[1] as i8]) {
             return;
@@ -519,7 +540,7 @@ impl Board {
             let distance = from_x - to_x;
             let direction_x = if distance > 0 { -1 } else { 1 };
 
-            let mut row_index_rook = 0;
+            let row_index_rook;
 
             let row_index = from_x + direction_x * 2;
 
@@ -529,18 +550,21 @@ impl Board {
             // We put the rook 3 cells from it's position if it's a big castling else 2 cells
             // If it is playing against a bot we will receive 4 -> 6  and 4 -> 2 for to_x instead of 4 -> 7 and 4 -> 0
             // big castling
-            if distance > 0 {
-                row_index_rook = 3;
-                if self.is_game_against_bot && self.player_turn == PieceColor::Black {
-                    to_x = 0;
+            match distance {
+                distance if distance > 0 => {
+                    row_index_rook = 3;
+                    if self.is_game_against_bot && self.player_turn == PieceColor::Black {
+                        to_x = 0;
+                    }
                 }
-            } else if distance < 0 {
-                row_index_rook = 5;
-                if self.is_game_against_bot && self.player_turn == PieceColor::Black {
-                    to_x = 7;
+                distance if distance < 0 => {
+                    row_index_rook = 5;
+                    if self.is_game_against_bot && self.player_turn == PieceColor::Black {
+                        to_x = 7;
+                    }
                 }
+                _ => unreachable!("Undefined distance for castling"),
             }
-
             self.board[to[0]][row_index_rook as usize] = self.board[to[0]][to_x as usize];
 
             // We remove the latest rook
@@ -561,15 +585,7 @@ impl Board {
         });
     }
 
-    pub fn unselect_cell(&mut self) {
-        if self.is_cell_selected() {
-            self.selected_coordinates[0] = UNDEFINED_POSITION;
-            self.selected_coordinates[1] = UNDEFINED_POSITION;
-            self.selected_piece_cursor = 0;
-            self.cursor_coordinates = self.old_cursor_position
-        }
-    }
-
+    // Method to get the number of authorized positions for the current player (used for the end condition)
     pub fn number_of_authorized_positions(&self) -> usize {
         let mut possible_moves: Vec<Vec<i8>> = vec![];
 
@@ -589,6 +605,7 @@ impl Board {
         possible_moves.len()
     }
 
+    // Check if the latest move is en passant
     fn is_latest_move_en_passant(&self, from: [usize; 2], to: [usize; 2]) -> bool {
         let piece_type_from = get_piece_type(self.board, [from[0] as i8, from[1] as i8]);
         let piece_type_to = get_piece_type(self.board, [to[0] as i8, to[1] as i8]);
@@ -606,6 +623,7 @@ impl Board {
         }
     }
 
+    // Check if the latest move is castling
     fn is_latest_move_castling(&self, from: [usize; 2], to: [usize; 2]) -> bool {
         let piece_type_from = get_piece_type(self.board, [from[0] as i8, from[1] as i8]);
         let piece_type_to = get_piece_type(self.board, [to[0] as i8, to[1] as i8]);
@@ -620,6 +638,7 @@ impl Board {
         }
     }
 
+    // Check if the latest move is a promotion
     fn is_latest_move_promotion(&self) -> bool {
         if let Some(last_move) = self.move_history.last() {
             if let Some(piece_type_to) =
@@ -643,6 +662,7 @@ impl Board {
         false
     }
 
+    // Check if the game is checkmate
     pub fn is_checkmate(&self) -> bool {
         if !is_getting_checked(self.board, self.player_turn, &self.move_history) {
             return false;
@@ -651,16 +671,15 @@ impl Board {
         self.number_of_authorized_positions() == 0
     }
 
+    // Check if the game is a draw
     pub fn draw_by_repetition(&self) -> bool {
         if self.move_history.len() >= 9 {
             let last_ten: Vec<PieceMove> =
                 self.move_history.iter().rev().take(9).cloned().collect();
 
-            if (last_ten[0].clone(), last_ten[1].clone())
-                == (last_ten[4].clone(), last_ten[5].clone())
-                && last_ten[4].clone() == last_ten[8].clone()
-                && (last_ten[2].clone(), last_ten[3].clone())
-                    == (last_ten[6].clone(), last_ten[7].clone())
+            if (last_ten[0], last_ten[1]) == (last_ten[4], last_ten[5])
+                && last_ten[4] == last_ten[8]
+                && (last_ten[2], last_ten[3]) == (last_ten[6], last_ten[7])
             {
                 return true;
             }
@@ -668,6 +687,7 @@ impl Board {
         false
     }
 
+    // Check if the game is a draw
     pub fn is_draw(&self) -> bool {
         self.number_of_authorized_positions() == 0
             || self.consecutive_non_pawn_or_capture == 50
@@ -783,6 +803,7 @@ impl Board {
         }
     }
 
+    // Method to render the right panel history
     pub fn history_render(&self, area: Rect, frame: &mut Frame) {
         // We write the history board on the side
         let history_block = Block::default()

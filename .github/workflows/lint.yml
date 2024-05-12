@@ -1,0 +1,28 @@
+name: Cargo Build & Test
+
+on:
+  pull_request:
+  workflow_call:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  lint:
+    name: Rust project - latest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        name: Checkout project
+
+      - uses: dtolnay/rust-toolchain@stable
+        name: Install the Rust toolchain
+      
+      - uses: Swatinem/rust-cache@v2
+        name: Use cached dependencies and artifacts
+      
+      - name: Check formatting
+        run: cargo fmt --check
+      
+      - name: Check linting
+        run: cargo clippy -- -D warnings
