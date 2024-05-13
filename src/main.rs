@@ -5,6 +5,7 @@ use chess_tui::app::{App, AppResult};
 use chess_tui::constants::{home_dir, DisplayMode};
 use chess_tui::event::{Event, EventHandler};
 use chess_tui::handler::handle_key_events;
+use chess_tui::pieces::PieceColor;
 use chess_tui::tui::Tui;
 use clap::Parser;
 use ratatui::backend::CrosstermBackend;
@@ -52,6 +53,14 @@ fn main() -> AppResult<()> {
                     Some("ASCII") => DisplayMode::ASCII,
                     Some("DEFAULT") => DisplayMode::DEFAULT,
                     _ => DisplayMode::DEFAULT,
+                };
+            }
+
+            if let Some(player_color) = config.get("player_color") {
+                app.board.player_color = match player_color.as_str() {
+                    Some("Black") => PieceColor::Black,
+                    Some("White") => PieceColor::White,
+                    _ => PieceColor::White,
                 };
             }
         }

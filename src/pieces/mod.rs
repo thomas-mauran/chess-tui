@@ -1,5 +1,6 @@
 use self::{bishop::Bishop, king::King, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook};
 use super::constants::DisplayMode;
+use core::fmt;
 
 pub mod bishop;
 pub mod king;
@@ -161,6 +162,15 @@ pub struct PieceMove {
 pub enum PieceColor {
     Black,
     White,
+}
+
+impl fmt::Display for PieceColor {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            PieceColor::Black => write!(f, "Black"),
+            PieceColor::White => write!(f, "White"),
+        }
+    }
 }
 
 pub trait Movable {

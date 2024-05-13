@@ -1,7 +1,11 @@
 use dirs::home_dir;
 use toml::Value;
 
-use crate::{board::Board, constants::DisplayMode, constants::Pages};
+use crate::{
+    board::Board,
+    constants::{DisplayMode, Pages},
+    pieces::PieceColor,
+};
 use std::{
     error,
     fs::{self, File},
@@ -87,14 +91,21 @@ impl App {
             0 => self.current_page = Pages::Solo,
             1 => self.current_page = Pages::Bot,
             2 => {
+                self.board.player_color = match self.board.player_color {
+                    PieceColor::Black => PieceColor::White,
+                    PieceColor::White => PieceColor::Black,
+                };
+                self.update_config();
+            }
+            3 => {
                 self.board.display_mode = match self.board.display_mode {
                     DisplayMode::ASCII => DisplayMode::DEFAULT,
                     DisplayMode::DEFAULT => DisplayMode::ASCII,
                 };
                 self.update_config();
             }
-            3 => self.show_help_popup = true,
-            4 => self.current_page = Pages::Credit,
+            4 => self.show_help_popup = true,
+            5 => self.current_page = Pages::Credit,
             _ => {}
         }
     }
@@ -113,6 +124,11 @@ impl App {
             table.insert(
                 "display_mode".to_string(),
                 Value::String(self.board.display_mode.to_string()),
+            );
+
+            table.insert(
+                "player_color".to_string(),
+                Value::String(self.board.player_color.to_string()),
             );
         }
 

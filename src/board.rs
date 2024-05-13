@@ -32,6 +32,7 @@ pub struct Board {
     pub engine: Option<Engine>,
     pub is_game_against_bot: bool,
     pub display_mode: DisplayMode,
+    pub player_color: PieceColor,
 }
 
 impl Default for Board {
@@ -97,6 +98,7 @@ impl Default for Board {
             engine: None,
             is_game_against_bot: false,
             display_mode: DisplayMode::DEFAULT,
+            player_color: PieceColor::White,
         }
     }
 }
@@ -123,6 +125,7 @@ impl Board {
             engine: None,
             is_game_against_bot: false,
             display_mode: DisplayMode::DEFAULT,
+            player_color: PieceColor::White,
         }
     }
 

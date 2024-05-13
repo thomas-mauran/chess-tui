@@ -97,20 +97,12 @@ pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
         .block(Block::default());
     frame.render_widget(sub_title, main_layout_horizontal[1]);
 
-    // Determine the "display mode" text
-    let display_mode_menu = {
-        let display_mode = match app.board.display_mode {
-            DisplayMode::DEFAULT => "Default",
-            DisplayMode::ASCII => "ASCII",
-        };
-        format!("Display mode: {}", display_mode)
-    };
-
     // Board block representing the full board div
     let menu_items = [
         "Normal game",
         "Play against a bot",
-        &display_mode_menu,
+        &format!("Player color: {}", app.board.player_color),
+        &format!("Display mode: {}", app.board.display_mode),
         "Help",
         "Credits",
     ];
