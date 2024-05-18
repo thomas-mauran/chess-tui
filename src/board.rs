@@ -1,5 +1,8 @@
 use crate::{
-    constants::{DisplayMode, BLACK, UNDEFINED_POSITION, WHITE},
+    constants::{
+        DisplayMode, Players, BLACK, BLACK_PLAYER_INIT_BOARD, UNDEFINED_POSITION, WHITE,
+        WHITE_PLAYER_INIT_BOARD,
+    },
     pieces::{PieceColor, PieceMove, PieceType},
     utils::{
         col_to_letter, convert_notation_into_position, convert_position_into_notation,
@@ -22,7 +25,7 @@ pub struct Board {
     pub selected_coordinates: [i8; 2],
     pub selected_piece_cursor: i8,
     pub old_cursor_position: [i8; 2],
-    pub player_turn: PieceColor,
+    pub player_turn: Players,
     pub move_history: Vec<PieceMove>,
     pub is_draw: bool,
     pub is_checkmate: bool,
@@ -38,57 +41,12 @@ pub struct Board {
 impl Default for Board {
     fn default() -> Self {
         Self {
-            board: [
-                [
-                    Some((PieceType::Rook, PieceColor::Black)),
-                    Some((PieceType::Knight, PieceColor::Black)),
-                    Some((PieceType::Bishop, PieceColor::Black)),
-                    Some((PieceType::Queen, PieceColor::Black)),
-                    Some((PieceType::King, PieceColor::Black)),
-                    Some((PieceType::Bishop, PieceColor::Black)),
-                    Some((PieceType::Knight, PieceColor::Black)),
-                    Some((PieceType::Rook, PieceColor::Black)),
-                ],
-                [
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                ],
-                [None, None, None, None, None, None, None, None],
-                [None, None, None, None, None, None, None, None],
-                [None, None, None, None, None, None, None, None],
-                [None, None, None, None, None, None, None, None],
-                [
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                ],
-                [
-                    Some((PieceType::Rook, PieceColor::White)),
-                    Some((PieceType::Knight, PieceColor::White)),
-                    Some((PieceType::Bishop, PieceColor::White)),
-                    Some((PieceType::Queen, PieceColor::White)),
-                    Some((PieceType::King, PieceColor::White)),
-                    Some((PieceType::Bishop, PieceColor::White)),
-                    Some((PieceType::Knight, PieceColor::White)),
-                    Some((PieceType::Rook, PieceColor::White)),
-                ],
-            ],
+            board: WHITE_PLAYER_INIT_BOARD,
             cursor_coordinates: [4, 4],
             selected_coordinates: [UNDEFINED_POSITION, UNDEFINED_POSITION],
             selected_piece_cursor: 0,
             old_cursor_position: [UNDEFINED_POSITION, UNDEFINED_POSITION],
-            player_turn: PieceColor::White,
+            player_turn: Players::Local,
             move_history: vec![],
             is_draw: false,
             is_checkmate: false,
@@ -106,7 +64,7 @@ impl Default for Board {
 impl Board {
     pub fn new(
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-        player_turn: PieceColor,
+        first_player_color: PieceColor,
         move_history: Vec<PieceMove>,
     ) -> Self {
         Self {
@@ -115,7 +73,7 @@ impl Board {
             selected_coordinates: [UNDEFINED_POSITION, UNDEFINED_POSITION],
             selected_piece_cursor: 0,
             old_cursor_position: [UNDEFINED_POSITION, UNDEFINED_POSITION],
-            player_turn,
+            player_turn: Players::Local,
             move_history,
             is_draw: false,
             is_checkmate: false,
@@ -125,7 +83,7 @@ impl Board {
             engine: None,
             is_game_against_bot: false,
             display_mode: DisplayMode::DEFAULT,
-            player_color: PieceColor::White,
+            player_color: first_player_color,
         }
     }
 
@@ -134,7 +92,20 @@ impl Board {
         self.board = board;
     }
 
-    pub fn set_player_turn(&mut self, player_turn: PieceColor) {
+    pub fn set_player_color(&mut self, player_color: PieceColor) {
+        match player_color {
+            PieceColor::White => {
+                self.board = WHITE_PLAYER_INIT_BOARD;
+                self.player_color = PieceColor::White;
+            }
+            PieceColor::Black => {
+                self.board = BLACK_PLAYER_INIT_BOARD;
+                self.player_color = PieceColor::Black;
+            }
+        };
+    }
+
+    pub fn set_player_turn(&mut self, player_turn: Players) {
         self.player_turn = player_turn;
     }
 
@@ -144,6 +115,25 @@ impl Board {
         self.engine = match Engine::new(engine_path) {
             Ok(engine) => Some(engine),
             _ => panic!("An error occcured with the selected chess engine path: {} Make sure you specified the right path using chess-tui -e", engine_path),
+        }
+    }
+
+    // Getters
+
+    pub fn get_playing_color(&self) -> PieceColor {
+        match self.player_turn {
+            Players::Local => self.player_color,
+            Players::Enemy => match self.player_color {
+                PieceColor::White => PieceColor::Black,
+                PieceColor::Black => PieceColor::White,
+            },
+        }
+    }
+
+    pub fn get_opposite_color(&self) -> PieceColor {
+        match self.get_playing_color() {
+            PieceColor::White => PieceColor::Black,
+            PieceColor::Black => PieceColor::White,
         }
     }
 
@@ -162,10 +152,16 @@ impl Board {
         match (piece_type, piece_color) {
             (Some(piece_type), Some(piece_color)) => piece_type.authorized_positions(
                 coordinates,
+                self.player_turn,
                 piece_color,
                 self.board,
                 &self.move_history,
-                is_getting_checked(self.board, self.player_turn, &self.move_history),
+                is_getting_checked(
+                    self.board,
+                    self.player_turn,
+                    piece_color,
+                    &self.move_history,
+                ),
             ),
             _ => Vec::new(),
         }
@@ -173,8 +169,8 @@ impl Board {
 
     pub fn switch_player_turn(&mut self) {
         match self.player_turn {
-            PieceColor::White => self.player_turn = PieceColor::Black,
-            PieceColor::Black => self.player_turn = PieceColor::White,
+            Players::Enemy => self.player_turn = Players::Local,
+            Players::Local => self.player_turn = Players::Enemy,
         }
     }
 
@@ -280,14 +276,16 @@ impl Board {
                 let piece_color = get_piece_color(self.board, self.cursor_coordinates);
                 let piece_type = get_piece_type(self.board, self.cursor_coordinates);
 
+                // We get the authorized positions for the selected piece
                 let authorized_positions =
                     self.get_authorized_positions(piece_type, piece_color, self.cursor_coordinates);
 
+                // If the piece can move we select it
                 if authorized_positions.is_empty() {
                     return;
                 }
                 if let Some(piece_color) = get_piece_color(self.board, self.cursor_coordinates) {
-                    if piece_color == self.player_turn {
+                    if piece_color == self.get_playing_color() {
                         self.selected_coordinates = self.cursor_coordinates;
                         self.old_cursor_position = self.cursor_coordinates;
                         self.move_selected_piece_cursor(true, 1);
@@ -417,7 +415,12 @@ impl Board {
 
         // We add the castles availabilities for black
         if !did_piece_already_move(&self.move_history, (Some(PieceType::King), [0, 4]))
-            && !is_getting_checked(self.board, PieceColor::Black, &self.move_history)
+            && !is_getting_checked(
+                self.board,
+                self.player_turn,
+                PieceColor::Black,
+                &self.move_history,
+            )
         {
             // king side black castle availability
             if !did_piece_already_move(&self.move_history, (Some(PieceType::Rook), [0, 7])) {
@@ -500,7 +503,7 @@ impl Board {
         if !is_valid([from[0] as i8, from[1] as i8]) || !is_valid([to[0] as i8, to[1] as i8]) {
             return;
         }
-        let direction_y: i32 = if self.player_turn == PieceColor::White {
+        let direction_y: i32 = if self.player_turn == Players::Local {
             -1
         } else {
             1
@@ -535,40 +538,48 @@ impl Board {
 
         // We check for castling as the latest move
         if self.is_latest_move_castling(from, to) {
-            // we set the king 2 cells on where it came from
-
             let from_x: i32 = from[1] as i32;
-            let mut to_x: i32 = to[1] as i32;
+            let to_x: i32 = to[1] as i32;
+            let color = self.get_playing_color();
+            let turn: Players = self.player_turn;
 
             let distance = from_x - to_x;
-            let direction_x = if distance > 0 { -1 } else { 1 };
+            let is_big_castling = self.is_big_castle(from, to, color, turn);
+            let new_rook_col;
+            let new_king_col;
 
-            let row_index_rook;
-
-            let row_index = from_x + direction_x * 2;
+            match is_big_castling {
+                true => {
+                    if (color == PieceColor::Black && turn == Players::Local)
+                        || (color == PieceColor::White && turn == Players::Enemy)
+                        || (color == PieceColor::White && turn == Players::Enemy)
+                    {
+                        new_rook_col = 4;
+                        new_king_col = 5;
+                    } else {
+                        new_rook_col = 3;
+                        new_king_col = 2;
+                    }
+                }
+                false => {
+                    if (color == PieceColor::Black && turn == Players::Local)
+                        || (color == PieceColor::White && turn == Players::Enemy)
+                        || (color == PieceColor::White && turn == Players::Enemy)
+                    {
+                        new_rook_col = 2;
+                        new_king_col = 1;
+                    } else {
+                        new_rook_col = 5;
+                        new_king_col = 6;
+                    }
+                }
+            }
 
             // We put move the king 2 cells
-            self.board[to[0]][row_index as usize] = self.board[from[0]][from[1]];
+            self.board[to[0]][new_king_col as usize] = self.board[from[0]][from[1]];
 
-            // We put the rook 3 cells from it's position if it's a big castling else 2 cells
-            // If it is playing against a bot we will receive 4 -> 6  and 4 -> 2 for to_x instead of 4 -> 7 and 4 -> 0
-            // big castling
-            match distance {
-                distance if distance > 0 => {
-                    row_index_rook = 3;
-                    if self.is_game_against_bot && self.player_turn == PieceColor::Black {
-                        to_x = 0;
-                    }
-                }
-                distance if distance < 0 => {
-                    row_index_rook = 5;
-                    if self.is_game_against_bot && self.player_turn == PieceColor::Black {
-                        to_x = 7;
-                    }
-                }
-                _ => unreachable!("Undefined distance for castling"),
-            }
-            self.board[to[0]][row_index_rook as usize] = self.board[to[0]][to_x as usize];
+            // we move the rook
+            self.board[to[0]][new_rook_col as usize] = self.board[to[0]][to_x as usize];
 
             // We remove the latest rook
             self.board[to[0]][to_x as usize] = None;
@@ -588,6 +599,38 @@ impl Board {
         });
     }
 
+    pub fn is_big_castle(
+        &self,
+        from: [usize; 2],
+        to: [usize; 2],
+        color: PieceColor,
+        turn: Players,
+    ) -> bool {
+        let from_x: i32 = from[1] as i32;
+        let to_x: i32 = to[1] as i32;
+        let distance = from_x - to_x;
+
+        match distance {
+            distance if distance > 0 => {
+                if (color == PieceColor::White && turn == Players::Local)
+                    || (color == PieceColor::Black && turn == Players::Enemy)
+                {
+                    return true;
+                }
+                return false;
+            }
+            distance if distance < 0 => {
+                if (color == PieceColor::White && turn == Players::Enemy)
+                    || (color == PieceColor::Black && turn == Players::Local)
+                {
+                    return true;
+                }
+                return false;
+            }
+            _ => unreachable!("Undefined distance for castling"),
+        }
+    }
+
     // Method to get the number of authorized positions for the current player (used for the end condition)
     pub fn number_of_authorized_positions(&self) -> usize {
         let mut possible_moves: Vec<Vec<i8>> = vec![];
@@ -595,7 +638,7 @@ impl Board {
         for i in 0..8 {
             for j in 0..8 {
                 if let Some((piece_type, piece_color)) = self.board[i][j] {
-                    if piece_color == self.player_turn {
+                    if piece_color == self.get_playing_color() {
                         possible_moves.extend(self.get_authorized_positions(
                             Some(piece_type),
                             Some(piece_color),
@@ -667,7 +710,12 @@ impl Board {
 
     // Check if the game is checkmate
     pub fn is_checkmate(&self) -> bool {
-        if !is_getting_checked(self.board, self.player_turn, &self.move_history) {
+        if !is_getting_checked(
+            self.board,
+            self.player_turn,
+            self.get_playing_color(),
+            &self.move_history,
+        ) {
             return false;
         }
 
@@ -772,8 +820,12 @@ impl Board {
                 if i == self.cursor_coordinates[0] && j == self.cursor_coordinates[1] {
                     let cell = Block::default().bg(Color::LightBlue);
                     frame.render_widget(cell.clone(), square);
-                } else if is_getting_checked(self.board, self.player_turn, &self.move_history)
-                    && [i, j] == get_king_coordinates(self.board, self.player_turn)
+                } else if is_getting_checked(
+                    self.board,
+                    self.player_turn,
+                    self.get_playing_color(),
+                    &self.move_history,
+                ) && [i, j] == get_king_coordinates(self.board, self.get_playing_color())
                 {
                     let cell = Block::default()
                         .bg(Color::Magenta)
@@ -888,6 +940,7 @@ impl Board {
 mod tests {
     use crate::{
         board::Board,
+        constants::Players,
         pieces::{PieceColor, PieceMove, PieceType},
         utils::is_getting_checked,
     };
@@ -925,7 +978,12 @@ mod tests {
         let mut board = Board::default();
         board.set_board(custom_board);
 
-        assert!(is_getting_checked(custom_board, PieceColor::White, &[]));
+        assert!(is_getting_checked(
+            custom_board,
+            board.player_turn,
+            PieceColor::White,
+            &[]
+        ));
     }
 
     #[test]
@@ -970,7 +1028,12 @@ mod tests {
         let mut board = Board::default();
         board.set_board(custom_board);
 
-        assert!(!is_getting_checked(custom_board, PieceColor::White, &[]));
+        assert!(!is_getting_checked(
+            custom_board,
+            board.player_turn,
+            PieceColor::White,
+            &[]
+        ));
     }
 
     #[test]
@@ -1024,7 +1087,12 @@ mod tests {
         let mut board = Board::default();
         board.set_board(custom_board);
 
-        assert!(!is_getting_checked(custom_board, PieceColor::Black, &[]));
+        assert!(!is_getting_checked(
+            custom_board,
+            board.player_turn,
+            PieceColor::Black,
+            &[]
+        ));
     }
 
     #[test]
@@ -1087,7 +1155,12 @@ mod tests {
         let mut board = Board::default();
         board.set_board(custom_board);
 
-        assert!(!is_getting_checked(custom_board, PieceColor::Black, &[]));
+        assert!(!is_getting_checked(
+            custom_board,
+            board.player_turn,
+            PieceColor::Black,
+            &[]
+        ));
     }
 
     #[test]
@@ -1490,7 +1563,7 @@ mod tests {
         board.promote_piece();
 
         // The black king gets checkmated
-        board.player_turn = PieceColor::Black;
+        board.player_turn = Players::Enemy;
         assert!(board.is_checkmate());
     }
 
@@ -1600,8 +1673,8 @@ mod tests {
         // Promote the pawn
         board.promote_piece();
 
-        // The black king gets checkmated
-        board.player_turn = PieceColor::White;
+        // The white king gets checkmated
+        board.player_turn = Players::Local;
         assert!(board.is_draw());
     }
     #[test]

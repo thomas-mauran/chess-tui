@@ -176,7 +176,7 @@ pub fn render_game_ui(frame: &mut Frame, app: &App, main_area: Rect) {
     }
 
     if app.board.is_checkmate {
-        let victorious_player = get_opposite_color(app.board.player_turn);
+        let victorious_player = get_opposite_color(app.board.player_color);
 
         let string_color = match victorious_player {
             PieceColor::White => "White",

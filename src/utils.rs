@@ -1,8 +1,9 @@
 use crate::{
     board::Board,
-    constants::{DisplayMode, UNDEFINED_POSITION},
+    constants::{DisplayMode, Players, UNDEFINED_POSITION},
     pieces::{PieceColor, PieceMove, PieceType},
 };
+use crossterm::style::Print;
 use ratatui::{
     layout::{Alignment, Rect},
     style::{Color, Stylize},
@@ -71,13 +72,15 @@ pub fn is_vec_in_array(array: Vec<Vec<i8>>, element: [i8; 2]) -> bool {
 // We get all the cells that are getting put in 'check'
 pub fn get_all_protected_cells(
     board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-    player_turn: PieceColor,
+    turn: Players,
+    player_color: PieceColor,
     move_history: &[PieceMove],
 ) -> Vec<Vec<i8>> {
     let mut check_cells: Vec<Vec<i8>> = vec![];
     for i in 0..8i8 {
         for j in 0..8i8 {
-            if get_piece_color(board, [i, j]) == Some(player_turn) {
+            // Check if the cell is the same color as the player
+            if get_piece_color(board, [i, j]) == Some(player_color) {
                 continue;
             }
             // get the current cell piece color and type protecting positions
@@ -86,6 +89,7 @@ pub fn get_all_protected_cells(
                     check_cells.extend(PieceType::protected_positions(
                         [i, j],
                         piece_type,
+                        turn,
                         piece_color,
                         board,
                         move_history,
@@ -151,10 +155,10 @@ pub fn convert_notation_into_position(notation: String) -> String {
     format!("{}{}{}{}", from_y, from_x, to_y, to_x)
 }
 
-pub fn get_player_turn_in_modulo(color: PieceColor) -> usize {
-    match color {
-        PieceColor::White => 0,
-        PieceColor::Black => 1,
+pub fn get_player_turn_in_modulo(player_turn: Players) -> usize {
+    match player_turn {
+        Players::Local => 0,
+        Players::Enemy => 1,
     }
 }
 
@@ -185,15 +189,16 @@ pub fn did_piece_already_move(
     }
     false
 }
+
 // Method returning the coordinates of the king of a certain color
 pub fn get_king_coordinates(
     board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-    player_turn: PieceColor,
+    current_color: PieceColor,
 ) -> [i8; 2] {
     for i in 0..8i32 {
         for j in 0..8i32 {
             if let Some((piece_type, piece_color)) = board[i as usize][j as usize] {
-                if piece_type == PieceType::King && piece_color == player_turn {
+                if piece_type == PieceType::King && piece_color == current_color {
                     return [i as i8, j as i8];
                 }
             }
@@ -205,12 +210,13 @@ pub fn get_king_coordinates(
 // Is getting checked
 pub fn is_getting_checked(
     board: [[Option<(PieceType, PieceColor)>; 8]; 8],
-    player_turn: PieceColor,
+    turn: Players,
+    current_color: PieceColor,
     move_history: &[PieceMove],
 ) -> bool {
-    let coordinates = get_king_coordinates(board, player_turn);
+    let coordinates = get_king_coordinates(board, current_color);
 
-    let checked_cells = get_all_protected_cells(board, player_turn, move_history);
+    let checked_cells = get_all_protected_cells(board, turn, current_color, move_history);
 
     for position in checked_cells {
         if position == coordinates {
@@ -224,6 +230,7 @@ pub fn impossible_positions_king_checked(
     original_coordinates: [i8; 2],
     positions: Vec<Vec<i8>>,
     board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+    turn: Players,
     color: PieceColor,
     move_history: &[PieceMove],
 ) -> Vec<Vec<i8>> {
@@ -233,7 +240,6 @@ pub fn impossible_positions_king_checked(
         let mut new_board = Board::new(board, color, move_history.to_owned().clone());
 
         // We simulate the move
-
         Board::move_piece_on_the_board(
             &mut new_board,
             [
@@ -246,7 +252,8 @@ pub fn impossible_positions_king_checked(
         // We check if the board is still checked with this move meaning it didn't resolve the problem
         if !is_getting_checked(
             new_board.board,
-            new_board.player_turn,
+            turn,
+            new_board.player_color,
             &new_board.move_history,
         ) {
             cleaned_position.push(position)

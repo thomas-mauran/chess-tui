@@ -1,5 +1,5 @@
 use super::{Movable, PieceColor, PieceMove, PieceType, Position};
-use crate::constants::DisplayMode;
+use crate::constants::{DisplayMode, Players};
 use crate::utils::{
     cleaned_positions, get_latest_move, get_piece_color, impossible_positions_king_checked,
     is_cell_color_ally, is_valid,
@@ -10,6 +10,7 @@ pub struct Pawn;
 impl Movable for Pawn {
     fn piece_move(
         coordinates: [i8; 2],
+        turn: Players,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         allow_move_on_ally_positions: bool,
@@ -17,7 +18,7 @@ impl Movable for Pawn {
     ) -> Vec<Vec<i8>> {
         // Pawns can only move in one direction depending of their color
         // -1 if they are white (go up) +1 if they are black (go down)
-        let direction = if color == PieceColor::White { -1 } else { 1 };
+        let direction = if turn == Players::Local { -1 } else { 1 };
 
         let mut positions: Vec<Vec<i8>> = vec![];
 
@@ -118,6 +119,7 @@ impl Movable for Pawn {
 impl Position for Pawn {
     fn authorized_positions(
         coordinates: [i8; 2],
+        turn: Players,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         move_history: &[PieceMove],
@@ -127,8 +129,9 @@ impl Position for Pawn {
         // if the king is checked we clean all the position not resolving the check
         impossible_positions_king_checked(
             coordinates,
-            Self::piece_move(coordinates, color, board, false, move_history),
+            Self::piece_move(coordinates, turn, color, board, false, move_history),
             board,
+            turn,
             color,
             move_history,
         )
@@ -136,11 +139,12 @@ impl Position for Pawn {
 
     fn protected_positions(
         coordinates: [i8; 2],
+        turn: Players,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         move_history: &[PieceMove],
     ) -> Vec<Vec<i8>> {
-        Self::piece_move(coordinates, color, board, true, move_history)
+        Self::piece_move(coordinates, turn, color, board, true, move_history)
     }
 }
 
@@ -165,6 +169,7 @@ impl Pawn {
 mod tests {
     use crate::{
         board::Board,
+        constants::Players,
         pieces::{pawn::Pawn, PieceColor, PieceMove, PieceType, Position},
         utils::is_getting_checked,
     };
@@ -196,8 +201,14 @@ mod tests {
         let mut right_positions = vec![vec![3, 4]];
         right_positions.sort();
 
-        let mut positions =
-            Pawn::authorized_positions([4, 4], PieceColor::White, board.board, &[], false);
+        let mut positions = Pawn::authorized_positions(
+            [4, 4],
+            Players::Local,
+            PieceColor::White,
+            board.board,
+            &[],
+            false,
+        );
         positions.sort();
         assert_eq!(right_positions, positions);
     }
@@ -229,8 +240,14 @@ mod tests {
         let mut right_positions = vec![vec![5, 4], vec![4, 4]];
         right_positions.sort();
 
-        let mut positions =
-            Pawn::authorized_positions([6, 4], PieceColor::White, board.board, &[], false);
+        let mut positions = Pawn::authorized_positions(
+            [6, 4],
+            Players::Local,
+            PieceColor::White,
+            board.board,
+            &[],
+            false,
+        );
         positions.sort();
         assert_eq!(right_positions, positions);
     }
@@ -271,8 +288,14 @@ mod tests {
         let mut right_positions = vec![vec![2, 3], vec![3, 3], vec![2, 4], vec![2, 2]];
         right_positions.sort();
 
-        let mut positions =
-            Pawn::authorized_positions([1, 3], PieceColor::Black, board.board, &[], false);
+        let mut positions = Pawn::authorized_positions(
+            [1, 3],
+            Players::Local,
+            PieceColor::Black,
+            board.board,
+            &[],
+            false,
+        );
         positions.sort();
         assert_eq!(right_positions, positions);
     }
@@ -313,8 +336,14 @@ mod tests {
         let mut right_positions = vec![vec![2, 4], vec![2, 2]];
         right_positions.sort();
 
-        let mut positions =
-            Pawn::authorized_positions([1, 3], PieceColor::Black, board.board, &[], false);
+        let mut positions = Pawn::authorized_positions(
+            [1, 3],
+            Players::Local,
+            PieceColor::Black,
+            board.board,
+            &[],
+            false,
+        );
         positions.sort();
         assert_eq!(right_positions, positions);
     }
@@ -348,6 +377,7 @@ mod tests {
 
         let mut positions = Pawn::authorized_positions(
             [3, 3],
+            Players::Local,
             PieceColor::White,
             board.board,
             &[(PieceMove {
@@ -392,6 +422,7 @@ mod tests {
 
         let mut positions = Pawn::authorized_positions(
             [4, 2],
+            Players::Enemy,
             PieceColor::Black,
             board.board,
             &[(PieceMove {
@@ -445,6 +476,7 @@ mod tests {
 
         let mut positions = Pawn::authorized_positions(
             [1, 1],
+            Players::Enemy,
             PieceColor::Black,
             board.board,
             &[(PieceMove {
@@ -493,14 +525,19 @@ mod tests {
         let mut board = Board::new(custom_board, PieceColor::Black, vec![]);
         board.set_board(custom_board);
 
-        let is_king_checked =
-            is_getting_checked(board.board, board.player_turn, &board.move_history);
+        let is_king_checked = is_getting_checked(
+            board.board,
+            board.player_turn,
+            board.get_playing_color(),
+            &board.move_history,
+        );
 
         let mut right_positions = vec![vec![3, 2]];
         right_positions.sort();
 
         let mut positions = Pawn::authorized_positions(
             [2, 3],
+            Players::Enemy,
             PieceColor::Black,
             board.board,
             &[],
@@ -544,14 +581,19 @@ mod tests {
         let mut board = Board::new(custom_board, PieceColor::Black, vec![]);
         board.set_board(custom_board);
 
-        let is_king_checked =
-            is_getting_checked(board.board, board.player_turn, &board.move_history);
+        let is_king_checked = is_getting_checked(
+            board.board,
+            board.player_turn,
+            board.get_playing_color(),
+            &board.move_history,
+        );
 
         let mut right_positions: Vec<Vec<i8>> = vec![];
         right_positions.sort();
 
         let mut positions = Pawn::authorized_positions(
             [2, 4],
+            Players::Enemy,
             PieceColor::Black,
             board.board,
             &[],
@@ -604,14 +646,19 @@ mod tests {
         let mut board = Board::new(custom_board, PieceColor::Black, vec![]);
         board.set_board(custom_board);
 
-        let is_king_checked =
-            is_getting_checked(board.board, board.player_turn, &board.move_history);
+        let is_king_checked = is_getting_checked(
+            board.board,
+            board.player_turn,
+            board.get_playing_color(),
+            &board.move_history,
+        );
 
         let mut right_positions: Vec<Vec<i8>> = vec![];
         right_positions.sort();
 
         let mut positions = Pawn::authorized_positions(
             [1, 5],
+            Players::Enemy,
             PieceColor::Black,
             board.board,
             &[],

@@ -1,6 +1,7 @@
 use core::fmt;
 use std::path::PathBuf;
 
+use crate::pieces::{PieceColor, PieceType};
 use ratatui::style::Color;
 
 pub const UNDEFINED_POSITION: i8 = -1;
@@ -44,3 +45,103 @@ pub enum Pages {
     Bot,
     Credit,
 }
+
+#[derive(PartialEq, Copy, Clone, Debug)]
+pub enum Players {
+    Local,
+    Enemy,
+}
+
+pub const WHITE_PLAYER_INIT_BOARD: [[Option<(PieceType, PieceColor)>; 8]; 8] = [
+    [
+        Some((PieceType::Rook, PieceColor::Black)),
+        Some((PieceType::Knight, PieceColor::Black)),
+        Some((PieceType::Bishop, PieceColor::Black)),
+        Some((PieceType::Queen, PieceColor::Black)),
+        Some((PieceType::King, PieceColor::Black)),
+        Some((PieceType::Bishop, PieceColor::Black)),
+        Some((PieceType::Knight, PieceColor::Black)),
+        Some((PieceType::Rook, PieceColor::Black)),
+    ],
+    [
+        Some((PieceType::Pawn, PieceColor::Black)),
+        Some((PieceType::Pawn, PieceColor::Black)),
+        Some((PieceType::Pawn, PieceColor::Black)),
+        Some((PieceType::Pawn, PieceColor::Black)),
+        Some((PieceType::Pawn, PieceColor::Black)),
+        Some((PieceType::Pawn, PieceColor::Black)),
+        Some((PieceType::Pawn, PieceColor::Black)),
+        Some((PieceType::Pawn, PieceColor::Black)),
+    ],
+    [None, None, None, None, None, None, None, None],
+    [None, None, None, None, None, None, None, None],
+    [None, None, None, None, None, None, None, None],
+    [None, None, None, None, None, None, None, None],
+    [
+        Some((PieceType::Pawn, PieceColor::White)),
+        Some((PieceType::Pawn, PieceColor::White)),
+        Some((PieceType::Pawn, PieceColor::White)),
+        Some((PieceType::Pawn, PieceColor::White)),
+        Some((PieceType::Pawn, PieceColor::White)),
+        Some((PieceType::Pawn, PieceColor::White)),
+        Some((PieceType::Pawn, PieceColor::White)),
+        Some((PieceType::Pawn, PieceColor::White)),
+    ],
+    [
+        Some((PieceType::Rook, PieceColor::White)),
+        Some((PieceType::Knight, PieceColor::White)),
+        Some((PieceType::Bishop, PieceColor::White)),
+        Some((PieceType::Queen, PieceColor::White)),
+        Some((PieceType::King, PieceColor::White)),
+        Some((PieceType::Bishop, PieceColor::White)),
+        Some((PieceType::Knight, PieceColor::White)),
+        Some((PieceType::Rook, PieceColor::White)),
+    ],
+];
+
+pub const BLACK_PLAYER_INIT_BOARD: [[Option<(PieceType, PieceColor)>; 8]; 8] = [
+    [
+        Some((PieceType::Rook, PieceColor::White)),
+        Some((PieceType::Knight, PieceColor::White)),
+        Some((PieceType::Bishop, PieceColor::White)),
+        Some((PieceType::Queen, PieceColor::White)),
+        Some((PieceType::King, PieceColor::White)),
+        Some((PieceType::Bishop, PieceColor::White)),
+        Some((PieceType::Knight, PieceColor::White)),
+        Some((PieceType::Rook, PieceColor::White)),
+    ],
+    [
+        Some((PieceType::Pawn, PieceColor::White)),
+        Some((PieceType::Pawn, PieceColor::White)),
+        Some((PieceType::Pawn, PieceColor::White)),
+        Some((PieceType::Pawn, PieceColor::White)),
+        Some((PieceType::Pawn, PieceColor::White)),
+        Some((PieceType::Pawn, PieceColor::White)),
+        Some((PieceType::Pawn, PieceColor::White)),
+        Some((PieceType::Pawn, PieceColor::White)),
+    ],
+    [None, None, None, None, None, None, None, None],
+    [None, None, None, None, None, None, None, None],
+    [None, None, None, None, None, None, None, None],
+    [None, None, None, None, None, None, None, None],
+    [
+        Some((PieceType::Pawn, PieceColor::Black)),
+        Some((PieceType::Pawn, PieceColor::Black)),
+        Some((PieceType::Pawn, PieceColor::Black)),
+        Some((PieceType::Pawn, PieceColor::Black)),
+        Some((PieceType::Pawn, PieceColor::Black)),
+        Some((PieceType::Pawn, PieceColor::Black)),
+        Some((PieceType::Pawn, PieceColor::Black)),
+        Some((PieceType::Pawn, PieceColor::Black)),
+    ],
+    [
+        Some((PieceType::Rook, PieceColor::Black)),
+        Some((PieceType::Knight, PieceColor::Black)),
+        Some((PieceType::Bishop, PieceColor::Black)),
+        Some((PieceType::King, PieceColor::Black)),
+        Some((PieceType::Queen, PieceColor::Black)),
+        Some((PieceType::Bishop, PieceColor::Black)),
+        Some((PieceType::Knight, PieceColor::Black)),
+        Some((PieceType::Rook, PieceColor::Black)),
+    ],
+];

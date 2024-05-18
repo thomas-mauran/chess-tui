@@ -1,5 +1,5 @@
 use super::{Movable, PieceColor, PieceMove, PieceType, Position};
-use crate::constants::DisplayMode;
+use crate::constants::{DisplayMode, Players};
 use crate::utils::{
     cleaned_positions, impossible_positions_king_checked, is_cell_color_ally, is_valid,
 };
@@ -8,6 +8,7 @@ pub struct Knight;
 impl Movable for Knight {
     fn piece_move(
         coordinates: [i8; 2],
+        turn: Players,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         allow_move_on_ally_positions: bool,
@@ -50,6 +51,7 @@ impl Movable for Knight {
 impl Position for Knight {
     fn authorized_positions(
         coordinates: [i8; 2],
+        turn: Players,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         move_history: &[PieceMove],
@@ -57,8 +59,9 @@ impl Position for Knight {
     ) -> Vec<Vec<i8>> {
         impossible_positions_king_checked(
             coordinates,
-            Self::piece_move(coordinates, color, board, false, move_history),
+            Self::piece_move(coordinates, turn, color, board, false, move_history),
             board,
+            turn,
             color,
             move_history,
         )
@@ -66,11 +69,12 @@ impl Position for Knight {
 
     fn protected_positions(
         coordinates: [i8; 2],
+        turn: Players,
         color: PieceColor,
         board: [[Option<(PieceType, PieceColor)>; 8]; 8],
         _move_history: &[PieceMove],
     ) -> Vec<Vec<i8>> {
-        Self::piece_move(coordinates, color, board, true, _move_history)
+        Self::piece_move(coordinates, turn, color, board, true, _move_history)
     }
 }
 
@@ -95,6 +99,7 @@ impl Knight {
 mod tests {
     use crate::{
         board::Board,
+        constants::Players,
         pieces::{knight::Knight, PieceColor, PieceType, Position},
         utils::is_getting_checked,
     };
@@ -135,8 +140,14 @@ mod tests {
         ];
         right_positions.sort();
 
-        let mut positions =
-            Knight::authorized_positions([4, 4], PieceColor::White, board.board, &[], false);
+        let mut positions = Knight::authorized_positions(
+            [4, 4],
+            Players::Local,
+            PieceColor::White,
+            board.board,
+            &[],
+            false,
+        );
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -187,8 +198,14 @@ mod tests {
         let mut right_positions = vec![vec![6, 5]];
         right_positions.sort();
 
-        let mut positions =
-            Knight::authorized_positions([7, 7], PieceColor::White, board.board, &[], false);
+        let mut positions = Knight::authorized_positions(
+            [7, 7],
+            Players::Local,
+            PieceColor::White,
+            board.board,
+            &[],
+            false,
+        );
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -236,14 +253,19 @@ mod tests {
         let mut board = Board::new(custom_board, PieceColor::White, vec![]);
         board.set_board(custom_board);
 
-        let is_king_checked =
-            is_getting_checked(board.board, board.player_turn, &board.move_history);
+        let is_king_checked = is_getting_checked(
+            board.board,
+            board.player_turn,
+            board.get_playing_color(),
+            &board.move_history,
+        );
 
         let mut right_positions = vec![vec![7, 7]];
         right_positions.sort();
 
         let mut positions = Knight::authorized_positions(
             [6, 5],
+            Players::Local,
             PieceColor::White,
             board.board,
             &[],
@@ -296,14 +318,19 @@ mod tests {
         let mut board = Board::new(custom_board, PieceColor::White, vec![]);
         board.set_board(custom_board);
 
-        let is_king_checked =
-            is_getting_checked(board.board, board.player_turn, &board.move_history);
+        let is_king_checked = is_getting_checked(
+            board.board,
+            board.player_turn,
+            board.get_playing_color(),
+            &board.move_history,
+        );
 
         let mut right_positions: Vec<Vec<i8>> = vec![];
         right_positions.sort();
 
         let mut positions = Knight::authorized_positions(
             [6, 4],
+            Players::Local,
             PieceColor::White,
             board.board,
             &[],
@@ -355,14 +382,19 @@ mod tests {
         let mut board = Board::new(custom_board, PieceColor::Black, vec![]);
         board.set_board(custom_board);
 
-        let is_king_checked =
-            is_getting_checked(board.board, board.player_turn, &board.move_history);
+        let is_king_checked = is_getting_checked(
+            board.board,
+            board.player_turn,
+            board.get_playing_color(),
+            &board.move_history,
+        );
 
         let mut right_positions: Vec<Vec<i8>> = vec![];
         right_positions.sort();
 
         let mut positions = Knight::authorized_positions(
             [1, 4],
+            Players::Enemy,
             PieceColor::Black,
             board.board,
             &[],

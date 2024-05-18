@@ -4,7 +4,7 @@ use toml::Value;
 use crate::{
     board::Board,
     constants::{DisplayMode, Pages},
-    pieces::PieceColor,
+    pieces::{piece_color_from_str, PieceColor},
 };
 use std::{
     error,
@@ -110,7 +110,7 @@ impl App {
         }
     }
 
-    pub fn update_config(&self) {
+    pub fn update_config(&mut self) {
         let home_dir = home_dir().expect("Could not get home directory");
         let config_path = home_dir.join(".config/chess-tui/config.toml");
         let mut config = match fs::read_to_string(config_path.clone()) {
@@ -131,6 +131,10 @@ impl App {
                 Value::String(self.board.player_color.to_string()),
             );
         }
+
+        self.board.set_player_color(piece_color_from_str(
+            self.board.player_color.to_string().as_str(),
+        ));
 
         let mut file = File::create(config_path.clone()).unwrap();
         file.write_all(config.to_string().as_bytes()).unwrap();
