@@ -1674,7 +1674,7 @@ mod tests {
         board.promote_piece();
 
         // The white king gets checkmated
-        board.player_turn = Players::Local;
+        board.player_turn = Players::Enemy;
         assert!(board.is_draw());
     }
     #[test]

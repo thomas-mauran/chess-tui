@@ -43,8 +43,7 @@ impl Movable for Pawn {
 
             if is_valid(new_coordinates_front_two)
                 && get_piece_color(board, new_coordinates_front_two).is_none()
-                && ((color == PieceColor::White && y == 6)
-                    || (color == PieceColor::Black && y == 1))
+                && ((turn == Players::Local && y == 6) || (turn == Players::Enemy && y == 1))
             {
                 positions.push(new_coordinates_front_two.to_vec());
             }
@@ -61,7 +60,6 @@ impl Movable for Pawn {
         let new_coordinates_left = [new_y_left, new_x_left];
 
         // If we allow on ally position we push it anyway
-
         if allow_move_on_ally_positions {
             if is_valid(new_coordinates_right) {
                 positions.push(new_coordinates_right.to_vec())
@@ -90,7 +88,7 @@ impl Movable for Pawn {
             let valid_y_start: i8;
             let number_of_cells_move: i8;
 
-            if color == PieceColor::White {
+            if turn == Players::Local {
                 valid_y_start = 1;
                 number_of_cells_move = latest_move.to_y - latest_move.from_y;
             } else {
@@ -290,7 +288,7 @@ mod tests {
 
         let mut positions = Pawn::authorized_positions(
             [1, 3],
-            Players::Local,
+            Players::Enemy,
             PieceColor::Black,
             board.board,
             &[],
@@ -338,7 +336,7 @@ mod tests {
 
         let mut positions = Pawn::authorized_positions(
             [1, 3],
-            Players::Local,
+            Players::Enemy,
             PieceColor::Black,
             board.board,
             &[],
