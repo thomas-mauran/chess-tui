@@ -151,6 +151,9 @@ impl PieceType {
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct PieceMove {
     pub piece_type: PieceType,
+    pub piece_captured: Option<PieceType>,
+    pub is_en_passant: bool,
+    pub promotion_piece: Option<PieceType>,
     pub from_x: i8,
     pub from_y: i8,
     pub to_x: i8,

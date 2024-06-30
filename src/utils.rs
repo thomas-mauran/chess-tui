@@ -278,8 +278,8 @@ pub fn get_cell_paragraph(
     bounding_rect: Rect,
 ) -> Paragraph<'_> {
     // Get piece and color
-    let piece_color = get_piece_color(board.board, cell_coordinates);
-    let piece_type = get_piece_type(board.board, cell_coordinates);
+    let piece_color = get_piece_color(board.display_board, cell_coordinates);
+    let piece_type = get_piece_type(board.display_board, cell_coordinates);
     let piece_enum = PieceType::piece_type_to_string_enum(piece_type, &board.display_mode);
 
     let paragraph = match board.display_mode {

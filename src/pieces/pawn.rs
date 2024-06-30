@@ -356,6 +356,9 @@ mod tests {
                 from_x: 2,
                 to_y: 3,
                 to_x: 2,
+                is_en_passant: false,
+                piece_captured: None,
+                promotion_piece: None,
             })],
             false,
         );
@@ -400,6 +403,9 @@ mod tests {
                 from_x: 3,
                 to_y: 4,
                 to_x: 3,
+                is_en_passant: false,
+                piece_captured: None,
+                promotion_piece: None,
             })],
             false,
         );
@@ -453,6 +459,9 @@ mod tests {
                 from_x: 3,
                 to_y: 4,
                 to_x: 3,
+                is_en_passant: false,
+                piece_captured: None,
+                promotion_piece: None,
             })],
             false,
         );

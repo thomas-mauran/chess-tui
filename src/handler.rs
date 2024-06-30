@@ -59,6 +59,8 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             }
             app.board.unselect_cell();
         }
+        KeyCode::Char('N') => app.board.history_forward(),
+        KeyCode::Char('P') => app.board.history_backward(),
         // Other handlers you could add here.
         _ => {}
     }
