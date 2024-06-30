@@ -1584,6 +1584,9 @@ mod tests {
                     from_x: 3,
                     to_y: 6,
                     to_x: 3,
+                    is_en_passant: false,
+                    piece_captured: None,
+                    promotion_piece: None,
                 }),
             ],
         );
@@ -1639,6 +1642,9 @@ mod tests {
                     from_x: 4,
                     to_y: 0,
                     to_x: 4,
+                    is_en_passant: false,
+                    piece_captured: None,
+                    promotion_piece: Some(PieceType::Queen),
                 }),
             ],
         );
@@ -1750,6 +1756,9 @@ mod tests {
                     from_x: 4,
                     to_y: 7,
                     to_x: 4,
+                    is_en_passant: false,
+                    piece_captured: None,
+                    promotion_piece: Some(PieceType::Queen),
                 }),
             ],
         );
@@ -1881,6 +1890,9 @@ mod tests {
                     from_x: 2,
                     to_y: 0,
                     to_x: 1,
+                    is_en_passant: false,
+                    piece_captured: None,
+                    promotion_piece: None,
                 }),
                 (PieceMove {
                     piece_type: PieceType::King,
@@ -1888,6 +1900,9 @@ mod tests {
                     from_x: 6,
                     to_y: 0,
                     to_x: 5,
+                    is_en_passant: false,
+                    piece_captured: None,
+                    promotion_piece: None,
                 }),
                 (PieceMove {
                     piece_type: PieceType::King,
@@ -1895,6 +1910,9 @@ mod tests {
                     from_x: 1,
                     to_y: 0,
                     to_x: 2,
+                    is_en_passant: false,
+                    piece_captured: None,
+                    promotion_piece: None,
                 }),
                 (PieceMove {
                     piece_type: PieceType::King,
@@ -1902,6 +1920,9 @@ mod tests {
                     from_x: 5,
                     to_y: 0,
                     to_x: 6,
+                    is_en_passant: false,
+                    piece_captured: None,
+                    promotion_piece: None,
                 }),
                 (PieceMove {
                     piece_type: PieceType::King,
@@ -1909,6 +1930,9 @@ mod tests {
                     from_x: 2,
                     to_y: 0,
                     to_x: 1,
+                    is_en_passant: false,
+                    piece_captured: None,
+                    promotion_piece: None,
                 }),
                 (PieceMove {
                     piece_type: PieceType::King,
@@ -1916,6 +1940,9 @@ mod tests {
                     from_x: 6,
                     to_y: 0,
                     to_x: 5,
+                    is_en_passant: false,
+                    piece_captured: None,
+                    promotion_piece: None,
                 }),
                 (PieceMove {
                     piece_type: PieceType::King,
@@ -1923,6 +1950,9 @@ mod tests {
                     from_x: 1,
                     to_y: 0,
                     to_x: 2,
+                    is_en_passant: false,
+                    piece_captured: None,
+                    promotion_piece: None,
                 }),
                 (PieceMove {
                     piece_type: PieceType::King,
@@ -1930,6 +1960,9 @@ mod tests {
                     from_x: 5,
                     to_y: 0,
                     to_x: 6,
+                    is_en_passant: false,
+                    piece_captured: None,
+                    promotion_piece: None,
                 }),
             ],
         );
@@ -2028,6 +2061,9 @@ mod tests {
                     from_x: 2,
                     to_y: 4,
                     to_x: 2,
+                    is_en_passant: false,
+                    piece_captured: None,
+                    promotion_piece: None,
                 }),
             ],
         );
@@ -2091,5 +2127,343 @@ mod tests {
             board.fen_position(),
             "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b kq - 0 0"
         );
+    }
+
+    #[test]
+    fn history_forward_backward() {
+        let custom_board = [
+            [
+                Some((PieceType::Rook, PieceColor::Black)),
+                Some((PieceType::Knight, PieceColor::Black)),
+                Some((PieceType::Bishop, PieceColor::Black)),
+                Some((PieceType::Queen, PieceColor::Black)),
+                Some((PieceType::King, PieceColor::Black)),
+                Some((PieceType::Bishop, PieceColor::Black)),
+                Some((PieceType::Knight, PieceColor::Black)),
+                Some((PieceType::Rook, PieceColor::Black)),
+            ],
+            [
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+            ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+            ],
+            [
+                Some((PieceType::Rook, PieceColor::White)),
+                Some((PieceType::Knight, PieceColor::White)),
+                Some((PieceType::Bishop, PieceColor::White)),
+                Some((PieceType::Queen, PieceColor::White)),
+                Some((PieceType::King, PieceColor::White)),
+                Some((PieceType::Bishop, PieceColor::White)),
+                Some((PieceType::Knight, PieceColor::White)),
+                Some((PieceType::Rook, PieceColor::White)),
+            ],
+        ];
+
+        let mut board = Board::new(custom_board, PieceColor::White, vec![]);
+        board.move_piece_on_the_board([6, 0], [5, 0]);
+        board.history_backward();
+        board.history_forward();
+    }
+
+    // Checking overflow and underflow cases by going back and forth through
+    // history in many directions
+    #[test]
+    fn history_forward_backward_overflow_underflow() {
+        let custom_board = [
+            [
+                Some((PieceType::Rook, PieceColor::Black)),
+                Some((PieceType::Knight, PieceColor::Black)),
+                Some((PieceType::Bishop, PieceColor::Black)),
+                Some((PieceType::Queen, PieceColor::Black)),
+                Some((PieceType::King, PieceColor::Black)),
+                Some((PieceType::Bishop, PieceColor::Black)),
+                Some((PieceType::Knight, PieceColor::Black)),
+                Some((PieceType::Rook, PieceColor::Black)),
+            ],
+            [
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+            ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+            ],
+            [
+                Some((PieceType::Rook, PieceColor::White)),
+                Some((PieceType::Knight, PieceColor::White)),
+                Some((PieceType::Bishop, PieceColor::White)),
+                Some((PieceType::Queen, PieceColor::White)),
+                Some((PieceType::King, PieceColor::White)),
+                Some((PieceType::Bishop, PieceColor::White)),
+                Some((PieceType::Knight, PieceColor::White)),
+                Some((PieceType::Rook, PieceColor::White)),
+            ],
+        ];
+
+        let mut board = Board::new(custom_board, PieceColor::White, vec![]);
+        board.move_piece_on_the_board([6, 0], [5, 0]);
+        board.move_piece_on_the_board([1, 0], [2, 0]);
+        board.history_backward();
+        board.history_forward();
+        board.history_backward();
+        board.history_backward();
+        board.history_backward();
+        board.history_backward();
+        board.history_forward();
+        board.history_forward();
+        board.history_forward();
+        board.history_forward();
+    }
+
+    #[test]
+    fn history_promition_white() {
+        let custom_board = [
+            [None, None, None, None, None, None, None, None],
+            [
+                None,
+                Some((PieceType::Pawn, PieceColor::White)),
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::King, PieceColor::Black)),
+                None,
+            ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::King, PieceColor::White)),
+                None,
+                None,
+                None,
+            ],
+            [None, None, None, None, None, None, None, None],
+        ];
+        let mut board = Board::new(custom_board, PieceColor::White, vec![]);
+        board.move_piece_on_the_board([1, 1], [0, 1]);
+        board.promotion_cursor = 0;
+        board.promote_piece();
+        board.history_backward();
+        board.history_backward();
+        board.history_forward();
+        board.history_forward();
+        assert_eq!(board.display_board, board.board);
+    }
+
+    #[test]
+    fn history_promition_black() {
+        let custom_board = [
+            [None, None, None, None, None, None, None, None],
+            [
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::King, PieceColor::Black)),
+                None,
+            ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [
+                None,
+                Some((PieceType::Pawn, PieceColor::Black)),
+                None,
+                None,
+                Some((PieceType::King, PieceColor::White)),
+                None,
+                None,
+                None,
+            ],
+            [None, None, None, None, None, None, None, None],
+        ];
+        let mut board = Board::new(custom_board, PieceColor::Black, vec![]);
+        board.move_piece_on_the_board([6, 1], [7, 1]);
+        board.promotion_cursor = 0;
+        board.promote_piece();
+        board.history_backward();
+        board.history_backward();
+        board.history_forward();
+        board.history_forward();
+        assert_eq!(board.display_board, board.board);
+    }
+
+    #[test]
+    fn history_en_passant() {
+        let custom_board = [
+            [
+                Some((PieceType::Rook, PieceColor::Black)),
+                Some((PieceType::Knight, PieceColor::Black)),
+                Some((PieceType::Bishop, PieceColor::Black)),
+                Some((PieceType::Queen, PieceColor::Black)),
+                Some((PieceType::King, PieceColor::Black)),
+                Some((PieceType::Bishop, PieceColor::Black)),
+                Some((PieceType::Knight, PieceColor::Black)),
+                Some((PieceType::Rook, PieceColor::Black)),
+            ],
+            [
+                None,
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+            ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [
+                Some((PieceType::Pawn, PieceColor::Black)),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            ],
+            [None, None, None, None, None, None, None, None],
+            [
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+            ],
+            [
+                Some((PieceType::Rook, PieceColor::White)),
+                Some((PieceType::Knight, PieceColor::White)),
+                Some((PieceType::Bishop, PieceColor::White)),
+                Some((PieceType::Queen, PieceColor::White)),
+                Some((PieceType::King, PieceColor::White)),
+                Some((PieceType::Bishop, PieceColor::White)),
+                Some((PieceType::Knight, PieceColor::White)),
+                Some((PieceType::Rook, PieceColor::White)),
+            ],
+        ];
+
+        let mut board = Board::new(custom_board, PieceColor::White, vec![]);
+        board.move_piece_on_the_board([6, 1], [4, 1]);
+        board.move_piece_on_the_board([4, 0], [3, 1]);
+        board.move_piece_on_the_board([2, 2], [3, 1]);
+        board.history_backward();
+        board.history_backward();
+        board.history_backward();
+        board.history_backward();
+        board.history_forward();
+        board.history_forward();
+        board.history_forward();
+        board.history_forward();
+        assert_eq!(board.display_board, board.board);
+    }
+
+    #[test]
+    fn history_castling() {
+        let custom_board = [
+            [
+                Some((PieceType::Rook, PieceColor::Black)),
+                Some((PieceType::Knight, PieceColor::Black)),
+                Some((PieceType::Bishop, PieceColor::Black)),
+                Some((PieceType::Queen, PieceColor::Black)),
+                Some((PieceType::King, PieceColor::Black)),
+                Some((PieceType::Bishop, PieceColor::Black)),
+                Some((PieceType::Knight, PieceColor::Black)),
+                Some((PieceType::Rook, PieceColor::Black)),
+            ],
+            [
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, PieceColor::Black)),
+            ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, PieceColor::White)),
+            ],
+            [
+                Some((PieceType::Rook, PieceColor::White)),
+                Some((PieceType::Knight, PieceColor::White)),
+                Some((PieceType::Bishop, PieceColor::White)),
+                Some((PieceType::Queen, PieceColor::White)),
+                Some((PieceType::King, PieceColor::White)),
+                None,
+                None,
+                Some((PieceType::Rook, PieceColor::White)),
+            ],
+        ];
+
+        let mut board = Board::new(custom_board, PieceColor::White, vec![]);
+        board.move_piece_on_the_board([7, 4], [7, 7]);
+        board.history_backward();
+        board.history_backward();
+        board.history_backward();
+        board.history_backward();
+        board.history_forward();
+        board.history_forward();
+        board.history_forward();
+        board.history_forward();
+        assert_eq!(board.display_board, board.board);
     }
 }
