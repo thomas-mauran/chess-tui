@@ -1,52 +1,50 @@
-use super::{Movable, PieceColor, PieceMove, PieceType, Position};
+use super::{Movable, PieceColor, PieceMove, Position};
+use crate::board::{Coord, GameBoard};
 use crate::constants::DisplayMode;
 use crate::utils::{
     cleaned_positions, get_piece_color, impossible_positions_king_checked, is_cell_color_ally,
-    is_piece_opposite_king, is_valid,
+    is_piece_opposite_king,
 };
 pub struct Bishop;
 
 impl Movable for Bishop {
     fn piece_move(
-        coordinates: [i8; 2],
+        coordinates: &Coord,
         color: PieceColor,
-        board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        board: GameBoard,
         allow_move_on_ally_positions: bool,
         _move_history: &[PieceMove],
-    ) -> Vec<Vec<i8>> {
-        let mut positions: Vec<Vec<i8>> = vec![];
+    ) -> Vec<Coord> {
+        let mut positions: Vec<Coord> = vec![];
 
-        let y = coordinates[0];
-        let x = coordinates[1];
+        let y = coordinates.row;
+        let x = coordinates.col;
 
         // for diagonal from piece to top left
-        for i in 1..8i8 {
-            let new_x = x - i;
-            let new_y = y - i;
-            let new_coordinates = [new_y, new_x];
-
-            // Invalid coords
-            if !is_valid(new_coordinates) {
+        for i in 1..8u8 {
+            let new_x: i8 = x as i8 - i as i8;
+            let new_y: i8 = y as i8 - i as i8;
+            let Some(new_coordinates) = Coord::opt_new(new_y, new_x) else {
                 break;
-            }
+            };
 
             // Empty cell
-            if get_piece_color(board, new_coordinates).is_none() {
-                positions.push(new_coordinates.to_vec());
+            if get_piece_color(board, &new_coordinates).is_none() {
+                positions.push(new_coordinates);
                 continue;
             }
             // Ally cell
-            if is_cell_color_ally(board, new_coordinates, color) {
+            if is_cell_color_ally(board, &new_coordinates, color) {
                 if !allow_move_on_ally_positions {
                     break;
                 } else {
-                    positions.push(new_coordinates.to_vec());
+                    positions.push(new_coordinates);
                     break;
                 }
             }
 
             // Enemy cell
-            positions.push(new_coordinates.to_vec());
+            positions.push(new_coordinates);
             if !allow_move_on_ally_positions
                 || !is_piece_opposite_king(board[new_y as usize][new_x as usize], color)
             {
@@ -55,34 +53,34 @@ impl Movable for Bishop {
         }
 
         // for diagonal from piece to bottom right
-        for i in 1..8i8 {
+        for i in 1..8u8 {
             let new_x = x + i;
             let new_y = y + i;
 
-            let new_coordinates = [new_y, new_x];
+            let new_coordinates = Coord::new(new_y, new_x);
 
             // Invalid coords
-            if !is_valid(new_coordinates) {
+            if !new_coordinates.is_valid() {
                 break;
             }
 
             // Empty cell
-            if get_piece_color(board, new_coordinates).is_none() {
-                positions.push(new_coordinates.to_vec());
+            if get_piece_color(board, &new_coordinates).is_none() {
+                positions.push(new_coordinates);
                 continue;
             }
             // Ally cell
-            if is_cell_color_ally(board, new_coordinates, color) {
+            if is_cell_color_ally(board, &new_coordinates, color) {
                 if !allow_move_on_ally_positions {
                     break;
                 } else {
-                    positions.push(new_coordinates.to_vec());
+                    positions.push(new_coordinates);
                     break;
                 }
             }
 
             // Enemy cell
-            positions.push(new_coordinates.to_vec());
+            positions.push(new_coordinates);
             if !allow_move_on_ally_positions
                 || !is_piece_opposite_king(board[new_y as usize][new_x as usize], color)
             {
@@ -91,33 +89,35 @@ impl Movable for Bishop {
         }
 
         // for diagonal from piece to bottom left
-        for i in 1..8i8 {
-            let new_x = x - i;
-            let new_y = y + i;
-            let new_coordinates = [new_y, new_x];
+        for i in 1..8u8 {
+            let new_x: i8 = x as i8 - i as i8;
+            let new_y: i8 = y as i8 + i as i8;
+            let Some(new_coordinates) = Coord::opt_new(new_y, new_x) else {
+                break;
+            };
 
             // Invalid coords
-            if !is_valid(new_coordinates) {
+            if !new_coordinates.is_valid() {
                 break;
             }
 
             // Empty cell
-            if get_piece_color(board, new_coordinates).is_none() {
-                positions.push(new_coordinates.to_vec());
+            if get_piece_color(board, &new_coordinates).is_none() {
+                positions.push(new_coordinates);
                 continue;
             }
             // Ally cell
-            if is_cell_color_ally(board, new_coordinates, color) {
+            if is_cell_color_ally(board, &new_coordinates, color) {
                 if !allow_move_on_ally_positions {
                     break;
                 } else {
-                    positions.push(new_coordinates.to_vec());
+                    positions.push(new_coordinates);
                     break;
                 }
             }
 
             // Enemy cell
-            positions.push(new_coordinates.to_vec());
+            positions.push(new_coordinates);
             if !allow_move_on_ally_positions
                 || !is_piece_opposite_king(board[new_y as usize][new_x as usize], color)
             {
@@ -126,51 +126,51 @@ impl Movable for Bishop {
         }
 
         // for diagonal from piece to top right
-        for i in 1..8i8 {
-            let new_x = x + i;
-            let new_y = y - i;
-            let new_coordinates = [new_y, new_x];
-
-            // Invalid coords
-            if !is_valid(new_coordinates) {
+        for i in 1..8u8 {
+            let new_x = x as i8 + i as i8;
+            let new_y = y as i8 - i as i8;
+            let Some(new_coordinates) = Coord::opt_new(new_y, new_x) else {
                 break;
-            }
+            };
 
             // Empty cell
-            if get_piece_color(board, new_coordinates).is_none() {
-                positions.push(new_coordinates.to_vec());
+            if get_piece_color(board, &new_coordinates).is_none() {
+                positions.push(new_coordinates);
                 continue;
             }
             // Ally cell
-            if is_cell_color_ally(board, new_coordinates, color) {
+            if is_cell_color_ally(board, &new_coordinates, color) {
                 if !allow_move_on_ally_positions {
                     break;
                 } else {
-                    positions.push(new_coordinates.to_vec());
+                    positions.push(new_coordinates);
                     break;
                 }
             }
 
             // Enemy cell
-            positions.push(new_coordinates.to_vec());
+            positions.push(new_coordinates);
             if !allow_move_on_ally_positions
-                || !is_piece_opposite_king(board[new_y as usize][new_x as usize], color)
+                || !is_piece_opposite_king(
+                    board[new_coordinates.row as usize][new_coordinates.col as usize],
+                    color,
+                )
             {
                 break;
             }
         }
-        cleaned_positions(positions)
+        cleaned_positions(&positions)
     }
 }
 
 impl Position for Bishop {
     fn authorized_positions(
-        coordinates: [i8; 2],
+        coordinates: &Coord,
         color: PieceColor,
-        board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        board: GameBoard,
         move_history: &[PieceMove],
         _is_king_checked: bool,
-    ) -> Vec<Vec<i8>> {
+    ) -> Vec<Coord> {
         // if the king is checked we clean all the position not resolving the check
         impossible_positions_king_checked(
             coordinates,
@@ -181,11 +181,11 @@ impl Position for Bishop {
         )
     }
     fn protected_positions(
-        coordinates: [i8; 2],
+        coordinates: &Coord,
         color: PieceColor,
-        board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        board: GameBoard,
         move_history: &[PieceMove],
-    ) -> Vec<Vec<i8>> {
+    ) -> Vec<Coord> {
         Self::piece_move(coordinates, color, board, true, move_history)
     }
 }
@@ -210,7 +210,7 @@ impl Bishop {
 #[cfg(test)]
 mod tests {
     use crate::{
-        board::Board,
+        board::{Board, Coord},
         pieces::{bishop::Bishop, PieceColor, PieceType, Position},
         utils::is_getting_checked,
     };
@@ -240,24 +240,29 @@ mod tests {
         board.set_board(custom_board);
 
         let mut right_positions = vec![
-            vec![0, 0],
-            vec![1, 1],
-            vec![2, 2],
-            vec![3, 3],
-            vec![5, 5],
-            vec![6, 6],
-            vec![7, 7],
-            vec![1, 7],
-            vec![2, 6],
-            vec![3, 5],
-            vec![5, 3],
-            vec![6, 2],
-            vec![7, 1],
+            Coord::new(0, 0),
+            Coord::new(1, 1),
+            Coord::new(2, 2),
+            Coord::new(3, 3),
+            Coord::new(5, 5),
+            Coord::new(6, 6),
+            Coord::new(7, 7),
+            Coord::new(1, 7),
+            Coord::new(2, 6),
+            Coord::new(3, 5),
+            Coord::new(5, 3),
+            Coord::new(6, 2),
+            Coord::new(7, 1),
         ];
         right_positions.sort();
 
-        let mut positions =
-            Bishop::authorized_positions([4, 4], PieceColor::White, board.board, &[], false);
+        let mut positions = Bishop::authorized_positions(
+            &Coord::new(4, 4),
+            PieceColor::White,
+            board.board,
+            &[],
+            false,
+        );
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -297,22 +302,27 @@ mod tests {
         board.set_board(custom_board);
 
         let mut right_positions = vec![
-            vec![0, 0],
-            vec![1, 1],
-            vec![2, 2],
-            vec![3, 3],
-            vec![5, 5],
-            vec![6, 6],
-            vec![7, 7],
-            vec![3, 5],
-            vec![5, 3],
-            vec![6, 2],
-            vec![7, 1],
+            Coord::new(0, 0),
+            Coord::new(1, 1),
+            Coord::new(2, 2),
+            Coord::new(3, 3),
+            Coord::new(5, 5),
+            Coord::new(6, 6),
+            Coord::new(7, 7),
+            Coord::new(3, 5),
+            Coord::new(5, 3),
+            Coord::new(6, 2),
+            Coord::new(7, 1),
         ];
         right_positions.sort();
 
-        let mut positions =
-            Bishop::authorized_positions([4, 4], PieceColor::White, board.board, &[], false);
+        let mut positions = Bishop::authorized_positions(
+            &Coord::new(4, 4),
+            PieceColor::White,
+            board.board,
+            &[],
+            false,
+        );
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -370,18 +380,23 @@ mod tests {
         board.set_board(custom_board);
 
         let mut right_positions = vec![
-            vec![3, 3],
-            vec![5, 5],
-            vec![3, 5],
-            vec![2, 6],
-            vec![1, 7],
-            vec![5, 3],
-            vec![6, 2],
+            Coord::new(3, 3),
+            Coord::new(5, 5),
+            Coord::new(3, 5),
+            Coord::new(2, 6),
+            Coord::new(1, 7),
+            Coord::new(5, 3),
+            Coord::new(6, 2),
         ];
         right_positions.sort();
 
-        let mut positions =
-            Bishop::authorized_positions([4, 4], PieceColor::White, board.board, &[], false);
+        let mut positions = Bishop::authorized_positions(
+            &Coord::new(4, 4),
+            PieceColor::White,
+            board.board,
+            &[],
+            false,
+        );
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -432,11 +447,11 @@ mod tests {
         let is_king_checked =
             is_getting_checked(board.board, board.player_turn, &board.move_history);
 
-        let mut right_positions = vec![vec![4, 4]];
+        let mut right_positions = vec![Coord::new(4, 4)];
         right_positions.sort();
 
         let mut positions = Bishop::authorized_positions(
-            [5, 5],
+            &Coord::new(5, 5),
             PieceColor::Black,
             board.board,
             &[],
@@ -492,11 +507,11 @@ mod tests {
         let is_king_checked =
             is_getting_checked(board.board, board.player_turn, &board.move_history);
 
-        let mut right_positions: Vec<Vec<i8>> = vec![];
+        let mut right_positions: Vec<Coord> = vec![];
         right_positions.sort();
 
         let mut positions = Bishop::authorized_positions(
-            [5, 6],
+            &Coord::new(5, 6),
             PieceColor::Black,
             board.board,
             &[],
@@ -552,11 +567,11 @@ mod tests {
         let is_king_checked =
             is_getting_checked(board.board, board.player_turn, &board.move_history);
 
-        let mut right_positions: Vec<Vec<i8>> = vec![vec![2, 6], vec![3, 7]];
+        let mut right_positions = vec![Coord::new(2, 6), Coord::new(3, 7)];
         right_positions.sort();
 
         let mut positions = Bishop::authorized_positions(
-            [1, 5],
+            &Coord::new(1, 5),
             PieceColor::Black,
             board.board,
             &[],

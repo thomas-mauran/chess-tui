@@ -1,86 +1,96 @@
-use super::{Movable, PieceColor, PieceMove, PieceType, Position};
+use super::{Movable, PieceColor, PieceMove, Position};
+use crate::board::{Coord, GameBoard};
 use crate::constants::DisplayMode;
 use crate::utils::{
     cleaned_positions, get_latest_move, get_piece_color, impossible_positions_king_checked,
-    is_cell_color_ally, is_valid,
+    is_cell_color_ally,
 };
 
 pub struct Pawn;
 
 impl Movable for Pawn {
     fn piece_move(
-        coordinates: [i8; 2],
+        coordinates: &Coord,
         color: PieceColor,
-        board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        board: GameBoard,
         allow_move_on_ally_positions: bool,
         move_history: &[PieceMove],
-    ) -> Vec<Vec<i8>> {
+    ) -> Vec<Coord> {
         // Pawns can only move in one direction depending of their color
         // -1 if they are white (go up) +1 if they are black (go down)
-        let direction = if color == PieceColor::White { -1 } else { 1 };
+        let direction: i8 = if color == PieceColor::White { -1 } else { 1 };
 
-        let mut positions: Vec<Vec<i8>> = vec![];
+        let mut positions: Vec<Coord> = vec![];
 
-        let (y, x) = (coordinates[0], coordinates[1]);
+        let (y, x) = (coordinates.row, coordinates.col);
 
         // move one in front
         let new_x_front_one = x;
-        let new_y_front_one = y + direction;
-        let new_coordinates_front_one = [new_y_front_one, new_x_front_one];
+        let new_y_front_one = y as i8 + direction;
+        let new_coordinates_front_one = Coord::new(new_y_front_one as u8, new_x_front_one);
 
-        if is_valid(new_coordinates_front_one)
+        if new_coordinates_front_one.is_valid()
             && !allow_move_on_ally_positions
-            && get_piece_color(board, new_coordinates_front_one).is_none()
+            && get_piece_color(board, &new_coordinates_front_one).is_none()
         {
             // Empty cell
-            positions.push(new_coordinates_front_one.to_vec());
+            positions.push(new_coordinates_front_one);
 
             // move front a second cell
             let new_x_front_two = x;
-            let new_y_front_two = y + direction * 2;
-            let new_coordinates_front_two = [new_y_front_two, new_x_front_two];
+            let new_y_front_two = y as i8 + direction * 2;
+            let new_coordinates_front_two = Coord::new(new_y_front_two as u8, new_x_front_two);
 
-            if is_valid(new_coordinates_front_two)
-                && get_piece_color(board, new_coordinates_front_two).is_none()
+            if new_coordinates_front_two.is_valid()
+                && get_piece_color(board, &new_coordinates_front_two).is_none()
                 && ((color == PieceColor::White && y == 6)
                     || (color == PieceColor::Black && y == 1))
             {
-                positions.push(new_coordinates_front_two.to_vec());
+                positions.push(new_coordinates_front_two);
             }
         }
 
         // check for enemy piece on the right
         let new_x_right = x + 1;
-        let new_y_right = y + direction;
-        let new_coordinates_right = [new_y_right, new_x_right];
+        let new_y_right = y as i8 + direction;
+        let new_coordinates_right =
+            if let Some(new_coord) = Coord::opt_new(new_y_right, new_x_right as i8) {
+                new_coord
+            } else {
+                Coord::undefined()
+            };
 
         // check for enemy piece on the left
-        let new_x_left = x - 1;
-        let new_y_left = y + direction;
-        let new_coordinates_left = [new_y_left, new_x_left];
+        let new_x_left = x as i8 - 1;
+        let new_y_left = y as i8 + direction;
+        let new_coordinates_left = if let Some(new_coord) = Coord::opt_new(new_y_left, new_x_left) {
+            new_coord
+        } else {
+            Coord::undefined()
+        };
 
         // If we allow on ally position we push it anyway
 
         if allow_move_on_ally_positions {
-            if is_valid(new_coordinates_right) {
-                positions.push(new_coordinates_right.to_vec())
+            if new_coordinates_right.is_valid() {
+                positions.push(new_coordinates_right)
             };
-            if is_valid(new_coordinates_left) {
-                positions.push(new_coordinates_left.to_vec())
+            if new_coordinates_left.is_valid() {
+                positions.push(new_coordinates_left)
             };
         } else {
             // else we check if it's an ally piece
-            if is_valid(new_coordinates_right)
-                && get_piece_color(board, new_coordinates_right).is_some()
-                && !is_cell_color_ally(board, new_coordinates_right, color)
+            if new_coordinates_right.is_valid()
+                && get_piece_color(board, &new_coordinates_right).is_some()
+                && !is_cell_color_ally(board, &new_coordinates_right, color)
             {
-                positions.push(new_coordinates_right.to_vec());
+                positions.push(new_coordinates_right);
             }
-            if is_valid(new_coordinates_left)
-                && get_piece_color(board, new_coordinates_left).is_some()
-                && !is_cell_color_ally(board, new_coordinates_left, color)
+            if new_coordinates_left.is_valid()
+                && get_piece_color(board, &new_coordinates_left).is_some()
+                && !is_cell_color_ally(board, &new_coordinates_left, color)
             {
-                positions.push(new_coordinates_left.to_vec());
+                positions.push(new_coordinates_left);
             }
         }
 
@@ -91,38 +101,38 @@ impl Movable for Pawn {
 
             if color == PieceColor::White {
                 valid_y_start = 1;
-                number_of_cells_move = latest_move.to_y - latest_move.from_y;
+                number_of_cells_move = latest_move.to.row as i8 - latest_move.from.row as i8;
             } else {
                 valid_y_start = 6;
-                number_of_cells_move = latest_move.from_y - latest_move.to_y;
+                number_of_cells_move = latest_move.from.row as i8 - latest_move.to.row as i8;
             };
 
             // We check if the latest move was on the right start cell
             // if it moved 2 cells
             // and if the current pawn is next to this pawn latest position
-            if latest_move.from_y == valid_y_start
+            if latest_move.from.row as i8 == valid_y_start
                 && number_of_cells_move == 2
-                && y == latest_move.to_y
-                && (x == latest_move.to_x - 1 || x == latest_move.to_x + 1)
+                && y == latest_move.to.row
+                && (x == latest_move.to.col - 1 || x == latest_move.to.col + 1)
             {
-                let new_y = latest_move.from_y + -direction;
-                let new_x = latest_move.from_x;
-                positions.push([new_y, new_x].to_vec());
+                let new_y = latest_move.from.row as i8 + -direction;
+                let new_x = latest_move.from.col;
+                positions.push(Coord::new(new_y as u8, new_x));
             }
         }
 
-        cleaned_positions(positions)
+        cleaned_positions(&positions)
     }
 }
 
 impl Position for Pawn {
     fn authorized_positions(
-        coordinates: [i8; 2],
+        coordinates: &Coord,
         color: PieceColor,
-        board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        board: GameBoard,
         move_history: &[PieceMove],
         _is_king_checked: bool,
-    ) -> Vec<Vec<i8>> {
+    ) -> Vec<Coord> {
         // If the king is not checked we get then normal moves
         // if the king is checked we clean all the position not resolving the check
         impossible_positions_king_checked(
@@ -135,11 +145,11 @@ impl Position for Pawn {
     }
 
     fn protected_positions(
-        coordinates: [i8; 2],
+        coordinates: &Coord,
         color: PieceColor,
-        board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        board: GameBoard,
         move_history: &[PieceMove],
-    ) -> Vec<Vec<i8>> {
+    ) -> Vec<Coord> {
         Self::piece_move(coordinates, color, board, true, move_history)
     }
 }
@@ -164,7 +174,7 @@ impl Pawn {
 #[cfg(test)]
 mod tests {
     use crate::{
-        board::Board,
+        board::{Board, Coord},
         pieces::{pawn::Pawn, PieceColor, PieceMove, PieceType, Position},
         utils::is_getting_checked,
     };
@@ -193,11 +203,16 @@ mod tests {
         let mut board = Board::default();
         board.set_board(custom_board);
 
-        let mut right_positions = vec![vec![3, 4]];
+        let mut right_positions = vec![Coord::new(3, 4)];
         right_positions.sort();
 
-        let mut positions =
-            Pawn::authorized_positions([4, 4], PieceColor::White, board.board, &[], false);
+        let mut positions = Pawn::authorized_positions(
+            &Coord::new(4, 4),
+            PieceColor::White,
+            board.board,
+            &[],
+            false,
+        );
         positions.sort();
         assert_eq!(right_positions, positions);
     }
@@ -226,11 +241,16 @@ mod tests {
         let mut board = Board::default();
         board.set_board(custom_board);
 
-        let mut right_positions = vec![vec![5, 4], vec![4, 4]];
+        let mut right_positions = vec![Coord::new(5, 4), Coord::new(4, 4)];
         right_positions.sort();
 
-        let mut positions =
-            Pawn::authorized_positions([6, 4], PieceColor::White, board.board, &[], false);
+        let mut positions = Pawn::authorized_positions(
+            &Coord::new(6, 4),
+            PieceColor::White,
+            board.board,
+            &[],
+            false,
+        );
         positions.sort();
         assert_eq!(right_positions, positions);
     }
@@ -268,11 +288,21 @@ mod tests {
         let mut board = Board::default();
         board.set_board(custom_board);
 
-        let mut right_positions = vec![vec![2, 3], vec![3, 3], vec![2, 4], vec![2, 2]];
+        let mut right_positions = vec![
+            Coord::new(2, 3),
+            Coord::new(3, 3),
+            Coord::new(2, 4),
+            Coord::new(2, 2),
+        ];
         right_positions.sort();
 
-        let mut positions =
-            Pawn::authorized_positions([1, 3], PieceColor::Black, board.board, &[], false);
+        let mut positions = Pawn::authorized_positions(
+            &Coord::new(1, 3),
+            PieceColor::Black,
+            board.board,
+            &[],
+            false,
+        );
         positions.sort();
         assert_eq!(right_positions, positions);
     }
@@ -310,11 +340,16 @@ mod tests {
         let mut board = Board::default();
         board.set_board(custom_board);
 
-        let mut right_positions = vec![vec![2, 4], vec![2, 2]];
+        let mut right_positions = vec![Coord::new(2, 4), Coord::new(2, 2)];
         right_positions.sort();
 
-        let mut positions =
-            Pawn::authorized_positions([1, 3], PieceColor::Black, board.board, &[], false);
+        let mut positions = Pawn::authorized_positions(
+            &Coord::new(1, 3),
+            PieceColor::Black,
+            board.board,
+            &[],
+            false,
+        );
         positions.sort();
         assert_eq!(right_positions, positions);
     }
@@ -343,19 +378,17 @@ mod tests {
         let mut board = Board::default();
         board.set_board(custom_board);
 
-        let mut right_positions = vec![vec![2, 2], vec![2, 3]];
+        let mut right_positions = vec![Coord::new(2, 2), Coord::new(2, 3)];
         right_positions.sort();
 
         let mut positions = Pawn::authorized_positions(
-            [3, 3],
+            &Coord::new(3, 3),
             PieceColor::White,
             board.board,
             &[(PieceMove {
                 piece_type: PieceType::Pawn,
-                from_y: 1,
-                from_x: 2,
-                to_y: 3,
-                to_x: 2,
+                from: Coord::new(1, 2),
+                to: Coord::new(3, 2),
             })],
             false,
         );
@@ -387,19 +420,17 @@ mod tests {
         let mut board = Board::default();
         board.set_board(custom_board);
 
-        let mut right_positions = vec![vec![5, 2], vec![5, 3]];
+        let mut right_positions = vec![Coord::new(5, 2), Coord::new(5, 3)];
         right_positions.sort();
 
         let mut positions = Pawn::authorized_positions(
-            [4, 2],
+            &Coord::new(4, 2),
             PieceColor::Black,
             board.board,
             &[(PieceMove {
                 piece_type: PieceType::Pawn,
-                from_y: 6,
-                from_x: 3,
-                to_y: 4,
-                to_x: 3,
+                from: Coord::new(6, 3),
+                to: Coord::new(4, 3),
             })],
             false,
         );
@@ -440,19 +471,17 @@ mod tests {
         let mut board = Board::default();
         board.set_board(custom_board);
 
-        let mut right_positions = vec![vec![2, 1], vec![3, 1]];
+        let mut right_positions = vec![Coord::new(2, 1), Coord::new(3, 1)];
         right_positions.sort();
 
         let mut positions = Pawn::authorized_positions(
-            [1, 1],
+            &Coord::new(1, 1),
             PieceColor::Black,
             board.board,
             &[(PieceMove {
                 piece_type: PieceType::Pawn,
-                from_y: 6,
-                from_x: 3,
-                to_y: 4,
-                to_x: 3,
+                from: Coord::new(6, 3),
+                to: Coord::new(4, 3),
             })],
             false,
         );
@@ -496,11 +525,11 @@ mod tests {
         let is_king_checked =
             is_getting_checked(board.board, board.player_turn, &board.move_history);
 
-        let mut right_positions = vec![vec![3, 2]];
+        let mut right_positions = vec![Coord::new(3, 2)];
         right_positions.sort();
 
         let mut positions = Pawn::authorized_positions(
-            [2, 3],
+            &Coord::new(2, 3),
             PieceColor::Black,
             board.board,
             &[],
@@ -547,11 +576,11 @@ mod tests {
         let is_king_checked =
             is_getting_checked(board.board, board.player_turn, &board.move_history);
 
-        let mut right_positions: Vec<Vec<i8>> = vec![];
+        let mut right_positions: Vec<Coord> = vec![];
         right_positions.sort();
 
         let mut positions = Pawn::authorized_positions(
-            [2, 4],
+            &Coord::new(2, 4),
             PieceColor::Black,
             board.board,
             &[],
@@ -607,11 +636,11 @@ mod tests {
         let is_king_checked =
             is_getting_checked(board.board, board.player_turn, &board.move_history);
 
-        let mut right_positions: Vec<Vec<i8>> = vec![];
+        let mut right_positions: Vec<Coord> = vec![];
         right_positions.sort();
 
         let mut positions = Pawn::authorized_positions(
-            [1, 5],
+            &Coord::new(1, 5),
             PieceColor::Black,
             board.board,
             &[],
