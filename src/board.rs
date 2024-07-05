@@ -34,11 +34,8 @@ impl Coord {
         }
     }
     /// optional new: try making a valid [`Coord`], if can't, return [`None`]
-    pub fn opt_new<T: Into<i32>>(row: T, col: T) -> Option<Self> {
-        let row: i32 = row.into();
+    pub fn opt_new<T: TryInto<u8>>(row: T, col: T) -> Option<Self> {
         let row: u8 = row.try_into().ok()?;
-
-        let col: i32 = col.into();
         let col: u8 = col.try_into().ok()?;
 
         let ret = Coord { row, col };
