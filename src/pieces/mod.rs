@@ -1,3 +1,5 @@
+use crate::board::{Coord, GameBoard};
+
 use self::{bishop::Bishop, king::King, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook};
 use super::constants::DisplayMode;
 
@@ -20,12 +22,12 @@ pub enum PieceType {
 impl PieceType {
     pub fn authorized_positions(
         self,
-        coordinates: [i8; 2],
+        coordinates: &Coord,
         color: PieceColor,
-        board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        board: GameBoard,
         move_history: &[PieceMove],
         is_king_checked: bool,
-    ) -> Vec<Vec<i8>> {
+    ) -> Vec<Coord> {
         match self {
             PieceType::Pawn => {
                 Pawn::authorized_positions(coordinates, color, board, move_history, is_king_checked)
@@ -61,12 +63,12 @@ impl PieceType {
     }
 
     pub fn protected_positions(
-        selected_coordinates: [i8; 2],
+        selected_coordinates: &Coord,
         piece_type: PieceType,
         color: PieceColor,
-        board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        board: GameBoard,
         move_history: &[PieceMove],
-    ) -> Vec<Vec<i8>> {
+    ) -> Vec<Coord> {
         match piece_type {
             PieceType::Pawn => {
                 Pawn::protected_positions(selected_coordinates, color, board, move_history)
@@ -151,10 +153,8 @@ impl PieceType {
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct PieceMove {
     pub piece_type: PieceType,
-    pub from_x: i8,
-    pub from_y: i8,
-    pub to_x: i8,
-    pub to_y: i8,
+    pub from: Coord,
+    pub to: Coord,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -165,27 +165,27 @@ pub enum PieceColor {
 
 pub trait Movable {
     fn piece_move(
-        coordinates: [i8; 2],
+        coordinates: &Coord,
         color: PieceColor,
-        board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        board: GameBoard,
         allow_move_on_ally_positions: bool,
         move_history: &[PieceMove],
-    ) -> Vec<Vec<i8>>;
+    ) -> Vec<Coord>;
 }
 
 pub trait Position {
     fn authorized_positions(
-        coordinates: [i8; 2],
+        coordinates: &Coord,
         color: PieceColor,
-        board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        board: GameBoard,
         move_history: &[PieceMove],
         is_king_checked: bool,
-    ) -> Vec<Vec<i8>>;
+    ) -> Vec<Coord>;
 
     fn protected_positions(
-        coordinates: [i8; 2],
+        coordinates: &Coord,
         color: PieceColor,
-        board: [[Option<(PieceType, PieceColor)>; 8]; 8],
+        board: GameBoard,
         move_history: &[PieceMove],
-    ) -> Vec<Vec<i8>>;
+    ) -> Vec<Coord>;
 }
