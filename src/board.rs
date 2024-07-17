@@ -4,7 +4,7 @@ use crate::{
     utils::{
         col_to_letter, convert_notation_into_position, convert_position_into_notation,
         did_piece_already_move, get_cell_paragraph, get_int_from_char, get_king_coordinates,
-        get_piece_color, get_piece_type, get_player_turn_in_modulo, is_getting_checked,
+        get_piece_color, get_piece_type, is_getting_checked,
     },
 };
 use ratatui::{
@@ -34,15 +34,15 @@ impl Coord {
         }
     }
     /// optional new: try making a valid [`Coord`], if can't, return [`None`]
-    pub fn opt_new<T: TryInto<u8>>(row: T, col: T) -> Option<Self> {
+    pub fn opt_new<U1: TryInto<u8>, U2: TryInto<u8>>(row: U1, col: U2) -> Option<Self> {
         let row: u8 = row.try_into().ok()?;
         let col: u8 = col.try_into().ok()?;
 
         let ret = Coord { row, col };
-        if !ret.is_valid() {
-            None
-        } else {
+        if ret.is_valid() {
             Some(ret)
+        } else {
+            None
         }
     }
     /// not yet set position, has to later be set and only used afterwards
@@ -192,7 +192,7 @@ impl Board {
 
         self.engine = match Engine::new(engine_path) {
             Ok(engine) => Some(engine),
-            _ => panic!("An error occcured with the selected chess engine path: {} Make sure you specified the right path using chess-tui -e", engine_path),
+            _ => panic!("An error occcured with the selected chess engine path: {engine_path} Make sure you specified the right path using chess-tui -e"),
         }
     }
 
@@ -206,11 +206,11 @@ impl Board {
         &self,
         piece_type: Option<PieceType>,
         piece_color: Option<PieceColor>,
-        coordinates: &Coord,
+        coordinates: Coord,
     ) -> Vec<Coord> {
         match (piece_type, piece_color) {
             (Some(piece_type), Some(piece_color)) => piece_type.authorized_positions(
-                coordinates,
+                &coordinates,
                 piece_color,
                 self.board,
                 &self.move_history,
@@ -231,18 +231,18 @@ impl Board {
     pub fn cursor_up(&mut self) {
         if !self.is_checkmate && !self.is_draw && !self.is_promotion {
             if self.is_cell_selected() {
-                self.move_selected_piece_cursor(false, -1)
+                self.move_selected_piece_cursor(false, -1);
             } else if self.cursor_coordinates.row > 0 {
-                self.cursor_coordinates.row -= 1
+                self.cursor_coordinates.row -= 1;
             }
         }
     }
     pub fn cursor_down(&mut self) {
         if !self.is_checkmate && !self.is_draw && !self.is_promotion {
             if self.is_cell_selected() {
-                self.move_selected_piece_cursor(false, 1)
+                self.move_selected_piece_cursor(false, 1);
             } else if self.cursor_coordinates.row < 7 {
-                self.cursor_coordinates.row += 1
+                self.cursor_coordinates.row += 1;
             }
         }
     }
@@ -256,9 +256,9 @@ impl Board {
             };
         } else if !self.is_checkmate && !self.is_draw {
             if self.is_cell_selected() {
-                self.move_selected_piece_cursor(false, -1)
+                self.move_selected_piece_cursor(false, -1);
             } else if self.cursor_coordinates.col > 0 {
-                self.cursor_coordinates.col -= 1
+                self.cursor_coordinates.col -= 1;
             }
         }
     }
@@ -268,9 +268,9 @@ impl Board {
             self.promotion_cursor = (self.promotion_cursor + 1) % 4;
         } else if !self.is_checkmate && !self.is_draw {
             if self.is_cell_selected() {
-                self.move_selected_piece_cursor(false, 1)
+                self.move_selected_piece_cursor(false, 1);
             } else if self.cursor_coordinates.col < 7 {
-                self.cursor_coordinates.col += 1
+                self.cursor_coordinates.col += 1;
             }
         }
     }
@@ -280,7 +280,7 @@ impl Board {
         if self.is_cell_selected() {
             self.selected_coordinates = Coord::undefined();
             self.selected_piece_cursor = 0;
-            self.cursor_coordinates = self.old_cursor_position
+            self.cursor_coordinates = self.old_cursor_position;
         }
     }
 
@@ -292,9 +292,11 @@ impl Board {
         let piece_type = get_piece_type(self.board, &self.selected_coordinates);
 
         let mut authorized_positions =
-            self.get_authorized_positions(piece_type, piece_color, &self.selected_coordinates);
+            self.get_authorized_positions(piece_type, piece_color, self.selected_coordinates);
 
-        if !authorized_positions.is_empty() {
+        if authorized_positions.is_empty() {
+            self.cursor_coordinates = Coord::undefined();
+        } else {
             self.selected_piece_cursor = if self.selected_piece_cursor == 0 && first_time_moving {
                 0
             } else {
@@ -312,8 +314,6 @@ impl Board {
             if let Some(position) = authorized_positions.get(self.selected_piece_cursor as usize) {
                 self.cursor_coordinates = *position;
             }
-        } else {
-            self.cursor_coordinates = Coord::undefined();
         }
     }
 
@@ -323,28 +323,7 @@ impl Board {
         if self.is_promotion {
             self.promote_piece();
         } else if !self.is_checkmate && !self.is_draw {
-            if !self.is_cell_selected() {
-                // Check if the piece on the cell can move before selecting it
-                let piece_color = get_piece_color(self.board, &self.cursor_coordinates);
-                let piece_type = get_piece_type(self.board, &self.cursor_coordinates);
-
-                let authorized_positions = self.get_authorized_positions(
-                    piece_type,
-                    piece_color,
-                    &self.cursor_coordinates,
-                );
-
-                if authorized_positions.is_empty() {
-                    return;
-                }
-                if let Some(piece_color) = get_piece_color(self.board, &self.cursor_coordinates) {
-                    if piece_color == self.player_turn {
-                        self.selected_coordinates = self.cursor_coordinates;
-                        self.old_cursor_position = self.cursor_coordinates;
-                        self.move_selected_piece_cursor(true, 1);
-                    }
-                }
-            } else {
+            if self.is_cell_selected() {
                 // We already selected a piece
                 if self.cursor_coordinates.is_valid() {
                     let selected_coords_usize = &self.selected_coordinates.clone();
@@ -366,6 +345,24 @@ impl Board {
                     }
                     self.is_draw = self.is_draw();
                 }
+            } else {
+                // Check if the piece on the cell can move before selecting it
+                let piece_color = get_piece_color(self.board, &self.cursor_coordinates);
+                let piece_type = get_piece_type(self.board, &self.cursor_coordinates);
+
+                let authorized_positions =
+                    self.get_authorized_positions(piece_type, piece_color, self.cursor_coordinates);
+
+                if authorized_positions.is_empty() {
+                    return;
+                }
+                if let Some(piece_color) = get_piece_color(self.board, &self.cursor_coordinates) {
+                    if piece_color == self.player_turn {
+                        self.selected_coordinates = self.cursor_coordinates;
+                        self.old_cursor_position = self.cursor_coordinates;
+                        self.move_selected_piece_cursor(true, 1);
+                    }
+                }
             }
         }
         self.is_checkmate = self.is_checkmate();
@@ -376,7 +373,7 @@ impl Board {
     pub fn did_king_already_move(&self) -> bool {
         for i in 0..self.move_history.len() {
             if self.move_history[i].piece_type == PieceType::King
-                && get_player_turn_in_modulo(self.player_turn) == i % 2
+                && self.player_turn as usize == i % 2
             {
                 return true;
             }
@@ -388,19 +385,17 @@ impl Board {
        We use the UCI protocol to communicate with the chess engine
     */
     pub fn bot_move(&mut self) {
-        let engine = match &self.engine {
-            Some(engine) => engine,
-            None => panic!("Missing the chess engine"),
+        let Some(engine) = &self.engine else {
+            panic!("Missing the chess engine")
         };
 
         engine.set_position(&self.fen_position()).unwrap();
 
         let best_move = engine.bestmove();
-        let movement = match best_move {
-            Ok(movement) => movement,
-            Err(_) => panic!("An error as occured"),
+        let Ok(movement) = best_move else {
+            panic!("An error has occured")
         };
-        let converted_move = convert_notation_into_position(movement);
+        let converted_move = convert_notation_into_position(&movement);
 
         let from_y = get_int_from_char(converted_move.chars().next());
         let from_x = get_int_from_char(converted_move.chars().nth(1));
@@ -451,7 +446,7 @@ impl Board {
                     }
                 };
             }
-            result.push('/')
+            result.push('/');
         }
 
         // we remove the last / and specify the player turn (black)
@@ -481,7 +476,7 @@ impl Board {
                 result.push('q');
             }
         } else {
-            result.push_str(" -")
+            result.push_str(" -");
         }
 
         // We check if the latest move is a pawn moving 2 cells, meaning the next move can be en passant
@@ -564,9 +559,8 @@ impl Board {
         let piece_type_to = get_piece_type(self.board, to);
 
         // Check if moving a piece
-        let piece_type_from = match piece_type_from {
-            Some(piece) => piece,
-            None => return,
+        let Some(piece_type_from) = piece_type_from else {
+            return;
         };
 
         // We increment the consecutive_non_pawn_or_capture if the piece type is a pawn or if there is no capture
@@ -580,7 +574,7 @@ impl Board {
         }
 
         // We check for en passant as the latest move
-        if self.is_latest_move_en_passant(from, to) {
+        if self.is_latest_move_en_passant(*from, *to) {
             // we kill the pawn
             let row_index = to.row as i32 - direction_y;
 
@@ -588,7 +582,7 @@ impl Board {
         }
 
         // We check for castling as the latest move
-        if self.is_latest_move_castling(from, to) {
+        if self.is_latest_move_castling(*from, *to) {
             // we set the king 2 cells on where it came from
 
             let from_x: i32 = from.col as i32;
@@ -653,8 +647,8 @@ impl Board {
                         possible_moves.extend(self.get_authorized_positions(
                             Some(piece_type),
                             Some(piece_color),
-                            &coord,
-                        ))
+                            coord,
+                        ));
                     }
                 }
             }
@@ -663,9 +657,9 @@ impl Board {
     }
 
     // Check if the latest move is en passant
-    fn is_latest_move_en_passant(&self, from: &Coord, to: &Coord) -> bool {
-        let piece_type_from = get_piece_type(self.board, from);
-        let piece_type_to = get_piece_type(self.board, to);
+    fn is_latest_move_en_passant(&self, from: Coord, to: Coord) -> bool {
+        let piece_type_from = get_piece_type(self.board, &from);
+        let piece_type_to = get_piece_type(self.board, &to);
 
         let from_y: i32 = from.row as i32;
         let from_x: i32 = from.col as i32;
@@ -674,16 +668,16 @@ impl Board {
         match (piece_type_from, piece_type_to) {
             (Some(PieceType::Pawn), _) => {
                 // Check if it's a diagonal move, and the destination is an empty cell
-                from_y != to_y && from_x != to_x && self.board[to].is_none()
+                from_y != to_y && from_x != to_x && self.board[&to].is_none()
             }
             _ => false,
         }
     }
 
     // Check if the latest move is castling
-    fn is_latest_move_castling(&self, from: &Coord, to: &Coord) -> bool {
-        let piece_type_from = get_piece_type(self.board, from);
-        let piece_type_to = get_piece_type(self.board, to);
+    fn is_latest_move_castling(&self, from: Coord, to: Coord) -> bool {
+        let piece_type_from = get_piece_type(self.board, &from);
+        let piece_type_to = get_piece_type(self.board, &to);
 
         let from_x: i32 = from.col as i32;
         let to_x: i32 = to.col as i32;
@@ -732,7 +726,7 @@ impl Board {
     pub fn draw_by_repetition(&self) -> bool {
         if self.move_history.len() >= 9 {
             let last_ten: Vec<PieceMove> =
-                self.move_history.iter().rev().take(9).cloned().collect();
+                self.move_history.iter().rev().take(9).copied().collect();
 
             if (last_ten[0], last_ten[1]) == (last_ten[4], last_ten[5])
                 && last_ten[4] == last_ten[8]
@@ -811,13 +805,13 @@ impl Board {
                     let positions = self.get_authorized_positions(
                         selected_piece_type,
                         selected_piece_color,
-                        &self.selected_coordinates,
+                        self.selected_coordinates,
                     );
 
                     // Draw grey if the color is in the authorized positions
                     for coords in positions.clone() {
                         if i == coords.row && j == coords.col {
-                            cell_color = Color::Rgb(100, 100, 100)
+                            cell_color = Color::Rgb(100, 100, 100);
                         }
                     }
                 }
@@ -879,7 +873,7 @@ impl Board {
 
             let utf_icon_white =
                 PieceType::piece_to_utf_enum(piece_type_from, Some(PieceColor::White));
-            let move_white = convert_position_into_notation(format!(
+            let move_white = convert_position_into_notation(&format!(
                 "{}{}{}{}",
                 self.move_history[i].from.row,
                 self.move_history[i].from.col,
@@ -894,7 +888,7 @@ impl Board {
             if i + 1 < self.move_history.len() {
                 let piece_type_to = self.move_history[i + 1].piece_type;
 
-                move_black = convert_position_into_notation(format!(
+                move_black = convert_position_into_notation(&format!(
                     "{}{}{}{}",
                     self.move_history[i + 1].from.row,
                     self.move_history[i + 1].from.col,
@@ -902,15 +896,15 @@ impl Board {
                     self.move_history[i + 1].to.col
                 ));
                 utf_icon_black =
-                    PieceType::piece_to_utf_enum(piece_type_to, Some(PieceColor::Black))
+                    PieceType::piece_to_utf_enum(piece_type_to, Some(PieceColor::Black));
             }
 
             lines.push(Line::from(vec![
                 Span::raw(format!("{}.  ", i / 2 + 1)), // line number
-                Span::styled(format!("{} ", utf_icon_white), Style::default().fg(WHITE)), // white symbol
+                Span::styled(format!("{utf_icon_white} "), Style::default().fg(WHITE)), // white symbol
                 Span::raw(move_white.to_string()), // white move
                 Span::raw("     "),                // separator
-                Span::styled(format!("{} ", utf_icon_black), Style::default().fg(WHITE)), // white symbol
+                Span::styled(format!("{utf_icon_black} "), Style::default().fg(WHITE)), // white symbol
                 Span::raw(move_black.to_string()), // black move
             ]));
         }

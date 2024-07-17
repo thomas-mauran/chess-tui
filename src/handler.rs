@@ -16,7 +16,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             app.quit();
         }
         // Exit application on `Ctrl-C`
-        KeyCode::Char('c') | KeyCode::Char('C') => {
+        KeyCode::Char('c' | 'C') => {
             if key_event.modifiers == KeyModifiers::CONTROL {
                 app.quit();
             }
@@ -26,23 +26,23 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         KeyCode::Left | KeyCode::Char('h') => app.board.cursor_left(),
         KeyCode::Up | KeyCode::Char('k') => {
             if app.current_page == Pages::Home {
-                app.menu_cursor_up()
+                app.menu_cursor_up();
             } else {
-                app.board.cursor_up()
+                app.board.cursor_up();
             }
         }
         KeyCode::Down | KeyCode::Char('j') => {
             if app.current_page == Pages::Home {
-                app.menu_cursor_down()
+                app.menu_cursor_down();
             } else {
-                app.board.cursor_down()
+                app.board.cursor_down();
             }
         }
         KeyCode::Char(' ') | KeyCode::Enter => {
-            if app.current_page != Pages::Home {
-                app.board.select_cell()
+            if app.current_page == Pages::Home {
+                app.menu_select();
             } else {
-                app.menu_select()
+                app.board.select_cell();
             }
         }
         KeyCode::Char('?') => {

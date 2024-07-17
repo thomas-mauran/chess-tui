@@ -15,7 +15,6 @@ use crate::{
         render_credit_popup, render_end_popup, render_engine_path_error_popup, render_help_popup,
         render_promotion_popup,
     },
-    utils::get_opposite_color,
 };
 
 /// Renders the user interface widgets.
@@ -23,29 +22,29 @@ pub fn render(app: &mut App, frame: &mut Frame) {
     let main_area = frame.size();
 
     if app.current_page == Pages::Solo {
-        render_game_ui(frame, app, main_area)
+        render_game_ui(frame, app, main_area);
     } else if app.current_page == Pages::Bot {
         if app.board.engine.is_none() {
             match &app.chess_engine_path {
                 Some(path) => {
                     app.board.set_engine(path);
-                    render_game_ui(frame, app, main_area)
+                    render_game_ui(frame, app, main_area);
                 }
                 None => render_engine_path_error_popup(frame),
             }
         } else {
-            render_game_ui(frame, app, main_area)
+            render_game_ui(frame, app, main_area);
         }
     } else {
-        render_menu_ui(frame, app, main_area)
+        render_menu_ui(frame, app, main_area);
     }
 
     if app.show_help_popup {
-        render_help_popup(frame)
+        render_help_popup(frame);
     }
 
     if app.current_page == Pages::Credit {
-        render_credit_popup(frame)
+        render_credit_popup(frame);
     }
 }
 
@@ -103,7 +102,7 @@ pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
             DisplayMode::DEFAULT => "Default",
             DisplayMode::ASCII => "ASCII",
         };
-        format!("Display mode: {}", display_mode)
+        format!("Display mode: {display_mode}")
     };
 
     // Board block representing the full board div
@@ -121,17 +120,17 @@ pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
         let mut text = if app.menu_cursor == i as u8 {
             "> ".to_string()
         } else {
-            "".to_string()
+            String::new()
         };
         text.push_str(menu_item);
-        menu_body.push(Line::from(text))
+        menu_body.push(Line::from(text));
     }
 
     let sub_title = Paragraph::new(menu_body)
         .bold()
         .alignment(Alignment::Center)
         .block(Block::default());
-    frame.render_widget(sub_title, main_layout_horizontal[2])
+    frame.render_widget(sub_title, main_layout_horizontal[2]);
 }
 
 // Method to render the game board and handle game popups
@@ -176,21 +175,21 @@ pub fn render_game_ui(frame: &mut Frame, app: &App, main_area: Rect) {
         .history_render(board_block.inner(main_layout_vertical[3]), frame);
 
     if app.board.is_promotion {
-        render_promotion_popup(frame, app)
+        render_promotion_popup(frame, app);
     }
 
     if app.board.is_draw {
-        render_end_popup(frame, "That's a draw".to_string())
+        render_end_popup(frame, "That's a draw");
     }
 
     if app.board.is_checkmate {
-        let victorious_player = get_opposite_color(app.board.player_turn);
+        let victorious_player = app.board.player_turn.opposite();
 
         let string_color = match victorious_player {
             PieceColor::White => "White",
             PieceColor::Black => "Black",
         };
 
-        render_end_popup(frame, format!("{} Won !!!", string_color))
+        render_end_popup(frame, &format!("{string_color} Won !!!"));
     }
 }

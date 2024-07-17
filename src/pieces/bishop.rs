@@ -37,10 +37,9 @@ impl Movable for Bishop {
             if is_cell_color_ally(board, &new_coordinates, color) {
                 if !allow_move_on_ally_positions {
                     break;
-                } else {
-                    positions.push(new_coordinates);
-                    break;
                 }
+                positions.push(new_coordinates);
+                break;
             }
 
             // Enemy cell
@@ -73,10 +72,9 @@ impl Movable for Bishop {
             if is_cell_color_ally(board, &new_coordinates, color) {
                 if !allow_move_on_ally_positions {
                     break;
-                } else {
-                    positions.push(new_coordinates);
-                    break;
                 }
+                positions.push(new_coordinates);
+                break;
             }
 
             // Enemy cell
@@ -110,10 +108,9 @@ impl Movable for Bishop {
             if is_cell_color_ally(board, &new_coordinates, color) {
                 if !allow_move_on_ally_positions {
                     break;
-                } else {
-                    positions.push(new_coordinates);
-                    break;
                 }
+                positions.push(new_coordinates);
+                break;
             }
 
             // Enemy cell
@@ -142,10 +139,9 @@ impl Movable for Bishop {
             if is_cell_color_ally(board, &new_coordinates, color) {
                 if !allow_move_on_ally_positions {
                     break;
-                } else {
-                    positions.push(new_coordinates);
-                    break;
                 }
+                positions.push(new_coordinates);
+                break;
             }
 
             // Enemy cell
