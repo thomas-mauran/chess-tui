@@ -72,6 +72,33 @@ impl std::ops::IndexMut<&Coord> for GameBoard {
     }
 }
 
+/// ## visual representation
+///
+/// ### how it's stored:
+///
+/// . 0 1 2 3 4 5 6 7 .
+/// 0 ♖ ♘ ♗ ♕ ♔ ♗ ♘ ♖ 0
+/// 1 ♙ ♙ ♙ ♙ ♙ ♙ ♙ ♙ 1
+/// 2 . . . . . . . . 2
+/// 3 . . . . . . . . 3
+/// 4 . . . . . . . . 4
+/// 5 . . . . . . . . 5
+/// 6 ♟ ♟ ♟ ♟ ♟ ♟ ♟ ♟ 6
+/// 7 ♜ ♞ ♝ ♛ ♚ ♝ ♞ ♜ 7
+/// . 0 1 2 3 4 5 6 7 .
+///
+/// ### how it's rendered:
+///
+/// . a b c d e f g h .
+/// 8 ♖ ♘ ♗ ♕ ♔ ♗ ♘ ♖ 8
+/// 7 ♙ ♙ ♙ ♙ ♙ ♙ ♙ ♙ 7
+/// 6 . . . . . . . . 6
+/// 5 . . . . . . . . 5
+/// 4 . . . . . . . . 4
+/// 3 . . . . . . . . 3
+/// 2 ♟ ♟ ♟ ♟ ♟ ♟ ♟ ♟ 2
+/// 1 ♜ ♞ ♝ ♛ ♚ ♝ ♞ ♜ 1
+/// . a b c d e f g h .
 pub struct Board {
     pub board: GameBoard,
     pub cursor_coordinates: Coord,
