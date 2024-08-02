@@ -159,8 +159,8 @@ pub struct PieceMove {
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum PieceColor {
-    White,
-    Black,
+    White = 0,
+    Black = 1,
 }
 
 impl PieceColor {

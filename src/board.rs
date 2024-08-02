@@ -21,9 +21,9 @@ pub type GameBoard = [[Option<(PieceType, PieceColor)>; 8]; 8];
 
 #[derive(PartialEq, Clone, Debug, Eq, PartialOrd, Ord, Copy)]
 pub struct Coord {
-    /// row, line, y
+    /// rank, horizontal row, line, y axis
     pub row: u8,
-    /// column, x
+    /// file, vertical column, x axis
     pub col: u8,
 }
 impl Coord {
