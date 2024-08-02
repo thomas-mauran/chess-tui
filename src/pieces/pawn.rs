@@ -112,7 +112,7 @@ impl Movable for Pawn {
             if latest_move.from.row as i8 == valid_y_start
                 && number_of_cells_move == 2
                 && y == latest_move.to.row
-                && (x == latest_move.to.col - 1 || x == latest_move.to.col + 1)
+                && (x as i8 == latest_move.to.col as i8 - 1 || x == latest_move.to.col + 1)
             {
                 let new_y = latest_move.from.row as i8 + -direction;
                 let new_x = latest_move.from.col;
