@@ -16,7 +16,7 @@ use ratatui::{
 };
 use uci::Engine;
 
-// only the pure gameboard, no additional information
+/// only the pure gameboard, no additional information
 pub type GameBoard = [[Option<(PieceType, PieceColor)>; 8]; 8];
 
 #[derive(PartialEq, Clone, Debug, Eq, PartialOrd, Ord, Copy)]
@@ -27,7 +27,7 @@ pub struct Coord {
     pub col: u8,
 }
 impl Coord {
-    pub fn new<T: Into<u8>>(row: T, col: T) -> Self {
+    pub fn new<U1: Into<u8>, U2: Into<u8>>(row: U1, col: U2) -> Self {
         Coord {
             row: row.into(),
             col: col.into(),
