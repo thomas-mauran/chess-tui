@@ -50,7 +50,6 @@ fn main() -> AppResult<()> {
             if let Some(display_mode) = config.get("display_mode") {
                 app.board.display_mode = match display_mode.as_str() {
                     Some("ASCII") => DisplayMode::ASCII,
-                    Some("DEFAULT") => DisplayMode::DEFAULT,
                     _ => DisplayMode::DEFAULT,
                 };
             }
@@ -75,8 +74,7 @@ fn main() -> AppResult<()> {
         match tui.events.next()? {
             Event::Tick => app.tick(),
             Event::Key(key_event) => handle_key_events(key_event, &mut app)?,
-            Event::Mouse(_) => {}
-            Event::Resize(_, _) => {}
+            Event::Mouse(_) | Event::Resize(_, _) => {}
         }
     }
 
@@ -107,15 +105,15 @@ fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResu
     // If they're not, we add them with default values.
     if let Some(table) = config.as_table_mut() {
         // Only update the engine_path in the configuration if it's not empty
-        if !args.engine_path.is_empty() {
+        if args.engine_path.is_empty() {
+            table
+                .entry("engine_path".to_string())
+                .or_insert(Value::String(String::new()));
+        } else {
             table.insert(
                 "engine_path".to_string(),
                 Value::String(args.engine_path.clone()),
             );
-        } else {
-            table
-                .entry("engine_path".to_string())
-                .or_insert(Value::String("".to_string()));
         }
         table
             .entry("display_mode".to_string())

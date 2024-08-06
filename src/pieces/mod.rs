@@ -159,8 +159,17 @@ pub struct PieceMove {
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum PieceColor {
-    Black,
-    White,
+    White = 0,
+    Black = 1,
+}
+
+impl PieceColor {
+    pub fn opposite(self) -> Self {
+        match self {
+            Self::Black => Self::White,
+            Self::White => Self::Black,
+        }
+    }
 }
 
 pub trait Movable {

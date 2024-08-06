@@ -23,25 +23,16 @@ pub fn get_piece_type(board: GameBoard, coordinates: &Coord) -> Option<PieceType
     board[coordinates].map(|(piece_type, _)| piece_type)
 }
 
-pub fn get_opposite_color(color: PieceColor) -> PieceColor {
-    match color {
-        PieceColor::Black => PieceColor::White,
-        PieceColor::White => PieceColor::Black,
-    }
-}
-
-// method to clean the position array to remove impossible positions
+/// method to clean `positions`: remove impossible positions
 pub fn cleaned_positions(positions: &[Coord]) -> Vec<Coord> {
-    let mut cleaned_array: Vec<Coord> = vec![];
-    for position in positions {
-        if position.is_valid() {
-            cleaned_array.push(*position);
-        }
-    }
-    cleaned_array
+    positions
+        .iter()
+        .filter(|position| position.is_valid())
+        .copied()
+        .collect()
 }
 
-// Return true forally cell color; false for enemy
+/// Return true forally cell color; false for enemy
 pub fn is_cell_color_ally(board: GameBoard, coordinates: &Coord, color: PieceColor) -> bool {
     match get_piece_color(board, coordinates) {
         Some(cell_color) => cell_color == color,
@@ -49,7 +40,7 @@ pub fn is_cell_color_ally(board: GameBoard, coordinates: &Coord, color: PieceCol
     }
 }
 
-// We get all the cells that are getting put in 'check'
+/// We get all the cells that are getting put in 'check'
 pub fn get_all_protected_cells(
     board: GameBoard,
     player_turn: PieceColor,
@@ -106,37 +97,26 @@ pub fn letter_to_col(col: Option<char>) -> i8 {
     }
 }
 
-pub fn convert_position_into_notation(position: String) -> String {
-    let mut result: String = "".to_string();
+pub fn convert_position_into_notation(position: &str) -> String {
     let from_y = get_int_from_char(position.chars().next());
     let from_x = get_int_from_char(position.chars().nth(1));
     let to_y = get_int_from_char(position.chars().nth(2));
     let to_x = get_int_from_char(position.chars().nth(3));
 
-    result += &col_to_letter(from_x);
-    result += &format!("{}", 8 - from_y).to_string();
-    result += "-";
-    result += &col_to_letter(to_x);
-    result += &format!("{}", 8 - to_y).to_string();
+    let from_x = col_to_letter(from_x);
+    let to_x = col_to_letter(to_x);
 
-    result
+    format!("{from_x}{}-{to_x}{}", 8 - from_y, 8 - to_y)
 }
 
-pub fn convert_notation_into_position(notation: String) -> String {
+pub fn convert_notation_into_position(notation: &str) -> String {
     let from_x = &letter_to_col(notation.chars().next());
     let from_y = (get_int_from_char(notation.chars().nth(1)) as i8 - 8).abs();
 
     let to_x = &letter_to_col(notation.chars().nth(2));
     let to_y = (get_int_from_char(notation.chars().nth(3)) as i8 - 8).abs();
 
-    format!("{}{}{}{}", from_y, from_x, to_y, to_x)
-}
-
-pub fn get_player_turn_in_modulo(color: PieceColor) -> usize {
-    match color {
-        PieceColor::White => 0,
-        PieceColor::Black => 1,
-    }
+    format!("{from_y}{from_x}{to_y}{to_x}")
 }
 
 pub fn get_int_from_char(ch: Option<char>) -> u8 {
@@ -146,27 +126,18 @@ pub fn get_int_from_char(ch: Option<char>) -> u8 {
     }
 }
 
-pub fn get_latest_move(move_history: &[PieceMove]) -> Option<PieceMove> {
-    if !move_history.is_empty() {
-        return Some(move_history[move_history.len() - 1]);
-    }
-    None
-}
-
 pub fn did_piece_already_move(
     move_history: &[PieceMove],
     original_piece: (Option<PieceType>, Coord),
 ) -> bool {
     for entry in move_history {
-        if Some(entry.piece_type) == original_piece.0
-            && Coord::new(entry.from.row, entry.from.col) == original_piece.1
-        {
+        if Some(entry.piece_type) == original_piece.0 && entry.from == original_piece.1 {
             return true;
         }
     }
     false
 }
-// Method returning the coordinates of the king of a certain color
+/// Method returning the coordinates of the king of a certain color
 pub fn get_king_coordinates(board: GameBoard, player_turn: PieceColor) -> Coord {
     for i in 0..8u8 {
         for j in 0..8u8 {
@@ -180,7 +151,7 @@ pub fn get_king_coordinates(board: GameBoard, player_turn: PieceColor) -> Coord 
     Coord::undefined()
 }
 
-// Is getting checked
+/// Is getting checked
 pub fn is_getting_checked(
     board: GameBoard,
     player_turn: PieceColor,
@@ -190,12 +161,7 @@ pub fn is_getting_checked(
 
     let checked_cells = get_all_protected_cells(board, player_turn, move_history);
 
-    for position in checked_cells {
-        if position == coordinates {
-            return true;
-        }
-    }
-    false
+    checked_cells.contains(&coordinates)
 }
 
 pub fn impossible_positions_king_checked(
@@ -220,7 +186,7 @@ pub fn impossible_positions_king_checked(
             new_board.player_turn,
             &new_board.move_history,
         ) {
-            cleaned_position.push(position)
+            cleaned_position.push(position);
         };
     }
     cleaned_position
@@ -229,7 +195,7 @@ pub fn impossible_positions_king_checked(
 pub fn is_piece_opposite_king(piece: Option<(PieceType, PieceColor)>, color: PieceColor) -> bool {
     match piece {
         Some((piece_type, piece_color)) => {
-            piece_type == PieceType::King && piece_color == get_opposite_color(color)
+            piece_type == PieceType::King && piece_color == color.opposite()
         }
         _ => false,
     }
@@ -285,24 +251,24 @@ mod tests {
 
     #[test]
     fn convert_position_into_notation_1() {
-        assert_eq!(convert_position_into_notation("7152".to_string()), "b1-c3")
+        assert_eq!(convert_position_into_notation("7152"), "b1-c3")
     }
 
     #[test]
     fn convert_position_into_notation_2() {
-        assert_eq!(convert_position_into_notation("0257".to_string()), "c8-h3")
+        assert_eq!(convert_position_into_notation("0257"), "c8-h3")
     }
 
     #[test]
     fn convert_notation_into_position_1() {
-        assert_eq!(convert_notation_into_position("c8b7".to_string()), "0211")
+        assert_eq!(convert_notation_into_position("c8b7"), "0211")
     }
     #[test]
     fn convert_notation_into_position_2() {
-        assert_eq!(convert_notation_into_position("g7h8".to_string()), "1607")
+        assert_eq!(convert_notation_into_position("g7h8"), "1607")
     }
     #[test]
     fn convert_notation_into_position_3() {
-        assert_eq!(convert_notation_into_position("g1f3".to_string()), "7655")
+        assert_eq!(convert_notation_into_position("g1f3"), "7655")
     }
 }

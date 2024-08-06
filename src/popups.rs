@@ -42,7 +42,7 @@ pub fn render_engine_path_error_popup(frame: &mut Frame) {
 }
 
 // This renders a popup for a promotion
-pub fn render_end_popup(frame: &mut Frame, sentence: String) {
+pub fn render_end_popup(frame: &mut Frame, sentence: &str) {
     let block = Block::default()
         .title("Game ended")
         .borders(Borders::ALL)

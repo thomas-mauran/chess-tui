@@ -2,8 +2,7 @@ use super::{Movable, PieceColor, PieceMove, Position};
 use crate::board::{Coord, GameBoard};
 use crate::constants::DisplayMode;
 use crate::utils::{
-    cleaned_positions, get_latest_move, get_piece_color, impossible_positions_king_checked,
-    is_cell_color_ally,
+    cleaned_positions, get_piece_color, impossible_positions_king_checked, is_cell_color_ally,
 };
 
 pub struct Pawn;
@@ -54,7 +53,7 @@ impl Movable for Pawn {
         let new_x_right = x + 1;
         let new_y_right = y as i8 + direction;
         let new_coordinates_right =
-            if let Some(new_coord) = Coord::opt_new(new_y_right, new_x_right as i8) {
+            if let Some(new_coord) = Coord::opt_new(new_y_right, new_x_right) {
                 new_coord
             } else {
                 Coord::undefined()
@@ -73,10 +72,10 @@ impl Movable for Pawn {
 
         if allow_move_on_ally_positions {
             if new_coordinates_right.is_valid() {
-                positions.push(new_coordinates_right)
+                positions.push(new_coordinates_right);
             };
             if new_coordinates_left.is_valid() {
-                positions.push(new_coordinates_left)
+                positions.push(new_coordinates_left);
             };
         } else {
             // else we check if it's an ally piece
@@ -95,7 +94,7 @@ impl Movable for Pawn {
         }
 
         // We check for en passant
-        if let Some(latest_move) = get_latest_move(move_history) {
+        if let Some(latest_move) = move_history.last() {
             let valid_y_start: i8;
             let number_of_cells_move: i8;
 
@@ -113,7 +112,7 @@ impl Movable for Pawn {
             if latest_move.from.row as i8 == valid_y_start
                 && number_of_cells_move == 2
                 && y == latest_move.to.row
-                && (x == latest_move.to.col - 1 || x == latest_move.to.col + 1)
+                && (x as i8 == latest_move.to.col as i8 - 1 || x == latest_move.to.col + 1)
             {
                 let new_y = latest_move.from.row as i8 + -direction;
                 let new_x = latest_move.from.col;

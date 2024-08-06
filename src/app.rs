@@ -46,9 +46,9 @@ impl App {
     }
     pub fn toggle_credit_popup(&mut self) {
         if self.current_page == Pages::Home {
-            self.current_page = Pages::Credit
+            self.current_page = Pages::Credit;
         } else {
-            self.current_page = Pages::Home
+            self.current_page = Pages::Home;
         }
     }
 
@@ -62,23 +62,23 @@ impl App {
 
     pub fn menu_cursor_up(&mut self) {
         if self.menu_cursor > 0 {
-            self.menu_cursor -= 1
+            self.menu_cursor -= 1;
         } else {
-            self.menu_cursor = 4
+            self.menu_cursor = 4;
         }
     }
 
     pub fn menu_cursor_down(&mut self) {
         if self.menu_cursor < 4 {
-            self.menu_cursor += 1
+            self.menu_cursor += 1;
         } else {
-            self.menu_cursor = 0
+            self.menu_cursor = 0;
         }
     }
 
     pub fn restart(&mut self) {
         if self.board.is_draw || self.board.is_checkmate {
-            self.board = Board::default()
+            self.board = Board::default();
         }
     }
 

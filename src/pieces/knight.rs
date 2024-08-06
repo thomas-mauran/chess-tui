@@ -10,8 +10,9 @@ impl Movable for Knight {
         color: PieceColor,
         board: GameBoard,
         allow_move_on_ally_positions: bool,
-        _move_history: &[PieceMove],
+        move_history: &[PieceMove],
     ) -> Vec<Coord> {
+        let _ = move_history;
         let mut positions: Vec<Coord> = Vec::new();
 
         // Generate knight positions in all eight possible L-shaped moves
