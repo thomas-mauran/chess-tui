@@ -7,10 +7,8 @@ use chess_tui::event::{Event, EventHandler};
 use chess_tui::handler::handle_key_events;
 use chess_tui::tui::Tui;
 use clap::Parser;
-use ratatui::backend::CrosstermBackend;
-use ratatui::Terminal;
 use std::fs::{self, File};
-use std::io::{self, Write};
+use std::io::Write;
 use std::path::Path;
 use toml::Value;
 
@@ -59,12 +57,9 @@ fn main() -> AppResult<()> {
     }
 
     // Initialize the terminal user interface.
-    let backend = CrosstermBackend::new(io::stderr());
-    let terminal = Terminal::new(backend)?;
+    let terminal = ratatui::try_init()?;
     let events = EventHandler::new(250);
     let mut tui = Tui::new(terminal, events);
-
-    tui.init()?;
 
     // Start the main loop.
     while app.running {
@@ -79,7 +74,8 @@ fn main() -> AppResult<()> {
     }
 
     // Exit the user interface.
-    tui.exit()?;
+    ratatui::try_restore()?;
+
     Ok(())
 }
 
