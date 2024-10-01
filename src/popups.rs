@@ -20,7 +20,7 @@ pub fn render_engine_path_error_popup(frame: &mut Frame) {
         .border_type(BorderType::Rounded)
         .padding(Padding::horizontal(1))
         .border_style(Style::default().fg(WHITE));
-    let area = centered_rect(40, 40, frame.size());
+    let area = centered_rect(40, 40, frame.area());
 
     let text = vec![
         Line::from("You didn't specify the chess engine path").alignment(Alignment::Center),
@@ -49,7 +49,7 @@ pub fn render_end_popup(frame: &mut Frame, sentence: &str) {
         .border_type(BorderType::Rounded)
         .padding(Padding::horizontal(1))
         .border_style(Style::default().fg(WHITE));
-    let area = centered_rect(40, 40, frame.size());
+    let area = centered_rect(40, 40, frame.area());
 
     let text = vec![
         Line::from(sentence).alignment(Alignment::Center),
@@ -75,7 +75,7 @@ pub fn render_promotion_popup(frame: &mut Frame, app: &App) {
         .border_type(BorderType::Rounded)
         .padding(Padding::horizontal(1))
         .border_style(Style::default().fg(WHITE));
-    let area = centered_rect(40, 40, frame.size());
+    let area = centered_rect(40, 40, frame.area());
 
     let text = vec![
         Line::from(""),
@@ -164,7 +164,7 @@ pub fn render_credit_popup(frame: &mut Frame) {
         .border_type(BorderType::Rounded)
         .padding(Padding::horizontal(1))
         .border_style(Style::default().fg(WHITE));
-    let area = centered_rect(40, 40, frame.size());
+    let area = centered_rect(40, 40, frame.area());
 
     let credits_text = vec![
         Line::from(""),
@@ -202,7 +202,7 @@ pub fn render_help_popup(frame: &mut Frame) {
         .border_type(BorderType::Rounded)
         .padding(Padding::horizontal(1))
         .border_style(Style::default().fg(WHITE));
-    let area = centered_rect(40, 65, frame.size());
+    let area = centered_rect(40, 65, frame.area());
 
     let text = vec![
         Line::from("Game controls:".underlined().bold()),

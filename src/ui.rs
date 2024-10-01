@@ -19,7 +19,7 @@ use crate::{
 
 /// Renders the user interface widgets.
 pub fn render(app: &mut App, frame: &mut Frame) {
-    let main_area = frame.size();
+    let main_area = frame.area();
 
     if app.current_page == Pages::Solo {
         render_game_ui(frame, app, main_area);
