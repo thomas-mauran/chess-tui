@@ -19,3 +19,9 @@ toml = "0.5.8"
 [features]
 chess-tui = []
 default = ["chess-tui"]
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = "z"
+strip = true
