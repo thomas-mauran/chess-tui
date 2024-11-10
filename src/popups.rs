@@ -68,7 +68,7 @@ pub fn render_end_popup(frame: &mut Frame, sentence: &str) {
     frame.render_widget(paragraph, area);
 }
 
-pub fn render_promotion_popup(frame: &mut Frame, app: &App) {
+pub fn render_promotion_popup(frame: &mut Frame, app: &mut App) {
     let block = Block::default()
         .title("Pawn promotion")
         .borders(Borders::ALL)
@@ -116,8 +116,14 @@ pub fn render_promotion_popup(frame: &mut Frame, app: &App) {
         )
         .split(inner_popup_layout_vertical[1]);
 
-    let display_mode = &app.board.display_mode;
+    // When a promotion is happening, the mouse should be able to know where the icons are
+    app.board.top_x = inner_popup_layout_horizontal[0].x;
+    app.board.top_y = inner_popup_layout_horizontal[0].y;
+    app.board.width = inner_popup_layout_horizontal[0].width;
+    app.board.height = inner_popup_layout_horizontal[0].height;
 
+    let display_mode = &app.board.display_mode;
+    
     let queen_p = Paragraph::new(Queen::to_string(display_mode))
         .block(Block::default())
         .alignment(Alignment::Center)

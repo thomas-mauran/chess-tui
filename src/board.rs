@@ -115,6 +115,10 @@ pub struct Board {
     pub engine: Option<Engine>,
     pub is_game_against_bot: bool,
     pub display_mode: DisplayMode,
+    pub top_x: u16,
+    pub top_y: u16,
+    pub width: u16,
+    pub height: u16,
 }
 
 impl Default for Board {
@@ -180,6 +184,10 @@ impl Default for Board {
             engine: None,
             is_game_against_bot: false,
             display_mode: DisplayMode::DEFAULT,
+            top_x: 0,
+            top_y: 0,
+            width: 0,
+            height: 0,
         }
     }
 }
@@ -202,6 +210,10 @@ impl Board {
             engine: None,
             is_game_against_bot: false,
             display_mode: DisplayMode::DEFAULT,
+            top_x: 0,
+            top_y: 0,
+            width: 0,
+            height: 0,
         }
     }
 
@@ -341,6 +353,27 @@ impl Board {
             if let Some(position) = authorized_positions.get(self.selected_piece_cursor as usize) {
                 self.cursor_coordinates = *position;
             }
+        }
+    }
+
+    pub fn move_selected_piece_cursor_mouse(&mut self, coordinates: Coord) {
+        let piece_color = get_piece_color(self.board, &self.selected_coordinates);
+        let piece_type = get_piece_type(self.board, &self.selected_coordinates);
+
+        let authorized_positions =
+            self.get_authorized_positions(piece_type, piece_color, self.selected_coordinates);
+        if authorized_positions.contains(&coordinates) && match piece_color {
+            Some(piece) => piece == self.player_turn,
+            None => false,
+            }
+        {
+            self.cursor_coordinates = coordinates;
+            self.select_cell();
+        } else {
+            self.cursor_coordinates = coordinates;
+            self.selected_coordinates.col = UNDEFINED_POSITION;
+            self.selected_coordinates.row = UNDEFINED_POSITION;
+            self.select_cell();
         }
     }
 
@@ -773,11 +806,17 @@ impl Board {
     }
 
     // Method to render the board
-    pub fn board_render(&self, area: Rect, frame: &mut Frame) {
+    pub fn board_render(&mut self, area: Rect, frame: &mut Frame) {
         let width = area.width / 8;
         let height = area.height / 8;
         let border_height = area.height / 2 - (4 * height);
         let border_width = area.width / 2 - (4 * width);
+
+        // we update the starting coordinates
+        self.top_x = area.x + border_width;
+        self.top_y = area.y + border_height;
+        self.width = width;
+        self.height = height;
         // We have 8 vertical lines
         let columns = Layout::default()
             .direction(Direction::Vertical)

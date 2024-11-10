@@ -1,8 +1,12 @@
 use crate::{
-    app::{App, AppResult},
-    constants::Pages,
+    app::{App, AppResult}, board::Coord, constants::{Pages, UNDEFINED_POSITION}
 };
-use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use ratatui::
+    crossterm::event::{
+    KeyCode, KeyEvent, KeyEventKind,
+    KeyModifiers, MouseButton, MouseEvent,
+    MouseEventKind
+};
 
 /// Handles the key events and updates the state of [`App`].
 pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
@@ -61,6 +65,45 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         }
         // Other handlers you could add here.
         _ => {}
+    }
+    Ok(())
+}
+
+
+
+pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<()>{
+
+    // Mouse control only implemented for actual game
+    if app.current_page == Pages::Home {
+        return Ok(());
+    }
+    if mouse_event.kind == MouseEventKind::Down(MouseButton::Left) {
+        if app.board.is_checkmate || app.board.is_draw {
+            return Ok(());
+        }
+        if app.board.is_promotion {
+            let x = (mouse_event.column - app.board.top_x) / app.board.width;
+            let y = (mouse_event.row - app.board.top_y) / app.board.height;
+            if x > 3 || y > 0 {
+                return Ok(());
+            }
+            app.board.promotion_cursor = x as i8;
+            app.board.promote_piece();
+        }
+        let x = (mouse_event.column - app.board.top_x) / app.board.width;
+        let y = (mouse_event.row - app.board.top_y) / app.board.height;
+        if x > 7 || y > 7 {
+            return Ok(());
+        }
+        let coords: Coord = Coord::new(y as u8, x as u8);
+
+        if app.board.selected_coordinates.col == UNDEFINED_POSITION &&
+            app.board.selected_coordinates.col == UNDEFINED_POSITION {
+            app.board.selected_coordinates = coords;
+        } else {
+            app.board.move_selected_piece_cursor_mouse(coords);
+        } 
+
     }
     Ok(())
 }
