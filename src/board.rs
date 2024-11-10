@@ -802,6 +802,14 @@ impl Board {
         let copied_moves: Vec<PieceMove> =
             self.move_history.iter().copied().collect();
 
+        // A new game has started
+        if copied_moves.len() <= 1 {
+            unsafe {
+                BOARD_HISTORY = Vec::new();
+                ABSTRACT_BOARD = std::sync::LazyLock::new(|| Mutex::new(Board::default()));
+            }
+        }
+
         unsafe {
             let mut abstract_board = ABSTRACT_BOARD.lock().unwrap();
             // Add the new move
@@ -812,7 +820,7 @@ impl Board {
 
             // Index mapping
             let num_positions: usize = BOARD_HISTORY.len();
-            let mut count_equal = vec![0; num_positions];
+            let mut count_equal = vec![1; num_positions];
             for i in 0..(num_positions - 1) {
                 for j in (i + 1)..num_positions {
                     if equal_boards(BOARD_HISTORY[i], BOARD_HISTORY[j]) {
