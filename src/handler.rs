@@ -81,6 +81,9 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
         if app.board.is_checkmate || app.board.is_draw {
             return Ok(());
         }
+
+        // If there is a promotion to be done the top_x, top_y, width and height
+        // values are updated accordingly
         if app.board.is_promotion {
             let x = (mouse_event.column - app.board.top_x) / app.board.width;
             let y = (mouse_event.row - app.board.top_y) / app.board.height;
