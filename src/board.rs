@@ -1,3 +1,5 @@
+use std::sync::{LazyLock, Mutex};
+
 use crate::{
     constants::{DisplayMode, BLACK, UNDEFINED_POSITION, WHITE},
     pieces::{PieceColor, PieceMove, PieceType},
@@ -117,55 +119,71 @@ pub struct Board {
     pub display_mode: DisplayMode,
 }
 
+fn init_board() -> GameBoard {
+    [
+        [
+            Some((PieceType::Rook, PieceColor::Black)),
+            Some((PieceType::Knight, PieceColor::Black)),
+            Some((PieceType::Bishop, PieceColor::Black)),
+            Some((PieceType::Queen, PieceColor::Black)),
+            Some((PieceType::King, PieceColor::Black)),
+            Some((PieceType::Bishop, PieceColor::Black)),
+            Some((PieceType::Knight, PieceColor::Black)),
+            Some((PieceType::Rook, PieceColor::Black)),
+        ],
+        [
+            Some((PieceType::Pawn, PieceColor::Black)),
+            Some((PieceType::Pawn, PieceColor::Black)),
+            Some((PieceType::Pawn, PieceColor::Black)),
+            Some((PieceType::Pawn, PieceColor::Black)),
+            Some((PieceType::Pawn, PieceColor::Black)),
+            Some((PieceType::Pawn, PieceColor::Black)),
+            Some((PieceType::Pawn, PieceColor::Black)),
+            Some((PieceType::Pawn, PieceColor::Black)),
+        ],
+        [None, None, None, None, None, None, None, None],
+        [None, None, None, None, None, None, None, None],
+        [None, None, None, None, None, None, None, None],
+        [None, None, None, None, None, None, None, None],
+        [
+            Some((PieceType::Pawn, PieceColor::White)),
+            Some((PieceType::Pawn, PieceColor::White)),
+            Some((PieceType::Pawn, PieceColor::White)),
+            Some((PieceType::Pawn, PieceColor::White)),
+            Some((PieceType::Pawn, PieceColor::White)),
+             Some((PieceType::Pawn, PieceColor::White)),
+            Some((PieceType::Pawn, PieceColor::White)),
+            Some((PieceType::Pawn, PieceColor::White)),
+        ],
+        [
+            Some((PieceType::Rook, PieceColor::White)),
+            Some((PieceType::Knight, PieceColor::White)),
+            Some((PieceType::Bishop, PieceColor::White)),
+            Some((PieceType::Queen, PieceColor::White)),
+            Some((PieceType::King, PieceColor::White)),
+            Some((PieceType::Bishop, PieceColor::White)),
+            Some((PieceType::Knight, PieceColor::White)),
+            Some((PieceType::Rook, PieceColor::White)),
+        ],
+    ]
+}
+
+fn equal_boards(o: GameBoard, oth: GameBoard) -> bool {
+    for i in 0..8 {
+        for j in 0..8 {
+            if o[i][j] != oth[i][j] {
+                return false;
+            }
+        }
+    }
+
+    true
+}
+
 impl Default for Board {
     fn default() -> Self {
         Self {
-            board: [
-                [
-                    Some((PieceType::Rook, PieceColor::Black)),
-                    Some((PieceType::Knight, PieceColor::Black)),
-                    Some((PieceType::Bishop, PieceColor::Black)),
-                    Some((PieceType::Queen, PieceColor::Black)),
-                    Some((PieceType::King, PieceColor::Black)),
-                    Some((PieceType::Bishop, PieceColor::Black)),
-                    Some((PieceType::Knight, PieceColor::Black)),
-                    Some((PieceType::Rook, PieceColor::Black)),
-                ],
-                [
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                ],
-                [None, None, None, None, None, None, None, None],
-                [None, None, None, None, None, None, None, None],
-                [None, None, None, None, None, None, None, None],
-                [None, None, None, None, None, None, None, None],
-                [
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                ],
-                [
-                    Some((PieceType::Rook, PieceColor::White)),
-                    Some((PieceType::Knight, PieceColor::White)),
-                    Some((PieceType::Bishop, PieceColor::White)),
-                    Some((PieceType::Queen, PieceColor::White)),
-                    Some((PieceType::King, PieceColor::White)),
-                    Some((PieceType::Bishop, PieceColor::White)),
-                    Some((PieceType::Knight, PieceColor::White)),
-                    Some((PieceType::Rook, PieceColor::White)),
-                ],
-            ],
+            board: init_board(),
             cursor_coordinates: Coord::new(4, 4),
             selected_coordinates: Coord::undefined(),
             selected_piece_cursor: 0,
@@ -751,17 +769,39 @@ impl Board {
 
     // Check if the game is a draw
     pub fn draw_by_repetition(&self) -> bool {
-        if self.move_history.len() >= 9 {
-            let last_ten: Vec<PieceMove> =
-                self.move_history.iter().rev().take(9).copied().collect();
+        static mut BOARD_HISTORY: Vec<GameBoard> = Vec::new();
+        static mut ABSTRACT_BOARD: LazyLock<Mutex<Board>> = std::sync::LazyLock::new(|| Mutex::new(Board::default()));
 
-            if (last_ten[0], last_ten[1]) == (last_ten[4], last_ten[5])
-                && last_ten[4] == last_ten[8]
-                && (last_ten[2], last_ten[3]) == (last_ten[6], last_ten[7])
-            {
-                return true;
+        let copied_moves: Vec<PieceMove> =
+            self.move_history.iter().copied().collect();
+
+        unsafe {
+            let mut abstract_board = ABSTRACT_BOARD.lock().unwrap();
+            // Add the new move
+            let from = copied_moves[self.move_history.len() - 1].from;
+            let to = copied_moves[self.move_history.len() - 1].to;
+            abstract_board.move_piece_on_the_board(&from.clone(), &to.clone());
+            BOARD_HISTORY.push(abstract_board.board.clone());
+
+            // Index mapping
+            let num_positions: usize = BOARD_HISTORY.len();
+            let mut count_equal = vec![0; num_positions];
+            for i in 0..(num_positions - 1) {
+                for j in (i + 1)..num_positions {
+                    if equal_boards(BOARD_HISTORY[i], BOARD_HISTORY[j]) {
+                        count_equal[i] += 1;
+                    }
+                }
+            }
+
+            // Checking for unclaimed draw by threefold repetition
+            for i in 0..num_positions {
+                if count_equal[i] >= 3 {
+                    return true;
+                }
             }
         }
+
         false
     }
 
