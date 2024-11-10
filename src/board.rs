@@ -115,6 +115,8 @@ pub struct Board {
     pub engine: Option<Engine>,
     pub is_game_against_bot: bool,
     pub display_mode: DisplayMode,
+    /// Used to indicate if a bot move is following
+    pub bot_will_move: bool,
 }
 
 impl Default for Board {
@@ -180,6 +182,7 @@ impl Default for Board {
             engine: None,
             is_game_against_bot: false,
             display_mode: DisplayMode::DEFAULT,
+            bot_will_move: false,
         }
     }
 }
@@ -202,6 +205,7 @@ impl Board {
             engine: None,
             is_game_against_bot: false,
             display_mode: DisplayMode::DEFAULT,
+            bot_will_move: false,
         }
     }
 
@@ -360,13 +364,13 @@ impl Board {
                     self.switch_player_turn();
                     // If we play against a bot we will play his move and switch the player turn again
                     if self.is_game_against_bot {
+                        // do this in background
                         self.is_promotion = self.is_latest_move_promotion();
                         if !self.is_promotion {
                             self.is_checkmate = self.is_checkmate();
                             self.is_promotion = self.is_latest_move_promotion();
                             if !self.is_checkmate {
-                                self.bot_move();
-                                self.switch_player_turn();
+                                self.bot_will_move = true;
                             }
                         }
                     }
