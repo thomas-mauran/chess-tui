@@ -1,5 +1,3 @@
-use std::sync::{LazyLock, Mutex};
-
 use crate::{
     constants::{DisplayMode, BLACK, UNDEFINED_POSITION, WHITE},
     pieces::{PieceColor, PieceMove, PieceType},
@@ -154,7 +152,7 @@ fn init_board() -> GameBoard {
             Some((PieceType::Pawn, PieceColor::White)),
             Some((PieceType::Pawn, PieceColor::White)),
             Some((PieceType::Pawn, PieceColor::White)),
-             Some((PieceType::Pawn, PieceColor::White)),
+            Some((PieceType::Pawn, PieceColor::White)),
             Some((PieceType::Pawn, PieceColor::White)),
             Some((PieceType::Pawn, PieceColor::White)),
         ],
@@ -797,30 +795,36 @@ impl Board {
     // Check if the game is a draw
     pub fn draw_by_repetition(&self) -> bool {
         static mut BOARD_HISTORY: Vec<GameBoard> = Vec::new();
-        static mut ABSTRACT_BOARD: LazyLock<Mutex<Board>> = std::sync::LazyLock::new(|| Mutex::new(Board::default()));
 
-        let copied_moves: Vec<PieceMove> =
-            self.move_history.iter().copied().collect();
+        if self.move_history.len() >= 9 {
+            let last_ten: Vec<PieceMove> =
+                self.move_history.iter().rev().take(9).cloned().collect();
 
-        // A new game has started
-        if copied_moves.len() <= 1 {
-            unsafe {
-                BOARD_HISTORY = Vec::new();
-                ABSTRACT_BOARD = std::sync::LazyLock::new(|| Mutex::new(Board::default()));
+            if (last_ten[0], last_ten[1]) == (last_ten[4], last_ten[5])
+                && last_ten[4] == last_ten[8]
+                && (last_ten[2], last_ten[3]) == (last_ten[6], last_ten[7])
+            {
+                return true;
             }
         }
 
         unsafe {
-            let mut abstract_board = ABSTRACT_BOARD.lock().unwrap();
+            // A new game has started
+            if self.move_history.is_empty() {
+                BOARD_HISTORY.clear();
+                BOARD_HISTORY.push(self.board);
+                return false;
+            }
+        }
+
+        unsafe {
             // Add the new move
-            let from = copied_moves[self.move_history.len() - 1].from;
-            let to = copied_moves[self.move_history.len() - 1].to;
-            abstract_board.move_piece_on_the_board(&from.clone(), &to.clone());
-            BOARD_HISTORY.push(abstract_board.board.clone());
+            BOARD_HISTORY.push(self.board);
 
             // Index mapping
             let num_positions: usize = BOARD_HISTORY.len();
             let mut count_equal = vec![1; num_positions];
+            #[allow(clippy::needless_range_loop)]
             for i in 0..(num_positions - 1) {
                 for j in (i + 1)..num_positions {
                     if equal_boards(BOARD_HISTORY[i], BOARD_HISTORY[j]) {
@@ -830,8 +834,8 @@ impl Board {
             }
 
             // Checking for unclaimed draw by threefold repetition
-            for i in 0..num_positions {
-                if count_equal[i] >= 3 {
+            for b in count_equal.iter() {
+                if *b >= 3 {
                     return true;
                 }
             }
