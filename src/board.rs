@@ -115,6 +115,9 @@ pub struct Board {
     pub engine: Option<Engine>,
     pub is_game_against_bot: bool,
     pub display_mode: DisplayMode,
+
+    pub white_taken_pieces: Vec<PieceType>,
+    pub black_taken_pieces: Vec<PieceType>,
 }
 
 impl Default for Board {
@@ -180,6 +183,8 @@ impl Default for Board {
             engine: None,
             is_game_against_bot: false,
             display_mode: DisplayMode::DEFAULT,
+            white_taken_pieces: vec![],
+            black_taken_pieces: vec![],
         }
     }
 }
@@ -202,6 +207,8 @@ impl Board {
             engine: None,
             is_game_against_bot: false,
             display_mode: DisplayMode::DEFAULT,
+            white_taken_pieces: vec![],
+            black_taken_pieces: vec![],
         }
     }
 
@@ -600,6 +607,26 @@ impl Board {
             }
         }
 
+        // We check if the move is a capture and add the piece to the taken pieces
+        match (piece_type_from, piece_type_to) {
+            (_, None) => {}
+            (_, Some(piece)) => {
+                let piece_color = get_piece_color(self.board, to);
+                if let Some(piece_color) = piece_color {
+                    match piece_color {
+                        PieceColor::Black => {
+                            self.white_taken_pieces.push(piece);
+                            self.white_taken_pieces.sort();
+                        }
+                        PieceColor::White => {
+                            self.black_taken_pieces.push(piece);
+                            self.black_taken_pieces.sort();
+                        }
+                    }
+                }
+            }
+        }
+
         // We check for en passant as the latest move
         if self.is_latest_move_en_passant(*from, *to) {
             // we kill the pawn
@@ -950,7 +977,40 @@ impl Board {
             history_paragraph,
             history_block.inner(right_panel_layout[0]),
         );
+    }
 
+    pub fn white_material_render(&self, area: Rect, frame: &mut Frame) {
+        let white_block = Block::default()
+            .title("White material")
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(WHITE))
+            .border_type(BorderType::Rounded);
+
+        let mut pieces: String = String::new();
+
+        for i in 0..self.white_taken_pieces.len() {
+            let utf_icon_white =
+                PieceType::piece_to_utf_enum(self.white_taken_pieces[i], Some(PieceColor::Black));
+
+            pieces.push_str(&format!("{utf_icon_white} "));
+        }
+
+        let white_material_paragraph = Paragraph::new(pieces)
+            .alignment(Alignment::Center)
+            .add_modifier(Modifier::BOLD);
+
+        let height = area.height;
+
+        let right_panel_layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(height - 1), Constraint::Length(1)].as_ref())
+            .split(area);
+
+        frame.render_widget(white_block.clone(), right_panel_layout[0]);
+        frame.render_widget(
+            white_material_paragraph,
+            white_block.inner(right_panel_layout[0]),
+        );
         // Bottom paragraph help text
         let text = vec![Line::from("Press ? for help").alignment(Alignment::Center)];
 
@@ -958,6 +1018,40 @@ impl Board {
             .block(Block::new())
             .alignment(Alignment::Center);
         frame.render_widget(help_paragraph, right_panel_layout[1]);
+    }
+
+    pub fn black_material_render(&self, area: Rect, frame: &mut Frame) {
+        let black_block = Block::default()
+            .title("Black material")
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(WHITE))
+            .border_type(BorderType::Rounded);
+
+        let mut pieces: String = String::new();
+
+        for i in 0..self.black_taken_pieces.len() {
+            let utf_icon_black =
+                PieceType::piece_to_utf_enum(self.black_taken_pieces[i], Some(PieceColor::White));
+
+            pieces.push_str(&format!("{utf_icon_black} "));
+        }
+
+        let black_material_paragraph = Paragraph::new(pieces)
+            .alignment(Alignment::Center)
+            .add_modifier(Modifier::BOLD);
+
+        let height = area.height;
+
+        let right_panel_layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(height - 1), Constraint::Length(1)].as_ref())
+            .split(area);
+
+        frame.render_widget(black_block.clone(), right_panel_layout[0]);
+        frame.render_widget(
+            black_material_paragraph,
+            black_block.inner(right_panel_layout[0]),
+        );
     }
 }
 
