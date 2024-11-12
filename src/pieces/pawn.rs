@@ -16,8 +16,8 @@ impl Movable for Pawn {
         move_history: &[PieceMove],
     ) -> Vec<Coord> {
         // Pawns can only move in one direction depending of their color
-        // -1 if they are white (go up) +1 if they are black (go down)
-        let direction: i8 = if color == PieceColor::White { -1 } else { 1 };
+        // -1 we go up
+        let direction: i8 = -1;
 
         let mut positions: Vec<Coord> = vec![];
 
@@ -42,8 +42,7 @@ impl Movable for Pawn {
 
             if new_coordinates_front_two.is_valid()
                 && get_piece_color(board, &new_coordinates_front_two).is_none()
-                && ((color == PieceColor::White && y == 6)
-                    || (color == PieceColor::Black && y == 1))
+                && (y == 6)
             {
                 positions.push(new_coordinates_front_two);
             }
