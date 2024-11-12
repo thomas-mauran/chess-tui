@@ -540,8 +540,6 @@ impl Board {
         result
     }
 
-
-
     // Check if the pawn moved two cells (used for en passant)
     pub fn did_pawn_move_two_cells(&self) -> bool {
         match self.move_history.last() {
@@ -592,8 +590,7 @@ impl Board {
         };
 
         let piece_type_from = get_piece_type(self.board, from);
-        let piece_type_to = get_piece_type(self.board, to); 
-        
+        let piece_type_to = get_piece_type(self.board, to);
 
         // Check if moving a piece
         let Some(piece_type_from) = piece_type_from else {
@@ -612,10 +609,8 @@ impl Board {
 
         // We check if the move is a capture and add the piece to the taken pieces
         match (piece_type_from, piece_type_to) {
-            (_,None) => {
-                
-            },
-            (_,Some(piece)) => {
+            (_, None) => {}
+            (_, Some(piece)) => {
                 let piece_color = get_piece_color(self.board, to);
                 if let Some(piece_color) = piece_color {
                     match piece_color {
@@ -631,7 +626,6 @@ impl Board {
                 }
             }
         }
-
 
         // We check for en passant as the latest move
         if self.is_latest_move_en_passant(*from, *to) {
@@ -990,10 +984,9 @@ impl Board {
             .title("White material")
             .borders(Borders::ALL)
             .border_style(Style::default().fg(WHITE))
-            .border_type(BorderType::Rounded)
-            .padding(Padding::new(5, 10, 1, 2));
+            .border_type(BorderType::Rounded);
 
-            let mut pieces: String = String::new();
+        let mut pieces: String = String::new();
 
         for i in 0..self.white_taken_pieces.len() {
             let utf_icon_white =
@@ -1002,7 +995,9 @@ impl Board {
             pieces.push_str(&format!("{utf_icon_white} "));
         }
 
-        let white_material_paragraph = Paragraph::new(pieces).alignment(Alignment::Center);
+        let white_material_paragraph = Paragraph::new(pieces)
+            .alignment(Alignment::Center)
+            .add_modifier(Modifier::BOLD);
 
         let height = area.height;
 
@@ -1030,8 +1025,7 @@ impl Board {
             .title("Black material")
             .borders(Borders::ALL)
             .border_style(Style::default().fg(WHITE))
-            .border_type(BorderType::Rounded)
-            .padding(Padding::new(5, 10, 1, 2));
+            .border_type(BorderType::Rounded);
 
         let mut pieces: String = String::new();
 
@@ -1042,7 +1036,9 @@ impl Board {
             pieces.push_str(&format!("{utf_icon_black} "));
         }
 
-        let black_material_paragraph = Paragraph::new(pieces).alignment(Alignment::Center);
+        let black_material_paragraph = Paragraph::new(pieces)
+            .alignment(Alignment::Center)
+            .add_modifier(Modifier::BOLD);
 
         let height = area.height;
 
@@ -1057,8 +1053,6 @@ impl Board {
             black_block.inner(right_panel_layout[0]),
         );
     }
-
-
 }
 
 #[cfg(test)]
