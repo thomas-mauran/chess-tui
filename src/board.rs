@@ -800,6 +800,7 @@ impl Board {
         for board in self.board_history.iter() {
             let count = position_counts.entry(board).or_insert(0);
             *count += 1;
+
             if *count >= 3 {
                 return true;
             }
