@@ -59,7 +59,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             }
             app.board.unselect_cell();
         }
-        KeyCode::Char('b')=>  {
+        KeyCode::Char('b') => {
             app.go_to_home();
         }
         // Other handlers you could add here.

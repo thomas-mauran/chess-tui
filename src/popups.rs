@@ -221,7 +221,7 @@ pub fn render_help_popup(frame: &mut Frame) {
         Line::from("`Esc`: Deselect a piece / hide popups"),
         Line::from(""),
         Line::from("q: Quit the game"),
-        Line::from(""),        
+        Line::from(""),
         Line::from("b: Go to the home menu / reset the game"),
         Line::from(""),
         Line::from(""),

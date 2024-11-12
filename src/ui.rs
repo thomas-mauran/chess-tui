@@ -160,7 +160,6 @@ pub fn render_game_ui(frame: &mut Frame, app: &App, main_area: Rect) {
         )
         .split(main_layout_horizontal[1]);
 
-
     let right_box_layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
@@ -193,7 +192,6 @@ pub fn render_game_ui(frame: &mut Frame, app: &App, main_area: Rect) {
     //bottom box for black matetrial
     app.board
         .white_material_render(board_block.inner(right_box_layout[2]), frame);
-    
 
     if app.board.is_promotion {
         render_promotion_popup(frame, app);

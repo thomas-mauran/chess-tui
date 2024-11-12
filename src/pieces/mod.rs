@@ -158,18 +158,18 @@ impl PartialOrd for PieceType {
         if self == other {
             return Some(Ordering::Equal);
         }
-        match (self, other) { 
-            (PieceType::Pawn, _ ) => Some(Ordering::Less),
-            (PieceType::Queen, _ ) => Some(Ordering::Greater),
-            (_ , PieceType::Pawn) => Some(Ordering::Greater),
-            (_ , PieceType::Queen) => Some(Ordering::Less),
+        match (self, other) {
+            (PieceType::Pawn, _) => Some(Ordering::Less),
+            (PieceType::Queen, _) => Some(Ordering::Greater),
+            (_, PieceType::Pawn) => Some(Ordering::Greater),
+            (_, PieceType::Queen) => Some(Ordering::Less),
             (PieceType::Rook, PieceType::Bishop) => Some(Ordering::Greater),
             (PieceType::Rook, PieceType::Knight) => Some(Ordering::Greater),
             (PieceType::Bishop, PieceType::Knight) => Some(Ordering::Greater), // just for visual purpose
             (PieceType::Bishop, PieceType::Rook) => Some(Ordering::Less),
             (PieceType::Knight, PieceType::Rook) => Some(Ordering::Less),
             (PieceType::Knight, PieceType::Bishop) => Some(Ordering::Less), // just for visual purpose
-            _ => Some(Ordering::Equal),   
+            _ => Some(Ordering::Equal),
         }
     }
 }
@@ -180,7 +180,6 @@ impl Ord for PieceType {
 }
 
 impl Eq for PieceType {}
-
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct PieceMove {
