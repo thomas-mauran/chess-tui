@@ -153,6 +153,7 @@ impl PieceType {
 }
 
 // Implementing the PartialOrd trait for PieceType to allow comparison between PieceType
+#[allow(clippy::non_canonical_partial_ord_impl)]
 impl PartialOrd for PieceType {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         if self == other {
