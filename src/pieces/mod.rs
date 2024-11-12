@@ -11,7 +11,8 @@ pub mod knight;
 pub mod pawn;
 pub mod queen;
 pub mod rook;
-#[derive(Debug, Copy, Clone, PartialEq)]
+
+#[derive(Debug, Copy, Clone, PartialEq, Hash, Eq)]
 pub enum PieceType {
     Pawn,
     Rook,
@@ -189,7 +190,7 @@ pub struct PieceMove {
     pub to: Coord,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Hash, Eq)]
 pub enum PieceColor {
     White = 0,
     Black = 1,

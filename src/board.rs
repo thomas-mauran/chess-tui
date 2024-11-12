@@ -101,6 +101,7 @@ impl std::ops::IndexMut<&Coord> for GameBoard {
 /// . a b c d e f g h .
 pub struct Board {
     pub board: GameBoard,
+    pub board_history: Vec<GameBoard>,
     pub cursor_coordinates: Coord,
     pub selected_coordinates: Coord,
     pub selected_piece_cursor: i8,
@@ -169,22 +170,11 @@ fn init_board() -> GameBoard {
     ]
 }
 
-fn equal_boards(o: GameBoard, oth: GameBoard) -> bool {
-    for i in 0..8 {
-        for j in 0..8 {
-            if o[i][j] != oth[i][j] {
-                return false;
-            }
-        }
-    }
-
-    true
-}
-
 impl Default for Board {
     fn default() -> Self {
         Self {
             board: init_board(),
+            board_history: Vec::new(),
             cursor_coordinates: Coord::new(4, 4),
             selected_coordinates: Coord::undefined(),
             selected_piece_cursor: 0,
@@ -209,6 +199,7 @@ impl Board {
     pub fn new(board: GameBoard, player_turn: PieceColor, move_history: Vec<PieceMove>) -> Self {
         Self {
             board,
+            board_history: Vec::new(),
             cursor_coordinates: Coord::new(4, 4),
             selected_coordinates: Coord::undefined(),
             selected_piece_cursor: 0,
@@ -793,9 +784,7 @@ impl Board {
     }
 
     // Check if the game is a draw
-    pub fn draw_by_repetition(&self) -> bool {
-        static mut BOARD_HISTORY: Vec<GameBoard> = Vec::new();
-
+    pub fn draw_by_repetition(&mut self) -> bool {
         if self.move_history.len() >= 9 {
             let last_ten: Vec<PieceMove> =
                 self.move_history.iter().rev().take(9).cloned().collect();
@@ -808,36 +797,23 @@ impl Board {
             }
         }
 
-        unsafe {
-            // A new game has started
-            if self.move_history.is_empty() {
-                BOARD_HISTORY.clear();
-                BOARD_HISTORY.push(self.board);
-                return false;
-            }
+        // A new game has started
+        if self.move_history.is_empty() {
+            self.board_history.clear();
+            self.board_history.push(self.board);
+            return false;
         }
 
-        unsafe {
-            // Add the new move
-            BOARD_HISTORY.push(self.board);
+        // Add the new move
+        self.board_history.push(self.board);
 
-            // Index mapping
-            let num_positions: usize = BOARD_HISTORY.len();
-            let mut count_equal = vec![1; num_positions];
-            #[allow(clippy::needless_range_loop)]
-            for i in 0..(num_positions - 1) {
-                for j in (i + 1)..num_positions {
-                    if equal_boards(BOARD_HISTORY[i], BOARD_HISTORY[j]) {
-                        count_equal[i] += 1;
-                    }
-                }
-            }
-
-            // Checking for unclaimed draw by threefold repetition
-            for b in count_equal.iter() {
-                if *b >= 3 {
-                    return true;
-                }
+        // Index mapping
+        let mut position_counts = std::collections::HashMap::new();
+        for board in self.board_history.iter() {
+            let count = position_counts.entry(board).or_insert(0);
+            *count += 1;
+            if *count >= 3 {
+                return true;
             }
         }
 
@@ -845,7 +821,7 @@ impl Board {
     }
 
     // Check if the game is a draw
-    pub fn is_draw(&self) -> bool {
+    pub fn is_draw(&mut self) -> bool {
         self.number_of_authorized_positions() == 0
             || self.consecutive_non_pawn_or_capture == 50
             || self.draw_by_repetition()
@@ -1493,7 +1469,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let board = Board::new(custom_board, PieceColor::White, vec![]);
+        let mut board = Board::new(custom_board, PieceColor::White, vec![]);
 
         assert!(board.is_draw());
     }
@@ -1537,7 +1513,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let board = Board::new(custom_board, PieceColor::White, vec![]);
+        let mut board = Board::new(custom_board, PieceColor::White, vec![]);
 
         assert!(!board.is_draw());
     }
