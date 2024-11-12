@@ -785,18 +785,6 @@ impl Board {
 
     // Check if the game is a draw
     pub fn draw_by_repetition(&mut self) -> bool {
-        if self.move_history.len() >= 9 {
-            let last_ten: Vec<PieceMove> =
-                self.move_history.iter().rev().take(9).cloned().collect();
-
-            if (last_ten[0], last_ten[1]) == (last_ten[4], last_ten[5])
-                && last_ten[4] == last_ten[8]
-                && (last_ten[2], last_ten[3]) == (last_ten[6], last_ten[7])
-            {
-                return true;
-            }
-        }
-
         // A new game has started
         if self.move_history.is_empty() {
             self.board_history.clear();
@@ -1856,6 +1844,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
+
         // We setup the board
         let mut board = Board::new(
             custom_board,
@@ -1904,7 +1893,14 @@ mod tests {
             ],
         );
 
-        assert!(!board.is_draw());
+        let mut copy_move_history = board.move_history.clone();
+
+        for piece_move in copy_move_history.iter_mut() {
+            board.move_piece_on_the_board(&piece_move.from, &piece_move.to);
+
+            // In a chess game, board.is_draw() is called after every move
+            assert!(!board.is_draw());
+        }
 
         // Move the king to replicate a third time the same position
         board.move_piece_on_the_board(&Coord::new(0, 2), &Coord::new(0, 1));
