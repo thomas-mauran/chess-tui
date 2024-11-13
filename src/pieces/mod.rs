@@ -12,7 +12,7 @@ pub mod pawn;
 pub mod queen;
 pub mod rook;
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, Hash)]
 pub enum PieceType {
     Pawn,
     Rook,
