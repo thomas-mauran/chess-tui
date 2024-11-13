@@ -25,15 +25,12 @@ pub enum PieceType {
 // Implement custom equality logic using PartialEq
 impl PartialEq for PieceType {
     fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (PieceType::Pawn, PieceType::Pawn) => true,
-            (PieceType::Rook, PieceType::Rook) => true,
-            (PieceType::Bishop, PieceType::Bishop) => true,
-            (PieceType::Queen, PieceType::Queen) => true,
-            (PieceType::King, PieceType::King) => true,
-            (PieceType::Knight, PieceType::Knight) => true,
-            _ => false,
-        }
+        matches!((self, other), (PieceType::Pawn, PieceType::Pawn) |
+                (PieceType::Rook, PieceType::Rook) |
+                (PieceType::Bishop, PieceType::Bishop) |
+                (PieceType::Queen, PieceType::Queen) |
+                (PieceType::King, PieceType::King) |
+                (PieceType::Knight, PieceType::Knight))
     }
 }
 
