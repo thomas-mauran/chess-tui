@@ -174,7 +174,7 @@ impl Default for Board {
     fn default() -> Self {
         Self {
             board: init_board(),
-            board_history: Vec::new(),
+            board_history: vec![init_board()],
             cursor_coordinates: Coord::new(4, 4),
             selected_coordinates: Coord::undefined(),
             selected_piece_cursor: 0,

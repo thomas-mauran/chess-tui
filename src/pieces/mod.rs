@@ -11,8 +11,7 @@ pub mod knight;
 pub mod pawn;
 pub mod queen;
 pub mod rook;
-
-#[derive(Debug, Copy, Clone, Hash, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Hash)]
 pub enum PieceType {
     Pawn,
     Rook,
@@ -20,18 +19,6 @@ pub enum PieceType {
     Queen,
     King,
     Knight,
-}
-
-// Implement custom equality logic using PartialEq
-impl PartialEq for PieceType {
-    fn eq(&self, other: &Self) -> bool {
-        matches!((self, other), (PieceType::Pawn, PieceType::Pawn) |
-                (PieceType::Rook, PieceType::Rook) |
-                (PieceType::Bishop, PieceType::Bishop) |
-                (PieceType::Queen, PieceType::Queen) |
-                (PieceType::King, PieceType::King) |
-                (PieceType::Knight, PieceType::Knight))
-    }
 }
 
 impl PieceType {
@@ -202,7 +189,7 @@ pub struct PieceMove {
     pub to: Coord,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Hash, Eq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum PieceColor {
     White = 0,
     Black = 1,
