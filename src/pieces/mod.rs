@@ -12,7 +12,7 @@ pub mod pawn;
 pub mod queen;
 pub mod rook;
 
-#[derive(Debug, Copy, Clone, PartialEq, Hash, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Hash)]
 pub enum PieceType {
     Pawn,
     Rook,
@@ -214,6 +214,8 @@ pub trait Movable {
         move_history: &[PieceMove],
     ) -> Vec<Coord>;
 }
+
+impl Eq for PieceType {}
 
 pub trait Position {
     fn authorized_positions(
