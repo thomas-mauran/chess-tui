@@ -71,7 +71,7 @@ fn main() -> AppResult<()> {
             Event::Key(key_event) => handle_key_events(key_event, &mut app)?,
             Event::Mouse(_) | Event::Resize(_, _) => {}
         }
-        if (app.board.bot_will_move) {
+        if app.board.bot_will_move {
             tui.draw(&mut app)?;
             app.board.bot_move();
             app.board.switch_player_turn();
