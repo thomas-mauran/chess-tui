@@ -997,7 +997,6 @@ impl Board {
 
             pieces.push_str(&format!("{utf_icon_white} "));
         }
-
         let white_material_paragraph = Paragraph::new(pieces)
             .alignment(Alignment::Center)
             .add_modifier(Modifier::BOLD);
@@ -1008,7 +1007,6 @@ impl Board {
             .direction(Direction::Vertical)
             .constraints([Constraint::Length(height - 1), Constraint::Length(1)].as_ref())
             .split(area);
-
         frame.render_widget(white_block.clone(), right_panel_layout[0]);
         frame.render_widget(
             white_material_paragraph,
