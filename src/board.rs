@@ -101,6 +101,7 @@ impl std::ops::IndexMut<&Coord> for GameBoard {
 /// . a b c d e f g h .
 pub struct Board {
     pub board: GameBoard,
+    pub board_history: Vec<GameBoard>,
     pub cursor_coordinates: Coord,
     pub selected_coordinates: Coord,
     pub selected_piece_cursor: i8,
@@ -120,55 +121,60 @@ pub struct Board {
     pub black_taken_pieces: Vec<PieceType>,
 }
 
+fn init_board() -> GameBoard {
+    [
+        [
+            Some((PieceType::Rook, PieceColor::Black)),
+            Some((PieceType::Knight, PieceColor::Black)),
+            Some((PieceType::Bishop, PieceColor::Black)),
+            Some((PieceType::Queen, PieceColor::Black)),
+            Some((PieceType::King, PieceColor::Black)),
+            Some((PieceType::Bishop, PieceColor::Black)),
+            Some((PieceType::Knight, PieceColor::Black)),
+            Some((PieceType::Rook, PieceColor::Black)),
+        ],
+        [
+            Some((PieceType::Pawn, PieceColor::Black)),
+            Some((PieceType::Pawn, PieceColor::Black)),
+            Some((PieceType::Pawn, PieceColor::Black)),
+            Some((PieceType::Pawn, PieceColor::Black)),
+            Some((PieceType::Pawn, PieceColor::Black)),
+            Some((PieceType::Pawn, PieceColor::Black)),
+            Some((PieceType::Pawn, PieceColor::Black)),
+            Some((PieceType::Pawn, PieceColor::Black)),
+        ],
+        [None, None, None, None, None, None, None, None],
+        [None, None, None, None, None, None, None, None],
+        [None, None, None, None, None, None, None, None],
+        [None, None, None, None, None, None, None, None],
+        [
+            Some((PieceType::Pawn, PieceColor::White)),
+            Some((PieceType::Pawn, PieceColor::White)),
+            Some((PieceType::Pawn, PieceColor::White)),
+            Some((PieceType::Pawn, PieceColor::White)),
+            Some((PieceType::Pawn, PieceColor::White)),
+            Some((PieceType::Pawn, PieceColor::White)),
+            Some((PieceType::Pawn, PieceColor::White)),
+            Some((PieceType::Pawn, PieceColor::White)),
+        ],
+        [
+            Some((PieceType::Rook, PieceColor::White)),
+            Some((PieceType::Knight, PieceColor::White)),
+            Some((PieceType::Bishop, PieceColor::White)),
+            Some((PieceType::Queen, PieceColor::White)),
+            Some((PieceType::King, PieceColor::White)),
+            Some((PieceType::Bishop, PieceColor::White)),
+            Some((PieceType::Knight, PieceColor::White)),
+            Some((PieceType::Rook, PieceColor::White)),
+        ],
+    ]
+}
+
 impl Default for Board {
     fn default() -> Self {
         Self {
-            board: [
-                [
-                    Some((PieceType::Rook, PieceColor::Black)),
-                    Some((PieceType::Knight, PieceColor::Black)),
-                    Some((PieceType::Bishop, PieceColor::Black)),
-                    Some((PieceType::Queen, PieceColor::Black)),
-                    Some((PieceType::King, PieceColor::Black)),
-                    Some((PieceType::Bishop, PieceColor::Black)),
-                    Some((PieceType::Knight, PieceColor::Black)),
-                    Some((PieceType::Rook, PieceColor::Black)),
-                ],
-                [
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                ],
-                [None, None, None, None, None, None, None, None],
-                [None, None, None, None, None, None, None, None],
-                [None, None, None, None, None, None, None, None],
-                [None, None, None, None, None, None, None, None],
-                [
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                ],
-                [
-                    Some((PieceType::Rook, PieceColor::White)),
-                    Some((PieceType::Knight, PieceColor::White)),
-                    Some((PieceType::Bishop, PieceColor::White)),
-                    Some((PieceType::Queen, PieceColor::White)),
-                    Some((PieceType::King, PieceColor::White)),
-                    Some((PieceType::Bishop, PieceColor::White)),
-                    Some((PieceType::Knight, PieceColor::White)),
-                    Some((PieceType::Rook, PieceColor::White)),
-                ],
-            ],
+            board: init_board(),
+            board_history: vec![init_board()],
             cursor_coordinates: Coord::new(4, 4),
             selected_coordinates: Coord::undefined(),
             selected_piece_cursor: 0,
@@ -193,6 +199,7 @@ impl Board {
     pub fn new(board: GameBoard, player_turn: PieceColor, move_history: Vec<PieceMove>) -> Self {
         Self {
             board,
+            board_history: Vec::new(),
             cursor_coordinates: Coord::new(4, 4),
             selected_coordinates: Coord::undefined(),
             selected_piece_cursor: 0,
@@ -777,23 +784,33 @@ impl Board {
     }
 
     // Check if the game is a draw
-    pub fn draw_by_repetition(&self) -> bool {
-        if self.move_history.len() >= 9 {
-            let last_ten: Vec<PieceMove> =
-                self.move_history.iter().rev().take(9).copied().collect();
+    pub fn draw_by_repetition(&mut self) -> bool {
+        // A new game has started
+        if self.move_history.is_empty() {
+            self.board_history.clear();
+            self.board_history.push(self.board);
+            return false;
+        }
 
-            if (last_ten[0], last_ten[1]) == (last_ten[4], last_ten[5])
-                && last_ten[4] == last_ten[8]
-                && (last_ten[2], last_ten[3]) == (last_ten[6], last_ten[7])
-            {
+        // Add the new move
+        self.board_history.push(self.board);
+
+        // Index mapping
+        let mut position_counts = std::collections::HashMap::new();
+        for board in self.board_history.iter() {
+            let count = position_counts.entry(board).or_insert(0);
+            *count += 1;
+
+            if *count >= 3 {
                 return true;
             }
         }
+
         false
     }
 
     // Check if the game is a draw
-    pub fn is_draw(&self) -> bool {
+    pub fn is_draw(&mut self) -> bool {
         self.number_of_authorized_positions() == 0
             || self.consecutive_non_pawn_or_capture == 50
             || self.draw_by_repetition()
@@ -1441,7 +1458,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let board = Board::new(custom_board, PieceColor::White, vec![]);
+        let mut board = Board::new(custom_board, PieceColor::White, vec![]);
 
         assert!(board.is_draw());
     }
@@ -1485,7 +1502,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let board = Board::new(custom_board, PieceColor::White, vec![]);
+        let mut board = Board::new(custom_board, PieceColor::White, vec![]);
 
         assert!(!board.is_draw());
     }
@@ -1828,6 +1845,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
+
         // We setup the board
         let mut board = Board::new(
             custom_board,
@@ -1876,7 +1894,14 @@ mod tests {
             ],
         );
 
-        assert!(!board.is_draw());
+        let mut copy_move_history = board.move_history.clone();
+
+        for piece_move in copy_move_history.iter_mut() {
+            board.move_piece_on_the_board(&piece_move.from, &piece_move.to);
+
+            // In a chess game, board.is_draw() is called after every move
+            assert!(!board.is_draw());
+        }
 
         // Move the king to replicate a third time the same position
         board.move_piece_on_the_board(&Coord::new(0, 2), &Coord::new(0, 1));
