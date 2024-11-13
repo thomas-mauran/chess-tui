@@ -245,6 +245,10 @@ pub fn get_cell_paragraph<'a>(
     paragraph.alignment(Alignment::Center)
 }
 
+pub fn invert_position(coord: &Coord) -> Coord {
+    Coord::new(7 - coord.row, 7 - coord.col)
+}
+
 #[cfg(test)]
 mod tests {
     use crate::utils::{convert_notation_into_position, convert_position_into_notation};
