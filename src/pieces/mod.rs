@@ -215,8 +215,6 @@ pub trait Movable {
     ) -> Vec<Coord>;
 }
 
-impl Eq for PieceType {}
-
 pub trait Position {
     fn authorized_positions(
         coordinates: &Coord,
