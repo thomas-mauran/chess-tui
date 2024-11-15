@@ -160,6 +160,17 @@ pub fn render_game_ui(frame: &mut Frame, app: &mut App, main_area: Rect) {
         )
         .split(main_layout_horizontal[1]);
 
+    let right_box_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(
+            [
+                Constraint::Ratio(2, 15),
+                Constraint::Ratio(11, 15),
+                Constraint::Ratio(2, 15),
+            ]
+            .as_ref(),
+        )
+        .split(main_layout_vertical[3]);
     // Board block representing the full board div
     let board_block = Block::default().style(Style::default());
 
@@ -170,9 +181,17 @@ pub fn render_game_ui(frame: &mut Frame, app: &mut App, main_area: Rect) {
     app.board
         .board_render(board_block.inner(main_layout_vertical[1]), frame);
 
+    //top box for white material
+    app.board
+        .black_material_render(board_block.inner(right_box_layout[0]), frame);
+
     // We make the inside of the board
     app.board
-        .history_render(board_block.inner(main_layout_vertical[3]), frame);
+        .history_render(board_block.inner(right_box_layout[1]), frame);
+
+    //bottom box for black matetrial
+    app.board
+        .white_material_render(board_block.inner(right_box_layout[2]), frame);
 
     if app.board.is_promotion {
         render_promotion_popup(frame, app);

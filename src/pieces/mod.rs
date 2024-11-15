@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use crate::board::{Coord, GameBoard};
 
 use self::{bishop::Bishop, king::King, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook};
@@ -9,7 +11,7 @@ pub mod knight;
 pub mod pawn;
 pub mod queen;
 pub mod rook;
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Hash)]
 pub enum PieceType {
     Pawn,
     Rook,
@@ -150,6 +152,36 @@ impl PieceType {
     }
 }
 
+// Implementing the PartialOrd trait for PieceType to allow comparison between PieceType
+#[allow(clippy::non_canonical_partial_ord_impl)]
+impl PartialOrd for PieceType {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        if self == other {
+            return Some(Ordering::Equal);
+        }
+        match (self, other) {
+            (PieceType::Pawn, _) => Some(Ordering::Less),
+            (PieceType::Queen, _) => Some(Ordering::Greater),
+            (_, PieceType::Pawn) => Some(Ordering::Greater),
+            (_, PieceType::Queen) => Some(Ordering::Less),
+            (PieceType::Rook, PieceType::Bishop) => Some(Ordering::Greater),
+            (PieceType::Rook, PieceType::Knight) => Some(Ordering::Greater),
+            (PieceType::Bishop, PieceType::Knight) => Some(Ordering::Greater), // just for visual purpose
+            (PieceType::Bishop, PieceType::Rook) => Some(Ordering::Less),
+            (PieceType::Knight, PieceType::Rook) => Some(Ordering::Less),
+            (PieceType::Knight, PieceType::Bishop) => Some(Ordering::Less), // just for visual purpose
+            _ => Some(Ordering::Equal),
+        }
+    }
+}
+impl Ord for PieceType {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap()
+    }
+}
+
+impl Eq for PieceType {}
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct PieceMove {
     pub piece_type: PieceType,
@@ -157,7 +189,7 @@ pub struct PieceMove {
     pub to: Coord,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum PieceColor {
     White = 0,
     Black = 1,

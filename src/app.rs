@@ -52,6 +52,11 @@ impl App {
         }
     }
 
+    pub fn go_to_home(&mut self) {
+        self.current_page = Pages::Home;
+        self.board = Board::default();
+    }
+
     /// Handles the tick event of the terminal.
     pub fn tick(&self) {}
 
