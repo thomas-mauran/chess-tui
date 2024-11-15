@@ -121,56 +121,38 @@ impl Default for Board {
     fn default() -> Self {
         Self {
             board: [
-                [
-                    Some((PieceType::Rook, PieceColor::Black)),
-                    Some((PieceType::Knight, PieceColor::Black)),
-                    Some((PieceType::Bishop, PieceColor::Black)),
-                    Some((PieceType::Queen, PieceColor::Black)),
-                    Some((PieceType::King, PieceColor::Black)),
-                    Some((PieceType::Bishop, PieceColor::Black)),
-                    Some((PieceType::Knight, PieceColor::Black)),
-                    Some((PieceType::Rook, PieceColor::Black)),
-                ],
-                [
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                ],
+                [None, None, None, None, None, None, None, None],
                 [None, None, None, None, None, None, None, None],
                 [None, None, None, None, None, None, None, None],
                 [None, None, None, None, None, None, None, None],
                 [None, None, None, None, None, None, None, None],
                 [
+                    None,
+                    None,
                     Some((PieceType::Pawn, PieceColor::White)),
+                    None,
                     Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
+                    None,
+                    None,
+                    None,
                 ],
                 [
-                    Some((PieceType::Rook, PieceColor::White)),
-                    Some((PieceType::Knight, PieceColor::White)),
-                    Some((PieceType::Bishop, PieceColor::White)),
-                    Some((PieceType::Queen, PieceColor::White)),
-                    Some((PieceType::King, PieceColor::White)),
-                    Some((PieceType::Bishop, PieceColor::White)),
-                    Some((PieceType::Knight, PieceColor::White)),
-                    Some((PieceType::Rook, PieceColor::White)),
+                    None,
+                    None,
+                    None,
+                    Some((PieceType::Pawn, PieceColor::Black)),
+                    None,
+                    None,
+                    None,
+                    None,
                 ],
+                [None, None, None, None, None, None, None, None],
             ],
             cursor_coordinates: Coord::new(4, 4),
             selected_coordinates: Coord::undefined(),
             selected_piece_cursor: 0,
             old_cursor_position: Coord::undefined(),
-            player_turn: PieceColor::White,
+            player_turn: PieceColor::Black,
             move_history: vec![],
             is_draw: false,
             is_checkmate: false,
@@ -586,8 +568,7 @@ impl Board {
         }
         self.is_promotion = false;
         self.promotion_cursor = 0;
-        if (self.is_draw() || self.is_checkmate()) {
-            println!("is draw222222222: {}", self.is_draw);
+        if !self.is_draw() && !self.is_checkmate() {
             self.flip_the_board();
         }
     }
@@ -1633,9 +1614,29 @@ mod tests {
         assert!(board.is_latest_move_promotion());
     }
 
-    #[test]
     fn promote_and_draw() {
         let custom_board = [
+            [None, None, None, None, None, None, None, None],
+            [
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some((PieceType::Pawn, PieceColor::Black)),
+                None,
+                Some((PieceType::King, PieceColor::White)),
+            ],
+            [
+                None,
+                Some((PieceType::King, PieceColor::Black)),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            ],
             [None, None, None, None, None, None, None, None],
             [
                 None,
@@ -1650,34 +1651,13 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
-            [
-                None,
-                Some((PieceType::King, PieceColor::Black)),
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-            ],
-            [
-                None,
-                None,
-                None,
-                None,
-                None,
-                Some((PieceType::Pawn, PieceColor::Black)),
-                None,
-                Some((PieceType::King, PieceColor::White)),
-            ],
-            [None, None, None, None, None, None, None, None],
         ];
         // We setup the board
         let mut board = Board::new(custom_board, PieceColor::Black, vec![]);
         assert!(!board.is_latest_move_promotion());
 
         // Move the pawn to a promote cell
-        board.move_piece_on_the_board(&Coord::new(6, 5), &Coord::new(7, 5));
+        board.move_piece_on_the_board(&Coord::new(1, 5), &Coord::new(0, 5));
         assert!(board.is_latest_move_promotion());
 
         // Promote the pawn
