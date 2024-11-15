@@ -4,7 +4,7 @@ use crate::{
     utils::{
         col_to_letter, convert_notation_into_position, convert_position_into_notation,
         did_piece_already_move, get_cell_paragraph, get_int_from_char, get_king_coordinates,
-        get_piece_color, get_piece_type, is_getting_checked,
+        get_piece_color, get_piece_type, invert_position, is_getting_checked,
     },
 };
 use ratatui::{
@@ -121,38 +121,56 @@ impl Default for Board {
     fn default() -> Self {
         Self {
             board: [
-                [None, None, None, None, None, None, None, None],
-                [None, None, None, None, None, None, None, None],
-                [None, None, None, None, None, None, None, None],
-                [None, None, None, None, None, None, None, None],
-                [None, None, None, None, None, None, None, None],
                 [
-                    None,
-                    None,
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    None,
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    None,
-                    None,
-                    None,
+                    Some((PieceType::Rook, PieceColor::Black)),
+                    Some((PieceType::Knight, PieceColor::Black)),
+                    Some((PieceType::Bishop, PieceColor::Black)),
+                    Some((PieceType::Queen, PieceColor::Black)),
+                    Some((PieceType::King, PieceColor::Black)),
+                    Some((PieceType::Bishop, PieceColor::Black)),
+                    Some((PieceType::Knight, PieceColor::Black)),
+                    Some((PieceType::Rook, PieceColor::Black)),
                 ],
                 [
-                    None,
-                    None,
-                    None,
                     Some((PieceType::Pawn, PieceColor::Black)),
-                    None,
-                    None,
-                    None,
-                    None,
+                    Some((PieceType::Pawn, PieceColor::Black)),
+                    Some((PieceType::Pawn, PieceColor::Black)),
+                    Some((PieceType::Pawn, PieceColor::Black)),
+                    Some((PieceType::Pawn, PieceColor::Black)),
+                    Some((PieceType::Pawn, PieceColor::Black)),
+                    Some((PieceType::Pawn, PieceColor::Black)),
+                    Some((PieceType::Pawn, PieceColor::Black)),
                 ],
                 [None, None, None, None, None, None, None, None],
+                [None, None, None, None, None, None, None, None],
+                [None, None, None, None, None, None, None, None],
+                [None, None, None, None, None, None, None, None],
+                [
+                    Some((PieceType::Pawn, PieceColor::White)),
+                    Some((PieceType::Pawn, PieceColor::White)),
+                    Some((PieceType::Pawn, PieceColor::White)),
+                    Some((PieceType::Pawn, PieceColor::White)),
+                    Some((PieceType::Pawn, PieceColor::White)),
+                    Some((PieceType::Pawn, PieceColor::White)),
+                    Some((PieceType::Pawn, PieceColor::White)),
+                    Some((PieceType::Pawn, PieceColor::White)),
+                ],
+                [
+                    Some((PieceType::Rook, PieceColor::White)),
+                    Some((PieceType::Knight, PieceColor::White)),
+                    Some((PieceType::Bishop, PieceColor::White)),
+                    Some((PieceType::Queen, PieceColor::White)),
+                    Some((PieceType::King, PieceColor::White)),
+                    Some((PieceType::Bishop, PieceColor::White)),
+                    Some((PieceType::Knight, PieceColor::White)),
+                    Some((PieceType::Rook, PieceColor::White)),
+                ],
             ],
             cursor_coordinates: Coord::new(4, 4),
             selected_coordinates: Coord::undefined(),
             selected_piece_cursor: 0,
             old_cursor_position: Coord::undefined(),
-            player_turn: PieceColor::Black,
+            player_turn: PieceColor::White,
             move_history: vec![],
             is_draw: false,
             is_checkmate: false,
@@ -816,6 +834,14 @@ impl Board {
                 // Color of the cell to draw the board
                 let mut cell_color: Color = if (i + j) % 2 == 0 { WHITE } else { BLACK };
 
+                let last_move;
+                let mut last_move_from = Coord::undefined();
+                let mut last_move_to = Coord::undefined();
+                if self.move_history.len() > 0 {
+                    last_move = self.move_history.last();
+                    last_move_from = invert_position(&last_move.map(|m| m.from).unwrap());
+                    last_move_to = invert_position(&last_move.map(|m| m.to).unwrap());
+                }
                 // Draw the available moves for the selected piece
                 if self.is_cell_selected() {
                     let selected_piece_type =
@@ -837,6 +863,13 @@ impl Board {
                 }
 
                 let square = lines[j as usize + 1];
+                // Here we have all the possibilities for a cell:
+                // - selected cell: green
+                // - cursor cell: blue
+                // - available move cell: grey
+                // - checked king cell: magenta
+                // - last move cell: green
+                // - default cell: white or black
                 // Draw the cell blue if this is the current cursor cell
                 if i == self.cursor_coordinates.row && j == self.cursor_coordinates.col {
                     let cell = Block::default().bg(Color::LightBlue);
@@ -853,7 +886,16 @@ impl Board {
                 else if i == self.selected_coordinates.row && j == self.selected_coordinates.col {
                     let cell = Block::default().bg(Color::LightGreen);
                     frame.render_widget(cell.clone(), square);
-                } else {
+                }
+                // Draw the cell green if this is the last move cell
+                else if self.move_history.len() > 0
+                    && (last_move_from == Coord::new(i, j) || last_move_to == Coord::new(i, j))
+                {
+                    let cell = Block::default().bg(Color::LightGreen);
+                    frame.render_widget(cell.clone(), square);
+                }
+                // else as a last resort we draw the cell with the default color either white or black
+                else {
                     let mut cell = Block::default();
                     cell = match self.display_mode {
                         DisplayMode::DEFAULT => cell.bg(cell_color),
@@ -863,7 +905,6 @@ impl Board {
                             _ => cell.bg(cell_color),
                         },
                     };
-
                     frame.render_widget(cell.clone(), square);
                 }
 
