@@ -479,7 +479,6 @@ impl Board {
     // Convert the history and game status to a FEN string
     pub fn fen_position(&mut self) -> String {
         let mut result = String::new();
-        result.push(' ');
         let bot_color = if self.is_bot_starting {
             PieceColor::White
         } else {
@@ -1702,6 +1701,7 @@ mod tests {
         assert!(board.is_latest_move_promotion());
     }
 
+    #[test]
     fn promote_and_draw() {
         let custom_board = [
             [None, None, None, None, None, None, None, None],

@@ -270,7 +270,7 @@ pub fn render_color_selection_popup(frame: &mut Frame, app: &App) {
         .block(Block::default())
         .alignment(Alignment::Left)
         .wrap(Wrap { trim: true });
-    frame.render_widget(Clear, area); //this clears out the background
+    frame.render_widget(Clear, area);
     frame.render_widget(block, area);
     frame.render_widget(paragraph, area);
 
