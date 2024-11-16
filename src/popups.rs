@@ -1,7 +1,7 @@
 use crate::{
     app::App,
     constants::WHITE,
-    pieces::{bishop::Bishop, knight::Knight, queen::Queen, rook::Rook},
+    pieces::{bishop::Bishop, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook},
     ui::centered_rect,
 };
 use ratatui::{
@@ -168,7 +168,7 @@ pub fn render_credit_popup(frame: &mut Frame) {
 
     let credits_text = vec![
         Line::from(""),
-        Line::from("Hi 👋, I'm Thomas, a 21-year-old French computer science student."),
+        Line::from("Hi 👋, I'm Thomas, a 22 years old French computer science student."),
         Line::from("Thank you for playing Chess-tui! This project started as a personal journey to improve my algorithmic skills and learn Rust."),
         Line::from(""),
         Line::from("The entire source code is available on GitHub at https://github.com/thomas-mauran/chess-tui"),
@@ -248,4 +248,83 @@ pub fn render_help_popup(frame: &mut Frame) {
     frame.render_widget(Clear, area); //this clears out the background
     frame.render_widget(block, area);
     frame.render_widget(paragraph, area);
+}
+
+// This renders a popup for the color selection
+pub fn render_color_selection_popup(frame: &mut Frame, app: &App) {
+    let block = Block::default()
+        .title("Color selection")
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .padding(Padding::horizontal(1))
+        .border_style(Style::default().fg(WHITE));
+    let area = centered_rect(40, 40, frame.area());
+
+    let text = vec![
+        Line::from(""),
+        Line::from("-- Choose your color --").alignment(Alignment::Center),
+        Line::from(""),
+    ];
+
+    let paragraph = Paragraph::new(text)
+        .block(Block::default())
+        .alignment(Alignment::Left)
+        .wrap(Wrap { trim: true });
+    frame.render_widget(Clear, area); //this clears out the background
+    frame.render_widget(block, area);
+    frame.render_widget(paragraph, area);
+
+    let inner_popup_layout_vertical = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(
+            [
+                Constraint::Ratio(1, 3),
+                Constraint::Ratio(1, 3),
+                Constraint::Ratio(1, 3),
+            ]
+            .as_ref(),
+        )
+        .split(area);
+
+    let inner_popup_layout_horizontal = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(
+            [
+                Constraint::Ratio(1, 3),
+                Constraint::Ratio(1, 3),
+                Constraint::Ratio(1, 3),
+            ]
+            .as_ref(),
+        )
+        .split(inner_popup_layout_vertical[1]);
+
+    let display_mode = &app.board.display_mode;
+
+    let white_pawn = Paragraph::new(Pawn::to_string(display_mode))
+        .block(Block::default())
+        .alignment(Alignment::Center)
+        .style(
+            Style::default()
+                .fg(Color::White)
+                .bg(if app.menu_cursor == 0 {
+                    Color::Blue
+                } else {
+                    Color::Reset // Set to the default background color when the condition is false
+                }),
+        );
+    frame.render_widget(white_pawn, inner_popup_layout_horizontal[0]);
+
+    let black_pawn = Paragraph::new(Pawn::to_string(display_mode))
+        .block(Block::default())
+        .alignment(Alignment::Center)
+        .style(
+            Style::default()
+                .fg(Color::Black)
+                .bg(if app.menu_cursor == 1 {
+                    Color::Blue
+                } else {
+                    Color::Reset // Set to the default background color when the condition is false
+                }),
+        );
+    frame.render_widget(black_pawn, inner_popup_layout_horizontal[2]);
 }
