@@ -391,7 +391,7 @@ impl Board {
                     self.unselect_cell();
                     self.switch_player_turn();
                     self.is_draw = self.is_draw();
-                    if self.is_bot_starting
+                    if (!self.is_game_against_bot || self.is_bot_starting)
                         && (!self.is_latest_move_promotion()
                             || self.is_draw()
                             || self.is_checkmate())
@@ -581,7 +581,6 @@ impl Board {
 
         result.push_str(&(self.move_history.len() / 2).to_string());
 
-        println!("FEN: {}", result);
         result
     }
 

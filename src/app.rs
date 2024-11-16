@@ -122,16 +122,15 @@ impl App {
     pub fn restart(&mut self) {
         if self.board.is_draw || self.board.is_checkmate {
             let is_bot_starting = self.board.is_bot_starting;
+            let engine = self.board.engine.clone();
+            let game_is_against_bot = self.board.is_game_against_bot;
             self.board = Board::default();
+            self.board.engine = engine;
+            self.board.is_game_against_bot = game_is_against_bot;
             if is_bot_starting {
                 self.board.is_bot_starting = true;
                 self.board.bot_move();
                 self.board.player_turn = PieceColor::Black;
-                println!("is_bot_starting: {}", is_bot_starting);
-                println!("is_bot_starting: {}", is_bot_starting);
-                println!("is_bot_starting: {}", is_bot_starting);
-                println!("is_bot_starting: {}", is_bot_starting);
-                println!("is_bot_starting: {}", is_bot_starting);
             }
         }
     }
