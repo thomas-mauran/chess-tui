@@ -99,37 +99,50 @@ impl App {
         }
     }
 
-    pub fn color_selection(&mut self) -> Option<PieceColor> {
+    pub fn color_selection(&mut self) {
         self.show_color_popup = false;
 
-        match self.menu_cursor {
-            0 => Some(PieceColor::White),
-            1 => Some(PieceColor::Black),
+        let color = match self.menu_cursor {
+            0 => PieceColor::White,
+            1 => PieceColor::Black,
             _ => unreachable!("Invalid color selection"),
+        };
+        self.selected_color = Some(color);
+
+        // if the selected Color is Black, we need to switch the board
+        if let Some(color) = self.selected_color {
+            if color == PieceColor::Black {
+                self.board.is_bot_starting = true;
+                self.board.bot_move();
+                self.board.player_turn = PieceColor::Black;
+            }
         }
     }
 
     pub fn restart(&mut self) {
         if self.board.is_draw || self.board.is_checkmate {
+            let is_bot_starting = self.board.is_bot_starting;
             self.board = Board::default();
+            if is_bot_starting {
+                self.board.is_bot_starting = true;
+                self.board.bot_move();
+                self.board.player_turn = PieceColor::Black;
+                println!("is_bot_starting: {}", is_bot_starting);
+                println!("is_bot_starting: {}", is_bot_starting);
+                println!("is_bot_starting: {}", is_bot_starting);
+                println!("is_bot_starting: {}", is_bot_starting);
+                println!("is_bot_starting: {}", is_bot_starting);
+            }
         }
     }
 
     pub fn menu_select(&mut self) {
-        if self.current_page == Pages::Bot {
-            match self.menu_cursor {
-                0 => {
-                    self.selected_color = Some(PieceColor::White);
-                }
-                1 => {
-                    self.selected_color = Some(PieceColor::Black);
-                }
-                _ => {}
-            }
-        }
         match self.menu_cursor {
             0 => self.current_page = Pages::Solo,
-            1 => self.current_page = Pages::Bot,
+            1 => {
+                self.menu_cursor = 0;
+                self.current_page = Pages::Bot
+            }
             2 => {
                 self.board.display_mode = match self.board.display_mode {
                     DisplayMode::ASCII => DisplayMode::DEFAULT,

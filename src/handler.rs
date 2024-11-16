@@ -1,6 +1,7 @@
 use crate::{
     app::{App, AppResult},
     constants::Pages,
+    pieces::PieceColor,
 };
 use ratatui::crossterm::{
     event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
@@ -57,10 +58,10 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             }
         }
         KeyCode::Char(' ') | KeyCode::Enter => {
-            if app.current_page == Pages::Home {
+            if app.current_page == Pages::Bot && app.selected_color.is_none() {
+                app.color_selection();
+            } else if app.current_page == Pages::Home {
                 app.menu_select();
-            } else if app.current_page == Pages::Bot && app.selected_color.is_none() {
-                app.selected_color = app.color_selection();
             } else {
                 app.board.select_cell();
             }

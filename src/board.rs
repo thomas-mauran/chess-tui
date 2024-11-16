@@ -100,21 +100,38 @@ impl std::ops::IndexMut<&Coord> for GameBoard {
 /// 1 ♜ ♞ ♝ ♛ ♚ ♝ ♞ ♜ 1
 /// . a b c d e f g h .
 pub struct Board {
+    // the actual board
     pub board: GameBoard,
+    // the cursor position
     pub cursor_coordinates: Coord,
+    // the selected cell
     pub selected_coordinates: Coord,
+    // the selected piece cursor when we already selected a piece
     pub selected_piece_cursor: i8,
+    // the old cursor position used when unslecting a cell
     pub old_cursor_position: Coord,
+    // the player turn
     pub player_turn: PieceColor,
+    // the move history
     pub move_history: Vec<PieceMove>,
+    // if the game is a draw
     pub is_draw: bool,
+    // if the game is a checkmate
     pub is_checkmate: bool,
+    // if we are doing a promotion
     pub is_promotion: bool,
+    // the cursor for the promotion popup
     pub promotion_cursor: i8,
+    // the number of consecutive non pawn or capture moves
     pub consecutive_non_pawn_or_capture: i32,
+    // the chess engine
     pub engine: Option<Engine>,
+    // if the game is against a bot
     pub is_game_against_bot: bool,
+    // the display mode
     pub display_mode: DisplayMode,
+    // if the bot is starting, meaning the player is black
+    pub is_bot_starting: bool,
 }
 
 impl Default for Board {
@@ -180,6 +197,7 @@ impl Default for Board {
             engine: None,
             is_game_against_bot: false,
             display_mode: DisplayMode::DEFAULT,
+            is_bot_starting: false,
         }
     }
 }
@@ -202,6 +220,7 @@ impl Board {
             engine: None,
             is_game_against_bot: false,
             display_mode: DisplayMode::DEFAULT,
+            is_bot_starting: false,
         }
     }
 
@@ -371,6 +390,14 @@ impl Board {
                     self.move_piece_on_the_board(selected_coords_usize, cursor_coords_usize);
                     self.unselect_cell();
                     self.switch_player_turn();
+                    self.is_draw = self.is_draw();
+                    if self.is_bot_starting
+                        && (!self.is_latest_move_promotion()
+                            || self.is_draw()
+                            || self.is_checkmate())
+                    {
+                        self.flip_the_board();
+                    }
                     // If we play against a bot we will play his move and switch the player turn again
                     if self.is_game_against_bot {
                         self.is_promotion = self.is_latest_move_promotion();
@@ -382,14 +409,6 @@ impl Board {
                                 self.switch_player_turn();
                             }
                         }
-                    }
-                    self.is_draw = self.is_draw();
-                    if !self.is_game_against_bot
-                        && (!self.is_latest_move_promotion()
-                            || self.is_draw()
-                            || self.is_checkmate())
-                    {
-                        self.flip_the_board();
                     }
                 }
             } else {
@@ -433,12 +452,10 @@ impl Board {
        We use the UCI protocol to communicate with the chess engine
     */
     pub fn bot_move(&mut self) {
-        let Some(engine) = &self.engine else {
-            panic!("Missing the chess engine")
-        };
+        let engine = self.engine.clone().expect("Missing the chess engine");
+        let fen_position = self.fen_position();
 
-        engine.set_position(&self.fen_position()).unwrap();
-
+        engine.set_position(&(fen_position as String)).unwrap();
         let best_move = engine.bestmove();
         let Ok(movement) = best_move else {
             panic!("An error has occured")
@@ -454,11 +471,20 @@ impl Board {
             &Coord::new(from_y as u8, from_x as u8),
             &Coord::new(to_y as u8, to_x as u8),
         );
+        if self.is_bot_starting {
+            self.flip_the_board();
+        }
     }
 
     // Convert the history and game status to a FEN string
-    pub fn fen_position(&self) -> String {
+    pub fn fen_position(&mut self) -> String {
         let mut result = String::new();
+        result.push(' ');
+        let bot_color = if self.is_bot_starting {
+            PieceColor::White
+        } else {
+            PieceColor::Black
+        };
 
         // We loop through the board and convert it to a FEN string
         for i in 0..8u8 {
@@ -501,7 +527,11 @@ impl Board {
         result.pop();
 
         // We say it is blacks turn to play
-        result.push_str(" b");
+        result.push_str(if bot_color == PieceColor::Black {
+            " b"
+        } else {
+            " w"
+        });
 
         // We add the castles availabilities for black
         if !did_piece_already_move(
@@ -551,6 +581,7 @@ impl Board {
 
         result.push_str(&(self.move_history.len() / 2).to_string());
 
+        println!("FEN: {}", result);
         result
     }
 
@@ -590,7 +621,7 @@ impl Board {
         }
         self.is_promotion = false;
         self.promotion_cursor = 0;
-        if !self.is_game_against_bot && (!self.is_draw() && !self.is_checkmate()) {
+        if !self.is_draw() && !self.is_checkmate() {
             self.flip_the_board();
         }
     }
@@ -836,14 +867,14 @@ impl Board {
                 .split(columns[i as usize + 1]);
             for j in 0..8u8 {
                 // Color of the cell to draw the board
-                let mut cell_color: Color = if (i + j) % 2 == 0 { WHITE } else { BLACK };
+                let cell_color: Color = if (i + j) % 2 == 0 { WHITE } else { BLACK };
 
                 let last_move;
                 let mut last_move_from = Coord::undefined();
                 let mut last_move_to = Coord::undefined();
                 if self.move_history.len() > 0 {
                     last_move = self.move_history.last();
-                    if self.is_game_against_bot {
+                    if self.is_game_against_bot && !self.is_bot_starting {
                         last_move_from = last_move.map(|m| m.from).unwrap();
                         last_move_to = last_move.map(|m| m.to).unwrap();
                     } else {
@@ -1870,7 +1901,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
         ];
         // We setup the board
-        let board = Board::new(custom_board, PieceColor::White, vec![]);
+        let mut board = Board::new(custom_board, PieceColor::White, vec![]);
 
         // Move the king to replicate a third time the same position
         assert_eq!(board.fen_position(), "2k4R/8/4K3/8/8/8/8/8 b - - 0 0");
@@ -1916,7 +1947,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
         ];
         // We setup the board
-        let board = Board::new(
+        let mut board = Board::new(
             custom_board,
             PieceColor::White,
             vec![
@@ -1980,7 +2011,7 @@ mod tests {
             ],
         ];
         // We setup the board
-        let board = Board::new(custom_board, PieceColor::White, vec![]);
+        let mut board = Board::new(custom_board, PieceColor::White, vec![]);
 
         // Move the king to replicate a third time the same position
         assert_eq!(

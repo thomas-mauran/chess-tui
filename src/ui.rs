@@ -28,7 +28,11 @@ pub fn render(app: &mut App, frame: &mut Frame) {
             match &app.chess_engine_path {
                 Some(path) => {
                     app.board.set_engine(path);
-                    render_game_ui(frame, app, main_area);
+                    if app.selected_color.is_none() {
+                        app.show_color_popup = true;
+                    } else {
+                        render_game_ui(frame, app, main_area);
+                    }
                 }
                 None => render_engine_path_error_popup(frame),
             }
