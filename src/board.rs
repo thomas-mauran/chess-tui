@@ -384,7 +384,10 @@ impl Board {
                         }
                     }
                     self.is_draw = self.is_draw();
-                    if !self.is_latest_move_promotion() || self.is_draw() || self.is_checkmate() {
+                    if !self.is_game_against_bot && !self.is_latest_move_promotion()
+                        || self.is_draw()
+                        || self.is_checkmate()
+                    {
                         self.flip_the_board();
                     }
                 }
@@ -586,7 +589,7 @@ impl Board {
         }
         self.is_promotion = false;
         self.promotion_cursor = 0;
-        if !self.is_draw() && !self.is_checkmate() {
+        if !self.is_game_against_bot && !self.is_draw() && !self.is_checkmate() {
             self.flip_the_board();
         }
     }
@@ -839,16 +842,26 @@ impl Board {
                 let mut last_move_to = Coord::undefined();
                 if self.move_history.len() > 0 {
                     last_move = self.move_history.last();
-                    last_move_from = invert_position(&last_move.map(|m| m.from).unwrap());
-                    last_move_to = invert_position(&last_move.map(|m| m.to).unwrap());
+                    if self.is_game_against_bot {
+                        last_move_from = last_move.map(|m| m.from).unwrap();
+                        last_move_to = last_move.map(|m| m.to).unwrap();
+                    } else {
+                        last_move_from = invert_position(&last_move.map(|m| m.from).unwrap());
+                        last_move_to = invert_position(&last_move.map(|m| m.to).unwrap());
+                    }
                 }
+
+                let mut positions: Vec<Coord> = vec![];
+                let is_cell_in_positions = |positions: &Vec<Coord>, i: u8, j: u8| {
+                    positions.iter().any(|&coord| coord == Coord::new(i, j))
+                };
                 // Draw the available moves for the selected piece
                 if self.is_cell_selected() {
                     let selected_piece_type =
                         get_piece_type(self.board, &self.selected_coordinates);
                     let selected_piece_color: Option<PieceColor> =
                         get_piece_color(self.board, &self.selected_coordinates);
-                    let positions = self.get_authorized_positions(
+                    positions = self.get_authorized_positions(
                         selected_piece_type,
                         selected_piece_color,
                         self.selected_coordinates,
@@ -857,7 +870,7 @@ impl Board {
                     // Draw grey if the color is in the authorized positions
                     for coords in positions.clone() {
                         if i == coords.row && j == coords.col {
-                            cell_color = Color::Rgb(100, 100, 100);
+                            // cell_color = Color::Rgb(100, 100, 100);
                         }
                     }
                 }
@@ -888,10 +901,13 @@ impl Board {
                     frame.render_widget(cell.clone(), square);
                 }
                 // Draw the cell green if this is the last move cell
-                else if self.move_history.len() > 0
-                    && (last_move_from == Coord::new(i, j) || last_move_to == Coord::new(i, j))
+                else if last_move_from == Coord::new(i, j)
+                    || last_move_to == Coord::new(i, j) && !is_cell_in_positions(&positions, i, j)
                 {
                     let cell = Block::default().bg(Color::LightGreen);
+                    frame.render_widget(cell.clone(), square);
+                } else if is_cell_in_positions(&positions, i, j) {
+                    let cell = Block::default().bg(Color::Rgb(100, 100, 100));
                     frame.render_widget(cell.clone(), square);
                 }
                 // else as a last resort we draw the cell with the default color either white or black
