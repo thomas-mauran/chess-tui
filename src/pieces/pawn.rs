@@ -108,7 +108,7 @@ impl Movable for Pawn {
             {
                 let new_y = y - 1;
                 let new_x = last_coords.col;
-                positions.push(Coord::new(new_y as u8, new_x));
+                positions.push(Coord::new(new_y, new_x));
             }
         }
         cleaned_positions(&positions)

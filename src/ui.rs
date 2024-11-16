@@ -36,12 +36,10 @@ pub fn render(app: &mut App, frame: &mut Frame) {
                 }
                 None => render_engine_path_error_popup(frame),
             }
+        } else if app.selected_color.is_none() {
+            app.show_color_popup = true;
         } else {
-            if app.selected_color.is_none() {
-                app.show_color_popup = true;
-            } else {
-                render_game_ui(frame, app, main_area);
-            }
+            render_game_ui(frame, app, main_area);
         }
     } else {
         render_menu_ui(frame, app, main_area);

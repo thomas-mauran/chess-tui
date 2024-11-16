@@ -1,13 +1,8 @@
 use crate::{
     app::{App, AppResult},
     constants::Pages,
-    pieces::PieceColor,
 };
-use ratatui::crossterm::{
-    event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
-    terminal::size,
-};
-use std::mem;
+use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
 /// Handles the key events and updates the state of [`App`].
 pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {

@@ -870,7 +870,7 @@ impl Board {
                 let last_move;
                 let mut last_move_from = Coord::undefined();
                 let mut last_move_to = Coord::undefined();
-                if self.move_history.len() > 0 {
+                if !self.move_history.is_empty() {
                     last_move = self.move_history.last();
                     if self.is_game_against_bot && !self.is_bot_starting {
                         last_move_from = last_move.map(|m| m.from).unwrap();
@@ -915,30 +915,24 @@ impl Board {
                 // - default cell: white or black
                 // Draw the cell blue if this is the current cursor cell
                 if i == self.cursor_coordinates.row && j == self.cursor_coordinates.col {
-                    let cell = Block::default().bg(Color::LightBlue);
-                    frame.render_widget(cell.clone(), square);
-                } else if is_getting_checked(self.board, self.player_turn, &self.move_history)
+                    Board::render_cell(frame, square, Color::LightBlue, None);
+                }
+                // Draw the cell magenta if the king is getting checked
+                else if is_getting_checked(self.board, self.player_turn, &self.move_history)
                     && Coord::new(i, j) == get_king_coordinates(self.board, self.player_turn)
                 {
-                    let cell = Block::default()
-                        .bg(Color::Magenta)
-                        .add_modifier(Modifier::SLOW_BLINK);
-                    frame.render_widget(cell.clone(), square);
+                    Board::render_cell(frame, square, Color::Magenta, Some(Modifier::SLOW_BLINK));
                 }
-                // Draw the cell green if this is the selected cell
-                else if i == self.selected_coordinates.row && j == self.selected_coordinates.col {
-                    let cell = Block::default().bg(Color::LightGreen);
-                    frame.render_widget(cell.clone(), square);
-                }
-                // Draw the cell green if this is the last move cell
-                else if last_move_from == Coord::new(i, j)
-                    || last_move_to == Coord::new(i, j) && !is_cell_in_positions(&positions, i, j)
+                // Draw the cell green if this is the selected cell or if the cell is part of the last move
+                else if (i == self.selected_coordinates.row && j == self.selected_coordinates.col)
+                    || (last_move_from == Coord::new(i, j) // If the last move from 
+                        || (last_move_to == Coord::new(i, j) // If last move to
+                            && !is_cell_in_positions(&positions, i, j)))
+                // and not in the authorized positions (grey instead of green)
                 {
-                    let cell = Block::default().bg(Color::LightGreen);
-                    frame.render_widget(cell.clone(), square);
+                    Board::render_cell(frame, square, Color::LightGreen, None);
                 } else if is_cell_in_positions(&positions, i, j) {
-                    let cell = Block::default().bg(Color::Rgb(100, 100, 100));
-                    frame.render_widget(cell.clone(), square);
+                    Board::render_cell(frame, square, Color::Rgb(100, 100, 100), None);
                 }
                 // else as a last resort we draw the cell with the default color either white or black
                 else {
@@ -961,6 +955,13 @@ impl Board {
                 frame.render_widget(paragraph, square);
             }
         }
+    }
+    fn render_cell(frame: &mut Frame, square: Rect, color: Color, modifier: Option<Modifier>) {
+        let mut cell = Block::default().bg(color);
+        if let Some(modifier) = modifier {
+            cell = cell.add_modifier(modifier);
+        }
+        frame.render_widget(cell, square);
     }
 
     // Method to render the right panel history
