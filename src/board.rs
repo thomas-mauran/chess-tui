@@ -384,9 +384,10 @@ impl Board {
                         }
                     }
                     self.is_draw = self.is_draw();
-                    if !self.is_game_against_bot && !self.is_latest_move_promotion()
-                        || self.is_draw()
-                        || self.is_checkmate()
+                    if !self.is_game_against_bot
+                        && (!self.is_latest_move_promotion()
+                            || self.is_draw()
+                            || self.is_checkmate())
                     {
                         self.flip_the_board();
                     }
@@ -589,7 +590,7 @@ impl Board {
         }
         self.is_promotion = false;
         self.promotion_cursor = 0;
-        if !self.is_game_against_bot && !self.is_draw() && !self.is_checkmate() {
+        if !self.is_game_against_bot && (!self.is_draw() && !self.is_checkmate()) {
             self.flip_the_board();
         }
     }
