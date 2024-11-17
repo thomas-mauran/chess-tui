@@ -1,9 +1,6 @@
 use crate::{
     constants::{DisplayMode, BLACK, UNDEFINED_POSITION, WHITE},
-    pieces::{
-        rook::{self, Rook},
-        PieceColor, PieceMove, PieceType,
-    },
+    pieces::{PieceColor, PieceMove, PieceType},
     utils::{
         col_to_letter, convert_notation_into_position, convert_position_into_notation,
         did_piece_already_move, get_cell_paragraph, get_int_from_char, get_king_coordinates,
@@ -147,9 +144,9 @@ fn init_board() -> GameBoard {
     [
         [
             Some((PieceType::Rook, PieceColor::Black)),
-            Some((PieceType::Knight, PieceColor::Black)),
-            Some((PieceType::Bishop, PieceColor::Black)),
-            Some((PieceType::Queen, PieceColor::Black)),
+            None,
+            None,
+            None,
             Some((PieceType::King, PieceColor::Black)),
             Some((PieceType::Bishop, PieceColor::Black)),
             Some((PieceType::Knight, PieceColor::Black)),
@@ -185,8 +182,8 @@ fn init_board() -> GameBoard {
             Some((PieceType::Bishop, PieceColor::White)),
             Some((PieceType::Queen, PieceColor::White)),
             Some((PieceType::King, PieceColor::White)),
-            Some((PieceType::Bishop, PieceColor::White)),
-            Some((PieceType::Knight, PieceColor::White)),
+            None,
+            None,
             Some((PieceType::Rook, PieceColor::White)),
         ],
     ]
@@ -554,20 +551,32 @@ impl Board {
         // We add the castles availabilities for black
         if !did_piece_already_move(
             &self.move_history,
-            (Some(PieceType::King), Coord::new(0, 4)),
+            (
+                Some(PieceType::King),
+                Some(self.player_turn),
+                Coord::new(0, 4),
+            ),
         ) && !is_getting_checked(self.board, PieceColor::Black, &self.move_history)
         {
             // king side black castle availability
             if !did_piece_already_move(
                 &self.move_history,
-                (Some(PieceType::Rook), Coord::new(0, 7)),
+                (
+                    Some(PieceType::Rook),
+                    Some(self.player_turn),
+                    Coord::new(0, 7),
+                ),
             ) {
                 result.push_str(" k");
             }
             // queen side black castle availability
             if !did_piece_already_move(
                 &self.move_history,
-                (Some(PieceType::Rook), Coord::new(0, 0)),
+                (
+                    Some(PieceType::Rook),
+                    Some(self.player_turn),
+                    Coord::new(0, 0),
+                ),
             ) {
                 result.push('q');
             }
@@ -745,6 +754,7 @@ impl Board {
         // We store it in the history
         self.move_history.push(PieceMove {
             piece_type: piece_type_from,
+            piece_color: self.player_turn,
             from: *from,
             to: *to,
         });
@@ -1642,6 +1652,7 @@ mod tests {
             vec![
                 (PieceMove {
                     piece_type: PieceType::Pawn,
+                    piece_color: PieceColor::White,
                     from: Coord::new(7, 3),
                     to: Coord::new(6, 3),
                 }),
@@ -1695,6 +1706,7 @@ mod tests {
             vec![
                 (PieceMove {
                     piece_type: PieceType::Pawn,
+                    piece_color: PieceColor::White,
                     from: Coord::new(1, 4),
                     to: Coord::new(0, 4),
                 }),
@@ -1804,6 +1816,7 @@ mod tests {
             vec![
                 (PieceMove {
                     piece_type: PieceType::Pawn,
+                    piece_color: PieceColor::Black,
                     from: Coord::new(1, 4),
                     to: Coord::new(0, 4),
                 }),
@@ -1934,41 +1947,49 @@ mod tests {
             vec![
                 (PieceMove {
                     piece_type: PieceType::King,
+                    piece_color: PieceColor::White,
                     from: Coord::new(0, 2),
                     to: Coord::new(0, 1),
                 }),
                 (PieceMove {
                     piece_type: PieceType::King,
+                    piece_color: PieceColor::Black,
                     from: Coord::new(0, 6),
                     to: Coord::new(0, 5),
                 }),
                 (PieceMove {
                     piece_type: PieceType::King,
+                    piece_color: PieceColor::White,
                     from: Coord::new(0, 1),
                     to: Coord::new(0, 2),
                 }),
                 (PieceMove {
                     piece_type: PieceType::King,
+                    piece_color: PieceColor::Black,
                     from: Coord::new(0, 5),
                     to: Coord::new(0, 6),
                 }),
                 (PieceMove {
                     piece_type: PieceType::King,
+                    piece_color: PieceColor::White,
                     from: Coord::new(0, 2),
                     to: Coord::new(0, 1),
                 }),
                 (PieceMove {
                     piece_type: PieceType::King,
+                    piece_color: PieceColor::Black,
                     from: Coord::new(0, 6),
                     to: Coord::new(0, 5),
                 }),
                 (PieceMove {
                     piece_type: PieceType::King,
+                    piece_color: PieceColor::White,
                     from: Coord::new(0, 1),
                     to: Coord::new(0, 2),
                 }),
                 (PieceMove {
                     piece_type: PieceType::King,
+                    piece_color: PieceColor::Black,
                     from: Coord::new(0, 5),
                     to: Coord::new(0, 6),
                 }),
@@ -2072,6 +2093,7 @@ mod tests {
             vec![
                 (PieceMove {
                     piece_type: PieceType::Pawn,
+                    piece_color: PieceColor::White,
                     from: Coord::new(6, 2),
                     to: Coord::new(4, 2),
                 }),

@@ -453,6 +453,7 @@ mod tests {
             board.board,
             &[(PieceMove {
                 piece_type: PieceType::Pawn,
+                piece_color: PieceColor::Black,
                 from: Coord::new(6, 4),
                 to: Coord::new(4, 4),
             })],
@@ -495,6 +496,7 @@ mod tests {
             board.board,
             &[(PieceMove {
                 piece_type: PieceType::Pawn,
+                piece_color: PieceColor::White,
                 from: Coord::new(6, 4),
                 to: Coord::new(4, 4),
             })],
@@ -546,6 +548,7 @@ mod tests {
             board.board,
             &[(PieceMove {
                 piece_type: PieceType::Pawn,
+                piece_color: PieceColor::White,
                 from: Coord::new(6, 4),
                 to: Coord::new(4, 4),
             })],
