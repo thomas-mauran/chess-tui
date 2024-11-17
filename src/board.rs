@@ -114,6 +114,8 @@ pub struct Board {
     pub player_turn: PieceColor,
     // the move history
     pub move_history: Vec<PieceMove>,
+    // historic of the past position of the board
+    pub board_history: Vec<GameBoard>,
     // if the game is a draw
     pub is_draw: bool,
     // if the game is a checkmate
@@ -132,57 +134,66 @@ pub struct Board {
     pub display_mode: DisplayMode,
     // if the bot is starting, meaning the player is black
     pub is_bot_starting: bool,
+    // The white piece that got taken
+    pub white_taken_pieces: Vec<PieceType>,
+    // The black piece that got taken
+    pub black_taken_pieces: Vec<PieceType>,
+}
+
+fn init_board() -> GameBoard {
+    [
+        [
+            Some((PieceType::Rook, PieceColor::Black)),
+            Some((PieceType::Knight, PieceColor::Black)),
+            Some((PieceType::Bishop, PieceColor::Black)),
+            Some((PieceType::Queen, PieceColor::Black)),
+            Some((PieceType::King, PieceColor::Black)),
+            Some((PieceType::Bishop, PieceColor::Black)),
+            Some((PieceType::Knight, PieceColor::Black)),
+            Some((PieceType::Rook, PieceColor::Black)),
+        ],
+        [
+            Some((PieceType::Pawn, PieceColor::Black)),
+            Some((PieceType::Pawn, PieceColor::Black)),
+            Some((PieceType::Pawn, PieceColor::Black)),
+            Some((PieceType::Pawn, PieceColor::Black)),
+            Some((PieceType::Pawn, PieceColor::Black)),
+            Some((PieceType::Pawn, PieceColor::Black)),
+            Some((PieceType::Pawn, PieceColor::Black)),
+            Some((PieceType::Pawn, PieceColor::Black)),
+        ],
+        [None, None, None, None, None, None, None, None],
+        [None, None, None, None, None, None, None, None],
+        [None, None, None, None, None, None, None, None],
+        [None, None, None, None, None, None, None, None],
+        [
+            Some((PieceType::Pawn, PieceColor::White)),
+            Some((PieceType::Pawn, PieceColor::White)),
+            Some((PieceType::Pawn, PieceColor::White)),
+            Some((PieceType::Pawn, PieceColor::White)),
+            Some((PieceType::Pawn, PieceColor::White)),
+            Some((PieceType::Pawn, PieceColor::White)),
+            Some((PieceType::Pawn, PieceColor::White)),
+            Some((PieceType::Pawn, PieceColor::White)),
+        ],
+        [
+            Some((PieceType::Rook, PieceColor::White)),
+            Some((PieceType::Knight, PieceColor::White)),
+            Some((PieceType::Bishop, PieceColor::White)),
+            Some((PieceType::Queen, PieceColor::White)),
+            Some((PieceType::King, PieceColor::White)),
+            Some((PieceType::Bishop, PieceColor::White)),
+            Some((PieceType::Knight, PieceColor::White)),
+            Some((PieceType::Rook, PieceColor::White)),
+        ],
+    ]
 }
 
 impl Default for Board {
     fn default() -> Self {
         Self {
-            board: [
-                [
-                    Some((PieceType::Rook, PieceColor::Black)),
-                    Some((PieceType::Knight, PieceColor::Black)),
-                    Some((PieceType::Bishop, PieceColor::Black)),
-                    Some((PieceType::Queen, PieceColor::Black)),
-                    Some((PieceType::King, PieceColor::Black)),
-                    Some((PieceType::Bishop, PieceColor::Black)),
-                    Some((PieceType::Knight, PieceColor::Black)),
-                    Some((PieceType::Rook, PieceColor::Black)),
-                ],
-                [
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                    Some((PieceType::Pawn, PieceColor::Black)),
-                ],
-                [None, None, None, None, None, None, None, None],
-                [None, None, None, None, None, None, None, None],
-                [None, None, None, None, None, None, None, None],
-                [None, None, None, None, None, None, None, None],
-                [
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                    Some((PieceType::Pawn, PieceColor::White)),
-                ],
-                [
-                    Some((PieceType::Rook, PieceColor::White)),
-                    Some((PieceType::Knight, PieceColor::White)),
-                    Some((PieceType::Bishop, PieceColor::White)),
-                    Some((PieceType::Queen, PieceColor::White)),
-                    Some((PieceType::King, PieceColor::White)),
-                    Some((PieceType::Bishop, PieceColor::White)),
-                    Some((PieceType::Knight, PieceColor::White)),
-                    Some((PieceType::Rook, PieceColor::White)),
-                ],
-            ],
+            board: init_board(),
+            board_history: vec![init_board()],
             cursor_coordinates: Coord::new(4, 4),
             selected_coordinates: Coord::undefined(),
             selected_piece_cursor: 0,
@@ -198,6 +209,8 @@ impl Default for Board {
             is_game_against_bot: false,
             display_mode: DisplayMode::DEFAULT,
             is_bot_starting: false,
+            white_taken_pieces: vec![],
+            black_taken_pieces: vec![],
         }
     }
 }
@@ -206,6 +219,7 @@ impl Board {
     pub fn new(board: GameBoard, player_turn: PieceColor, move_history: Vec<PieceMove>) -> Self {
         Self {
             board,
+            board_history: Vec::new(),
             cursor_coordinates: Coord::new(4, 4),
             selected_coordinates: Coord::undefined(),
             selected_piece_cursor: 0,
@@ -221,6 +235,8 @@ impl Board {
             is_game_against_bot: false,
             display_mode: DisplayMode::DEFAULT,
             is_bot_starting: false,
+            white_taken_pieces: vec![],
+            black_taken_pieces: vec![],
         }
     }
 
@@ -653,6 +669,26 @@ impl Board {
             }
         }
 
+        // We check if the move is a capture and add the piece to the taken pieces
+        match (piece_type_from, piece_type_to) {
+            (_, None) => {}
+            (_, Some(piece)) => {
+                let piece_color = get_piece_color(self.board, to);
+                if let Some(piece_color) = piece_color {
+                    match piece_color {
+                        PieceColor::Black => {
+                            self.white_taken_pieces.push(piece);
+                            self.white_taken_pieces.sort();
+                        }
+                        PieceColor::White => {
+                            self.black_taken_pieces.push(piece);
+                            self.black_taken_pieces.sort();
+                        }
+                    }
+                }
+            }
+        }
+
         // We check for en passant as the latest move
         if self.is_latest_move_en_passant(*from, *to) {
             // we kill the pawn
@@ -794,23 +830,33 @@ impl Board {
     }
 
     // Check if the game is a draw
-    pub fn draw_by_repetition(&self) -> bool {
-        if self.move_history.len() >= 9 {
-            let last_ten: Vec<PieceMove> =
-                self.move_history.iter().rev().take(9).copied().collect();
+    pub fn draw_by_repetition(&mut self) -> bool {
+        // A new game has started
+        if self.move_history.is_empty() {
+            self.board_history.clear();
+            self.board_history.push(self.board);
+            return false;
+        }
 
-            if (last_ten[0], last_ten[1]) == (last_ten[4], last_ten[5])
-                && last_ten[4] == last_ten[8]
-                && (last_ten[2], last_ten[3]) == (last_ten[6], last_ten[7])
-            {
+        // Add the new move
+        self.board_history.push(self.board);
+
+        // Index mapping
+        let mut position_counts = std::collections::HashMap::new();
+        for board in self.board_history.iter() {
+            let count = position_counts.entry(board).or_insert(0);
+            *count += 1;
+
+            if *count >= 3 {
                 return true;
             }
         }
+
         false
     }
 
     // Check if the game is a draw
-    pub fn is_draw(&self) -> bool {
+    pub fn is_draw(&mut self) -> bool {
         self.number_of_authorized_positions() == 0
             || self.consecutive_non_pawn_or_capture == 50
             || self.draw_by_repetition()
@@ -1031,7 +1077,40 @@ impl Board {
             history_paragraph,
             history_block.inner(right_panel_layout[0]),
         );
+    }
 
+    pub fn white_material_render(&self, area: Rect, frame: &mut Frame) {
+        let white_block = Block::default()
+            .title("White material")
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(WHITE))
+            .border_type(BorderType::Rounded);
+
+        let mut pieces: String = String::new();
+
+        for i in 0..self.white_taken_pieces.len() {
+            let utf_icon_white =
+                PieceType::piece_to_utf_enum(self.white_taken_pieces[i], Some(PieceColor::Black));
+
+            pieces.push_str(&format!("{utf_icon_white} "));
+        }
+
+        let white_material_paragraph = Paragraph::new(pieces)
+            .alignment(Alignment::Center)
+            .add_modifier(Modifier::BOLD);
+
+        let height = area.height;
+
+        let right_panel_layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(height - 1), Constraint::Length(1)].as_ref())
+            .split(area);
+
+        frame.render_widget(white_block.clone(), right_panel_layout[0]);
+        frame.render_widget(
+            white_material_paragraph,
+            white_block.inner(right_panel_layout[0]),
+        );
         // Bottom paragraph help text
         let text = vec![Line::from("Press ? for help").alignment(Alignment::Center)];
 
@@ -1039,6 +1118,40 @@ impl Board {
             .block(Block::new())
             .alignment(Alignment::Center);
         frame.render_widget(help_paragraph, right_panel_layout[1]);
+    }
+
+    pub fn black_material_render(&self, area: Rect, frame: &mut Frame) {
+        let black_block = Block::default()
+            .title("Black material")
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(WHITE))
+            .border_type(BorderType::Rounded);
+
+        let mut pieces: String = String::new();
+
+        for i in 0..self.black_taken_pieces.len() {
+            let utf_icon_black =
+                PieceType::piece_to_utf_enum(self.black_taken_pieces[i], Some(PieceColor::White));
+
+            pieces.push_str(&format!("{utf_icon_black} "));
+        }
+
+        let black_material_paragraph = Paragraph::new(pieces)
+            .alignment(Alignment::Center)
+            .add_modifier(Modifier::BOLD);
+
+        let height = area.height;
+
+        let right_panel_layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(height - 1), Constraint::Length(1)].as_ref())
+            .split(area);
+
+        frame.render_widget(black_block.clone(), right_panel_layout[0]);
+        frame.render_widget(
+            black_material_paragraph,
+            black_block.inner(right_panel_layout[0]),
+        );
     }
 }
 
@@ -1428,7 +1541,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let board = Board::new(custom_board, PieceColor::White, vec![]);
+        let mut board = Board::new(custom_board, PieceColor::White, vec![]);
 
         assert!(board.is_draw());
     }
@@ -1472,7 +1585,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let board = Board::new(custom_board, PieceColor::White, vec![]);
+        let mut board = Board::new(custom_board, PieceColor::White, vec![]);
 
         assert!(!board.is_draw());
     }
@@ -1815,6 +1928,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
+
         // We setup the board
         let mut board = Board::new(
             custom_board,
@@ -1863,7 +1977,14 @@ mod tests {
             ],
         );
 
-        assert!(!board.is_draw());
+        let mut copy_move_history = board.move_history.clone();
+
+        for piece_move in copy_move_history.iter_mut() {
+            board.move_piece_on_the_board(&piece_move.from, &piece_move.to);
+
+            // In a chess game, board.is_draw() is called after every move
+            assert!(!board.is_draw());
+        }
 
         // Move the king to replicate a third time the same position
         board.move_piece_on_the_board(&Coord::new(0, 2), &Coord::new(0, 1));
