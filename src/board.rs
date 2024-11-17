@@ -734,12 +734,12 @@ impl Board {
                 new_to = &Coord { row: 0, col: 0 };
             }
 
-            let col_rook;
-            if distance > 0 {
-                col_rook = col_king + 1;
+            let col_rook = if distance > 0 {
+                col_king + 1
             } else {
-                col_rook = col_king - 1;
-            }
+                col_king - 1
+            };
+
             self.board[new_to.row as usize][col_rook as usize] =
                 Some((PieceType::Rook, self.player_turn));
 
