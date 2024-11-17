@@ -1,4 +1,4 @@
-Output examples/play_against_bot.gif
+Output examples/play_against_black_bot.gif
 
 Require echo
 

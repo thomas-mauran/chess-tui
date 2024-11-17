@@ -72,6 +72,10 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                 app.show_help_popup = false;
             } else if app.current_page == Pages::Credit {
                 app.current_page = Pages::Home;
+            } else if app.current_page == Pages::Bot && app.selected_color.is_none() {
+                app.current_page = Pages::Home;
+                app.show_color_popup = false;
+                app.menu_cursor = 0;
             }
             app.board.unselect_cell();
         }

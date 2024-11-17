@@ -3,7 +3,7 @@
 A chess TUI implementation in rust 🦀
 </div>
 
-![board](./examples/demo.gif)
+![board](./examples/play_against_white_bot.gif)
 
 ![GitHub CI](https://github.com/thomas-mauran/chess-tui/actions/workflows/flow_test_build_push.yml/badge.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -55,9 +55,8 @@ pacman -S chess-tui
   <summary>Helper menu</summary>
   <img src="./examples/helper.gif" alt="Helper menu" />
 </details>
-
 <details>
-  <summary>Piece moves and checkmate</summary>
+  <summary>Local 2 player mode</summary>
   <img src="./examples/demo.gif" alt="Helper menu" />
 </details>
 <details>
@@ -73,17 +72,13 @@ pacman -S chess-tui
   no demo available yet
 </details>
 <details>
-  <summary>Play against a chess engine</summary>
-  <img src="./examples/play_against_bot.gif" alt="Play against a chess engine" />
+  <summary>Play against any UCI chess engine as black or white</summary>
+  <h3>Play the white pieces</h3>
+  <img src="./examples/play_against_white_bot.gif" alt="Play against a chess engine as white" />
+
+  <h3>Play the black pieces</h3>
+  <img src="./examples/play_against_black_bot.gif" alt="Play against a chess engine as black" />
 </details>
-
-### Roadmap
-
-You can find the roadmap of the project [here](https://github.com/users/thomas-mauran/projects/4) if you want to contribute.
-
-### Crates.io
-
-The project is also available on crates.io [here](https://crates.io/crates/chess-tui)
 
 ### Connect a chess engine
 
@@ -97,3 +92,11 @@ chess-tui -e /your/bin/path
 
 Here I installed stockfish using homebrew and gave chess-tui the path the the engine binary.
 This command will store in your home directory the chess engine path so you don't have to relink it everytime !
+
+### Roadmap
+
+You can find the roadmap of the project [here](https://github.com/users/thomas-mauran/projects/4) if you want to contribute.
+
+### Crates.io
+
+The project is also available on crates.io [here](https://crates.io/crates/chess-tui)
