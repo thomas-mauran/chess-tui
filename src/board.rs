@@ -4,7 +4,7 @@ use crate::{
     utils::{
         col_to_letter, convert_notation_into_position, convert_position_into_notation,
         did_piece_already_move, get_cell_paragraph, get_int_from_char, get_king_coordinates,
-        get_piece_color, get_piece_type, is_getting_checked,
+        get_piece_color, get_piece_type, invert_position, is_getting_checked,
     },
 };
 use ratatui::{
@@ -100,27 +100,47 @@ impl std::ops::IndexMut<&Coord> for GameBoard {
 /// 1 ♜ ♞ ♝ ♛ ♚ ♝ ♞ ♜ 1
 /// . a b c d e f g h .
 pub struct Board {
+    // the actual board
     pub board: GameBoard,
-    pub board_history: Vec<GameBoard>,
+    // the cursor position
     pub cursor_coordinates: Coord,
+    // the selected cell
     pub selected_coordinates: Coord,
+    // the selected piece cursor when we already selected a piece
     pub selected_piece_cursor: i8,
+    // the old cursor position used when unslecting a cell
     pub old_cursor_position: Coord,
+    // the player turn
     pub player_turn: PieceColor,
+    // the move history
     pub move_history: Vec<PieceMove>,
+    // historic of the past position of the board
+    pub board_history: Vec<GameBoard>,
+    // if the game is a draw
     pub is_draw: bool,
+    // if the game is a checkmate
     pub is_checkmate: bool,
+    // if we are doing a promotion
     pub is_promotion: bool,
+    // the cursor for the promotion popup
     pub promotion_cursor: i8,
+    // the number of consecutive non pawn or capture moves
     pub consecutive_non_pawn_or_capture: i32,
+    // the chess engine
     pub engine: Option<Engine>,
+    // if the game is against a bot
     pub is_game_against_bot: bool,
+    // the display mode
     pub display_mode: DisplayMode,
     pub top_x: u16,
     pub top_y: u16,
     pub width: u16,
     pub height: u16,
+    // if the bot is starting, meaning the player is black
+    pub is_bot_starting: bool,
+    // The white piece that got taken
     pub white_taken_pieces: Vec<PieceType>,
+    // The black piece that got taken
     pub black_taken_pieces: Vec<PieceType>,
 
 fn init_board() -> GameBoard {
@@ -195,6 +215,7 @@ impl Default for Board {
             top_y: 0,
             width: 0,
             height: 0,
+            is_bot_starting: false,
             white_taken_pieces: vec![],
             black_taken_pieces: vec![],
         }
@@ -224,6 +245,7 @@ impl Board {
             top_y: 0,
             width: 0,
             height: 0,
+            is_bot_starting: false,
             white_taken_pieces: vec![],
             black_taken_pieces: vec![],
         }
@@ -276,6 +298,19 @@ impl Board {
             PieceColor::White => self.player_turn = PieceColor::Black,
             PieceColor::Black => self.player_turn = PieceColor::White,
         }
+    }
+
+    pub fn flip_the_board(&mut self) {
+        let mut flipped_board = [[None; 8]; 8]; // Create a new empty board of the same type
+
+        for (i, row) in self.board.iter().enumerate() {
+            for (j, &square) in row.iter().enumerate() {
+                // Place each square in the mirrored position
+                flipped_board[7 - i][7 - j] = square;
+            }
+        }
+
+        self.board = flipped_board;
     }
 
     // Cursor movement methods
@@ -396,13 +431,21 @@ impl Board {
             self.promote_piece();
         } else if !self.is_checkmate && !self.is_draw {
             if self.is_cell_selected() {
-                // We already selected a piece
+                // We already selected a piece so we apply the move
                 if self.cursor_coordinates.is_valid() {
                     let selected_coords_usize = &self.selected_coordinates.clone();
                     let cursor_coords_usize = &self.cursor_coordinates.clone();
                     self.move_piece_on_the_board(selected_coords_usize, cursor_coords_usize);
                     self.unselect_cell();
                     self.switch_player_turn();
+                    self.is_draw = self.is_draw();
+                    if (!self.is_game_against_bot || self.is_bot_starting)
+                        && (!self.is_latest_move_promotion()
+                            || self.is_draw()
+                            || self.is_checkmate())
+                    {
+                        self.flip_the_board();
+                    }
                     // If we play against a bot we will play his move and switch the player turn again
                     if self.is_game_against_bot {
                         self.is_promotion = self.is_latest_move_promotion();
@@ -415,7 +458,6 @@ impl Board {
                             }
                         }
                     }
-                    self.is_draw = self.is_draw();
                 }
             } else {
                 // Check if the piece on the cell can move before selecting it
@@ -439,6 +481,7 @@ impl Board {
         }
         self.is_checkmate = self.is_checkmate();
         self.is_promotion = self.is_latest_move_promotion();
+        self.is_draw = self.is_draw();
     }
 
     // Check if the king has already moved (used for castling)
@@ -457,12 +500,10 @@ impl Board {
        We use the UCI protocol to communicate with the chess engine
     */
     pub fn bot_move(&mut self) {
-        let Some(engine) = &self.engine else {
-            panic!("Missing the chess engine")
-        };
+        let engine = self.engine.clone().expect("Missing the chess engine");
+        let fen_position = self.fen_position();
 
-        engine.set_position(&self.fen_position()).unwrap();
-
+        engine.set_position(&(fen_position as String)).unwrap();
         let best_move = engine.bestmove();
         let Ok(movement) = best_move else {
             panic!("An error has occured")
@@ -478,11 +519,19 @@ impl Board {
             &Coord::new(from_y as u8, from_x as u8),
             &Coord::new(to_y as u8, to_x as u8),
         );
+        if self.is_bot_starting {
+            self.flip_the_board();
+        }
     }
 
     // Convert the history and game status to a FEN string
-    pub fn fen_position(&self) -> String {
+    pub fn fen_position(&mut self) -> String {
         let mut result = String::new();
+        let bot_color = if self.is_bot_starting {
+            PieceColor::White
+        } else {
+            PieceColor::Black
+        };
 
         // We loop through the board and convert it to a FEN string
         for i in 0..8u8 {
@@ -525,25 +574,41 @@ impl Board {
         result.pop();
 
         // We say it is blacks turn to play
-        result.push_str(" b");
+        result.push_str(if bot_color == PieceColor::Black {
+            " b"
+        } else {
+            " w"
+        });
 
         // We add the castles availabilities for black
         if !did_piece_already_move(
             &self.move_history,
-            (Some(PieceType::King), Coord::new(0, 4)),
+            (
+                Some(PieceType::King),
+                Some(self.player_turn),
+                Coord::new(0, 4),
+            ),
         ) && !is_getting_checked(self.board, PieceColor::Black, &self.move_history)
         {
             // king side black castle availability
             if !did_piece_already_move(
                 &self.move_history,
-                (Some(PieceType::Rook), Coord::new(0, 7)),
+                (
+                    Some(PieceType::Rook),
+                    Some(self.player_turn),
+                    Coord::new(0, 7),
+                ),
             ) {
                 result.push_str(" k");
             }
             // queen side black castle availability
             if !did_piece_already_move(
                 &self.move_history,
-                (Some(PieceType::Rook), Coord::new(0, 0)),
+                (
+                    Some(PieceType::Rook),
+                    Some(self.player_turn),
+                    Coord::new(0, 0),
+                ),
             ) {
                 result.push('q');
             }
@@ -614,6 +679,9 @@ impl Board {
         }
         self.is_promotion = false;
         self.promotion_cursor = 0;
+        if !self.is_draw() && !self.is_checkmate() {
+            self.flip_the_board();
+        }
     }
 
     // Move a piece from a cell to another
@@ -676,43 +744,39 @@ impl Board {
         // We check for castling as the latest move
         if self.is_latest_move_castling(*from, *to) {
             // we set the king 2 cells on where it came from
-
             let from_x: i32 = from.col as i32;
-            let mut to_x: i32 = to.col as i32;
+            let mut new_to = to;
+            let to_x: i32 = to.col as i32;
 
             let distance = from_x - to_x;
+            // We set the direction of the rook > 0 meaning he went on the left else on the right
             let direction_x = if distance > 0 { -1 } else { 1 };
 
-            let row_index_rook;
-
-            let row_index = from_x + direction_x * 2;
+            let col_king = from_x + direction_x * 2;
 
             // We put move the king 2 cells
-            self.board[to.row as usize][row_index as usize] = self.board[from];
+            self.board[to.row as usize][col_king as usize] = self.board[from];
 
             // We put the rook 3 cells from it's position if it's a big castling else 2 cells
             // If it is playing against a bot we will receive 4 -> 6  and 4 -> 2 for to_x instead of 4 -> 7 and 4 -> 0
-            // big castling
-            match distance {
-                distance if distance > 0 => {
-                    row_index_rook = 3;
-                    if self.is_game_against_bot && self.player_turn == PieceColor::Black {
-                        to_x = 0;
-                    }
-                }
-                distance if distance < 0 => {
-                    row_index_rook = 5;
-                    if self.is_game_against_bot && self.player_turn == PieceColor::Black {
-                        to_x = 7;
-                    }
-                }
-                _ => unreachable!("Undefined distance for castling"),
+            if self.is_game_against_bot && to_x == 6 && to.row == 0 {
+                new_to = &Coord { row: 0, col: 7 };
             }
-            let new_to = Coord::new(to.row, to_x as u8);
-            self.board[to.row as usize][row_index_rook as usize] = self.board[&new_to];
+            if self.is_game_against_bot && to_x == 2 && to.row == 0 {
+                new_to = &Coord { row: 0, col: 0 };
+            }
+
+            let col_rook = if distance > 0 {
+                col_king + 1
+            } else {
+                col_king - 1
+            };
+
+            self.board[new_to.row as usize][col_rook as usize] =
+                Some((PieceType::Rook, self.player_turn));
 
             // We remove the latest rook
-            self.board[&new_to] = None;
+            self.board[new_to] = None;
         } else {
             self.board[to] = self.board[from];
         }
@@ -722,9 +786,12 @@ impl Board {
         // We store it in the history
         self.move_history.push(PieceMove {
             piece_type: piece_type_from,
+            piece_color: self.player_turn,
             from: *from,
             to: *to,
         });
+        // We store the current position of the board
+        self.board_history.push(self.board);
     }
 
     // Method to get the number of authorized positions for the current player (used for the end condition)
@@ -787,18 +854,9 @@ impl Board {
             if let Some(piece_type_to) =
                 get_piece_type(self.board, &Coord::new(last_move.to.row, last_move.to.col))
             {
-                if let Some(piece_color) =
-                    get_piece_color(self.board, &Coord::new(last_move.to.row, last_move.to.col))
-                {
-                    let last_row = if piece_color == PieceColor::White {
-                        0
-                    } else {
-                        7
-                    };
-
-                    if last_move.to.row == last_row && piece_type_to == PieceType::Pawn {
-                        return true;
-                    }
+                let last_row = 0;
+                if last_move.to.row == last_row && piece_type_to == PieceType::Pawn {
+                    return true;
                 }
             }
         }
@@ -822,9 +880,6 @@ impl Board {
             self.board_history.push(self.board);
             return false;
         }
-
-        // Add the new move
-        self.board_history.push(self.board);
 
         // Index mapping
         let mut position_counts = std::collections::HashMap::new();
@@ -902,15 +957,33 @@ impl Board {
                 .split(columns[i as usize + 1]);
             for j in 0..8u8 {
                 // Color of the cell to draw the board
-                let mut cell_color: Color = if (i + j) % 2 == 0 { WHITE } else { BLACK };
+                let cell_color: Color = if (i + j) % 2 == 0 { WHITE } else { BLACK };
 
+                let last_move;
+                let mut last_move_from = Coord::undefined();
+                let mut last_move_to = Coord::undefined();
+                if !self.move_history.is_empty() {
+                    last_move = self.move_history.last();
+                    if self.is_game_against_bot && !self.is_bot_starting {
+                        last_move_from = last_move.map(|m| m.from).unwrap();
+                        last_move_to = last_move.map(|m| m.to).unwrap();
+                    } else {
+                        last_move_from = invert_position(&last_move.map(|m| m.from).unwrap());
+                        last_move_to = invert_position(&last_move.map(|m| m.to).unwrap());
+                    }
+                }
+
+                let mut positions: Vec<Coord> = vec![];
+                let is_cell_in_positions = |positions: &Vec<Coord>, i: u8, j: u8| {
+                    positions.iter().any(|&coord| coord == Coord::new(i, j))
+                };
                 // Draw the available moves for the selected piece
                 if self.is_cell_selected() {
                     let selected_piece_type =
                         get_piece_type(self.board, &self.selected_coordinates);
                     let selected_piece_color: Option<PieceColor> =
                         get_piece_color(self.board, &self.selected_coordinates);
-                    let positions = self.get_authorized_positions(
+                    positions = self.get_authorized_positions(
                         selected_piece_type,
                         selected_piece_color,
                         self.selected_coordinates,
@@ -919,29 +992,42 @@ impl Board {
                     // Draw grey if the color is in the authorized positions
                     for coords in positions.clone() {
                         if i == coords.row && j == coords.col {
-                            cell_color = Color::Rgb(100, 100, 100);
+                            // cell_color = Color::Rgb(100, 100, 100);
                         }
                     }
                 }
 
                 let square = lines[j as usize + 1];
+                // Here we have all the possibilities for a cell:
+                // - selected cell: green
+                // - cursor cell: blue
+                // - available move cell: grey
+                // - checked king cell: magenta
+                // - last move cell: green
+                // - default cell: white or black
                 // Draw the cell blue if this is the current cursor cell
                 if i == self.cursor_coordinates.row && j == self.cursor_coordinates.col {
-                    let cell = Block::default().bg(Color::LightBlue);
-                    frame.render_widget(cell.clone(), square);
-                } else if is_getting_checked(self.board, self.player_turn, &self.move_history)
+                    Board::render_cell(frame, square, Color::LightBlue, None);
+                }
+                // Draw the cell magenta if the king is getting checked
+                else if is_getting_checked(self.board, self.player_turn, &self.move_history)
                     && Coord::new(i, j) == get_king_coordinates(self.board, self.player_turn)
                 {
-                    let cell = Block::default()
-                        .bg(Color::Magenta)
-                        .add_modifier(Modifier::SLOW_BLINK);
-                    frame.render_widget(cell.clone(), square);
+                    Board::render_cell(frame, square, Color::Magenta, Some(Modifier::SLOW_BLINK));
                 }
-                // Draw the cell green if this is the selected cell
-                else if i == self.selected_coordinates.row && j == self.selected_coordinates.col {
-                    let cell = Block::default().bg(Color::LightGreen);
-                    frame.render_widget(cell.clone(), square);
-                } else {
+                // Draw the cell green if this is the selected cell or if the cell is part of the last move
+                else if (i == self.selected_coordinates.row && j == self.selected_coordinates.col)
+                    || (last_move_from == Coord::new(i, j) // If the last move from 
+                        || (last_move_to == Coord::new(i, j) // If last move to
+                            && !is_cell_in_positions(&positions, i, j)))
+                // and not in the authorized positions (grey instead of green)
+                {
+                    Board::render_cell(frame, square, Color::LightGreen, None);
+                } else if is_cell_in_positions(&positions, i, j) {
+                    Board::render_cell(frame, square, Color::Rgb(100, 100, 100), None);
+                }
+                // else as a last resort we draw the cell with the default color either white or black
+                else {
                     let mut cell = Block::default();
                     cell = match self.display_mode {
                         DisplayMode::DEFAULT => cell.bg(cell_color),
@@ -951,7 +1037,6 @@ impl Board {
                             _ => cell.bg(cell_color),
                         },
                     };
-
                     frame.render_widget(cell.clone(), square);
                 }
 
@@ -962,6 +1047,13 @@ impl Board {
                 frame.render_widget(paragraph, square);
             }
         }
+    }
+    fn render_cell(frame: &mut Frame, square: Rect, color: Color, modifier: Option<Modifier>) {
+        let mut cell = Block::default().bg(color);
+        if let Some(modifier) = modifier {
+            cell = cell.add_modifier(modifier);
+        }
+        frame.render_widget(cell, square);
     }
 
     // Method to render the right panel history
@@ -1598,6 +1690,7 @@ mod tests {
             vec![
                 (PieceMove {
                     piece_type: PieceType::Pawn,
+                    piece_color: PieceColor::White,
                     from: Coord::new(7, 3),
                     to: Coord::new(6, 3),
                 }),
@@ -1651,6 +1744,7 @@ mod tests {
             vec![
                 (PieceMove {
                     piece_type: PieceType::Pawn,
+                    piece_color: PieceColor::White,
                     from: Coord::new(1, 4),
                     to: Coord::new(0, 4),
                 }),
@@ -1718,20 +1812,15 @@ mod tests {
     #[test]
     fn is_promote_true_black() {
         let custom_board = [
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
             [
                 None,
-                Some((PieceType::King, PieceColor::Black)),
                 None,
                 None,
                 None,
+                Some((PieceType::Pawn, PieceColor::Black)),
                 None,
                 None,
-                None,
+                Some((PieceType::King, PieceColor::White)),
             ],
             [
                 None,
@@ -1745,14 +1834,19 @@ mod tests {
             ],
             [
                 None,
+                Some((PieceType::King, PieceColor::Black)),
                 None,
                 None,
                 None,
-                Some((PieceType::Pawn, PieceColor::Black)),
                 None,
                 None,
-                Some((PieceType::King, PieceColor::White)),
+                None,
             ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
         ];
         let board = Board::new(
             custom_board,
@@ -1760,8 +1854,9 @@ mod tests {
             vec![
                 (PieceMove {
                     piece_type: PieceType::Pawn,
-                    from: Coord::new(6, 4),
-                    to: Coord::new(7, 4),
+                    piece_color: PieceColor::Black,
+                    from: Coord::new(1, 4),
+                    to: Coord::new(0, 4),
                 }),
             ],
         );
@@ -1779,13 +1874,10 @@ mod tests {
                 None,
                 None,
                 None,
+                Some((PieceType::Pawn, PieceColor::Black)),
                 None,
-                Some((PieceType::Rook, PieceColor::Black)),
-                None,
+                Some((PieceType::King, PieceColor::White)),
             ],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
             [
                 None,
                 Some((PieceType::King, PieceColor::Black)),
@@ -1796,16 +1888,19 @@ mod tests {
                 None,
                 None,
             ],
+            [None, None, None, None, None, None, None, None],
             [
                 None,
                 None,
                 None,
                 None,
                 None,
-                Some((PieceType::Pawn, PieceColor::Black)),
                 None,
-                Some((PieceType::King, PieceColor::White)),
+                Some((PieceType::Rook, PieceColor::Black)),
+                None,
             ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
         // We setup the board
@@ -1813,7 +1908,7 @@ mod tests {
         assert!(!board.is_latest_move_promotion());
 
         // Move the pawn to a promote cell
-        board.move_piece_on_the_board(&Coord::new(6, 5), &Coord::new(7, 5));
+        board.move_piece_on_the_board(&Coord::new(1, 5), &Coord::new(0, 5));
         assert!(board.is_latest_move_promotion());
 
         // Promote the pawn
@@ -1890,41 +1985,49 @@ mod tests {
             vec![
                 (PieceMove {
                     piece_type: PieceType::King,
+                    piece_color: PieceColor::White,
                     from: Coord::new(0, 2),
                     to: Coord::new(0, 1),
                 }),
                 (PieceMove {
                     piece_type: PieceType::King,
+                    piece_color: PieceColor::Black,
                     from: Coord::new(0, 6),
                     to: Coord::new(0, 5),
                 }),
                 (PieceMove {
                     piece_type: PieceType::King,
+                    piece_color: PieceColor::White,
                     from: Coord::new(0, 1),
                     to: Coord::new(0, 2),
                 }),
                 (PieceMove {
                     piece_type: PieceType::King,
+                    piece_color: PieceColor::Black,
                     from: Coord::new(0, 5),
                     to: Coord::new(0, 6),
                 }),
                 (PieceMove {
                     piece_type: PieceType::King,
+                    piece_color: PieceColor::White,
                     from: Coord::new(0, 2),
                     to: Coord::new(0, 1),
                 }),
                 (PieceMove {
                     piece_type: PieceType::King,
+                    piece_color: PieceColor::Black,
                     from: Coord::new(0, 6),
                     to: Coord::new(0, 5),
                 }),
                 (PieceMove {
                     piece_type: PieceType::King,
+                    piece_color: PieceColor::White,
                     from: Coord::new(0, 1),
                     to: Coord::new(0, 2),
                 }),
                 (PieceMove {
                     piece_type: PieceType::King,
+                    piece_color: PieceColor::Black,
                     from: Coord::new(0, 5),
                     to: Coord::new(0, 6),
                 }),
@@ -1976,7 +2079,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
         ];
         // We setup the board
-        let board = Board::new(custom_board, PieceColor::White, vec![]);
+        let mut board = Board::new(custom_board, PieceColor::White, vec![]);
 
         // Move the king to replicate a third time the same position
         assert_eq!(board.fen_position(), "2k4R/8/4K3/8/8/8/8/8 b - - 0 0");
@@ -2022,12 +2125,13 @@ mod tests {
             [None, None, None, None, None, None, None, None],
         ];
         // We setup the board
-        let board = Board::new(
+        let mut board = Board::new(
             custom_board,
             PieceColor::White,
             vec![
                 (PieceMove {
                     piece_type: PieceType::Pawn,
+                    piece_color: PieceColor::White,
                     from: Coord::new(6, 2),
                     to: Coord::new(4, 2),
                 }),
@@ -2086,7 +2190,7 @@ mod tests {
             ],
         ];
         // We setup the board
-        let board = Board::new(custom_board, PieceColor::White, vec![]);
+        let mut board = Board::new(custom_board, PieceColor::White, vec![]);
 
         // Move the king to replicate a third time the same position
         assert_eq!(

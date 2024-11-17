@@ -185,6 +185,7 @@ impl Eq for PieceType {}
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct PieceMove {
     pub piece_type: PieceType,
+    pub piece_color: PieceColor,
     pub from: Coord,
     pub to: Coord,
 }

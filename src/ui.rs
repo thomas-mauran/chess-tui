@@ -12,8 +12,8 @@ use crate::{
     constants::{DisplayMode, Pages, TITLE},
     pieces::PieceColor,
     popups::{
-        render_credit_popup, render_end_popup, render_engine_path_error_popup, render_help_popup,
-        render_promotion_popup,
+        render_color_selection_popup, render_credit_popup, render_end_popup,
+        render_engine_path_error_popup, render_help_popup, render_promotion_popup,
     },
 };
 
@@ -28,15 +28,24 @@ pub fn render(app: &mut App, frame: &mut Frame) {
             match &app.chess_engine_path {
                 Some(path) => {
                     app.board.set_engine(path);
-                    render_game_ui(frame, app, main_area);
+                    if app.selected_color.is_none() {
+                        app.show_color_popup = true;
+                    } else {
+                        render_game_ui(frame, app, main_area);
+                    }
                 }
                 None => render_engine_path_error_popup(frame),
             }
+        } else if app.selected_color.is_none() {
+            app.show_color_popup = true;
         } else {
             render_game_ui(frame, app, main_area);
         }
     } else {
         render_menu_ui(frame, app, main_area);
+    }
+    if app.show_color_popup {
+        render_color_selection_popup(frame, app);
     }
 
     if app.show_help_popup {
