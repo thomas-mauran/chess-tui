@@ -22,24 +22,40 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             }
         }
         // Counter handlers
-        KeyCode::Right | KeyCode::Char('l') => app.board.cursor_right(),
-        KeyCode::Left | KeyCode::Char('h') => app.board.cursor_left(),
+        KeyCode::Right | KeyCode::Char('l') => {
+            // When we are in the color selection menu
+            if app.current_page == Pages::Bot && app.selected_color.is_none() {
+                app.menu_cursor_right(2);
+            } else {
+                app.board.cursor_right();
+            }
+        }
+        KeyCode::Left | KeyCode::Char('h') => {
+            // When we are in the color selection menu
+            if app.current_page == Pages::Bot && app.selected_color.is_none() {
+                app.menu_cursor_left(2);
+            } else {
+                app.board.cursor_left();
+            }
+        }
         KeyCode::Up | KeyCode::Char('k') => {
             if app.current_page == Pages::Home {
-                app.menu_cursor_up();
+                app.menu_cursor_up(Pages::variant_count() as u8);
             } else {
                 app.board.cursor_up();
             }
         }
         KeyCode::Down | KeyCode::Char('j') => {
             if app.current_page == Pages::Home {
-                app.menu_cursor_down();
+                app.menu_cursor_down(Pages::variant_count() as u8);
             } else {
                 app.board.cursor_down();
             }
         }
         KeyCode::Char(' ') | KeyCode::Enter => {
-            if app.current_page == Pages::Home {
+            if app.current_page == Pages::Bot && app.selected_color.is_none() {
+                app.color_selection();
+            } else if app.current_page == Pages::Home {
                 app.menu_select();
             } else {
                 app.board.select_cell();
@@ -56,6 +72,10 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                 app.show_help_popup = false;
             } else if app.current_page == Pages::Credit {
                 app.current_page = Pages::Home;
+            } else if app.current_page == Pages::Bot && app.selected_color.is_none() {
+                app.current_page = Pages::Home;
+                app.show_color_popup = false;
+                app.menu_cursor = 0;
             }
             app.board.unselect_cell();
         }

@@ -1,7 +1,11 @@
 use dirs::home_dir;
 use toml::Value;
 
-use crate::{board::Board, constants::DisplayMode, constants::Pages};
+use crate::{
+    board::Board,
+    constants::{DisplayMode, Pages},
+    pieces::PieceColor,
+};
 use std::{
     error,
     fs::{self, File},
@@ -21,6 +25,10 @@ pub struct App {
     pub current_page: Pages,
     /// Used to show the help popup during the game or in the home menu
     pub show_help_popup: bool,
+    /// Used to show the side selection popup when playing against the bot
+    pub show_color_popup: bool,
+    // Selected color when playing against the bot
+    pub selected_color: Option<PieceColor>,
     /// menu current cursor
     pub menu_cursor: u8,
     /// path of the chess engine
@@ -34,6 +42,8 @@ impl Default for App {
             board: Board::default(),
             current_page: Pages::Home,
             show_help_popup: false,
+            show_color_popup: false,
+            selected_color: None,
             menu_cursor: 0,
             chess_engine_path: None,
         }
@@ -65,32 +75,78 @@ impl App {
         self.running = false;
     }
 
-    pub fn menu_cursor_up(&mut self) {
+    pub fn menu_cursor_up(&mut self, l: u8) {
         if self.menu_cursor > 0 {
             self.menu_cursor -= 1;
         } else {
-            self.menu_cursor = 4;
+            self.menu_cursor = l - 1;
         }
     }
-
-    pub fn menu_cursor_down(&mut self) {
-        if self.menu_cursor < 4 {
+    pub fn menu_cursor_right(&mut self, l: u8) {
+        if self.menu_cursor < l - 1 {
+            self.menu_cursor += 1;
+        } else {
+            self.menu_cursor = 0;
+        }
+    }
+    pub fn menu_cursor_left(&mut self, l: u8) {
+        if self.menu_cursor > 0 {
+            self.menu_cursor -= 1;
+        } else {
+            self.menu_cursor = l - 1;
+        }
+    }
+    pub fn menu_cursor_down(&mut self, l: u8) {
+        if self.menu_cursor < l - 1 {
             self.menu_cursor += 1;
         } else {
             self.menu_cursor = 0;
         }
     }
 
+    pub fn color_selection(&mut self) {
+        self.show_color_popup = false;
+
+        let color = match self.menu_cursor {
+            0 => PieceColor::White,
+            1 => PieceColor::Black,
+            _ => unreachable!("Invalid color selection"),
+        };
+        self.selected_color = Some(color);
+
+        // if the selected Color is Black, we need to switch the board
+        if let Some(color) = self.selected_color {
+            if color == PieceColor::Black {
+                self.board.is_bot_starting = true;
+                self.board.bot_move();
+                self.board.player_turn = PieceColor::Black;
+            }
+        }
+    }
+
     pub fn restart(&mut self) {
         if self.board.is_draw || self.board.is_checkmate {
+            let is_bot_starting = self.board.is_bot_starting;
+            let engine = self.board.engine.clone();
+            let game_is_against_bot = self.board.is_game_against_bot;
             self.board = Board::default();
+            self.board.engine = engine;
+            self.board.is_game_against_bot = game_is_against_bot;
+            if is_bot_starting {
+                self.board.is_bot_starting = true;
+                self.board.bot_move();
+                self.board.player_turn = PieceColor::Black;
+            }
         }
     }
 
     pub fn menu_select(&mut self) {
         match self.menu_cursor {
             0 => self.current_page = Pages::Solo,
-            1 => self.current_page = Pages::Bot,
+            1 => {
+                self.menu_cursor = 0;
+                self.current_page = Pages::Bot
+            }
             2 => {
                 self.board.display_mode = match self.board.display_mode {
                     DisplayMode::ASCII => DisplayMode::DEFAULT,

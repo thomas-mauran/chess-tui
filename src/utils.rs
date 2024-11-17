@@ -128,10 +128,13 @@ pub fn get_int_from_char(ch: Option<char>) -> u8 {
 
 pub fn did_piece_already_move(
     move_history: &[PieceMove],
-    original_piece: (Option<PieceType>, Coord),
+    original_piece: (Option<PieceType>, Option<PieceColor>, Coord),
 ) -> bool {
     for entry in move_history {
-        if Some(entry.piece_type) == original_piece.0 && entry.from == original_piece.1 {
+        if Some(entry.piece_type) == original_piece.0
+            && Some(entry.piece_color) == original_piece.1
+            && entry.from == original_piece.2
+        {
             return true;
         }
     }
@@ -243,6 +246,10 @@ pub fn get_cell_paragraph<'a>(
     };
 
     paragraph.alignment(Alignment::Center)
+}
+
+pub fn invert_position(coord: &Coord) -> Coord {
+    Coord::new(7 - coord.row, 7 - coord.col)
 }
 
 #[cfg(test)]

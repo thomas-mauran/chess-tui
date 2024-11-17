@@ -44,3 +44,8 @@ pub enum Pages {
     Bot,
     Credit,
 }
+impl Pages {
+    pub fn variant_count() -> usize {
+        5
+    }
+}
