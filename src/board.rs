@@ -749,6 +749,8 @@ impl Board {
             from: *from,
             to: *to,
         });
+        // We store the current position of the board
+        self.board_history.push(self.board);
     }
 
     // Method to get the number of authorized positions for the current player (used for the end condition)
@@ -837,9 +839,6 @@ impl Board {
             self.board_history.push(self.board);
             return false;
         }
-
-        // Add the new move
-        self.board_history.push(self.board);
 
         // Index mapping
         let mut position_counts = std::collections::HashMap::new();
