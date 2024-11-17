@@ -1,6 +1,9 @@
 use crate::{
     constants::{DisplayMode, BLACK, UNDEFINED_POSITION, WHITE},
-    pieces::{PieceColor, PieceMove, PieceType},
+    pieces::{
+        rook::{self, Rook},
+        PieceColor, PieceMove, PieceType,
+    },
     utils::{
         col_to_letter, convert_notation_into_position, convert_position_into_notation,
         did_piece_already_move, get_cell_paragraph, get_int_from_char, get_king_coordinates,
@@ -700,43 +703,39 @@ impl Board {
         // We check for castling as the latest move
         if self.is_latest_move_castling(*from, *to) {
             // we set the king 2 cells on where it came from
-
             let from_x: i32 = from.col as i32;
-            let mut to_x: i32 = to.col as i32;
+            let mut new_to = to;
+            let to_x: i32 = to.col as i32;
 
             let distance = from_x - to_x;
+            // We set the direction of the rook > 0 meaning he went on the left else on the right
             let direction_x = if distance > 0 { -1 } else { 1 };
 
-            let row_index_rook;
-
-            let row_index = from_x + direction_x * 2;
+            let col_king = from_x + direction_x * 2;
 
             // We put move the king 2 cells
-            self.board[to.row as usize][row_index as usize] = self.board[from];
+            self.board[to.row as usize][col_king as usize] = self.board[from];
 
             // We put the rook 3 cells from it's position if it's a big castling else 2 cells
             // If it is playing against a bot we will receive 4 -> 6  and 4 -> 2 for to_x instead of 4 -> 7 and 4 -> 0
-            // big castling
-            match distance {
-                distance if distance > 0 => {
-                    row_index_rook = 3;
-                    if self.is_game_against_bot && self.player_turn == PieceColor::Black {
-                        to_x = 0;
-                    }
-                }
-                distance if distance < 0 => {
-                    row_index_rook = 5;
-                    if self.is_game_against_bot && self.player_turn == PieceColor::Black {
-                        to_x = 7;
-                    }
-                }
-                _ => unreachable!("Undefined distance for castling"),
+            if self.is_game_against_bot && to_x == 6 && to.row == 0 {
+                new_to = &Coord { row: 0, col: 7 };
             }
-            let new_to = Coord::new(to.row, to_x as u8);
-            self.board[to.row as usize][row_index_rook as usize] = self.board[&new_to];
+            if self.is_game_against_bot && to_x == 2 && to.row == 0 {
+                new_to = &Coord { row: 0, col: 0 };
+            }
+
+            let col_rook;
+            if distance > 0 {
+                col_rook = col_king + 1;
+            } else {
+                col_rook = col_king - 1;
+            }
+            self.board[new_to.row as usize][col_rook as usize] =
+                Some((PieceType::Rook, self.player_turn));
 
             // We remove the latest rook
-            self.board[&new_to] = None;
+            self.board[new_to] = None;
         } else {
             self.board[to] = self.board[from];
         }
