@@ -144,9 +144,9 @@ fn init_board() -> GameBoard {
     [
         [
             Some((PieceType::Rook, PieceColor::Black)),
-            Some((PieceType::Knight, PieceColor::Black)),
-            Some((PieceType::Bishop, PieceColor::Black)),
-            Some((PieceType::Queen, PieceColor::Black)),
+            None,
+            None,
+            None,
             Some((PieceType::King, PieceColor::Black)),
             Some((PieceType::Bishop, PieceColor::Black)),
             Some((PieceType::Knight, PieceColor::Black)),
@@ -182,8 +182,8 @@ fn init_board() -> GameBoard {
             Some((PieceType::Bishop, PieceColor::White)),
             Some((PieceType::Queen, PieceColor::White)),
             Some((PieceType::King, PieceColor::White)),
-            Some((PieceType::Bishop, PieceColor::White)),
-            Some((PieceType::Knight, PieceColor::White)),
+            None,
+            None,
             Some((PieceType::Rook, PieceColor::White)),
         ],
     ]
@@ -702,8 +702,12 @@ impl Board {
             (_, None) => {}
             (_, Some(piece)) => {
                 let piece_color = get_piece_color(self.board, to);
-                if let Some(piece_color) = piece_color {
-                    match piece_color {
+                // We check if there is a piece and we are not doing a castle
+                if piece_color.is_some()
+                    && (piece_type_to != Some(PieceType::Rook)
+                        && piece_color != Some(self.player_turn))
+                {
+                    match piece_color.unwrap() {
                         PieceColor::Black => {
                             self.white_taken_pieces.push(piece);
                             self.white_taken_pieces.sort();
