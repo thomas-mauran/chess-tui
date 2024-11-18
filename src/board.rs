@@ -702,16 +702,21 @@ impl Board {
             (_, None) => {}
             (_, Some(piece)) => {
                 let piece_color = get_piece_color(self.board, to);
-                if let Some(piece_color) = piece_color {
+                // We check if there is a piece and we are not doing a castle
+                if piece_color.is_some()
+                    && (piece_type_to != Some(PieceType::Rook)
+                        && piece_color != Some(self.player_turn))
+                {
                     match piece_color {
-                        PieceColor::Black => {
+                        Some(PieceColor::Black) => {
                             self.white_taken_pieces.push(piece);
                             self.white_taken_pieces.sort();
                         }
-                        PieceColor::White => {
+                        Some(PieceColor::White) => {
                             self.black_taken_pieces.push(piece);
                             self.black_taken_pieces.sort();
                         }
+                        _ => {}
                     }
                 }
             }
