@@ -483,10 +483,26 @@ impl Board {
         let to_y = get_int_from_char(converted_move.chars().nth(2));
         let to_x = get_int_from_char(converted_move.chars().nth(3));
 
+        let mut promotion_piece: Option<PieceType> = None;
+        if movement.chars().count() == 5 {
+            promotion_piece = match movement.chars().nth(4) {
+                Some('q') => Some(PieceType::Queen),
+                Some('r') => Some(PieceType::Rook),
+                Some('b') => Some(PieceType::Bishop),
+                Some('n') => Some(PieceType::Knight),
+                _ => None,
+            };
+        }
+
         self.move_piece_on_the_board(
             &Coord::new(from_y as u8, from_x as u8),
             &Coord::new(to_y as u8, to_x as u8),
         );
+
+        if promotion_piece.is_some() {
+            self.board[to_y as usize][to_x as usize] =
+                Some((promotion_piece.unwrap(), self.player_turn));
+        }
         if self.is_bot_starting {
             self.flip_the_board();
         }
