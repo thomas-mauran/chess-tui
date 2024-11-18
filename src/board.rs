@@ -144,9 +144,9 @@ fn init_board() -> GameBoard {
     [
         [
             Some((PieceType::Rook, PieceColor::Black)),
-            None,
-            None,
-            None,
+            Some((PieceType::Knight, PieceColor::Black)),
+            Some((PieceType::Bishop, PieceColor::Black)),
+            Some((PieceType::Queen, PieceColor::Black)),
             Some((PieceType::King, PieceColor::Black)),
             Some((PieceType::Bishop, PieceColor::Black)),
             Some((PieceType::Knight, PieceColor::Black)),
@@ -182,8 +182,8 @@ fn init_board() -> GameBoard {
             Some((PieceType::Bishop, PieceColor::White)),
             Some((PieceType::Queen, PieceColor::White)),
             Some((PieceType::King, PieceColor::White)),
-            None,
-            None,
+            Some((PieceType::Bishop, PieceColor::White)),
+            Some((PieceType::Knight, PieceColor::White)),
             Some((PieceType::Rook, PieceColor::White)),
         ],
     ]
