@@ -707,15 +707,16 @@ impl Board {
                     && (piece_type_to != Some(PieceType::Rook)
                         && piece_color != Some(self.player_turn))
                 {
-                    match piece_color.unwrap() {
-                        PieceColor::Black => {
+                    match piece_color {
+                        Some(PieceColor::Black) => {
                             self.white_taken_pieces.push(piece);
                             self.white_taken_pieces.sort();
                         }
-                        PieceColor::White => {
+                        Some(PieceColor::White) => {
                             self.black_taken_pieces.push(piece);
                             self.black_taken_pieces.sort();
                         }
+                        _ => {}
                     }
                 }
             }
