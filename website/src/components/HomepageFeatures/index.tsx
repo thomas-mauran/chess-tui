@@ -9,19 +9,19 @@ type FeatureItem = {
 
 const FeatureList: FeatureItem[] = [
   {
+    title: 'Plug any Chess Engine 🤖',
+    description: (
+      <>
+        You can play locally against any UCI-compatible chess engine.
+      </>
+    ),
+  },
+  {
     title: 'Challenge a Friend 🤼',
     description: (
       <>
         Chess TUI allows you to play chess with a friend on the same computer.
         Games over the network are a work in progress.
-      </>
-    ),
-  },
-  {
-    title: 'Plug any Chess Engine 🤖',
-    description: (
-      <>
-        You can play locally against any UCI-compatible chess engine.
       </>
     ),
   },

@@ -3,6 +3,24 @@
  * and scoped locally.
  */
 
+ .hero__title {
+  font-size: 3rem; /* Adjust size as needed */
+  font-weight: bold;
+  background-color: #ffdcc6;
+  background-image: linear-gradient(-45deg, #ffdcc6 0%, #df650e 80%, #df650e 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  text-align: center;
+}
+
+.hero__subtitle {
+  font-size: 1.5rem; /* Adjust size as needed */
+  font-weight: bold;
+  color: #ffeac5;
+  text-align: center;
+}
+
 .heroBanner {
   padding: 4rem 0;
   text-align: center;
@@ -23,7 +41,8 @@
 }
 
 .featureGif {
-  max-width: 100%; /* Ensure the image doesn't overflow its container */
+  border-radius: 5px;
+  max-width: 70%; /* Ensure the image doesn't overflow its container */
   height: auto; /* Maintain aspect ratio */
   display: inline-block; /* Ensure proper alignment */
 }
