@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkwebsite=self.webpackChunkwebsite||[]).push([[472],{5513:e=>{e.exports=JSON.parse('{"title":"Recent posts","items":[{"title":"This is a WIP","permalink":"/chess-tui/blog/wip","unlisted":false,"date":"2024-11-20T18:51:32.000Z"}]}')}}]);

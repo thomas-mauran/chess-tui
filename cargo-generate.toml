@@ -1,4 +1,0 @@
-# configuration for https://cargo-generate.github.io/cargo-generate/
-
-[template]
-ignore = ["README.md", ".github/"]

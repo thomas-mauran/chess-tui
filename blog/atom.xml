@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?><?xml-stylesheet type="text/xsl" href="atom.xsl"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://thomas-mauran.github.io/chess-tui/blog</id>
+    <title>Chess TUI Blog</title>
+    <updated>2024-11-20T18:51:32.000Z</updated>
+    <generator>https://github.com/jpmonette/feed</generator>
+    <link rel="alternate" href="https://thomas-mauran.github.io/chess-tui/blog"/>
+    <subtitle>Chess TUI Blog</subtitle>
+    <icon>https://thomas-mauran.github.io/chess-tui/img/favicon.ico</icon>
+    <entry>
+        <title type="html"><![CDATA[This is a WIP]]></title>
+        <id>https://thomas-mauran.github.io/chess-tui/blog/wip</id>
+        <link href="https://thomas-mauran.github.io/chess-tui/blog/wip"/>
+        <updated>2024-11-20T18:51:32.000Z</updated>
+    </entry>
+</feed>
