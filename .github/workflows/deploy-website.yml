@@ -19,11 +19,15 @@ jobs:
       with:
         node-version: 18
         cache: yarn
+        cache-dependency-path: website/yarn.lock
 
     - name: Install dependencies
       run: yarn install --frozen-lockfile
+      working-directory: website
+
     - name: Build website
       run: yarn build
+      working-directory: website
 
     - name: Upload Build Artifact
       uses: actions/upload-pages-artifact@v3
