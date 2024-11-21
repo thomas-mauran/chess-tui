@@ -1,7 +1,7 @@
 name: Deploy to GitHub Pages
 
 on:
-  push:
+  pull_request:
     branches:
     - main
     # Review gh actions docs if you want to further define triggers, paths, etc
@@ -32,7 +32,7 @@ jobs:
     - name: Upload Build Artifact
       uses: actions/upload-pages-artifact@v3
       with:
-        path: build
+        path: website/build
 
   deploy:
     name: Deploy to GitHub Pages
