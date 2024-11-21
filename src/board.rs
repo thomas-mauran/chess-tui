@@ -673,11 +673,6 @@ impl Board {
         if !from.is_valid() || !to.is_valid() {
             return;
         }
-        let direction_y: i32 = if self.player_turn == PieceColor::White {
-            -1
-        } else {
-            1
-        };
 
         let piece_type_from = get_piece_type(self.board, from);
         let piece_type_to = get_piece_type(self.board, to);
@@ -725,7 +720,7 @@ impl Board {
         // We check for en passant as the latest move
         if self.is_latest_move_en_passant(*from, *to) {
             // we kill the pawn
-            let row_index = to.row as i32 - direction_y;
+            let row_index = to.row as i32 + 1;
 
             self.board[row_index as usize][to.col as usize] = None;
         }
