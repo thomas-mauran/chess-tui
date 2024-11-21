@@ -7,7 +7,7 @@
   font-size: 3rem; /* Adjust size as needed */
   font-weight: bold;
   background-color: #ffdcc6;
-  background-image: linear-gradient(-45deg, #ffdcc6 0%, #df650e 80%, #df650e 100%);
+  background-image: linear-gradient(-45deg, #ffdcc6 0%, #df650e 70%, #df650e 100%);
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
@@ -17,7 +17,7 @@
 .hero__subtitle {
   font-size: 1.5rem; /* Adjust size as needed */
   font-weight: bold;
-  color: #ffeac5;
+  color: #ebedf0;
   text-align: center;
 }
 
