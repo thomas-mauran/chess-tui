@@ -1,0 +1,39 @@
+/* Root variables for the chess-inspired theme */
+:root {
+  --ifm-color-primary: #3e3e3e; /* Dark color for background or primary accents */
+  --ifm-color-primary-dark: #2b2b2b; /* Darker color for deeper contrasts */
+  --ifm-color-primary-darker: #1a1a1a; /* Even darker shade for dark accents */
+  --ifm-color-primary-darkest: #101010; /* Deepest shade for background */
+  --ifm-color-primary-light: #c4b79f; /* Light, neutral brown, akin to wooden chess pieces */
+  --ifm-color-primary-lighter: #d9c8a6; /* Lighter brown */
+  --ifm-color-primary-lightest: #f2e6d1; /* Lightest shade, cream-colored */
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(62, 62, 62, 0.1); /* Highlighted code line background */
+}
+
+/* Dark mode specific colors */
+[data-theme='dark'] {
+  --ifm-color-primary: #3e3e3e; /* Dark color for background or primary accents */
+  --ifm-color-primary-dark: #2b2b2b; /* Darker color for deeper contrasts */
+  --ifm-color-primary-darker: #1a1a1a; /* Even darker shade for dark accents */
+  --ifm-color-primary-darkest: #101010; /* Deepest shade for background */
+  --ifm-color-primary-light: #a69b77; /* Lighter brown for dark mode */
+  --ifm-color-primary-lighter: #bfae85; /* A bit warmer brown */
+  --ifm-color-primary-lightest: #e1d0a0; /* Light cream shade for dark mode */
+  --docusaurus-highlighted-code-line-bg: rgba(62, 62, 62, 0.3); /* Highlighted code line background */
+}
+
+/* Apply background color and text color to footer */
+footer.footer {
+  background-color: var(--ifm-color-primary-darkest); /* Darkest background for footer */
+  color: var(--ifm-color-primary-light); /* Light text color for footer */
+}
+
+/* Customize footer links */
+footer.footer a {
+  color: var(--ifm-color-primary-lightest); /* Light color for links */
+}
+
+footer.footer a:hover {
+  color: var(--ifm-color-primary-lighter); /* Slightly warmer color for hover state */
+}

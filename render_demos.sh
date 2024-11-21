@@ -13,3 +13,5 @@ fi
 for file in examples/*.tape; do
   vhs "$file"
 done
+
+cp ./examples/*.gif ./website/static/gif
