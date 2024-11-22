@@ -127,11 +127,15 @@ const config: Config = {
       ],
       copyright: `Copyright © ${new Date().getFullYear()} Thomas Mauran, Inc. Built with Docusaurus.`,
     },
-    prism: {
-      theme: prismThemes.github,
-      darkTheme: prismThemes.dracula,
-    },
+
+
+  
   } satisfies Preset.ThemeConfig,
+
+  markdown: {
+    mermaid: true,
+  },
+  themes: ['@docusaurus/theme-mermaid'],
 };
 
 export default config;

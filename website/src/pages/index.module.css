@@ -42,8 +42,9 @@
 
 .featureGif {
   border-radius: 5px;
-  max-width: 70%; /* Ensure the image doesn't overflow its container */
-  height: auto; /* Maintain aspect ratio */
-  display: inline-block; /* Ensure proper alignment */
+  max-width: 70%;
+  height: auto;
+  display: inline-block;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.8);
 }
 
