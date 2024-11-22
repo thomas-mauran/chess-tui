@@ -4,8 +4,9 @@ title: Pieces
 sidebar_position: 2
 ---
 
-# Project architecture
+## Project architecture
 
+Let's begin by looking at the pieces in the game.
 ## Class diagram
 
 ### Pieces
@@ -159,63 +160,4 @@ This is a data structure that represents a position on the board. It contains a 
 #### PieceMove
 
 This is a data structure that represents a move of a piece. It contains the type of the piece, the color of the piece, the starting position, and the ending position. This is mainly used in the board structure that we will see later.
-
-
-### Game itself
-
-```mermaid
----
-title: Chess tui
----
-classDiagram
-    App --> Game
-    App : +int age
-    App: +mate()
-
-
-    
-
-    
-
-    class Game{
-        +board: Board
-        +turn()
-
-    }
-
-    class UI {
-        +Frame
-        +App
-
-        +render()
-        +centered_rect() Rect
-        +render_menu_ui()
-        +render_game_ui()
-    }
-
-    class Utils{
-    }
-
-    class Utils{
-    }
-
-
-    class Board{
-        +pieces: Vec<Piece>
-        +get_piece()
-        +move_piece()
-        +get_possible_moves()
-    }
-```
-
-## Overview
-
-```mermaid
-graph TD
-    A[App] -- Start local game --> B[Game]
-    A -- Start a bot game --> C[Game]
-    B -- On start --> D[Board]
-    B -- On start --> E[UI]
-    B -- On start --> F[UI]
-```
 
