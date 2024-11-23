@@ -1,53 +1,26 @@
 <div align="center">
 <h1>chess-tui</h1>
 A chess TUI implementation in rust 🦀
-</div>
 
 ![board](./examples/play_against_white_bot.gif)
 
-![GitHub CI](https://github.com/thomas-mauran/chess-tui/actions/workflows/flow_test_build_push.yml/badge.svg)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![GitHub release](https://img.shields.io/github/v/release/thomas-mauran/chess-tui?color=success)](https://github.com/thomas-mauran/chess-tui/releases/latest)
+<div>
 
-### Demo
+  ![GitHub CI](https://github.com/thomas-mauran/chess-tui/actions/workflows/flow_test_build_push.yml/badge.svg)[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)[![GitHub release](https://img.shields.io/github/v/release/thomas-mauran/chess-tui?color=success)](https://github.com/thomas-mauran/chess-tui/releases/latest)
+  </div>
+</div>
 
-**With docker**
+### Quick install
 
 ```bash
-docker run --rm -it ghcr.io/thomas-mauran/chess-tui:main
-```
-
-**With Cargo**
-
-```
 cargo install chess-tui
 chess-tui
 ```
 
-**With Github**
+If you want to install the game with your favorite package manager, you can find the installation guide [here](https://thomas-mauran.github.io/chess-tui/docs/Installation/Packaging%20status).
 
-```
-git clone git@github.com:thomas-mauran/chess-tui.git
-cd chess-tui
-cargo build --release
-./target/release/chess-tui
-```
-
-**NetBSD**
-
-On NetBSD a pre-compiled binary is available from the official repositories. To install it, simply run:
-
-```
-pkgin install chess-tui
-```
-
-**Arch Linux**
-
-You can install from official repositories:
-
-```
-pacman -S chess-tui
-```
+### Available on
+[![Packaging status](https://repology.org/badge/vertical-allrepos/chess-tui.svg)](https://repology.org/project/chess-tui/versions)
 
 ### Features
 
@@ -92,6 +65,10 @@ chess-tui -e /your/bin/path
 
 Here I installed stockfish using homebrew and gave chess-tui the path the the engine binary.
 This command will store in your home directory the chess engine path so you don't have to relink it everytime !
+
+### Documentation
+
+You can find the documentation of the project [here](https://thomas-mauran.github.io/chess-tui/docs/Intro)
 
 ### Roadmap
 
