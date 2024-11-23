@@ -13,14 +13,14 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         // crossterm on Windows sends Release and Repeat events as well, which we ignore.
         return Ok(());
     }
-    if app.board.mouse_used {
-        app.board.mouse_used = false;
-        if app.board.selected_coordinates != Coord::undefined() {
-            app.board.cursor_coordinates = app.board.selected_coordinates;
-            app.board.selected_coordinates = Coord::undefined();
+    if app.game.board.mouse_used {
+        app.game.board.mouse_used = false;
+        if app.game.board.selected_coordinates != Coord::undefined() {
+            app.game.board.cursor_coordinates = app.game.board.selected_coordinates;
+            app.game.board.selected_coordinates = Coord::undefined();
         } else {
-            app.board.cursor_coordinates.col = 4;
-            app.board.cursor_coordinates.row = 4;
+            app.game.board.cursor_coordinates.col = 4;
+            app.game.board.cursor_coordinates.row = 4;
         }
     }
 
@@ -108,7 +108,7 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
         return Ok(());
     }
     if mouse_event.kind == MouseEventKind::Down(MouseButton::Left) {
-        if app.board.is_checkmate || app.board.is_draw {
+        if app.game.board.is_checkmate || app.game.board.is_draw {
             return Ok(());
         }
 
@@ -118,26 +118,26 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
 
         // If there is a promotion to be done the top_x, top_y, width and height
         // values are updated accordingly
-        if app.board.is_promotion {
-            let x = (mouse_event.column - app.board.top_x) / app.board.width;
-            let y = (mouse_event.row - app.board.top_y) / app.board.height;
+        if app.game.board.is_promotion {
+            let x = (mouse_event.column - app.game.board.top_x) / app.game.board.width;
+            let y = (mouse_event.row - app.game.board.top_y) / app.game.board.height;
             if x > 3 || y > 0 {
                 return Ok(());
             }
-            app.board.promotion_cursor = x as i8;
-            app.board.promote_piece();
+            app.game.board.promotion_cursor = x as i8;
+            app.game.board.promote_piece();
         }
-        if mouse_event.column < app.board.top_x || mouse_event.row < app.board.top_y {
+        if mouse_event.column < app.game.board.top_x || mouse_event.row < app.game.board.top_y {
             return Ok(());
         }
-        let x = (mouse_event.column - app.board.top_x) / app.board.width;
-        let y = (mouse_event.row - app.board.top_y) / app.board.height;
+        let x = (mouse_event.column - app.game.board.top_x) / app.game.board.width;
+        let y = (mouse_event.row - app.game.board.top_y) / app.game.board.height;
         if x > 7 || y > 7 {
             return Ok(());
         }
-        app.board.mouse_used = true;
+        app.game.board.mouse_used = true;
         let coords: Coord = Coord::new(y as u8, x as u8);
-        app.board.move_selected_piece_cursor_mouse(coords);
+        app.game.board.move_selected_piece_cursor_mouse(coords);
     }
     Ok(())
 }
