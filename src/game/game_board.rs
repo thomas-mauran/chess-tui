@@ -1,5 +1,11 @@
-use super::board::{init_board, Board};
-use crate::pieces::PieceMove;
+use super::{
+    board::{init_board, Board},
+    coord::Coord,
+};
+use crate::{
+    pieces::{PieceColor, PieceMove, PieceType},
+    utils::is_getting_checked,
+};
 
 /// ## visual representation
 ///
@@ -55,6 +61,26 @@ impl GameBoard {
             board,
             move_history,
             board_history,
+        }
+    }
+
+    pub fn get_authorized_positions(
+        &self,
+        player_turn: PieceColor,
+        coordinates: Coord,
+    ) -> Vec<Coord> {
+        if let Some((piece_type, piece_color)) =
+            self.board[coordinates.row as usize][coordinates.col as usize]
+        {
+            return piece_type.authorized_positions(
+                &coordinates,
+                piece_color,
+                self.board,
+                &self.move_history,
+                is_getting_checked(self.board, player_turn, &self.move_history),
+            );
+        } else {
+            return vec![];
         }
     }
 }

@@ -147,28 +147,6 @@ impl Game {
             && self.selected_coordinates.col != UNDEFINED_POSITION
     }
 
-    fn get_authorized_positions(
-        &self,
-        piece_type: Option<PieceType>,
-        piece_color: Option<PieceColor>,
-        coordinates: Coord,
-    ) -> Vec<Coord> {
-        match (piece_type, piece_color) {
-            (Some(piece_type), Some(piece_color)) => piece_type.authorized_positions(
-                &coordinates,
-                piece_color,
-                self.game_board.board,
-                &self.game_board.move_history,
-                is_getting_checked(
-                    self.game_board.board,
-                    self.player_turn,
-                    &self.game_board.move_history,
-                ),
-            ),
-            _ => Vec::new(),
-        }
-    }
-
     pub fn switch_player_turn(&mut self) {
         match self.player_turn {
             PieceColor::White => self.player_turn = PieceColor::Black,
@@ -253,8 +231,9 @@ impl Game {
         let piece_color = get_piece_color(self.game_board.board, &self.selected_coordinates);
         let piece_type = get_piece_type(self.game_board.board, &self.selected_coordinates);
 
-        let mut authorized_positions =
-            self.get_authorized_positions(piece_type, piece_color, self.selected_coordinates);
+        let mut authorized_positions = self
+            .game_board
+            .get_authorized_positions(self.player_turn, self.selected_coordinates);
 
         if authorized_positions.is_empty() {
             self.cursor_coordinates = Coord::undefined();
@@ -283,8 +262,9 @@ impl Game {
         let piece_color = get_piece_color(self.game_board.board, &self.selected_coordinates);
         let piece_type = get_piece_type(self.game_board.board, &self.selected_coordinates);
 
-        let authorized_positions =
-            self.get_authorized_positions(piece_type, piece_color, self.selected_coordinates);
+        let authorized_positions = self
+            .game_board
+            .get_authorized_positions(self.player_turn, self.selected_coordinates);
         if authorized_positions.contains(&coordinates)
             && match piece_color {
                 Some(piece) => piece == self.player_turn,
@@ -335,11 +315,9 @@ impl Game {
                 }
             } else {
                 // Check if the piece on the cell can move before selecting it
-                let piece_color = get_piece_color(self.game_board.board, &self.cursor_coordinates);
-                let piece_type = get_piece_type(self.game_board.board, &self.cursor_coordinates);
-
-                let authorized_positions =
-                    self.get_authorized_positions(piece_type, piece_color, self.cursor_coordinates);
+                let authorized_positions = self
+                    .game_board
+                    .get_authorized_positions(self.player_turn, self.cursor_coordinates);
 
                 if authorized_positions.is_empty() {
                     return;
@@ -700,11 +678,10 @@ impl Game {
                 let coord = Coord::new(i, j);
                 if let Some((piece_type, piece_color)) = self.game_board.board[&coord] {
                     if piece_color == self.player_turn {
-                        possible_moves.extend(self.get_authorized_positions(
-                            Some(piece_type),
-                            Some(piece_color),
-                            coord,
-                        ));
+                        possible_moves.extend(
+                            self.game_board
+                                .get_authorized_positions(self.player_turn, coord),
+                        );
                     }
                 }
             }
@@ -890,11 +867,9 @@ impl Game {
                         Some(color) => color == self.player_turn,
                         None => false,
                     } {
-                        positions = self.get_authorized_positions(
-                            selected_piece_type,
-                            selected_piece_color,
-                            self.selected_coordinates,
-                        );
+                        positions = self
+                            .game_board
+                            .get_authorized_positions(self.player_turn, self.selected_coordinates);
 
                         // Draw grey if the color is in the authorized positions
                         for coords in positions.clone() {
