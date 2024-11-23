@@ -112,6 +112,10 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
             return Ok(());
         }
 
+        if app.show_color_popup || app.show_help_popup {
+            return Ok(());
+        }
+
         // If there is a promotion to be done the top_x, top_y, width and height
         // values are updated accordingly
         if app.board.is_promotion {
