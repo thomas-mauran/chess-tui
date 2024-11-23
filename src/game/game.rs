@@ -1,4 +1,4 @@
-use super::{board::GameBoard, coord::Coord};
+use super::{coord::Coord, game_board::GameBoard};
 use crate::{
     constants::{DisplayMode, BLACK, UNDEFINED_POSITION, WHITE},
     pieces::{PieceColor, PieceMove, PieceType},
@@ -17,36 +17,9 @@ use ratatui::{
 };
 use uci::Engine;
 
-/// ## visual representation
-///
-/// ### how it's stored:
-///
-/// . 0 1 2 3 4 5 6 7 .
-/// 0 ♖ ♘ ♗ ♕ ♔ ♗ ♘ ♖ 0
-/// 1 ♙ ♙ ♙ ♙ ♙ ♙ ♙ ♙ 1
-/// 2 . . . . . . . . 2
-/// 3 . . . . . . . . 3
-/// 4 . . . . . . . . 4
-/// 5 . . . . . . . . 5
-/// 6 ♟ ♟ ♟ ♟ ♟ ♟ ♟ ♟ 6
-/// 7 ♜ ♞ ♝ ♛ ♚ ♝ ♞ ♜ 7
-/// . 0 1 2 3 4 5 6 7 .
-///
-/// ### how it's rendered:
-///
-/// . a b c d e f g h .
-/// 8 ♖ ♘ ♗ ♕ ♔ ♗ ♘ ♖ 8
-/// 7 ♙ ♙ ♙ ♙ ♙ ♙ ♙ ♙ 7
-/// 6 . . . . . . . . 6
-/// 5 . . . . . . . . 5
-/// 4 . . . . . . . . 4
-/// 3 . . . . . . . . 3
-/// 2 ♟ ♟ ♟ ♟ ♟ ♟ ♟ ♟ 2
-/// 1 ♜ ♞ ♝ ♛ ♚ ♝ ♞ ♜ 1
-/// . a b c d e f g h .
 pub struct Game {
     // the actual board
-    pub board: GameBoard,
+    pub game_board: GameBoard,
     // the cursor position
     pub cursor_coordinates: Coord,
     // the selected cell
@@ -57,10 +30,6 @@ pub struct Game {
     pub old_cursor_position: Coord,
     // the player turn
     pub player_turn: PieceColor,
-    // the move history
-    pub move_history: Vec<PieceMove>,
-    // historic of the past position of the board
-    pub board_history: Vec<GameBoard>,
     // if the game is a draw
     pub is_draw: bool,
     // if the game is a checkmate
@@ -94,66 +63,16 @@ pub struct Game {
     // The black piece that got taken
     pub black_taken_pieces: Vec<PieceType>,
 }
-fn init_board() -> GameBoard {
-    [
-        [
-            Some((PieceType::Rook, PieceColor::Black)),
-            Some((PieceType::Knight, PieceColor::Black)),
-            Some((PieceType::Bishop, PieceColor::Black)),
-            Some((PieceType::Queen, PieceColor::Black)),
-            Some((PieceType::King, PieceColor::Black)),
-            Some((PieceType::Bishop, PieceColor::Black)),
-            Some((PieceType::Knight, PieceColor::Black)),
-            Some((PieceType::Rook, PieceColor::Black)),
-        ],
-        [
-            Some((PieceType::Pawn, PieceColor::Black)),
-            Some((PieceType::Pawn, PieceColor::Black)),
-            Some((PieceType::Pawn, PieceColor::Black)),
-            Some((PieceType::Pawn, PieceColor::Black)),
-            Some((PieceType::Pawn, PieceColor::Black)),
-            Some((PieceType::Pawn, PieceColor::Black)),
-            Some((PieceType::Pawn, PieceColor::Black)),
-            Some((PieceType::Pawn, PieceColor::Black)),
-        ],
-        [None, None, None, None, None, None, None, None],
-        [None, None, None, None, None, None, None, None],
-        [None, None, None, None, None, None, None, None],
-        [None, None, None, None, None, None, None, None],
-        [
-            Some((PieceType::Pawn, PieceColor::White)),
-            Some((PieceType::Pawn, PieceColor::White)),
-            Some((PieceType::Pawn, PieceColor::White)),
-            Some((PieceType::Pawn, PieceColor::White)),
-            Some((PieceType::Pawn, PieceColor::White)),
-            Some((PieceType::Pawn, PieceColor::White)),
-            Some((PieceType::Pawn, PieceColor::White)),
-            Some((PieceType::Pawn, PieceColor::White)),
-        ],
-        [
-            Some((PieceType::Rook, PieceColor::White)),
-            Some((PieceType::Knight, PieceColor::White)),
-            Some((PieceType::Bishop, PieceColor::White)),
-            Some((PieceType::Queen, PieceColor::White)),
-            Some((PieceType::King, PieceColor::White)),
-            Some((PieceType::Bishop, PieceColor::White)),
-            Some((PieceType::Knight, PieceColor::White)),
-            Some((PieceType::Rook, PieceColor::White)),
-        ],
-    ]
-}
 
 impl Default for Game {
     fn default() -> Self {
         Self {
-            board: init_board(),
-            board_history: vec![init_board()],
+            game_board: GameBoard::default(),
             cursor_coordinates: Coord::new(4, 4),
             selected_coordinates: Coord::undefined(),
             selected_piece_cursor: 0,
             old_cursor_position: Coord::undefined(),
             player_turn: PieceColor::White,
-            move_history: vec![],
             is_draw: false,
             is_checkmate: false,
             is_promotion: false,
@@ -176,16 +95,14 @@ impl Default for Game {
 }
 
 impl Game {
-    pub fn new(board: GameBoard, player_turn: PieceColor, move_history: Vec<PieceMove>) -> Self {
+    pub fn new(game_board: GameBoard, player_turn: PieceColor) -> Self {
         Self {
-            board,
-            board_history: Vec::new(),
+            game_board,
             cursor_coordinates: Coord::new(4, 4),
             selected_coordinates: Coord::undefined(),
             selected_piece_cursor: 0,
             old_cursor_position: Coord::undefined(),
             player_turn,
-            move_history,
             is_draw: false,
             is_checkmate: false,
             is_promotion: false,
@@ -207,8 +124,8 @@ impl Game {
     }
 
     // Setters
-    pub fn set_board(&mut self, board: GameBoard) {
-        self.board = board;
+    pub fn set_board(&mut self, game_board: GameBoard) {
+        self.game_board = game_board;
     }
 
     pub fn set_player_turn(&mut self, player_turn: PieceColor) {
@@ -240,9 +157,13 @@ impl Game {
             (Some(piece_type), Some(piece_color)) => piece_type.authorized_positions(
                 &coordinates,
                 piece_color,
-                self.board,
-                &self.move_history,
-                is_getting_checked(self.board, self.player_turn, &self.move_history),
+                self.game_board.board,
+                &self.game_board.move_history,
+                is_getting_checked(
+                    self.game_board.board,
+                    self.player_turn,
+                    &self.game_board.move_history,
+                ),
             ),
             _ => Vec::new(),
         }
@@ -258,14 +179,14 @@ impl Game {
     pub fn flip_the_board(&mut self) {
         let mut flipped_board = [[None; 8]; 8]; // Create a new empty board of the same type
 
-        for (i, row) in self.board.iter().enumerate() {
+        for (i, row) in self.game_board.board.iter().enumerate() {
             for (j, &square) in row.iter().enumerate() {
                 // Place each square in the mirrored position
                 flipped_board[7 - i][7 - j] = square;
             }
         }
 
-        self.board = flipped_board;
+        self.game_board.board = flipped_board;
     }
 
     // Cursor movement methods
@@ -329,8 +250,8 @@ impl Game {
        We make sure that the cursor is in the authorized positions
     */
     fn move_selected_piece_cursor(&mut self, first_time_moving: bool, direction: i8) {
-        let piece_color = get_piece_color(self.board, &self.selected_coordinates);
-        let piece_type = get_piece_type(self.board, &self.selected_coordinates);
+        let piece_color = get_piece_color(self.game_board.board, &self.selected_coordinates);
+        let piece_type = get_piece_type(self.game_board.board, &self.selected_coordinates);
 
         let mut authorized_positions =
             self.get_authorized_positions(piece_type, piece_color, self.selected_coordinates);
@@ -359,8 +280,8 @@ impl Game {
     }
 
     pub fn move_selected_piece_cursor_mouse(&mut self, coordinates: Coord) {
-        let piece_color = get_piece_color(self.board, &self.selected_coordinates);
-        let piece_type = get_piece_type(self.board, &self.selected_coordinates);
+        let piece_color = get_piece_color(self.game_board.board, &self.selected_coordinates);
+        let piece_type = get_piece_type(self.game_board.board, &self.selected_coordinates);
 
         let authorized_positions =
             self.get_authorized_positions(piece_type, piece_color, self.selected_coordinates);
@@ -414,8 +335,8 @@ impl Game {
                 }
             } else {
                 // Check if the piece on the cell can move before selecting it
-                let piece_color = get_piece_color(self.board, &self.cursor_coordinates);
-                let piece_type = get_piece_type(self.board, &self.cursor_coordinates);
+                let piece_color = get_piece_color(self.game_board.board, &self.cursor_coordinates);
+                let piece_type = get_piece_type(self.game_board.board, &self.cursor_coordinates);
 
                 let authorized_positions =
                     self.get_authorized_positions(piece_type, piece_color, self.cursor_coordinates);
@@ -423,7 +344,9 @@ impl Game {
                 if authorized_positions.is_empty() {
                     return;
                 }
-                if let Some(piece_color) = get_piece_color(self.board, &self.cursor_coordinates) {
+                if let Some(piece_color) =
+                    get_piece_color(self.game_board.board, &self.cursor_coordinates)
+                {
                     if piece_color == self.player_turn {
                         self.selected_coordinates = self.cursor_coordinates;
                         self.old_cursor_position = self.cursor_coordinates;
@@ -439,8 +362,8 @@ impl Game {
 
     // Check if the king has already moved (used for castling)
     pub fn did_king_already_move(&self) -> bool {
-        for i in 0..self.move_history.len() {
-            if self.move_history[i].piece_type == PieceType::King
+        for i in 0..self.game_board.move_history.len() {
+            if self.game_board.move_history[i].piece_type == PieceType::King
                 && self.player_turn as usize == i % 2
             {
                 return true;
@@ -485,7 +408,7 @@ impl Game {
         );
 
         if promotion_piece.is_some() {
-            self.board[to_y as usize][to_x as usize] =
+            self.game_board.board[to_y as usize][to_x as usize] =
                 Some((promotion_piece.unwrap(), self.player_turn));
         }
         if self.is_bot_starting {
@@ -507,8 +430,8 @@ impl Game {
             for j in 0..8u8 {
                 // We get the piece type and color
                 let (piece_type, piece_color) = (
-                    get_piece_type(self.board, &Coord::new(i, j)),
-                    get_piece_color(self.board, &Coord::new(i, j)),
+                    get_piece_type(self.game_board.board, &Coord::new(i, j)),
+                    get_piece_color(self.game_board.board, &Coord::new(i, j)),
                 );
                 let letter = PieceType::piece_to_fen_enum(piece_type, piece_color);
                 // Pattern match directly on the result of piece_to_fen_enum
@@ -551,17 +474,20 @@ impl Game {
 
         // We add the castles availabilities for black
         if !did_piece_already_move(
-            &self.move_history,
+            &self.game_board.move_history,
             (
                 Some(PieceType::King),
                 Some(self.player_turn),
                 Coord::new(0, 4),
             ),
-        ) && !is_getting_checked(self.board, PieceColor::Black, &self.move_history)
-        {
+        ) && !is_getting_checked(
+            self.game_board.board,
+            PieceColor::Black,
+            &self.game_board.move_history,
+        ) {
             // king side black castle availability
             if !did_piece_already_move(
-                &self.move_history,
+                &self.game_board.move_history,
                 (
                     Some(PieceType::Rook),
                     Some(self.player_turn),
@@ -572,7 +498,7 @@ impl Game {
             }
             // queen side black castle availability
             if !did_piece_already_move(
-                &self.move_history,
+                &self.game_board.move_history,
                 (
                     Some(PieceType::Rook),
                     Some(self.player_turn),
@@ -588,7 +514,7 @@ impl Game {
         // We check if the latest move is a pawn moving 2 cells, meaning the next move can be en passant
         if self.did_pawn_move_two_cells() {
             // Use an if-let pattern for better readability
-            if let Some(last_move) = self.move_history.last() {
+            if let Some(last_move) = self.game_board.move_history.last() {
                 let mut converted_move = String::new();
 
                 converted_move += &col_to_letter(last_move.from.col);
@@ -607,14 +533,14 @@ impl Game {
         result.push_str(&self.consecutive_non_pawn_or_capture.to_string());
         result.push(' ');
 
-        result.push_str(&(self.move_history.len() / 2).to_string());
+        result.push_str(&(self.game_board.move_history.len() / 2).to_string());
 
         result
     }
 
     // Check if the pawn moved two cells (used for en passant)
     pub fn did_pawn_move_two_cells(&self) -> bool {
-        match self.move_history.last() {
+        match self.game_board.move_history.last() {
             Some(last_move) => {
                 let distance = (last_move.to.row as i8 - last_move.from.row as i8).abs();
 
@@ -629,7 +555,7 @@ impl Game {
 
     // Method to promote a pawn
     pub fn promote_piece(&mut self) {
-        if let Some(last_move) = self.move_history.last() {
+        if let Some(last_move) = self.game_board.move_history.last() {
             let new_piece = match self.promotion_cursor {
                 0 => PieceType::Queen,
                 1 => PieceType::Rook,
@@ -638,11 +564,13 @@ impl Game {
                 _ => unreachable!("Promotion cursor out of boundaries"),
             };
 
-            let current_piece_color =
-                get_piece_color(self.board, &Coord::new(last_move.to.row, last_move.to.col));
+            let current_piece_color = get_piece_color(
+                self.game_board.board,
+                &Coord::new(last_move.to.row, last_move.to.col),
+            );
             if let Some(piece_color) = current_piece_color {
                 // we replace the piece by the new piece type
-                self.board[last_move.to.row as usize][last_move.to.col as usize] =
+                self.game_board.board[last_move.to.row as usize][last_move.to.col as usize] =
                     Some((new_piece, piece_color));
             }
         }
@@ -659,8 +587,8 @@ impl Game {
             return;
         }
 
-        let piece_type_from = get_piece_type(self.board, from);
-        let piece_type_to = get_piece_type(self.board, to);
+        let piece_type_from = get_piece_type(self.game_board.board, from);
+        let piece_type_to = get_piece_type(self.game_board.board, to);
 
         // Check if moving a piece
         let Some(piece_type_from) = piece_type_from else {
@@ -681,7 +609,7 @@ impl Game {
         match (piece_type_from, piece_type_to) {
             (_, None) => {}
             (_, Some(piece)) => {
-                let piece_color = get_piece_color(self.board, to);
+                let piece_color = get_piece_color(self.game_board.board, to);
                 // We check if there is a piece and we are not doing a castle
                 if piece_color.is_some()
                     && (piece_type_to != Some(PieceType::Rook)
@@ -707,7 +635,7 @@ impl Game {
             // we kill the pawn
             let row_index = to.row as i32 + 1;
 
-            self.board[row_index as usize][to.col as usize] = None;
+            self.game_board.board[row_index as usize][to.col as usize] = None;
         }
 
         // We check for castling as the latest move
@@ -724,7 +652,7 @@ impl Game {
             let col_king = from_x + direction_x * 2;
 
             // We put move the king 2 cells
-            self.board[to.row as usize][col_king as usize] = self.board[from];
+            self.game_board.board[to.row as usize][col_king as usize] = self.game_board.board[from];
 
             // We put the rook 3 cells from it's position if it's a big castling else 2 cells
             // If it is playing against a bot we will receive 4 -> 6  and 4 -> 2 for to_x instead of 4 -> 7 and 4 -> 0
@@ -741,26 +669,26 @@ impl Game {
                 col_king - 1
             };
 
-            self.board[new_to.row as usize][col_rook as usize] =
+            self.game_board.board[new_to.row as usize][col_rook as usize] =
                 Some((PieceType::Rook, self.player_turn));
 
             // We remove the latest rook
-            self.board[new_to] = None;
+            self.game_board.board[new_to] = None;
         } else {
-            self.board[to] = self.board[from];
+            self.game_board.board[to] = self.game_board.board[from];
         }
 
-        self.board[from] = None;
+        self.game_board.board[from] = None;
 
         // We store it in the history
-        self.move_history.push(PieceMove {
+        self.game_board.move_history.push(PieceMove {
             piece_type: piece_type_from,
             piece_color: self.player_turn,
             from: *from,
             to: *to,
         });
         // We store the current position of the board
-        self.board_history.push(self.board);
+        self.game_board.board_history.push(self.game_board.board);
     }
 
     // Method to get the number of authorized positions for the current player (used for the end condition)
@@ -770,7 +698,7 @@ impl Game {
         for i in 0..8 {
             for j in 0..8 {
                 let coord = Coord::new(i, j);
-                if let Some((piece_type, piece_color)) = self.board[&coord] {
+                if let Some((piece_type, piece_color)) = self.game_board.board[&coord] {
                     if piece_color == self.player_turn {
                         possible_moves.extend(self.get_authorized_positions(
                             Some(piece_type),
@@ -786,8 +714,8 @@ impl Game {
 
     // Check if the latest move is en passant
     fn is_latest_move_en_passant(&self, from: Coord, to: Coord) -> bool {
-        let piece_type_from = get_piece_type(self.board, &from);
-        let piece_type_to = get_piece_type(self.board, &to);
+        let piece_type_from = get_piece_type(self.game_board.board, &from);
+        let piece_type_to = get_piece_type(self.game_board.board, &to);
 
         let from_y: i32 = from.row as i32;
         let from_x: i32 = from.col as i32;
@@ -796,7 +724,7 @@ impl Game {
         match (piece_type_from, piece_type_to) {
             (Some(PieceType::Pawn), _) => {
                 // Check if it's a diagonal move, and the destination is an empty cell
-                from_y != to_y && from_x != to_x && self.board[&to].is_none()
+                from_y != to_y && from_x != to_x && self.game_board.board[&to].is_none()
             }
             _ => false,
         }
@@ -804,8 +732,8 @@ impl Game {
 
     // Check if the latest move is castling
     fn is_latest_move_castling(&self, from: Coord, to: Coord) -> bool {
-        let piece_type_from = get_piece_type(self.board, &from);
-        let piece_type_to = get_piece_type(self.board, &to);
+        let piece_type_from = get_piece_type(self.game_board.board, &from);
+        let piece_type_to = get_piece_type(self.game_board.board, &to);
 
         let from_x: i32 = from.col as i32;
         let to_x: i32 = to.col as i32;
@@ -819,10 +747,11 @@ impl Game {
 
     // Check if the latest move is a promotion
     pub fn is_latest_move_promotion(&self) -> bool {
-        if let Some(last_move) = self.move_history.last() {
-            if let Some(piece_type_to) =
-                get_piece_type(self.board, &Coord::new(last_move.to.row, last_move.to.col))
-            {
+        if let Some(last_move) = self.game_board.move_history.last() {
+            if let Some(piece_type_to) = get_piece_type(
+                self.game_board.board,
+                &Coord::new(last_move.to.row, last_move.to.col),
+            ) {
                 let last_row = 0;
                 if last_move.to.row == last_row && piece_type_to == PieceType::Pawn {
                     return true;
@@ -834,7 +763,11 @@ impl Game {
 
     // Check if the game is checkmate
     pub fn is_checkmate(&self) -> bool {
-        if !is_getting_checked(self.board, self.player_turn, &self.move_history) {
+        if !is_getting_checked(
+            self.game_board.board,
+            self.player_turn,
+            &self.game_board.move_history,
+        ) {
             return false;
         }
 
@@ -844,15 +777,15 @@ impl Game {
     // Check if the game is a draw
     pub fn draw_by_repetition(&mut self) -> bool {
         // A new game has started
-        if self.move_history.is_empty() {
-            self.board_history.clear();
-            self.board_history.push(self.board);
+        if self.game_board.move_history.is_empty() {
+            self.game_board.board_history.clear();
+            self.game_board.board_history.push(self.game_board.board);
             return false;
         }
 
         // Index mapping
         let mut position_counts = std::collections::HashMap::new();
-        for board in self.board_history.iter() {
+        for board in self.game_board.board_history.iter() {
             let count = position_counts.entry(board).or_insert(0);
             *count += 1;
 
@@ -931,8 +864,8 @@ impl Game {
                 let last_move;
                 let mut last_move_from = Coord::undefined();
                 let mut last_move_to = Coord::undefined();
-                if !self.move_history.is_empty() {
-                    last_move = self.move_history.last();
+                if !self.game_board.move_history.is_empty() {
+                    last_move = self.game_board.move_history.last();
                     if self.is_game_against_bot && !self.is_bot_starting {
                         last_move_from = last_move.map(|m| m.from).unwrap();
                         last_move_to = last_move.map(|m| m.to).unwrap();
@@ -949,9 +882,9 @@ impl Game {
                 // Draw the available moves for the selected piece
                 if self.is_cell_selected() {
                     let selected_piece_type =
-                        get_piece_type(self.board, &self.selected_coordinates);
+                        get_piece_type(self.game_board.board, &self.selected_coordinates);
                     let selected_piece_color: Option<PieceColor> =
-                        get_piece_color(self.board, &self.selected_coordinates);
+                        get_piece_color(self.game_board.board, &self.selected_coordinates);
                     // only draw available moves if it is the right players turn
                     if match selected_piece_color {
                         Some(color) => color == self.player_turn,
@@ -988,8 +921,12 @@ impl Game {
                     Game::render_cell(frame, square, Color::LightBlue, None);
                 }
                 // Draw the cell magenta if the king is getting checked
-                else if is_getting_checked(self.board, self.player_turn, &self.move_history)
-                    && Coord::new(i, j) == get_king_coordinates(self.board, self.player_turn)
+                else if is_getting_checked(
+                    self.game_board.board,
+                    self.player_turn,
+                    &self.game_board.move_history,
+                ) && Coord::new(i, j)
+                    == get_king_coordinates(self.game_board.board, self.player_turn)
                 {
                     Game::render_cell(frame, square, Color::Magenta, Some(Modifier::SLOW_BLINK));
                 }
@@ -1046,32 +983,32 @@ impl Game {
 
         let mut lines: Vec<Line> = vec![];
 
-        for i in (0..self.move_history.len()).step_by(2) {
-            let piece_type_from = self.move_history[i].piece_type;
+        for i in (0..self.game_board.move_history.len()).step_by(2) {
+            let piece_type_from = self.game_board.move_history[i].piece_type;
 
             let utf_icon_white =
                 PieceType::piece_to_utf_enum(piece_type_from, Some(PieceColor::White));
             let move_white = convert_position_into_notation(&format!(
                 "{}{}{}{}",
-                self.move_history[i].from.row,
-                self.move_history[i].from.col,
-                self.move_history[i].to.row,
-                self.move_history[i].to.col
+                self.game_board.move_history[i].from.row,
+                self.game_board.move_history[i].from.col,
+                self.game_board.move_history[i].to.row,
+                self.game_board.move_history[i].to.col
             ));
 
             let mut utf_icon_black = "   ";
             let mut move_black: String = "   ".to_string();
 
             // If there is something for black
-            if i + 1 < self.move_history.len() {
-                let piece_type_to = self.move_history[i + 1].piece_type;
+            if i + 1 < self.game_board.move_history.len() {
+                let piece_type_to = self.game_board.move_history[i + 1].piece_type;
 
                 move_black = convert_position_into_notation(&format!(
                     "{}{}{}{}",
-                    self.move_history[i + 1].from.row,
-                    self.move_history[i + 1].from.col,
-                    self.move_history[i + 1].to.row,
-                    self.move_history[i + 1].to.col
+                    self.game_board.move_history[i + 1].from.row,
+                    self.game_board.move_history[i + 1].from.col,
+                    self.game_board.move_history[i + 1].to.row,
+                    self.game_board.move_history[i + 1].to.col
                 ));
                 utf_icon_black =
                     PieceType::piece_to_utf_enum(piece_type_to, Some(PieceColor::Black));

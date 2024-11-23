@@ -2,6 +2,7 @@
 mod tests {
     use chess_tui::game::coord::Coord;
     use chess_tui::game::game::Game;
+    use chess_tui::game::game_board::GameBoard;
     use chess_tui::pieces::{PieceColor, PieceMove, PieceType};
 
     #[test]
@@ -34,11 +35,13 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        // We setup the board
-        let mut board = Game::new(custom_board, PieceColor::White, vec![]);
+        // We setup the game
+        let game_board = GameBoard::new(custom_board, vec![], vec![]);
+        let mut game = Game::new(game_board, PieceColor::White);
+        game.game_board.board = custom_board;
 
         // Move the king to replicate a third time the same position
-        assert_eq!(board.fen_position(), "2k4R/8/4K3/8/8/8/8/8 b - - 0 0");
+        assert_eq!(game.fen_position(), "2k4R/8/4K3/8/8/8/8/8 b - - 0 0");
     }
 
     #[test]
@@ -80,10 +83,9 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        // We setup the board
-        let mut board = Game::new(
+        // We setup the game
+        let game_board = GameBoard::new(
             custom_board,
-            PieceColor::White,
             vec![
                 (PieceMove {
                     piece_type: PieceType::Pawn,
@@ -92,10 +94,13 @@ mod tests {
                     to: Coord::new(4, 2),
                 }),
             ],
+            vec![],
         );
+        let mut game = Game::new(game_board, PieceColor::White);
+        game.game_board.board = custom_board;
 
         // Move the king to replicate a third time the same position
-        assert_eq!(board.fen_position(), "2k4R/8/4K3/8/2P5/8/8/8 b - c3 0 0");
+        assert_eq!(game.fen_position(), "2k4R/8/4K3/8/2P5/8/8/8 b - c3 0 0");
     }
     #[test]
     fn fen_converter_castling() {
@@ -145,12 +150,14 @@ mod tests {
                 Some((PieceType::Rook, PieceColor::White)),
             ],
         ];
-        // We setup the board
-        let mut board = Game::new(custom_board, PieceColor::White, vec![]);
+        // We setup the game
+        let game_board = GameBoard::new(custom_board, vec![], vec![]);
+        let mut game = Game::new(game_board, PieceColor::White);
+        game.game_board.board = custom_board;
 
         // Move the king to replicate a third time the same position
         assert_eq!(
-            board.fen_position(),
+            game.fen_position(),
             "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b kq - 0 0"
         );
     }

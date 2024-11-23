@@ -2,8 +2,7 @@ use std::cmp::Ordering;
 
 use self::{bishop::Bishop, king::King, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook};
 use super::constants::DisplayMode;
-use crate::game::board::GameBoard;
-use crate::game::coord::Coord;
+use crate::game::{board::Board, coord::Coord};
 
 pub mod bishop;
 pub mod king;
@@ -26,7 +25,7 @@ impl PieceType {
         self,
         coordinates: &Coord,
         color: PieceColor,
-        board: GameBoard,
+        board: Board,
         move_history: &[PieceMove],
         is_king_checked: bool,
     ) -> Vec<Coord> {
@@ -68,7 +67,7 @@ impl PieceType {
         selected_coordinates: &Coord,
         piece_type: PieceType,
         color: PieceColor,
-        board: GameBoard,
+        board: Board,
         move_history: &[PieceMove],
     ) -> Vec<Coord> {
         match piece_type {
@@ -209,7 +208,7 @@ pub trait Movable {
     fn piece_move(
         coordinates: &Coord,
         color: PieceColor,
-        board: GameBoard,
+        board: Board,
         allow_move_on_ally_positions: bool,
         move_history: &[PieceMove],
     ) -> Vec<Coord>;
@@ -219,7 +218,7 @@ pub trait Position {
     fn authorized_positions(
         coordinates: &Coord,
         color: PieceColor,
-        board: GameBoard,
+        board: Board,
         move_history: &[PieceMove],
         is_king_checked: bool,
     ) -> Vec<Coord>;
@@ -227,7 +226,7 @@ pub trait Position {
     fn protected_positions(
         coordinates: &Coord,
         color: PieceColor,
-        board: GameBoard,
+        board: Board,
         move_history: &[PieceMove],
     ) -> Vec<Coord>;
 }
