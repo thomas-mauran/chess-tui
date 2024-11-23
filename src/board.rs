@@ -1018,7 +1018,7 @@ impl Board {
                 // Draw the cell blue if this is the current cursor cell
                 if i == self.cursor_coordinates.row
                     && j == self.cursor_coordinates.col
-                    && self.mouse_used == false
+                    && !self.mouse_used
                 {
                     Board::render_cell(frame, square, Color::LightBlue, None);
                 }
