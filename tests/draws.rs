@@ -48,7 +48,7 @@ mod tests {
         let mut game = Game::new(game_board, PieceColor::White);
         game.game_board.board = custom_board;
 
-        assert!(game.is_draw());
+        assert!(game.game_board.is_draw(game.player_turn));
     }
 
     #[test]
@@ -95,7 +95,7 @@ mod tests {
         let mut game = Game::new(game_board, PieceColor::White);
         game.game_board.board = custom_board;
 
-        assert!(!game.is_draw());
+        assert!(!game.game_board.is_draw(game.player_turn));
     }
 
     #[test]
@@ -125,12 +125,12 @@ mod tests {
         let mut game = Game::new(game_board, PieceColor::White);
         game.game_board.board = custom_board;
 
-        game.consecutive_non_pawn_or_capture = 49;
-        assert!(!game.is_draw());
+        game.game_board.set_consecutive_non_pawn_or_capture(49);
+        assert!(!game.game_board.is_draw(game.player_turn));
 
         // Move the pawn to a make the 50th move
         game.move_piece_on_the_board(&Coord::new(1, 6), &Coord::new(1, 5));
-        assert!(game.is_draw());
+        assert!(game.game_board.is_draw(game.player_turn));
     }
 
     #[test]
@@ -220,11 +220,11 @@ mod tests {
             game.move_piece_on_the_board(&piece_move.from, &piece_move.to);
 
             // In a chess game, board.is_draw() is called after every move
-            assert!(!game.is_draw());
+            assert!(!game.game_board.is_draw(game.player_turn));
         }
 
         // Move the king to replicate a third time the same position
         game.move_piece_on_the_board(&Coord::new(0, 2), &Coord::new(0, 1));
-        assert!(game.is_draw());
+        assert!(game.game_board.is_draw(game.player_turn));
     }
 }

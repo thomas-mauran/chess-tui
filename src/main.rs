@@ -82,8 +82,8 @@ fn main() -> AppResult<()> {
             app.game.switch_player_turn();
             app.game.bot_will_move = false;
             // need to be centralised
-            app.game.is_checkmate = app.game.is_checkmate();
-            app.game.is_draw = app.game.is_draw();
+            app.game.is_checkmate = app.game.game_board.is_checkmate(app.game.player_turn);
+            app.game.is_draw = app.game.game_board.is_draw(app.game.player_turn);
             tui.draw(&mut app)?;
         }
     }

@@ -160,4 +160,19 @@ impl Pawn {
             DisplayMode::ASCII => "P",
         }
     }
+
+    // Check if the pawn moved two cells (used for en passant)
+    pub fn did_pawn_move_two_cells(last_move: Option<&PieceMove>) -> bool {
+        match last_move {
+            Some(last_move) => {
+                let distance = (last_move.to.row as i8 - last_move.from.row as i8).abs();
+
+                if last_move.piece_type == PieceType::Pawn && distance == 2 {
+                    return true;
+                }
+                false
+            }
+            _ => false,
+        }
+    }
 }

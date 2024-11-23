@@ -1,7 +1,7 @@
 use super::{coord::Coord, game_board::GameBoard};
 use crate::{
     constants::{DisplayMode, BLACK, UNDEFINED_POSITION, WHITE},
-    pieces::{PieceColor, PieceMove, PieceType},
+    pieces::{pawn::Pawn, PieceColor, PieceMove, PieceType},
     utils::{
         col_to_letter, convert_notation_into_position, convert_position_into_notation,
         did_piece_already_move, get_cell_paragraph, get_int_from_char, get_king_coordinates,
@@ -38,8 +38,7 @@ pub struct Game {
     pub is_promotion: bool,
     // the cursor for the promotion popup
     pub promotion_cursor: i8,
-    // the number of consecutive non pawn or capture moves
-    pub consecutive_non_pawn_or_capture: i32,
+
     // the chess engine
     pub engine: Option<Engine>,
     // if the game is against a bot
@@ -77,7 +76,6 @@ impl Default for Game {
             is_checkmate: false,
             is_promotion: false,
             promotion_cursor: 0,
-            consecutive_non_pawn_or_capture: 0,
             engine: None,
             is_game_against_bot: false,
             display_mode: DisplayMode::DEFAULT,
@@ -107,7 +105,6 @@ impl Game {
             is_checkmate: false,
             is_promotion: false,
             promotion_cursor: 0,
-            consecutive_non_pawn_or_capture: 0,
             engine: None,
             is_game_against_bot: false,
             display_mode: DisplayMode::DEFAULT,
@@ -152,19 +149,6 @@ impl Game {
             PieceColor::White => self.player_turn = PieceColor::Black,
             PieceColor::Black => self.player_turn = PieceColor::White,
         }
-    }
-
-    pub fn flip_the_board(&mut self) {
-        let mut flipped_board = [[None; 8]; 8]; // Create a new empty board of the same type
-
-        for (i, row) in self.game_board.board.iter().enumerate() {
-            for (j, &square) in row.iter().enumerate() {
-                // Place each square in the mirrored position
-                flipped_board[7 - i][7 - j] = square;
-            }
-        }
-
-        self.game_board.board = flipped_board;
     }
 
     // Cursor movement methods
@@ -228,9 +212,6 @@ impl Game {
        We make sure that the cursor is in the authorized positions
     */
     fn move_selected_piece_cursor(&mut self, first_time_moving: bool, direction: i8) {
-        let piece_color = get_piece_color(self.game_board.board, &self.selected_coordinates);
-        let piece_type = get_piece_type(self.game_board.board, &self.selected_coordinates);
-
         let mut authorized_positions = self
             .game_board
             .get_authorized_positions(self.player_turn, self.selected_coordinates);
@@ -259,12 +240,11 @@ impl Game {
     }
 
     pub fn move_selected_piece_cursor_mouse(&mut self, coordinates: Coord) {
-        let piece_color = get_piece_color(self.game_board.board, &self.selected_coordinates);
-        let piece_type = get_piece_type(self.game_board.board, &self.selected_coordinates);
+        let piece_color = get_piece_color(self.game_board.board, &coordinates);
 
         let authorized_positions = self
             .game_board
-            .get_authorized_positions(self.player_turn, self.selected_coordinates);
+            .get_authorized_positions(self.player_turn, coordinates);
         if authorized_positions.contains(&coordinates)
             && match piece_color {
                 Some(piece) => piece == self.player_turn,
@@ -292,21 +272,21 @@ impl Game {
                     self.move_piece_on_the_board(selected_coords_usize, cursor_coords_usize);
                     self.unselect_cell();
                     self.switch_player_turn();
-                    self.is_draw = self.is_draw();
+                    self.is_draw = self.game_board.is_draw(self.player_turn);
                     if (!self.is_game_against_bot || self.is_bot_starting)
-                        && (!self.is_latest_move_promotion()
-                            || self.is_draw()
-                            || self.is_checkmate())
+                        && (!self.game_board.is_latest_move_promotion()
+                            || self.game_board.is_draw(self.player_turn)
+                            || self.game_board.is_checkmate(self.player_turn))
                     {
-                        self.flip_the_board();
+                        self.game_board.flip_the_board();
                     }
                     // If we play against a bot we will play his move and switch the player turn again
                     if self.is_game_against_bot {
                         // do this in background
-                        self.is_promotion = self.is_latest_move_promotion();
+                        self.is_promotion = self.game_board.is_latest_move_promotion();
                         if !self.is_promotion {
-                            self.is_checkmate = self.is_checkmate();
-                            self.is_promotion = self.is_latest_move_promotion();
+                            self.is_checkmate = self.game_board.is_checkmate(self.player_turn);
+                            self.is_promotion = self.game_board.is_latest_move_promotion();
                             if !self.is_checkmate {
                                 self.bot_will_move = true;
                             }
@@ -333,9 +313,9 @@ impl Game {
                 }
             }
         }
-        self.is_checkmate = self.is_checkmate();
-        self.is_promotion = self.is_latest_move_promotion();
-        self.is_draw = self.is_draw();
+        self.is_checkmate = self.game_board.is_checkmate(self.player_turn);
+        self.is_promotion = self.game_board.is_latest_move_promotion();
+        self.is_draw = self.game_board.is_draw(self.player_turn);
     }
 
     // Check if the king has already moved (used for castling)
@@ -390,7 +370,7 @@ impl Game {
                 Some((promotion_piece.unwrap(), self.player_turn));
         }
         if self.is_bot_starting {
-            self.flip_the_board();
+            self.game_board.flip_the_board();
         }
     }
 
@@ -490,7 +470,7 @@ impl Game {
         }
 
         // We check if the latest move is a pawn moving 2 cells, meaning the next move can be en passant
-        if self.did_pawn_move_two_cells() {
+        if Pawn::did_pawn_move_two_cells(self.game_board.move_history.last()) {
             // Use an if-let pattern for better readability
             if let Some(last_move) = self.game_board.move_history.last() {
                 let mut converted_move = String::new();
@@ -508,27 +488,17 @@ impl Game {
 
         result.push(' ');
 
-        result.push_str(&self.consecutive_non_pawn_or_capture.to_string());
+        result.push_str(
+            &self
+                .game_board
+                .get_consecutive_non_pawn_or_capture()
+                .to_string(),
+        );
         result.push(' ');
 
         result.push_str(&(self.game_board.move_history.len() / 2).to_string());
 
         result
-    }
-
-    // Check if the pawn moved two cells (used for en passant)
-    pub fn did_pawn_move_two_cells(&self) -> bool {
-        match self.game_board.move_history.last() {
-            Some(last_move) => {
-                let distance = (last_move.to.row as i8 - last_move.from.row as i8).abs();
-
-                if last_move.piece_type == PieceType::Pawn && distance == 2 {
-                    return true;
-                }
-                false
-            }
-            _ => false,
-        }
     }
 
     // Method to promote a pawn
@@ -554,8 +524,10 @@ impl Game {
         }
         self.is_promotion = false;
         self.promotion_cursor = 0;
-        if !self.is_draw() && !self.is_checkmate() {
-            self.flip_the_board();
+        if !self.game_board.is_draw(self.player_turn)
+            && !self.game_board.is_checkmate(self.player_turn)
+        {
+            self.game_board.flip_the_board();
         }
     }
 
@@ -576,10 +548,11 @@ impl Game {
         // We increment the consecutive_non_pawn_or_capture if the piece type is a pawn or if there is no capture
         match (piece_type_from, piece_type_to) {
             (PieceType::Pawn, _) | (_, Some(_)) => {
-                self.consecutive_non_pawn_or_capture = 0;
+                self.game_board.set_consecutive_non_pawn_or_capture(0);
             }
             _ => {
-                self.consecutive_non_pawn_or_capture += 1;
+                let value = self.game_board.get_consecutive_non_pawn_or_capture() + 1;
+                self.game_board.set_consecutive_non_pawn_or_capture(value);
             }
         }
 
@@ -609,7 +582,7 @@ impl Game {
         }
 
         // We check for en passant as the latest move
-        if self.is_latest_move_en_passant(*from, *to) {
+        if self.game_board.is_latest_move_en_passant(*from, *to) {
             // we kill the pawn
             let row_index = to.row as i32 + 1;
 
@@ -617,7 +590,7 @@ impl Game {
         }
 
         // We check for castling as the latest move
-        if self.is_latest_move_castling(*from, *to) {
+        if self.game_board.is_latest_move_castling(*from, *to) {
             // we set the king 2 cells on where it came from
             let from_x: i32 = from.col as i32;
             let mut new_to = to;
@@ -667,118 +640,6 @@ impl Game {
         });
         // We store the current position of the board
         self.game_board.board_history.push(self.game_board.board);
-    }
-
-    // Method to get the number of authorized positions for the current player (used for the end condition)
-    pub fn number_of_authorized_positions(&self) -> usize {
-        let mut possible_moves: Vec<Coord> = vec![];
-
-        for i in 0..8 {
-            for j in 0..8 {
-                let coord = Coord::new(i, j);
-                if let Some((piece_type, piece_color)) = self.game_board.board[&coord] {
-                    if piece_color == self.player_turn {
-                        possible_moves.extend(
-                            self.game_board
-                                .get_authorized_positions(self.player_turn, coord),
-                        );
-                    }
-                }
-            }
-        }
-        possible_moves.len()
-    }
-
-    // Check if the latest move is en passant
-    fn is_latest_move_en_passant(&self, from: Coord, to: Coord) -> bool {
-        let piece_type_from = get_piece_type(self.game_board.board, &from);
-        let piece_type_to = get_piece_type(self.game_board.board, &to);
-
-        let from_y: i32 = from.row as i32;
-        let from_x: i32 = from.col as i32;
-        let to_y: i32 = to.row as i32;
-        let to_x: i32 = to.col as i32;
-        match (piece_type_from, piece_type_to) {
-            (Some(PieceType::Pawn), _) => {
-                // Check if it's a diagonal move, and the destination is an empty cell
-                from_y != to_y && from_x != to_x && self.game_board.board[&to].is_none()
-            }
-            _ => false,
-        }
-    }
-
-    // Check if the latest move is castling
-    fn is_latest_move_castling(&self, from: Coord, to: Coord) -> bool {
-        let piece_type_from = get_piece_type(self.game_board.board, &from);
-        let piece_type_to = get_piece_type(self.game_board.board, &to);
-
-        let from_x: i32 = from.col as i32;
-        let to_x: i32 = to.col as i32;
-        let distance = (from_x - to_x).abs();
-
-        match (piece_type_from, piece_type_to) {
-            (Some(PieceType::King), _) => distance > 1,
-            _ => false,
-        }
-    }
-
-    // Check if the latest move is a promotion
-    pub fn is_latest_move_promotion(&self) -> bool {
-        if let Some(last_move) = self.game_board.move_history.last() {
-            if let Some(piece_type_to) = get_piece_type(
-                self.game_board.board,
-                &Coord::new(last_move.to.row, last_move.to.col),
-            ) {
-                let last_row = 0;
-                if last_move.to.row == last_row && piece_type_to == PieceType::Pawn {
-                    return true;
-                }
-            }
-        }
-        false
-    }
-
-    // Check if the game is checkmate
-    pub fn is_checkmate(&self) -> bool {
-        if !is_getting_checked(
-            self.game_board.board,
-            self.player_turn,
-            &self.game_board.move_history,
-        ) {
-            return false;
-        }
-
-        self.number_of_authorized_positions() == 0
-    }
-
-    // Check if the game is a draw
-    pub fn draw_by_repetition(&mut self) -> bool {
-        // A new game has started
-        if self.game_board.move_history.is_empty() {
-            self.game_board.board_history.clear();
-            self.game_board.board_history.push(self.game_board.board);
-            return false;
-        }
-
-        // Index mapping
-        let mut position_counts = std::collections::HashMap::new();
-        for board in self.game_board.board_history.iter() {
-            let count = position_counts.entry(board).or_insert(0);
-            *count += 1;
-
-            if *count >= 3 {
-                return true;
-            }
-        }
-
-        false
-    }
-
-    // Check if the game is a draw
-    pub fn is_draw(&mut self) -> bool {
-        self.number_of_authorized_positions() == 0
-            || self.consecutive_non_pawn_or_capture == 50
-            || self.draw_by_repetition()
     }
 
     // Method to render the board

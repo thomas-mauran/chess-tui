@@ -58,7 +58,7 @@ mod tests {
         let mut game = Game::new(game_board, PieceColor::Black);
         game.game_board.board = custom_board;
 
-        assert!(game.is_latest_move_promotion());
+        assert!(game.game_board.is_latest_move_promotion());
     }
     #[test]
     fn is_promote_false() {
@@ -123,7 +123,7 @@ mod tests {
         let mut game = Game::new(game_board, PieceColor::Black);
         game.game_board.board = custom_board;
 
-        assert!(!game.is_latest_move_promotion());
+        assert!(!game.game_board.is_latest_move_promotion());
     }
 
     #[test]
@@ -172,14 +172,14 @@ mod tests {
 
         // Move the pawn to a promote cell
         game.move_piece_on_the_board(&Coord::new(1, 4), &Coord::new(0, 4));
-        assert!(game.is_latest_move_promotion());
+        assert!(game.game_board.is_latest_move_promotion());
 
         // Promote the pawn
         game.promote_piece();
 
         // The black king gets checkmated
         game.player_turn = PieceColor::Black;
-        assert!(game.is_checkmate());
+        assert!(game.game_board.is_checkmate(game.player_turn));
     }
 
     #[test]
@@ -236,7 +236,7 @@ mod tests {
         let mut game = Game::new(game_board, PieceColor::Black);
         game.game_board.board = custom_board;
 
-        assert!(game.is_latest_move_promotion());
+        assert!(game.game_board.is_latest_move_promotion());
     }
 
     #[test]
@@ -285,13 +285,13 @@ mod tests {
 
         // Move the pawn to a promote cell
         game.move_piece_on_the_board(&Coord::new(1, 5), &Coord::new(0, 5));
-        assert!(game.is_latest_move_promotion());
+        assert!(game.game_board.is_latest_move_promotion());
 
         // Promote the pawn
         game.promote_piece();
 
         // The black king gets checkmated
         game.player_turn = PieceColor::White;
-        assert!(game.is_draw());
+        assert!(game.game_board.is_draw(game.player_turn));
     }
 }

@@ -243,7 +243,7 @@ mod tests {
         let mut game = Game::new(game_board, PieceColor::White);
         game.game_board.board = custom_board;
 
-        assert!(game.is_checkmate());
+        assert!(game.game_board.is_checkmate(game.player_turn));
     }
 
     #[test]
@@ -290,7 +290,7 @@ mod tests {
         let mut game = Game::new(game_board, PieceColor::White);
         game.game_board.board = custom_board;
 
-        assert!(!game.is_checkmate());
+        assert!(!game.game_board.is_checkmate(game.player_turn));
     }
 
     #[test]
@@ -346,6 +346,6 @@ mod tests {
         let mut game = Game::new(game_board, PieceColor::White);
         game.game_board.board = custom_board;
 
-        assert!(!game.is_checkmate());
+        assert!(!game.game_board.is_checkmate(game.player_turn));
     }
 }
