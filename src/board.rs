@@ -415,9 +415,10 @@ impl Board {
 
         let authorized_positions =
             self.get_authorized_positions(piece_type, piece_color, self.selected_coordinates);
-        if authorized_positions.contains(&coordinates) && match piece_color {
-            Some(piece) => piece == self.player_turn,
-            None => false,
+        if authorized_positions.contains(&coordinates)
+            && match piece_color {
+                Some(piece) => piece == self.player_turn,
+                None => false,
             }
         {
             self.cursor_coordinates = coordinates;
@@ -988,22 +989,21 @@ impl Board {
                         get_piece_color(self.board, &self.selected_coordinates);
                     // only draw available moves if it is the right players turn
                     if match selected_piece_color {
-                        Some(color) => {color == self.player_turn},
-                        None => {false},
+                        Some(color) => color == self.player_turn,
+                        None => false,
                     } {
                         positions = self.get_authorized_positions(
                             selected_piece_type,
                             selected_piece_color,
                             self.selected_coordinates,
                         );
-    
+
                         // Draw grey if the color is in the authorized positions
                         for coords in positions.clone() {
                             if i == coords.row && j == coords.col {
                                 // cell_color = Color::Rgb(100, 100, 100);
                             }
                         }
-
                     }
                 }
 
@@ -1016,7 +1016,10 @@ impl Board {
                 // - last move cell: green
                 // - default cell: white or black
                 // Draw the cell blue if this is the current cursor cell
-                if i == self.cursor_coordinates.row && j == self.cursor_coordinates.col && self.mouse_used == false {
+                if i == self.cursor_coordinates.row
+                    && j == self.cursor_coordinates.col
+                    && self.mouse_used == false
+                {
                     Board::render_cell(frame, square, Color::LightBlue, None);
                 }
                 // Draw the cell magenta if the king is getting checked

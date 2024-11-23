@@ -123,7 +123,7 @@ pub fn render_promotion_popup(frame: &mut Frame, app: &mut App) {
     app.board.height = inner_popup_layout_horizontal[0].height;
 
     let display_mode = &app.board.display_mode;
-    
+
     let queen_p = Paragraph::new(Queen::to_string(display_mode))
         .block(Block::default())
         .alignment(Alignment::Center)

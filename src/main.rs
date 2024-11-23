@@ -23,7 +23,10 @@ struct Args {
 
 fn main() -> AppResult<()> {
     // Used to enable mouse capture
-    ratatui::crossterm::execute!(std::io::stdout(), ratatui::crossterm::event::EnableMouseCapture)?;
+    ratatui::crossterm::execute!(
+        std::io::stdout(),
+        ratatui::crossterm::event::EnableMouseCapture
+    )?;
     // Parse the cli arguments
     let args = Args::parse();
 
@@ -79,7 +82,10 @@ fn main() -> AppResult<()> {
     // Exit the user interface.
     ratatui::try_restore()?;
     // Free up the mouse, otherwise it will remain linked to the terminal
-    ratatui::crossterm::execute!(std::io::stdout(), ratatui::crossterm::event::DisableMouseCapture)?;
+    ratatui::crossterm::execute!(
+        std::io::stdout(),
+        ratatui::crossterm::event::DisableMouseCapture
+    )?;
 
     Ok(())
 }

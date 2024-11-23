@@ -1,11 +1,10 @@
 use crate::{
-    app::{App, AppResult}, board::Coord, constants::Pages
+    app::{App, AppResult},
+    board::Coord,
+    constants::Pages,
 };
-use ratatui::
-    crossterm::event::{
-    KeyCode, KeyEvent, KeyEventKind,
-    KeyModifiers, MouseButton, MouseEvent,
-    MouseEventKind
+use ratatui::crossterm::event::{
+    KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
 };
 
 /// Handles the key events and updates the state of [`App`].
@@ -14,18 +13,17 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         // crossterm on Windows sends Release and Repeat events as well, which we ignore.
         return Ok(());
     }
-    if app.board.mouse_used == true{
+    if app.board.mouse_used == true {
         app.board.mouse_used = false;
         if app.board.selected_coordinates != Coord::undefined() {
             app.board.cursor_coordinates = app.board.selected_coordinates;
             app.board.selected_coordinates = Coord::undefined();
-        }
-        else {
+        } else {
             app.board.cursor_coordinates.col = 4;
             app.board.cursor_coordinates.row = 4;
         }
     }
-    
+
     match key_event.code {
         // Exit application on `q`
         KeyCode::Char('q') => {
@@ -104,10 +102,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
     Ok(())
 }
 
-
-
-pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<()>{
-
+pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<()> {
     // Mouse control only implemented for actual game
     if app.current_page == Pages::Home {
         return Ok(());
