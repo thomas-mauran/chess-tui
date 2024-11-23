@@ -68,7 +68,7 @@ This command will store in your home directory the chess engine path so you don'
 
 ### Documentation
 
-You can find the documentation of the project [here](https://thomas-mauran.github.io/chess-tui/docs/Intro)
+You can find the documentation of the project [here](https://thomas-mauran.github.io/chess-tui/docs/intro)
 
 ### Roadmap
 
