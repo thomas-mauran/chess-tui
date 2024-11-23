@@ -3,7 +3,7 @@ use toml::Value;
 
 use crate::{
     constants::{DisplayMode, Pages},
-    game::{board::Board, game::Game},
+    game::game::Game,
     pieces::PieceColor,
 };
 use std::{
@@ -19,7 +19,7 @@ pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 pub struct App {
     /// Is the application running?
     pub running: bool,
-    /// board
+    /// Game
     pub game: Game,
     /// Current page to render
     pub current_page: Pages,
@@ -39,7 +39,7 @@ impl Default for App {
     fn default() -> Self {
         Self {
             running: true,
-            game: Game::new(),
+            game: Game::default(),
             current_page: Pages::Home,
             show_help_popup: false,
             show_color_popup: false,
@@ -113,28 +113,28 @@ impl App {
         };
         self.selected_color = Some(color);
 
-        // if the selected Color is Black, we need to switch the board
+        // if the selected Color is Black, we need to switch the Game
         if let Some(color) = self.selected_color {
             if color == PieceColor::Black {
-                self.game.board.is_bot_starting = true;
-                self.game.board.bot_move();
-                self.game.board.player_turn = PieceColor::Black;
+                self.game.is_bot_starting = true;
+                self.game.bot_move();
+                self.game.player_turn = PieceColor::Black;
             }
         }
     }
 
     pub fn restart(&mut self) {
-        if self.game.board.is_draw || self.game.board.is_checkmate {
-            let is_bot_starting = self.game.board.is_bot_starting;
-            let engine = self.game.board.engine.clone();
-            let game_is_against_bot = self.game.board.is_game_against_bot;
-            self.game.board = Board::default();
-            self.game.board.engine = engine;
-            self.game.board.is_game_against_bot = game_is_against_bot;
+        if self.game.is_draw || self.game.is_checkmate {
+            let is_bot_starting = self.game.is_bot_starting;
+            let engine = self.game.engine.clone();
+            let game_is_against_bot = self.game.is_game_against_bot;
+            self.game = Game::default();
+            self.game.engine = engine;
+            self.game.is_game_against_bot = game_is_against_bot;
             if is_bot_starting {
-                self.game.board.is_bot_starting = true;
-                self.game.board.bot_move();
-                self.game.board.player_turn = PieceColor::Black;
+                self.game.is_bot_starting = true;
+                self.game.bot_move();
+                self.game.player_turn = PieceColor::Black;
             }
         }
     }
@@ -147,7 +147,7 @@ impl App {
                 self.current_page = Pages::Bot
             }
             2 => {
-                self.game.board.display_mode = match self.game.board.display_mode {
+                self.game.display_mode = match self.game.display_mode {
                     DisplayMode::ASCII => DisplayMode::DEFAULT,
                     DisplayMode::DEFAULT => DisplayMode::ASCII,
                 };
@@ -172,7 +172,7 @@ impl App {
         if let Some(table) = config.as_table_mut() {
             table.insert(
                 "display_mode".to_string(),
-                Value::String(self.game.board.display_mode.to_string()),
+                Value::String(self.game.display_mode.to_string()),
             );
         }
 

@@ -1,6 +1,6 @@
 use crate::{
     constants::{DisplayMode, UNDEFINED_POSITION},
-    game::board::{Board, Coord, GameBoard},
+    game::game::{Coord, Game, GameBoard},
     pieces::{PieceColor, PieceMove, PieceType},
 };
 use ratatui::{
@@ -177,11 +177,11 @@ pub fn impossible_positions_king_checked(
     let mut cleaned_position: Vec<Coord> = vec![];
     for position in positions {
         // We create a new board
-        let mut new_board = Board::new(board, color, move_history.to_owned().clone());
+        let mut new_board = Game::new(board, color, move_history.to_owned().clone());
 
         // We simulate the move
 
-        Board::move_piece_on_the_board(&mut new_board, original_coordinates, &position);
+        Game::move_piece_on_the_board(&mut new_board, original_coordinates, &position);
 
         // We check if the board is still checked with this move meaning it didn't resolve the problem
         if !is_getting_checked(
@@ -213,7 +213,7 @@ pub fn color_to_ratatui_enum(piece_color: Option<PieceColor>) -> Color {
 }
 
 pub fn get_cell_paragraph<'a>(
-    board: &'a Board,
+    board: &'a Game,
     cell_coordinates: &'a Coord,
     bounding_rect: Rect,
 ) -> Paragraph<'a> {

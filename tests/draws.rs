@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use chess_tui::game::board::{Board, Coord};
+    use chess_tui::game::game::{Coord, Game};
     use chess_tui::pieces::{PieceColor, PieceMove, PieceType};
     #[test]
     fn is_draw_true() {
@@ -41,7 +41,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::new(custom_board, PieceColor::White, vec![]);
+        let mut board = Game::new(custom_board, PieceColor::White, vec![]);
 
         assert!(board.is_draw());
     }
@@ -85,7 +85,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::new(custom_board, PieceColor::White, vec![]);
+        let mut board = Game::new(custom_board, PieceColor::White, vec![]);
 
         assert!(!board.is_draw());
     }
@@ -112,7 +112,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
         ];
         // We setup the board
-        let mut board = Board::new(
+        let mut board = Game::new(
             custom_board,
             PieceColor::White,
             vec![
@@ -151,7 +151,7 @@ mod tests {
         ];
 
         // We setup the board
-        let mut board = Board::new(
+        let mut board = Game::new(
             custom_board,
             PieceColor::White,
             vec![

@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use chess_tui::game::board::{Board, Coord};
+    use chess_tui::game::game::{Coord, Game};
     use chess_tui::pieces::pawn::Pawn;
     use chess_tui::pieces::{PieceColor, PieceMove, PieceType, Position};
     use chess_tui::utils::is_getting_checked;
@@ -26,7 +26,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::default();
+        let mut board = Game::default();
         board.set_board(custom_board);
 
         let mut right_positions = vec![Coord::new(3, 4)];
@@ -64,7 +64,7 @@ mod tests {
             ],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::default();
+        let mut board = Game::default();
         board.set_board(custom_board);
 
         let mut right_positions = vec![Coord::new(5, 4), Coord::new(4, 4)];
@@ -111,7 +111,7 @@ mod tests {
             ],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::default();
+        let mut board = Game::default();
         board.set_board(custom_board);
 
         let mut right_positions = vec![
@@ -163,7 +163,7 @@ mod tests {
             ],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::default();
+        let mut board = Game::default();
         board.set_board(custom_board);
 
         let mut right_positions = vec![Coord::new(5, 4), Coord::new(5, 2)];
@@ -210,7 +210,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::default();
+        let mut board = Game::default();
         board.set_board(custom_board);
 
         // First pawn on the left
@@ -277,7 +277,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::default();
+        let mut board = Game::default();
         board.set_board(custom_board);
 
         let mut right_positions = vec![Coord::new(2, 2), Coord::new(2, 3)];
@@ -345,7 +345,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::default();
+        let mut board = Game::default();
         board.set_board(custom_board);
 
         let mut right_positions = vec![Coord::new(2, 2), Coord::new(2, 3)];
@@ -421,7 +421,7 @@ mod tests {
             ],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::default();
+        let mut board = Game::default();
         board.set_board(custom_board);
 
         let mut right_positions = vec![Coord::new(5, 1), Coord::new(4, 1)];
@@ -473,7 +473,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::new(custom_board, PieceColor::Black, vec![]);
+        let mut board = Game::new(custom_board, PieceColor::Black, vec![]);
         board.set_board(custom_board);
 
         let is_king_checked =
@@ -524,7 +524,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::new(custom_board, PieceColor::Black, vec![]);
+        let mut board = Game::new(custom_board, PieceColor::Black, vec![]);
         board.set_board(custom_board);
 
         let is_king_checked =
@@ -584,7 +584,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::new(custom_board, PieceColor::Black, vec![]);
+        let mut board = Game::new(custom_board, PieceColor::Black, vec![]);
         board.set_board(custom_board);
 
         let is_king_checked =

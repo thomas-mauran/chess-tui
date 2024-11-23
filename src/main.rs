@@ -51,7 +51,7 @@ fn main() -> AppResult<()> {
             }
             // Set the display mode based on the configuration file
             if let Some(display_mode) = config.get("display_mode") {
-                app.game.board.display_mode = match display_mode.as_str() {
+                app.game.display_mode = match display_mode.as_str() {
                     Some("ASCII") => DisplayMode::ASCII,
                     _ => DisplayMode::DEFAULT,
                 };
@@ -77,13 +77,13 @@ fn main() -> AppResult<()> {
             Event::Mouse(mouse_event) => handle_mouse_events(mouse_event, &mut app)?,
             Event::Resize(_, _) => {}
         }
-        if app.game.board.bot_will_move {
-            app.game.board.bot_move();
-            app.game.board.switch_player_turn();
-            app.game.board.bot_will_move = false;
+        if app.game.bot_will_move {
+            app.game.bot_move();
+            app.game.switch_player_turn();
+            app.game.bot_will_move = false;
             // need to be centralised
-            app.game.board.is_checkmate = app.game.board.is_checkmate();
-            app.game.board.is_draw = app.game.board.is_draw();
+            app.game.is_checkmate = app.game.is_checkmate();
+            app.game.is_draw = app.game.is_draw();
             tui.draw(&mut app)?;
         }
     }

@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use chess_tui::game::board::{Board, Coord};
+    use chess_tui::game::game::{Coord, Game};
     use chess_tui::pieces::{PieceColor, PieceMove, PieceType};
 
     #[test]
@@ -34,7 +34,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
         ];
         // We setup the board
-        let mut board = Board::new(custom_board, PieceColor::White, vec![]);
+        let mut board = Game::new(custom_board, PieceColor::White, vec![]);
 
         // Move the king to replicate a third time the same position
         assert_eq!(board.fen_position(), "2k4R/8/4K3/8/8/8/8/8 b - - 0 0");
@@ -80,7 +80,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
         ];
         // We setup the board
-        let mut board = Board::new(
+        let mut board = Game::new(
             custom_board,
             PieceColor::White,
             vec![
@@ -145,7 +145,7 @@ mod tests {
             ],
         ];
         // We setup the board
-        let mut board = Board::new(custom_board, PieceColor::White, vec![]);
+        let mut board = Game::new(custom_board, PieceColor::White, vec![]);
 
         // Move the king to replicate a third time the same position
         assert_eq!(

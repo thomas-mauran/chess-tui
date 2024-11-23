@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use chess_tui::game::board::Board;
+    use chess_tui::game::game::Game;
     use chess_tui::pieces::{PieceColor, PieceType};
     use chess_tui::utils::is_getting_checked;
 
@@ -34,7 +34,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::default();
+        let mut board = Game::default();
         board.set_board(custom_board);
 
         assert!(is_getting_checked(custom_board, PieceColor::White, &[]));
@@ -79,7 +79,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::default();
+        let mut board = Game::default();
         board.set_board(custom_board);
 
         assert!(!is_getting_checked(custom_board, PieceColor::White, &[]));
@@ -133,7 +133,7 @@ mod tests {
                 Some((PieceType::King, PieceColor::White)),
             ],
         ];
-        let mut board = Board::default();
+        let mut board = Game::default();
         board.set_board(custom_board);
 
         assert!(!is_getting_checked(custom_board, PieceColor::Black, &[]));
@@ -196,7 +196,7 @@ mod tests {
                 Some((PieceType::King, PieceColor::White)),
             ],
         ];
-        let mut board = Board::default();
+        let mut board = Game::default();
         board.set_board(custom_board);
 
         assert!(!is_getting_checked(custom_board, PieceColor::Black, &[]));
@@ -241,7 +241,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let board = Board::new(custom_board, PieceColor::White, vec![]);
+        let board = Game::new(custom_board, PieceColor::White, vec![]);
 
         assert!(board.is_checkmate());
     }
@@ -285,7 +285,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let board = Board::new(custom_board, PieceColor::White, vec![]);
+        let board = Game::new(custom_board, PieceColor::White, vec![]);
 
         assert!(!board.is_checkmate());
     }
@@ -338,7 +338,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let board = Board::new(custom_board, PieceColor::White, vec![]);
+        let board = Game::new(custom_board, PieceColor::White, vec![]);
 
         assert!(!board.is_checkmate());
     }

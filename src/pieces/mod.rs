@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use crate::game::board::{Coord, GameBoard};
+use crate::game::game::{Coord, GameBoard};
 
 use self::{bishop::Bishop, king::King, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook};
 use super::constants::DisplayMode;

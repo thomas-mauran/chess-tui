@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use chess_tui::game::board::{Board, Coord};
+    use chess_tui::game::game::{Coord, Game};
     use chess_tui::pieces::{PieceColor, PieceMove, PieceType};
     #[test]
     fn is_promote_true() {
@@ -41,7 +41,7 @@ mod tests {
                 None,
             ],
         ];
-        let board = Board::new(
+        let board = Game::new(
             custom_board,
             PieceColor::Black,
             vec![
@@ -104,7 +104,7 @@ mod tests {
                 None,
             ],
         ];
-        let board = Board::new(
+        let board = Game::new(
             custom_board,
             PieceColor::Black,
             vec![
@@ -160,7 +160,7 @@ mod tests {
             ],
         ];
         // We setup the board
-        let mut board = Board::new(custom_board, PieceColor::White, vec![]);
+        let mut board = Game::new(custom_board, PieceColor::White, vec![]);
         assert!(!board.is_latest_move_promotion());
 
         // Move the pawn to a promote cell
@@ -214,7 +214,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let board = Board::new(
+        let board = Game::new(
             custom_board,
             PieceColor::White,
             vec![
@@ -270,7 +270,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
         ];
         // We setup the board
-        let mut board = Board::new(custom_board, PieceColor::Black, vec![]);
+        let mut board = Game::new(custom_board, PieceColor::Black, vec![]);
         assert!(!board.is_latest_move_promotion());
 
         // Move the pawn to a promote cell
