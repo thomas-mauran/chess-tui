@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use chess_tui::board::{Board, Coord};
+    use chess_tui::game::board::{Board, Coord};
     use chess_tui::pieces::{PieceColor, PieceMove, PieceType};
     #[test]
     fn is_promote_true() {

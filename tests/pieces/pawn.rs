@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use chess_tui::board::{Board, Coord};
+    use chess_tui::game::board::{Board, Coord};
     use chess_tui::pieces::pawn::Pawn;
     use chess_tui::pieces::{PieceColor, PieceMove, PieceType, Position};
     use chess_tui::utils::is_getting_checked;

@@ -1,6 +1,6 @@
 use crate::app::{App, AppResult};
 use crate::event::EventHandler;
-use crate::ui;
+use crate::ui::ui;
 use ratatui::backend::Backend;
 use ratatui::Terminal;
 

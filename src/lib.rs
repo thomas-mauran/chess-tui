@@ -8,7 +8,7 @@ pub mod event;
 pub mod ui;
 
 /// Terminal user interface.
-pub mod tui;
+pub mod ratatui;
 
 /// Event handler.
 pub mod handler;
@@ -16,14 +16,11 @@ pub mod handler;
 // Chess pieces structures
 pub mod pieces;
 
-// Board structure
-pub mod board;
+// Game related structures
+pub mod game;
 
 // Constats for the app
 pub mod constants;
 
 // Utils methods for the board
 pub mod utils;
-
-// popups render methods
-pub mod popups;

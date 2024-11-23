@@ -2,8 +2,8 @@ use dirs::home_dir;
 use toml::Value;
 
 use crate::{
-    board::Board,
     constants::{DisplayMode, Pages},
+    game::board::Board,
     pieces::PieceColor,
 };
 use std::{

@@ -1,7 +1,7 @@
 use crate::{
     app::{App, AppResult},
-    board::Coord,
     constants::Pages,
+    game::board::Coord,
 };
 use ratatui::crossterm::event::{
     KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,

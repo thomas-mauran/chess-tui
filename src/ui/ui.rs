@@ -7,14 +7,15 @@ use ratatui::{
     Frame,
 };
 
+use crate::ui::popups::{
+    render_color_selection_popup, render_credit_popup, render_end_popup,
+    render_engine_path_error_popup, render_help_popup, render_promotion_popup,
+};
+
 use crate::{
     app::App,
     constants::{DisplayMode, Pages, TITLE},
     pieces::PieceColor,
-    popups::{
-        render_color_selection_popup, render_credit_popup, render_end_popup,
-        render_engine_path_error_popup, render_help_popup, render_promotion_popup,
-    },
 };
 
 /// Renders the user interface widgets.

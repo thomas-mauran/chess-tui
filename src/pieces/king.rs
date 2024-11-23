@@ -1,5 +1,5 @@
 use super::{Movable, PieceColor, PieceMove, PieceType, Position};
-use crate::board::{Coord, GameBoard};
+use crate::game::board::{Coord, GameBoard};
 use crate::constants::DisplayMode;
 use crate::utils::{
     cleaned_positions, did_piece_already_move, get_all_protected_cells, get_piece_type,
