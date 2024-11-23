@@ -13,7 +13,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         // crossterm on Windows sends Release and Repeat events as well, which we ignore.
         return Ok(());
     }
-    if app.board.mouse_used == true {
+    if app.board.mouse_used {
         app.board.mouse_used = false;
         if app.board.selected_coordinates != Coord::undefined() {
             app.board.cursor_coordinates = app.board.selected_coordinates;
