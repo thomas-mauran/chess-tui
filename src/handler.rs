@@ -123,6 +123,9 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
             app.board.promotion_cursor = x as i8;
             app.board.promote_piece();
         }
+        if mouse_event.column < app.board.top_x || mouse_event.row < app.board.top_y {
+            return Ok(());
+        }
         let x = (mouse_event.column - app.board.top_x) / app.board.width;
         let y = (mouse_event.row - app.board.top_y) / app.board.height;
         if x > 7 || y > 7 {
