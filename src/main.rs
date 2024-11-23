@@ -72,10 +72,13 @@ fn main() -> AppResult<()> {
             Event::Mouse(_) | Event::Resize(_, _) => {}
         }
         if app.board.bot_will_move {
-            tui.draw(&mut app)?;
             app.board.bot_move();
             app.board.switch_player_turn();
             app.board.bot_will_move = false;
+            // need to be centralised
+            app.board.is_checkmate = app.board.is_checkmate();
+            app.board.is_draw = app.board.is_draw();
+            tui.draw(&mut app)?;
         }
     }
 
