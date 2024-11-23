@@ -14,6 +14,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         // crossterm on Windows sends Release and Repeat events as well, which we ignore.
         return Ok(());
     }
+    app.board.mouse_used = false;
     match key_event.code {
         // Exit application on `q`
         KeyCode::Char('q') => {
@@ -121,6 +122,7 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
         if x > 7 || y > 7 {
             return Ok(());
         }
+        app.board.mouse_used = true;
         let coords: Coord = Coord::new(y as u8, x as u8);
 
         if app.board.selected_coordinates.col == UNDEFINED_POSITION &&

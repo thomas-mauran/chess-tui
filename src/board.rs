@@ -132,10 +132,14 @@ pub struct Board {
     pub is_game_against_bot: bool,
     // the display mode
     pub display_mode: DisplayMode,
+    // coordinates of the interactable part of the screen (either normal chess board or promotion screen)
     pub top_x: u16,
     pub top_y: u16,
+    // dimension of a selectable cell (either 1 of the 64 cells, or 1 of the 4 promotion options)
     pub width: u16,
     pub height: u16,
+    // last move was with a mouse
+    pub mouse_used: bool,
     // if the bot is starting, meaning the player is black
     pub is_bot_starting: bool,
     // The white piece that got taken
@@ -218,6 +222,7 @@ impl Default for Board {
             is_bot_starting: false,
             white_taken_pieces: vec![],
             black_taken_pieces: vec![],
+            mouse_used: false,
         }
     }
 }
@@ -248,6 +253,7 @@ impl Board {
             is_bot_starting: false,
             white_taken_pieces: vec![],
             black_taken_pieces: vec![],
+            mouse_used: false,
         }
     }
 
@@ -1006,7 +1012,7 @@ impl Board {
                 // - last move cell: green
                 // - default cell: white or black
                 // Draw the cell blue if this is the current cursor cell
-                if i == self.cursor_coordinates.row && j == self.cursor_coordinates.col {
+                if i == self.cursor_coordinates.row && j == self.cursor_coordinates.col && self.mouse_used == false {
                     Board::render_cell(frame, square, Color::LightBlue, None);
                 }
                 // Draw the cell magenta if the king is getting checked
