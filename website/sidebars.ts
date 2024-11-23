@@ -2,11 +2,11 @@ import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
 
 const sidebars: SidebarsConfig = {
   tutorialSidebar: [
-    'intro',
+    'Intro',
     {
       type: 'category',
       label: 'Installation', 
-      items: ['Installation/cargo'], 
+      items: ['Installation/Packaging status', 'Installation/Cargo', 'Installation/Build from source', 'Installation/NetBSD', 'Installation/Arch Linux', 'Installation/NixOS'], 
     },
 
     {
