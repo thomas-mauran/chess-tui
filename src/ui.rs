@@ -143,7 +143,7 @@ pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
 }
 
 // Method to render the game board and handle game popups
-pub fn render_game_ui(frame: &mut Frame, app: &App, main_area: Rect) {
+pub fn render_game_ui(frame: &mut Frame, app: &mut App, main_area: Rect) {
     let main_layout_horizontal = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
@@ -186,7 +186,7 @@ pub fn render_game_ui(frame: &mut Frame, app: &App, main_area: Rect) {
     // We render the board_block in the center layout made above
     frame.render_widget(board_block.clone(), main_layout_vertical[1]);
 
-    // We make the inside of the board
+    // We make the inside of the board and update its starting coordinates
     app.board
         .board_render(board_block.inner(main_layout_vertical[1]), frame);
 

@@ -2,9 +2,6 @@ Output examples/demo-two-player.gif
 
 Require echo
 
-Set Margin 100
-Set MarginFill "#674EBB"
-
 Set BorderRadius 10
 Set Shell zsh
 

@@ -1,0 +1,13 @@
+.features {
+  display: flex;
+  align-items: center;
+  padding: 2rem 0;
+  width: 100%;
+}
+
+.featureGif {
+  max-width: 100%; /* Ensure the image doesn't overflow its container */
+  height: auto; /* Maintain aspect ratio */
+  display: inline-block; /* Ensure proper alignment */
+}
+

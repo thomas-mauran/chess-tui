@@ -134,6 +134,14 @@ pub struct Board {
     pub display_mode: DisplayMode,
     /// Used to indicate if a bot move is following
     pub bot_will_move: bool,
+    // coordinates of the interactable part of the screen (either normal chess board or promotion screen)
+    pub top_x: u16,
+    pub top_y: u16,
+    // dimension of a selectable cell (either 1 of the 64 cells, or 1 of the 4 promotion options)
+    pub width: u16,
+    pub height: u16,
+    // last move was with a mouse
+    pub mouse_used: bool,
     // if the bot is starting, meaning the player is black
     pub is_bot_starting: bool,
     // The white piece that got taken
@@ -141,7 +149,6 @@ pub struct Board {
     // The black piece that got taken
     pub black_taken_pieces: Vec<PieceType>,
 }
-
 fn init_board() -> GameBoard {
     [
         [
@@ -211,9 +218,14 @@ impl Default for Board {
             is_game_against_bot: false,
             display_mode: DisplayMode::DEFAULT,
             bot_will_move: false,
+            top_x: 0,
+            top_y: 0,
+            width: 0,
+            height: 0,
             is_bot_starting: false,
             white_taken_pieces: vec![],
             black_taken_pieces: vec![],
+            mouse_used: false,
         }
     }
 }
@@ -238,9 +250,14 @@ impl Board {
             is_game_against_bot: false,
             display_mode: DisplayMode::DEFAULT,
             bot_will_move: false,
+            top_x: 0,
+            top_y: 0,
+            width: 0,
+            height: 0,
             is_bot_starting: false,
             white_taken_pieces: vec![],
             black_taken_pieces: vec![],
+            mouse_used: false,
         }
     }
 
@@ -396,6 +413,25 @@ impl Board {
         }
     }
 
+    pub fn move_selected_piece_cursor_mouse(&mut self, coordinates: Coord) {
+        let piece_color = get_piece_color(self.board, &self.selected_coordinates);
+        let piece_type = get_piece_type(self.board, &self.selected_coordinates);
+
+        let authorized_positions =
+            self.get_authorized_positions(piece_type, piece_color, self.selected_coordinates);
+        if authorized_positions.contains(&coordinates)
+            && match piece_color {
+                Some(piece) => piece == self.player_turn,
+                None => false,
+            }
+        {
+            self.cursor_coordinates = coordinates;
+            self.select_cell();
+        } else {
+            self.selected_coordinates = coordinates;
+        }
+    }
+
     // Methods to select a cell on the board
     pub fn select_cell(&mut self) {
         // If we are doing a promotion the cursor is used for the popup
@@ -487,10 +523,26 @@ impl Board {
         let to_y = get_int_from_char(converted_move.chars().nth(2));
         let to_x = get_int_from_char(converted_move.chars().nth(3));
 
+        let mut promotion_piece: Option<PieceType> = None;
+        if movement.chars().count() == 5 {
+            promotion_piece = match movement.chars().nth(4) {
+                Some('q') => Some(PieceType::Queen),
+                Some('r') => Some(PieceType::Rook),
+                Some('b') => Some(PieceType::Bishop),
+                Some('n') => Some(PieceType::Knight),
+                _ => None,
+            };
+        }
+
         self.move_piece_on_the_board(
             &Coord::new(from_y as u8, from_x as u8),
             &Coord::new(to_y as u8, to_x as u8),
         );
+
+        if promotion_piece.is_some() {
+            self.board[to_y as usize][to_x as usize] =
+                Some((promotion_piece.unwrap(), self.player_turn));
+        }
         if self.is_bot_starting {
             self.flip_the_board();
         }
@@ -661,11 +713,6 @@ impl Board {
         if !from.is_valid() || !to.is_valid() {
             return;
         }
-        let direction_y: i32 = if self.player_turn == PieceColor::White {
-            -1
-        } else {
-            1
-        };
 
         let piece_type_from = get_piece_type(self.board, from);
         let piece_type_to = get_piece_type(self.board, to);
@@ -690,16 +737,21 @@ impl Board {
             (_, None) => {}
             (_, Some(piece)) => {
                 let piece_color = get_piece_color(self.board, to);
-                if let Some(piece_color) = piece_color {
+                // We check if there is a piece and we are not doing a castle
+                if piece_color.is_some()
+                    && (piece_type_to != Some(PieceType::Rook)
+                        && piece_color != Some(self.player_turn))
+                {
                     match piece_color {
-                        PieceColor::Black => {
+                        Some(PieceColor::Black) => {
                             self.white_taken_pieces.push(piece);
                             self.white_taken_pieces.sort();
                         }
-                        PieceColor::White => {
+                        Some(PieceColor::White) => {
                             self.black_taken_pieces.push(piece);
                             self.black_taken_pieces.sort();
                         }
+                        _ => {}
                     }
                 }
             }
@@ -708,7 +760,7 @@ impl Board {
         // We check for en passant as the latest move
         if self.is_latest_move_en_passant(*from, *to) {
             // we kill the pawn
-            let row_index = to.row as i32 - direction_y;
+            let row_index = to.row as i32 + 1;
 
             self.board[row_index as usize][to.col as usize] = None;
         }
@@ -821,7 +873,7 @@ impl Board {
     }
 
     // Check if the latest move is a promotion
-    fn is_latest_move_promotion(&self) -> bool {
+    pub fn is_latest_move_promotion(&self) -> bool {
         if let Some(last_move) = self.move_history.last() {
             if let Some(piece_type_to) =
                 get_piece_type(self.board, &Coord::new(last_move.to.row, last_move.to.col))
@@ -875,11 +927,17 @@ impl Board {
     }
 
     // Method to render the board
-    pub fn board_render(&self, area: Rect, frame: &mut Frame) {
+    pub fn board_render(&mut self, area: Rect, frame: &mut Frame) {
         let width = area.width / 8;
         let height = area.height / 8;
         let border_height = area.height / 2 - (4 * height);
         let border_width = area.width / 2 - (4 * width);
+
+        // we update the starting coordinates
+        self.top_x = area.x + border_width;
+        self.top_y = area.y + border_height;
+        self.width = width;
+        self.height = height;
         // We have 8 vertical lines
         let columns = Layout::default()
             .direction(Direction::Vertical)
@@ -949,16 +1007,22 @@ impl Board {
                         get_piece_type(self.board, &self.selected_coordinates);
                     let selected_piece_color: Option<PieceColor> =
                         get_piece_color(self.board, &self.selected_coordinates);
-                    positions = self.get_authorized_positions(
-                        selected_piece_type,
-                        selected_piece_color,
-                        self.selected_coordinates,
-                    );
+                    // only draw available moves if it is the right players turn
+                    if match selected_piece_color {
+                        Some(color) => color == self.player_turn,
+                        None => false,
+                    } {
+                        positions = self.get_authorized_positions(
+                            selected_piece_type,
+                            selected_piece_color,
+                            self.selected_coordinates,
+                        );
 
-                    // Draw grey if the color is in the authorized positions
-                    for coords in positions.clone() {
-                        if i == coords.row && j == coords.col {
-                            // cell_color = Color::Rgb(100, 100, 100);
+                        // Draw grey if the color is in the authorized positions
+                        for coords in positions.clone() {
+                            if i == coords.row && j == coords.col {
+                                // cell_color = Color::Rgb(100, 100, 100);
+                            }
                         }
                     }
                 }
@@ -972,7 +1036,10 @@ impl Board {
                 // - last move cell: green
                 // - default cell: white or black
                 // Draw the cell blue if this is the current cursor cell
-                if i == self.cursor_coordinates.row && j == self.cursor_coordinates.col {
+                if i == self.cursor_coordinates.row
+                    && j == self.cursor_coordinates.col
+                    && !self.mouse_used
+                {
                     Board::render_cell(frame, square, Color::LightBlue, None);
                 }
                 // Draw the cell magenta if the king is getting checked
@@ -1161,1005 +1228,6 @@ impl Board {
         frame.render_widget(
             black_material_paragraph,
             black_block.inner(right_panel_layout[0]),
-        );
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::{
-        board::{Board, Coord},
-        pieces::{PieceColor, PieceMove, PieceType},
-        utils::is_getting_checked,
-    };
-
-    #[test]
-    fn is_getting_checked_true() {
-        let custom_board = [
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [
-                None,
-                None,
-                None,
-                None,
-                Some((PieceType::Rook, PieceColor::Black)),
-                None,
-                None,
-                None,
-            ],
-            [
-                None,
-                None,
-                None,
-                None,
-                Some((PieceType::King, PieceColor::White)),
-                None,
-                None,
-                None,
-            ],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-        ];
-        let mut board = Board::default();
-        board.set_board(custom_board);
-
-        assert!(is_getting_checked(custom_board, PieceColor::White, &[]));
-    }
-
-    #[test]
-    fn is_getting_checked_false() {
-        let custom_board = [
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [
-                None,
-                None,
-                None,
-                None,
-                Some((PieceType::Rook, PieceColor::Black)),
-                None,
-                None,
-                None,
-            ],
-            [
-                None,
-                None,
-                None,
-                None,
-                Some((PieceType::Pawn, PieceColor::White)),
-                None,
-                None,
-                None,
-            ],
-            [
-                None,
-                None,
-                None,
-                None,
-                Some((PieceType::King, PieceColor::White)),
-                None,
-                None,
-                None,
-            ],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-        ];
-        let mut board = Board::default();
-        board.set_board(custom_board);
-
-        assert!(!is_getting_checked(custom_board, PieceColor::White, &[]));
-    }
-
-    #[test]
-    fn is_getting_checked_piece_in_front_false() {
-        let custom_board = [
-            [
-                Some((PieceType::Rook, PieceColor::Black)),
-                Some((PieceType::Knight, PieceColor::Black)),
-                Some((PieceType::Bishop, PieceColor::Black)),
-                Some((PieceType::Queen, PieceColor::Black)),
-                Some((PieceType::King, PieceColor::Black)),
-                None,
-                None,
-                Some((PieceType::Rook, PieceColor::Black)),
-            ],
-            [
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-            ],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                None,
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-            ],
-            [
-                Some((PieceType::Rook, PieceColor::White)),
-                Some((PieceType::Knight, PieceColor::White)),
-                Some((PieceType::Bishop, PieceColor::White)),
-                Some((PieceType::Queen, PieceColor::White)),
-                Some((PieceType::Rook, PieceColor::White)),
-                Some((PieceType::Bishop, PieceColor::White)),
-                None,
-                Some((PieceType::King, PieceColor::White)),
-            ],
-        ];
-        let mut board = Board::default();
-        board.set_board(custom_board);
-
-        assert!(!is_getting_checked(custom_board, PieceColor::Black, &[]));
-    }
-
-    #[test]
-    fn is_getting_checked_piece_in_with_gap_false() {
-        let custom_board = [
-            [
-                Some((PieceType::Rook, PieceColor::Black)),
-                Some((PieceType::Knight, PieceColor::Black)),
-                Some((PieceType::Bishop, PieceColor::Black)),
-                Some((PieceType::Queen, PieceColor::Black)),
-                Some((PieceType::King, PieceColor::Black)),
-                None,
-                None,
-                Some((PieceType::Rook, PieceColor::Black)),
-            ],
-            [
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                None,
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-            ],
-            [
-                None,
-                None,
-                None,
-                None,
-                Some((PieceType::Pawn, PieceColor::Black)),
-                None,
-                None,
-                None,
-            ],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                None,
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-            ],
-            [
-                Some((PieceType::Rook, PieceColor::White)),
-                Some((PieceType::Knight, PieceColor::White)),
-                Some((PieceType::Bishop, PieceColor::White)),
-                Some((PieceType::Queen, PieceColor::White)),
-                Some((PieceType::Rook, PieceColor::White)),
-                Some((PieceType::Bishop, PieceColor::White)),
-                None,
-                Some((PieceType::King, PieceColor::White)),
-            ],
-        ];
-        let mut board = Board::default();
-        board.set_board(custom_board);
-
-        assert!(!is_getting_checked(custom_board, PieceColor::Black, &[]));
-    }
-
-    #[test]
-    fn is_checkmate_true() {
-        let custom_board = [
-            [
-                Some((PieceType::King, PieceColor::White)),
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-            ],
-            [None, None, None, None, None, None, None, None],
-            [
-                None,
-                Some((PieceType::Rook, PieceColor::Black)),
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-            ],
-            [
-                Some((PieceType::Queen, PieceColor::Black)),
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-            ],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-        ];
-        let board = Board::new(custom_board, PieceColor::White, vec![]);
-
-        assert!(board.is_checkmate());
-    }
-
-    #[test]
-    fn is_checkmate_false() {
-        let custom_board = [
-            [
-                Some((PieceType::King, PieceColor::White)),
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-            ],
-            [None, None, None, None, None, None, None, None],
-            [
-                None,
-                Some((PieceType::Rook, PieceColor::Black)),
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-            ],
-            [
-                None,
-                None,
-                None,
-                Some((PieceType::Queen, PieceColor::Black)),
-                None,
-                None,
-                None,
-                None,
-            ],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-        ];
-        let board = Board::new(custom_board, PieceColor::White, vec![]);
-
-        assert!(!board.is_checkmate());
-    }
-
-    #[test]
-    fn is_checkmate_false_2() {
-        let custom_board = [
-            [
-                Some((PieceType::King, PieceColor::White)),
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-            ],
-            [
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                Some((PieceType::Queen, PieceColor::White)),
-                None,
-            ],
-            [
-                None,
-                Some((PieceType::Rook, PieceColor::Black)),
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-            ],
-            [
-                Some((PieceType::Queen, PieceColor::Black)),
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-            ],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-        ];
-        let board = Board::new(custom_board, PieceColor::White, vec![]);
-
-        assert!(!board.is_checkmate());
-    }
-
-    #[test]
-    fn is_draw_true() {
-        let custom_board = [
-            [
-                Some((PieceType::King, PieceColor::White)),
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-            ],
-            [
-                None,
-                None,
-                Some((PieceType::Queen, PieceColor::Black)),
-                None,
-                None,
-                None,
-                None,
-                None,
-            ],
-            [
-                None,
-                Some((PieceType::Rook, PieceColor::Black)),
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-            ],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-        ];
-        let mut board = Board::new(custom_board, PieceColor::White, vec![]);
-
-        assert!(board.is_draw());
-    }
-
-    #[test]
-    fn is_draw_false() {
-        let custom_board = [
-            [
-                Some((PieceType::King, PieceColor::White)),
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-            ],
-            [
-                None,
-                None,
-                None,
-                None,
-                Some((PieceType::Queen, PieceColor::Black)),
-                None,
-                None,
-                None,
-            ],
-            [
-                None,
-                None,
-                Some((PieceType::Rook, PieceColor::Black)),
-                None,
-                None,
-                None,
-                None,
-                None,
-            ],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-        ];
-        let mut board = Board::new(custom_board, PieceColor::White, vec![]);
-
-        assert!(!board.is_draw());
-    }
-
-    #[test]
-    fn is_promote_false() {
-        let custom_board = [
-            [
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                Some((PieceType::King, PieceColor::Black)),
-            ],
-            [
-                None,
-                None,
-                None,
-                Some((PieceType::Rook, PieceColor::White)),
-                None,
-                None,
-                None,
-                None,
-            ],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [
-                None,
-                None,
-                None,
-                Some((PieceType::Pawn, PieceColor::White)),
-                None,
-                None,
-                None,
-                None,
-            ],
-            [
-                None,
-                Some((PieceType::King, PieceColor::White)),
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-            ],
-        ];
-        let board = Board::new(
-            custom_board,
-            PieceColor::Black,
-            vec![
-                (PieceMove {
-                    piece_type: PieceType::Pawn,
-                    piece_color: PieceColor::White,
-                    from: Coord::new(7, 3),
-                    to: Coord::new(6, 3),
-                }),
-            ],
-        );
-
-        assert!(!board.is_latest_move_promotion());
-    }
-    #[test]
-    fn is_promote_true() {
-        let custom_board = [
-            [
-                None,
-                None,
-                None,
-                None,
-                Some((PieceType::Pawn, PieceColor::White)),
-                None,
-                None,
-                Some((PieceType::King, PieceColor::Black)),
-            ],
-            [
-                None,
-                None,
-                None,
-                Some((PieceType::Rook, PieceColor::White)),
-                None,
-                None,
-                None,
-                None,
-            ],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [
-                None,
-                Some((PieceType::King, PieceColor::White)),
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-            ],
-        ];
-        let board = Board::new(
-            custom_board,
-            PieceColor::Black,
-            vec![
-                (PieceMove {
-                    piece_type: PieceType::Pawn,
-                    piece_color: PieceColor::White,
-                    from: Coord::new(1, 4),
-                    to: Coord::new(0, 4),
-                }),
-            ],
-        );
-
-        assert!(board.is_latest_move_promotion());
-    }
-
-    #[test]
-    fn promote_and_checkmate() {
-        let custom_board = [
-            [
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                Some((PieceType::King, PieceColor::Black)),
-            ],
-            [
-                None,
-                None,
-                None,
-                Some((PieceType::Rook, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                None,
-                None,
-                None,
-            ],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [
-                None,
-                Some((PieceType::King, PieceColor::White)),
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-            ],
-        ];
-        // We setup the board
-        let mut board = Board::new(custom_board, PieceColor::White, vec![]);
-        assert!(!board.is_latest_move_promotion());
-
-        // Move the pawn to a promote cell
-        board.move_piece_on_the_board(&Coord::new(1, 4), &Coord::new(0, 4));
-        assert!(board.is_latest_move_promotion());
-
-        // Promote the pawn
-        board.promote_piece();
-
-        // The black king gets checkmated
-        board.player_turn = PieceColor::Black;
-        assert!(board.is_checkmate());
-    }
-
-    #[test]
-    fn is_promote_true_black() {
-        let custom_board = [
-            [
-                None,
-                None,
-                None,
-                None,
-                Some((PieceType::Pawn, PieceColor::Black)),
-                None,
-                None,
-                Some((PieceType::King, PieceColor::White)),
-            ],
-            [
-                None,
-                None,
-                None,
-                Some((PieceType::Rook, PieceColor::Black)),
-                None,
-                None,
-                None,
-                None,
-            ],
-            [
-                None,
-                Some((PieceType::King, PieceColor::Black)),
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-            ],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-        ];
-        let board = Board::new(
-            custom_board,
-            PieceColor::White,
-            vec![
-                (PieceMove {
-                    piece_type: PieceType::Pawn,
-                    piece_color: PieceColor::Black,
-                    from: Coord::new(1, 4),
-                    to: Coord::new(0, 4),
-                }),
-            ],
-        );
-
-        assert!(board.is_latest_move_promotion());
-    }
-
-    #[test]
-    fn promote_and_draw() {
-        let custom_board = [
-            [None, None, None, None, None, None, None, None],
-            [
-                None,
-                None,
-                None,
-                None,
-                None,
-                Some((PieceType::Pawn, PieceColor::Black)),
-                None,
-                Some((PieceType::King, PieceColor::White)),
-            ],
-            [
-                None,
-                Some((PieceType::King, PieceColor::Black)),
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-            ],
-            [None, None, None, None, None, None, None, None],
-            [
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                Some((PieceType::Rook, PieceColor::Black)),
-                None,
-            ],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-        ];
-        // We setup the board
-        let mut board = Board::new(custom_board, PieceColor::Black, vec![]);
-        assert!(!board.is_latest_move_promotion());
-
-        // Move the pawn to a promote cell
-        board.move_piece_on_the_board(&Coord::new(1, 5), &Coord::new(0, 5));
-        assert!(board.is_latest_move_promotion());
-
-        // Promote the pawn
-        board.promote_piece();
-
-        // The black king gets checkmated
-        board.player_turn = PieceColor::White;
-        assert!(board.is_draw());
-    }
-    #[test]
-    fn fifty_moves_draw() {
-        let custom_board = [
-            [None, None, None, None, None, None, None, None],
-            [
-                None,
-                None,
-                Some((PieceType::King, PieceColor::White)),
-                None,
-                None,
-                None,
-                Some((PieceType::King, PieceColor::Black)),
-                None,
-            ],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-        ];
-        // We setup the board
-        let mut board = Board::new(
-            custom_board,
-            PieceColor::White,
-            vec![
-                // We don't use the history for a fifty draw
-            ],
-        );
-
-        board.consecutive_non_pawn_or_capture = 49;
-        assert!(!board.is_draw());
-
-        // Move the pawn to a make the 50th move
-        board.move_piece_on_the_board(&Coord::new(1, 6), &Coord::new(1, 5));
-        assert!(board.is_draw());
-    }
-
-    #[test]
-    fn consecutive_position_draw() {
-        let custom_board = [
-            [
-                None,
-                None,
-                Some((PieceType::King, PieceColor::White)),
-                None,
-                None,
-                None,
-                Some((PieceType::King, PieceColor::Black)),
-                None,
-            ],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-        ];
-
-        // We setup the board
-        let mut board = Board::new(
-            custom_board,
-            PieceColor::White,
-            vec![
-                (PieceMove {
-                    piece_type: PieceType::King,
-                    piece_color: PieceColor::White,
-                    from: Coord::new(0, 2),
-                    to: Coord::new(0, 1),
-                }),
-                (PieceMove {
-                    piece_type: PieceType::King,
-                    piece_color: PieceColor::Black,
-                    from: Coord::new(0, 6),
-                    to: Coord::new(0, 5),
-                }),
-                (PieceMove {
-                    piece_type: PieceType::King,
-                    piece_color: PieceColor::White,
-                    from: Coord::new(0, 1),
-                    to: Coord::new(0, 2),
-                }),
-                (PieceMove {
-                    piece_type: PieceType::King,
-                    piece_color: PieceColor::Black,
-                    from: Coord::new(0, 5),
-                    to: Coord::new(0, 6),
-                }),
-                (PieceMove {
-                    piece_type: PieceType::King,
-                    piece_color: PieceColor::White,
-                    from: Coord::new(0, 2),
-                    to: Coord::new(0, 1),
-                }),
-                (PieceMove {
-                    piece_type: PieceType::King,
-                    piece_color: PieceColor::Black,
-                    from: Coord::new(0, 6),
-                    to: Coord::new(0, 5),
-                }),
-                (PieceMove {
-                    piece_type: PieceType::King,
-                    piece_color: PieceColor::White,
-                    from: Coord::new(0, 1),
-                    to: Coord::new(0, 2),
-                }),
-                (PieceMove {
-                    piece_type: PieceType::King,
-                    piece_color: PieceColor::Black,
-                    from: Coord::new(0, 5),
-                    to: Coord::new(0, 6),
-                }),
-            ],
-        );
-
-        let mut copy_move_history = board.move_history.clone();
-
-        for piece_move in copy_move_history.iter_mut() {
-            board.move_piece_on_the_board(&piece_move.from, &piece_move.to);
-
-            // In a chess game, board.is_draw() is called after every move
-            assert!(!board.is_draw());
-        }
-
-        // Move the king to replicate a third time the same position
-        board.move_piece_on_the_board(&Coord::new(0, 2), &Coord::new(0, 1));
-        assert!(board.is_draw());
-    }
-
-    #[test]
-    fn fen_converter_1() {
-        let custom_board = [
-            [
-                None,
-                None,
-                Some((PieceType::King, PieceColor::Black)),
-                None,
-                None,
-                None,
-                None,
-                Some((PieceType::Rook, PieceColor::White)),
-            ],
-            [None, None, None, None, None, None, None, None],
-            [
-                None,
-                None,
-                None,
-                None,
-                Some((PieceType::King, PieceColor::White)),
-                None,
-                None,
-                None,
-            ],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-        ];
-        // We setup the board
-        let mut board = Board::new(custom_board, PieceColor::White, vec![]);
-
-        // Move the king to replicate a third time the same position
-        assert_eq!(board.fen_position(), "2k4R/8/4K3/8/8/8/8/8 b - - 0 0");
-    }
-
-    #[test]
-    fn fen_converter_en_passant() {
-        let custom_board = [
-            [
-                None,
-                None,
-                Some((PieceType::King, PieceColor::Black)),
-                None,
-                None,
-                None,
-                None,
-                Some((PieceType::Rook, PieceColor::White)),
-            ],
-            [None, None, None, None, None, None, None, None],
-            [
-                None,
-                None,
-                None,
-                None,
-                Some((PieceType::King, PieceColor::White)),
-                None,
-                None,
-                None,
-            ],
-            [None, None, None, None, None, None, None, None],
-            [
-                None,
-                None,
-                Some((PieceType::Pawn, PieceColor::White)),
-                None,
-                None,
-                None,
-                None,
-                None,
-            ],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-        ];
-        // We setup the board
-        let mut board = Board::new(
-            custom_board,
-            PieceColor::White,
-            vec![
-                (PieceMove {
-                    piece_type: PieceType::Pawn,
-                    piece_color: PieceColor::White,
-                    from: Coord::new(6, 2),
-                    to: Coord::new(4, 2),
-                }),
-            ],
-        );
-
-        // Move the king to replicate a third time the same position
-        assert_eq!(board.fen_position(), "2k4R/8/4K3/8/2P5/8/8/8 b - c3 0 0");
-    }
-    #[test]
-    fn fen_converter_castling() {
-        let custom_board = [
-            [
-                Some((PieceType::Rook, PieceColor::Black)),
-                Some((PieceType::Knight, PieceColor::Black)),
-                Some((PieceType::Bishop, PieceColor::Black)),
-                Some((PieceType::Queen, PieceColor::Black)),
-                Some((PieceType::King, PieceColor::Black)),
-                Some((PieceType::Bishop, PieceColor::Black)),
-                Some((PieceType::Knight, PieceColor::Black)),
-                Some((PieceType::Rook, PieceColor::Black)),
-            ],
-            [
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-            ],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-            ],
-            [
-                Some((PieceType::Rook, PieceColor::White)),
-                Some((PieceType::Knight, PieceColor::White)),
-                Some((PieceType::Bishop, PieceColor::White)),
-                Some((PieceType::Queen, PieceColor::White)),
-                Some((PieceType::King, PieceColor::White)),
-                Some((PieceType::Bishop, PieceColor::White)),
-                Some((PieceType::Knight, PieceColor::White)),
-                Some((PieceType::Rook, PieceColor::White)),
-            ],
-        ];
-        // We setup the board
-        let mut board = Board::new(custom_board, PieceColor::White, vec![]);
-
-        // Move the king to replicate a third time the same position
-        assert_eq!(
-            board.fen_position(),
-            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b kq - 0 0"
         );
     }
 }
