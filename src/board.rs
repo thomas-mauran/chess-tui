@@ -132,6 +132,8 @@ pub struct Board {
     pub is_game_against_bot: bool,
     // the display mode
     pub display_mode: DisplayMode,
+    /// Used to indicate if a bot move is following
+    pub bot_will_move: bool,
     // coordinates of the interactable part of the screen (either normal chess board or promotion screen)
     pub top_x: u16,
     pub top_y: u16,
@@ -215,6 +217,7 @@ impl Default for Board {
             engine: None,
             is_game_against_bot: false,
             display_mode: DisplayMode::DEFAULT,
+            bot_will_move: false,
             top_x: 0,
             top_y: 0,
             width: 0,
@@ -246,6 +249,7 @@ impl Board {
             engine: None,
             is_game_against_bot: false,
             display_mode: DisplayMode::DEFAULT,
+            bot_will_move: false,
             top_x: 0,
             top_y: 0,
             width: 0,
@@ -452,13 +456,13 @@ impl Board {
                     }
                     // If we play against a bot we will play his move and switch the player turn again
                     if self.is_game_against_bot {
+                        // do this in background
                         self.is_promotion = self.is_latest_move_promotion();
                         if !self.is_promotion {
                             self.is_checkmate = self.is_checkmate();
                             self.is_promotion = self.is_latest_move_promotion();
                             if !self.is_checkmate {
-                                self.bot_move();
-                                self.switch_player_turn();
+                                self.bot_will_move = true;
                             }
                         }
                     }
@@ -1169,7 +1173,6 @@ impl Board {
 
             pieces.push_str(&format!("{utf_icon_white} "));
         }
-
         let white_material_paragraph = Paragraph::new(pieces)
             .alignment(Alignment::Center)
             .add_modifier(Modifier::BOLD);
@@ -1180,7 +1183,6 @@ impl Board {
             .direction(Direction::Vertical)
             .constraints([Constraint::Length(height - 1), Constraint::Length(1)].as_ref())
             .split(area);
-
         frame.render_widget(white_block.clone(), right_panel_layout[0]);
         frame.render_widget(
             white_material_paragraph,

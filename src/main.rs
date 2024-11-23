@@ -77,6 +77,15 @@ fn main() -> AppResult<()> {
             Event::Mouse(mouse_event) => handle_mouse_events(mouse_event, &mut app)?,
             Event::Resize(_, _) => {}
         }
+        if app.board.bot_will_move {
+            app.board.bot_move();
+            app.board.switch_player_turn();
+            app.board.bot_will_move = false;
+            // need to be centralised
+            app.board.is_checkmate = app.board.is_checkmate();
+            app.board.is_draw = app.board.is_draw();
+            tui.draw(&mut app)?;
+        }
     }
 
     // Exit the user interface.
