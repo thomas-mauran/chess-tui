@@ -122,43 +122,51 @@ pub fn render_promotion_popup(frame: &mut Frame, app: &mut App) {
     app.board.width = inner_popup_layout_horizontal[0].width;
     app.board.height = inner_popup_layout_horizontal[0].height;
 
-    let display_mode = &app.board.display_mode;
+    let display_mode = &app.game.board.display_mode;
 
     let queen_p = Paragraph::new(Queen::to_string(display_mode))
         .block(Block::default())
         .alignment(Alignment::Center)
-        .style(Style::default().bg(if app.board.promotion_cursor == 0 {
-            Color::LightBlue
-        } else {
-            Color::Reset // Set to the default background color when the condition is false
-        }));
+        .style(
+            Style::default().bg(if app.game.board.promotion_cursor == 0 {
+                Color::LightBlue
+            } else {
+                Color::Reset // Set to the default background color when the condition is false
+            }),
+        );
     frame.render_widget(queen_p, inner_popup_layout_horizontal[0]);
     let rook_p = Paragraph::new(Rook::to_string(display_mode))
         .block(Block::default())
         .alignment(Alignment::Center)
-        .style(Style::default().bg(if app.board.promotion_cursor == 1 {
-            Color::LightBlue
-        } else {
-            Color::Reset // Set to the default background color when the condition is false
-        }));
+        .style(
+            Style::default().bg(if app.game.board.promotion_cursor == 1 {
+                Color::LightBlue
+            } else {
+                Color::Reset // Set to the default background color when the condition is false
+            }),
+        );
     frame.render_widget(rook_p, inner_popup_layout_horizontal[1]);
     let bishop_p = Paragraph::new(Bishop::to_string(display_mode))
         .block(Block::default())
         .alignment(Alignment::Center)
-        .style(Style::default().bg(if app.board.promotion_cursor == 2 {
-            Color::LightBlue
-        } else {
-            Color::Reset // Set to the default background color when the condition is false
-        }));
+        .style(
+            Style::default().bg(if app.game.board.promotion_cursor == 2 {
+                Color::LightBlue
+            } else {
+                Color::Reset // Set to the default background color when the condition is false
+            }),
+        );
     frame.render_widget(bishop_p, inner_popup_layout_horizontal[2]);
     let knight_p = Paragraph::new(Knight::to_string(display_mode))
         .block(Block::default())
         .alignment(Alignment::Center)
-        .style(Style::default().bg(if app.board.promotion_cursor == 3 {
-            Color::LightBlue
-        } else {
-            Color::Reset // Set to the default background color when the condition is false
-        }));
+        .style(
+            Style::default().bg(if app.game.board.promotion_cursor == 3 {
+                Color::LightBlue
+            } else {
+                Color::Reset // Set to the default background color when the condition is false
+            }),
+        );
     frame.render_widget(knight_p, inner_popup_layout_horizontal[3]);
 }
 
@@ -306,7 +314,7 @@ pub fn render_color_selection_popup(frame: &mut Frame, app: &App) {
         )
         .split(inner_popup_layout_vertical[1]);
 
-    let display_mode = &app.board.display_mode;
+    let display_mode = &app.game.board.display_mode;
 
     let white_pawn = Paragraph::new(Pawn::to_string(display_mode))
         .block(Block::default())

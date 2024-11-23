@@ -41,7 +41,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             if app.current_page == Pages::Bot && app.selected_color.is_none() {
                 app.menu_cursor_right(2);
             } else {
-                app.board.cursor_right();
+                app.game.board.cursor_right();
             }
         }
         KeyCode::Left | KeyCode::Char('h') => {
@@ -49,21 +49,21 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             if app.current_page == Pages::Bot && app.selected_color.is_none() {
                 app.menu_cursor_left(2);
             } else {
-                app.board.cursor_left();
+                app.game.board.cursor_left();
             }
         }
         KeyCode::Up | KeyCode::Char('k') => {
             if app.current_page == Pages::Home {
                 app.menu_cursor_up(Pages::variant_count() as u8);
             } else {
-                app.board.cursor_up();
+                app.game.board.cursor_up();
             }
         }
         KeyCode::Down | KeyCode::Char('j') => {
             if app.current_page == Pages::Home {
                 app.menu_cursor_down(Pages::variant_count() as u8);
             } else {
-                app.board.cursor_down();
+                app.game.board.cursor_down();
             }
         }
         KeyCode::Char(' ') | KeyCode::Enter => {
@@ -72,7 +72,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             } else if app.current_page == Pages::Home {
                 app.menu_select();
             } else {
-                app.board.select_cell();
+                app.game.board.select_cell();
             }
         }
         KeyCode::Char('?') => {
@@ -91,7 +91,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                 app.show_color_popup = false;
                 app.menu_cursor = 0;
             }
-            app.board.unselect_cell();
+            app.game.board.unselect_cell();
         }
         KeyCode::Char('b') => {
             app.go_to_home();

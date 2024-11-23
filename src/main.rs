@@ -51,7 +51,7 @@ fn main() -> AppResult<()> {
             }
             // Set the display mode based on the configuration file
             if let Some(display_mode) = config.get("display_mode") {
-                app.board.display_mode = match display_mode.as_str() {
+                app.game.board.display_mode = match display_mode.as_str() {
                     Some("ASCII") => DisplayMode::ASCII,
                     _ => DisplayMode::DEFAULT,
                 };

@@ -25,10 +25,10 @@ pub fn render(app: &mut App, frame: &mut Frame) {
     if app.current_page == Pages::Solo {
         render_game_ui(frame, app, main_area);
     } else if app.current_page == Pages::Bot {
-        if app.board.engine.is_none() {
+        if app.game.board.engine.is_none() {
             match &app.chess_engine_path {
                 Some(path) => {
-                    app.board.set_engine(path);
+                    app.game.board.set_engine(path);
                     if app.selected_color.is_none() {
                         app.show_color_popup = true;
                     } else {
@@ -108,7 +108,7 @@ pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
 
     // Determine the "display mode" text
     let display_mode_menu = {
-        let display_mode = match app.board.display_mode {
+        let display_mode = match app.game.board.display_mode {
             DisplayMode::DEFAULT => "Default",
             DisplayMode::ASCII => "ASCII",
         };
@@ -187,32 +187,36 @@ pub fn render_game_ui(frame: &mut Frame, app: &mut App, main_area: Rect) {
     // We render the board_block in the center layout made above
     frame.render_widget(board_block.clone(), main_layout_vertical[1]);
 
-    // We make the inside of the board and update its starting coordinates
-    app.board
+    // We make the inside of the board
+    app.game
+        .board
         .board_render(board_block.inner(main_layout_vertical[1]), frame);
 
     //top box for white material
-    app.board
+    app.game
+        .board
         .black_material_render(board_block.inner(right_box_layout[0]), frame);
 
     // We make the inside of the board
-    app.board
+    app.game
+        .board
         .history_render(board_block.inner(right_box_layout[1]), frame);
 
     //bottom box for black matetrial
-    app.board
+    app.game
+        .board
         .white_material_render(board_block.inner(right_box_layout[2]), frame);
 
-    if app.board.is_promotion {
+    if app.game.board.is_promotion {
         render_promotion_popup(frame, app);
     }
 
-    if app.board.is_draw {
+    if app.game.board.is_draw {
         render_end_popup(frame, "That's a draw");
     }
 
-    if app.board.is_checkmate {
-        let victorious_player = app.board.player_turn.opposite();
+    if app.game.board.is_checkmate {
+        let victorious_player = app.game.board.player_turn.opposite();
 
         let string_color = match victorious_player {
             PieceColor::White => "White",
