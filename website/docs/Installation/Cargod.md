@@ -14,4 +14,4 @@ cargo install chess-tui
 chess-tui
 ```
 
-The package is available on [crates.io](https://crates.io/crates/chess-tui).
+The package is available on [crates.io](https://crates.io/crates/chess-tui) :tada:
