@@ -1,5 +1,5 @@
 use crate::{
-    app::{App, AppResult}, board::Coord, constants::{Pages, UNDEFINED_POSITION}
+    app::{App, AppResult}, board::Coord, constants::Pages
 };
 use ratatui::
     crossterm::event::{
@@ -14,7 +14,18 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         // crossterm on Windows sends Release and Repeat events as well, which we ignore.
         return Ok(());
     }
-    app.board.mouse_used = false;
+    if app.board.mouse_used == true{
+        app.board.mouse_used = false;
+        if app.board.selected_coordinates != Coord::undefined() {
+            app.board.cursor_coordinates = app.board.selected_coordinates;
+            app.board.selected_coordinates = Coord::undefined();
+        }
+        else {
+            app.board.cursor_coordinates.col = 4;
+            app.board.cursor_coordinates.row = 4;
+        }
+    }
+    
     match key_event.code {
         // Exit application on `q`
         KeyCode::Char('q') => {
@@ -124,14 +135,7 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
         }
         app.board.mouse_used = true;
         let coords: Coord = Coord::new(y as u8, x as u8);
-
-        if app.board.selected_coordinates.col == UNDEFINED_POSITION &&
-            app.board.selected_coordinates.col == UNDEFINED_POSITION {
-            app.board.selected_coordinates = coords;
-        } else {
-            app.board.move_selected_piece_cursor_mouse(coords);
-        } 
-
+        app.board.move_selected_piece_cursor_mouse(coords);
     }
     Ok(())
 }

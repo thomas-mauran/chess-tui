@@ -423,10 +423,7 @@ impl Board {
             self.cursor_coordinates = coordinates;
             self.select_cell();
         } else {
-            self.cursor_coordinates = coordinates;
-            self.selected_coordinates.col = UNDEFINED_POSITION;
-            self.selected_coordinates.row = UNDEFINED_POSITION;
-            self.select_cell();
+            self.selected_coordinates = coordinates;
         }
     }
 
@@ -989,17 +986,24 @@ impl Board {
                         get_piece_type(self.board, &self.selected_coordinates);
                     let selected_piece_color: Option<PieceColor> =
                         get_piece_color(self.board, &self.selected_coordinates);
-                    positions = self.get_authorized_positions(
-                        selected_piece_type,
-                        selected_piece_color,
-                        self.selected_coordinates,
-                    );
-
-                    // Draw grey if the color is in the authorized positions
-                    for coords in positions.clone() {
-                        if i == coords.row && j == coords.col {
-                            // cell_color = Color::Rgb(100, 100, 100);
+                    // only draw available moves if it is the right players turn
+                    if match selected_piece_color {
+                        Some(color) => {color == self.player_turn},
+                        None => {false},
+                    } {
+                        positions = self.get_authorized_positions(
+                            selected_piece_type,
+                            selected_piece_color,
+                            self.selected_coordinates,
+                        );
+    
+                        // Draw grey if the color is in the authorized positions
+                        for coords in positions.clone() {
+                            if i == coords.row && j == coords.col {
+                                // cell_color = Color::Rgb(100, 100, 100);
+                            }
                         }
+
                     }
                 }
 
