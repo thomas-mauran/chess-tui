@@ -1,6 +1,7 @@
+use crate::game::coord::Coord;
+use crate::game::game::{Game, GameBoard};
 use crate::{
     constants::{DisplayMode, UNDEFINED_POSITION},
-    game::game::{Coord, Game, GameBoard},
     pieces::{PieceColor, PieceMove, PieceType},
 };
 use ratatui::{
