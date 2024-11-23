@@ -142,7 +142,7 @@ pub struct Board {
     pub white_taken_pieces: Vec<PieceType>,
     // The black piece that got taken
     pub black_taken_pieces: Vec<PieceType>,
-
+}
 fn init_board() -> GameBoard {
     [
         [
