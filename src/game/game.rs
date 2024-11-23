@@ -1,4 +1,4 @@
-use super::coord::Coord;
+use super::{board::GameBoard, coord::Coord};
 use crate::{
     constants::{DisplayMode, BLACK, UNDEFINED_POSITION, WHITE},
     pieces::{PieceColor, PieceMove, PieceType},
@@ -16,22 +16,6 @@ use ratatui::{
     Frame,
 };
 use uci::Engine;
-/// only the pure gameboard, no additional information
-pub type GameBoard = [[Option<(PieceType, PieceColor)>; 8]; 8];
-
-impl std::ops::Index<&Coord> for GameBoard {
-    type Output = Option<(PieceType, PieceColor)>;
-
-    fn index(&self, index: &Coord) -> &Self::Output {
-        &self[index.row as usize][index.col as usize]
-    }
-}
-
-impl std::ops::IndexMut<&Coord> for GameBoard {
-    fn index_mut(&mut self, index: &Coord) -> &mut Self::Output {
-        &mut self[index.row as usize][index.col as usize]
-    }
-}
 
 /// ## visual representation
 ///

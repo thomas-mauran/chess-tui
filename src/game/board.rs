@@ -1,28 +1,19 @@
-// use super::Game::{Board, GameBoard};
-// use crate::pieces::{PieceColor, PieceMove};
+use super::coord::Coord;
+use crate::pieces::{PieceColor, PieceType};
 
-// pub struct Game {
-//     pub board: Board,
-//     pub move_history: Vec<PieceMove>,
-//     pub current_turn: PieceColor,
-//     pub is_king_checked: bool,
-//     pub is_king_checkmated: bool,
-//     pub is_stalemate: bool,
-//     pub is_draw: bool,
-//     pub is_game_over: bool,
-// }
+/// only the pure gameboard, no additional information
+pub type GameBoard = [[Option<(PieceType, PieceColor)>; 8]; 8];
 
-// impl Game {
-//     pub fn new() -> Self {
-//         Self {
-//             board: Game::default(),
-//             move_history: Vec::new(),
-//             current_turn: PieceColor::White,
-//             is_king_checked: false,
-//             is_king_checkmated: false,
-//             is_stalemate: false,
-//             is_draw: false,
-//             is_game_over: false,
-//         }
-//     }
-// }
+impl std::ops::Index<&Coord> for GameBoard {
+    type Output = Option<(PieceType, PieceColor)>;
+
+    fn index(&self, index: &Coord) -> &Self::Output {
+        &self[index.row as usize][index.col as usize]
+    }
+}
+
+impl std::ops::IndexMut<&Coord> for GameBoard {
+    fn index_mut(&mut self, index: &Coord) -> &mut Self::Output {
+        &mut self[index.row as usize][index.col as usize]
+    }
+}

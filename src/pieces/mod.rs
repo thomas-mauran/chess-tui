@@ -2,8 +2,8 @@ use std::cmp::Ordering;
 
 use self::{bishop::Bishop, king::King, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook};
 use super::constants::DisplayMode;
+use crate::game::board::GameBoard;
 use crate::game::coord::Coord;
-use crate::game::game::GameBoard;
 
 pub mod bishop;
 pub mod king;

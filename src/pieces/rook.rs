@@ -1,7 +1,7 @@
 use super::{Movable, PieceColor, PieceMove, Position};
 use crate::constants::DisplayMode;
+use crate::game::board::GameBoard;
 use crate::game::coord::Coord;
-use crate::game::game::GameBoard;
 use crate::utils::{
     cleaned_positions, get_piece_color, impossible_positions_king_checked, is_cell_color_ally,
     is_piece_opposite_king,

@@ -1,5 +1,6 @@
+use crate::game::board::GameBoard;
 use crate::game::coord::Coord;
-use crate::game::game::{Game, GameBoard};
+use crate::game::game::Game;
 use crate::{
     constants::{DisplayMode, UNDEFINED_POSITION},
     pieces::{PieceColor, PieceMove, PieceType},
