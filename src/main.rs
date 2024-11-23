@@ -4,7 +4,7 @@ extern crate chess_tui;
 use chess_tui::app::{App, AppResult};
 use chess_tui::constants::{home_dir, DisplayMode};
 use chess_tui::event::{Event, EventHandler};
-use chess_tui::handler::handle_key_events;
+use chess_tui::handler::{handle_key_events, handle_mouse_events};
 use chess_tui::tui::Tui;
 use clap::Parser;
 use std::fs::{self, File};
@@ -22,6 +22,11 @@ struct Args {
 }
 
 fn main() -> AppResult<()> {
+    // Used to enable mouse capture
+    ratatui::crossterm::execute!(
+        std::io::stdout(),
+        ratatui::crossterm::event::EnableMouseCapture
+    )?;
     // Parse the cli arguments
     let args = Args::parse();
 
@@ -69,12 +74,18 @@ fn main() -> AppResult<()> {
         match tui.events.next()? {
             Event::Tick => app.tick(),
             Event::Key(key_event) => handle_key_events(key_event, &mut app)?,
-            Event::Mouse(_) | Event::Resize(_, _) => {}
+            Event::Mouse(mouse_event) => handle_mouse_events(mouse_event, &mut app)?,
+            Event::Resize(_, _) => {}
         }
     }
 
     // Exit the user interface.
     ratatui::try_restore()?;
+    // Free up the mouse, otherwise it will remain linked to the terminal
+    ratatui::crossterm::execute!(
+        std::io::stdout(),
+        ratatui::crossterm::event::DisableMouseCapture
+    )?;
 
     Ok(())
 }

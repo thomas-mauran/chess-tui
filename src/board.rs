@@ -132,6 +132,14 @@ pub struct Board {
     pub is_game_against_bot: bool,
     // the display mode
     pub display_mode: DisplayMode,
+    // coordinates of the interactable part of the screen (either normal chess board or promotion screen)
+    pub top_x: u16,
+    pub top_y: u16,
+    // dimension of a selectable cell (either 1 of the 64 cells, or 1 of the 4 promotion options)
+    pub width: u16,
+    pub height: u16,
+    // last move was with a mouse
+    pub mouse_used: bool,
     // if the bot is starting, meaning the player is black
     pub is_bot_starting: bool,
     // The white piece that got taken
@@ -139,7 +147,6 @@ pub struct Board {
     // The black piece that got taken
     pub black_taken_pieces: Vec<PieceType>,
 }
-
 fn init_board() -> GameBoard {
     [
         [
@@ -208,9 +215,14 @@ impl Default for Board {
             engine: None,
             is_game_against_bot: false,
             display_mode: DisplayMode::DEFAULT,
+            top_x: 0,
+            top_y: 0,
+            width: 0,
+            height: 0,
             is_bot_starting: false,
             white_taken_pieces: vec![],
             black_taken_pieces: vec![],
+            mouse_used: false,
         }
     }
 }
@@ -234,9 +246,14 @@ impl Board {
             engine: None,
             is_game_against_bot: false,
             display_mode: DisplayMode::DEFAULT,
+            top_x: 0,
+            top_y: 0,
+            width: 0,
+            height: 0,
             is_bot_starting: false,
             white_taken_pieces: vec![],
             black_taken_pieces: vec![],
+            mouse_used: false,
         }
     }
 
@@ -389,6 +406,25 @@ impl Board {
             if let Some(position) = authorized_positions.get(self.selected_piece_cursor as usize) {
                 self.cursor_coordinates = *position;
             }
+        }
+    }
+
+    pub fn move_selected_piece_cursor_mouse(&mut self, coordinates: Coord) {
+        let piece_color = get_piece_color(self.board, &self.selected_coordinates);
+        let piece_type = get_piece_type(self.board, &self.selected_coordinates);
+
+        let authorized_positions =
+            self.get_authorized_positions(piece_type, piece_color, self.selected_coordinates);
+        if authorized_positions.contains(&coordinates)
+            && match piece_color {
+                Some(piece) => piece == self.player_turn,
+                None => false,
+            }
+        {
+            self.cursor_coordinates = coordinates;
+            self.select_cell();
+        } else {
+            self.selected_coordinates = coordinates;
         }
     }
 
@@ -887,11 +923,17 @@ impl Board {
     }
 
     // Method to render the board
-    pub fn board_render(&self, area: Rect, frame: &mut Frame) {
+    pub fn board_render(&mut self, area: Rect, frame: &mut Frame) {
         let width = area.width / 8;
         let height = area.height / 8;
         let border_height = area.height / 2 - (4 * height);
         let border_width = area.width / 2 - (4 * width);
+
+        // we update the starting coordinates
+        self.top_x = area.x + border_width;
+        self.top_y = area.y + border_height;
+        self.width = width;
+        self.height = height;
         // We have 8 vertical lines
         let columns = Layout::default()
             .direction(Direction::Vertical)
@@ -961,16 +1003,22 @@ impl Board {
                         get_piece_type(self.board, &self.selected_coordinates);
                     let selected_piece_color: Option<PieceColor> =
                         get_piece_color(self.board, &self.selected_coordinates);
-                    positions = self.get_authorized_positions(
-                        selected_piece_type,
-                        selected_piece_color,
-                        self.selected_coordinates,
-                    );
+                    // only draw available moves if it is the right players turn
+                    if match selected_piece_color {
+                        Some(color) => color == self.player_turn,
+                        None => false,
+                    } {
+                        positions = self.get_authorized_positions(
+                            selected_piece_type,
+                            selected_piece_color,
+                            self.selected_coordinates,
+                        );
 
-                    // Draw grey if the color is in the authorized positions
-                    for coords in positions.clone() {
-                        if i == coords.row && j == coords.col {
-                            // cell_color = Color::Rgb(100, 100, 100);
+                        // Draw grey if the color is in the authorized positions
+                        for coords in positions.clone() {
+                            if i == coords.row && j == coords.col {
+                                // cell_color = Color::Rgb(100, 100, 100);
+                            }
                         }
                     }
                 }
@@ -984,7 +1032,10 @@ impl Board {
                 // - last move cell: green
                 // - default cell: white or black
                 // Draw the cell blue if this is the current cursor cell
-                if i == self.cursor_coordinates.row && j == self.cursor_coordinates.col {
+                if i == self.cursor_coordinates.row
+                    && j == self.cursor_coordinates.col
+                    && !self.mouse_used
+                {
                     Board::render_cell(frame, square, Color::LightBlue, None);
                 }
                 // Draw the cell magenta if the king is getting checked
