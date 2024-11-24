@@ -64,6 +64,7 @@ impl App {
 
     pub fn go_to_home(&mut self) {
         self.current_page = Pages::Home;
+        self.restart();
     }
 
     /// Handles the tick event of the terminal.
@@ -124,18 +125,16 @@ impl App {
     }
 
     pub fn restart(&mut self) {
-        if self.game.is_draw || self.game.is_checkmate {
-            let is_bot_starting = self.game.is_bot_starting;
-            let engine = self.game.engine.clone();
-            let game_is_against_bot = self.game.is_game_against_bot;
-            self.game = Game::default();
-            self.game.engine = engine;
-            self.game.is_game_against_bot = game_is_against_bot;
-            if is_bot_starting {
-                self.game.is_bot_starting = true;
-                self.game.bot_move();
-                self.game.player_turn = PieceColor::Black;
-            }
+        let is_bot_starting = self.game.is_bot_starting;
+        let engine = self.game.engine.clone();
+        let game_is_against_bot = self.game.is_game_against_bot;
+        self.game = Game::default();
+        self.game.engine = engine;
+        self.game.is_game_against_bot = game_is_against_bot;
+        if is_bot_starting {
+            self.game.is_bot_starting = true;
+            self.game.bot_move();
+            self.game.player_turn = PieceColor::Black;
         }
     }
 

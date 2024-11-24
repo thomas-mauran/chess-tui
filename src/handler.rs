@@ -110,6 +110,9 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         KeyCode::Esc => {
             if app.show_help_popup {
                 app.show_help_popup = false;
+            } else if app.show_color_popup {
+                app.show_color_popup = false;
+                app.current_page = Pages::Home;
             } else if app.current_page == Pages::Credit {
                 app.current_page = Pages::Home;
             } else if app.current_page == Pages::Bot && app.selected_color.is_none() {
@@ -120,7 +123,16 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             app.game.ui.unselect_cell();
         }
         KeyCode::Char('b') => {
+            let display_mode = app.game.display_mode;
+            app.selected_color = None;
+            if app.game.is_game_against_bot {
+                app.game.is_game_against_bot = false;
+                app.game.is_bot_starting = false;
+            }
             app.go_to_home();
+            app.game.game_board.reset();
+            app.game.ui.reset();
+            app.game.display_mode = display_mode;
         }
         // Other handlers you could add here.
         _ => {}

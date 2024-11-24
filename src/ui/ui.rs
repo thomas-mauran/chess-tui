@@ -1,7 +1,7 @@
 use ratatui::{
     layout::{Constraint, Direction, Layout},
     prelude::{Alignment, Rect},
-    style::{Style, Stylize},
+    style::{Color, Modifier, Style, Stylize},
     text::Line,
     widgets::{Block, Paragraph},
     Frame,
@@ -77,6 +77,14 @@ pub fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
             Constraint::Percentage((100 - percent_x) / 2),
         ])
         .split(popup_layout[1])[1]
+}
+
+pub fn render_cell(frame: &mut Frame, square: Rect, color: Color, modifier: Option<Modifier>) {
+    let mut cell = Block::default().bg(color);
+    if let Some(modifier) = modifier {
+        cell = cell.add_modifier(modifier);
+    }
+    frame.render_widget(cell, square);
 }
 
 // Method to render the home menu and the options
@@ -188,20 +196,33 @@ pub fn render_game_ui(frame: &mut Frame, app: &mut App, main_area: Rect) {
     frame.render_widget(board_block.clone(), main_layout_vertical[1]);
 
     // We make the inside of the board
-    app.game
-        .board_render(board_block.inner(main_layout_vertical[1]), frame);
+    let inner_block = {
+        let temp = board_block.inner(main_layout_vertical[1]);
+        temp // Resolve immutable borrow here
+    };
+    let game_clone = app.game.clone();
+    app.game.ui.board_render(inner_block, frame, &game_clone); // Mutable borrow now allowed
 
     //top box for white material
-    app.game
-        .black_material_render(board_block.inner(right_box_layout[0]), frame);
+    app.game.ui.black_material_render(
+        board_block.inner(right_box_layout[0]),
+        frame,
+        &app.game.black_taken_pieces,
+    );
 
     // We make the inside of the board
-    app.game
-        .history_render(board_block.inner(right_box_layout[1]), frame);
+    app.game.ui.history_render(
+        board_block.inner(right_box_layout[1]),
+        frame,
+        &app.game.game_board.move_history,
+    );
 
     //bottom box for black matetrial
-    app.game
-        .white_material_render(board_block.inner(right_box_layout[2]), frame);
+    app.game.ui.white_material_render(
+        board_block.inner(right_box_layout[2]),
+        frame,
+        &app.game.white_taken_pieces,
+    );
 
     if app.game.is_promotion {
         render_promotion_popup(frame, app);

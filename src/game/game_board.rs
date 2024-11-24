@@ -70,6 +70,14 @@ impl GameBoard {
         }
     }
 
+    pub fn reset(&mut self) {
+        self.board = init_board();
+        self.move_history.clear();
+        self.board_history.clear();
+        self.board_history.push(init_board());
+        self.consecutive_non_pawn_or_capture = 0;
+    }
+
     // Method to get the authorized positions for a piece
     pub fn get_authorized_positions(
         &self,
