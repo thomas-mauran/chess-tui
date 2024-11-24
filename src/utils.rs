@@ -1,30 +1,15 @@
-use crate::game::board::Board;
 use crate::game::coord::Coord;
 use crate::game::game::Game;
 use crate::game::game_board::GameBoard;
 use crate::{
     constants::{DisplayMode, UNDEFINED_POSITION},
-    pieces::{PieceColor, PieceMove, PieceType},
+    pieces::{PieceColor, PieceType},
 };
 use ratatui::{
     layout::{Alignment, Rect},
     style::{Color, Stylize},
     widgets::{Block, Padding, Paragraph},
 };
-
-pub fn get_piece_color(board: Board, coordinates: &Coord) -> Option<PieceColor> {
-    if !coordinates.is_valid() {
-        return None;
-    }
-    board[coordinates].map(|(_, piece_color)| piece_color)
-}
-
-pub fn get_piece_type(board: Board, coordinates: &Coord) -> Option<PieceType> {
-    if !coordinates.is_valid() {
-        return None;
-    }
-    board[coordinates].map(|(piece_type, _)| piece_type)
-}
 
 /// method to clean `positions`: remove impossible positions
 pub fn cleaned_positions(positions: &[Coord]) -> Vec<Coord> {
@@ -35,41 +20,12 @@ pub fn cleaned_positions(positions: &[Coord]) -> Vec<Coord> {
         .collect()
 }
 
-/// Return true forally cell color; false for enemy
-pub fn is_cell_color_ally(board: Board, coordinates: &Coord, color: PieceColor) -> bool {
-    match get_piece_color(board, coordinates) {
+/// Return true for ally cell color; false for enemy
+pub fn is_cell_color_ally(game_board: &GameBoard, coordinates: &Coord, color: PieceColor) -> bool {
+    match game_board.get_piece_color(coordinates) {
         Some(cell_color) => cell_color == color,
         None => false, // Treat empty cell as ally
     }
-}
-
-/// We get all the cells that are getting put in 'check'
-pub fn get_all_protected_cells(
-    board: Board,
-    player_turn: PieceColor,
-    move_history: &[PieceMove],
-) -> Vec<Coord> {
-    let mut check_cells: Vec<Coord> = vec![];
-    for i in 0..8u8 {
-        for j in 0..8u8 {
-            if get_piece_color(board, &Coord::new(i, j)) == Some(player_turn) {
-                continue;
-            }
-            // get the current cell piece color and type protecting positions
-            if let Some(piece_color) = get_piece_color(board, &Coord::new(i, j)) {
-                if let Some(piece_type) = get_piece_type(board, &Coord::new(i, j)) {
-                    check_cells.extend(PieceType::protected_positions(
-                        &Coord::new(i, j),
-                        piece_type,
-                        piece_color,
-                        board,
-                        move_history,
-                    ));
-                }
-            }
-        }
-    }
-    check_cells
 }
 
 pub fn col_to_letter(col: u8) -> String {
@@ -129,77 +85,6 @@ pub fn get_int_from_char(ch: Option<char>) -> u8 {
     }
 }
 
-pub fn did_piece_already_move(
-    move_history: &[PieceMove],
-    original_piece: (Option<PieceType>, Option<PieceColor>, Coord),
-) -> bool {
-    for entry in move_history {
-        if Some(entry.piece_type) == original_piece.0
-            && Some(entry.piece_color) == original_piece.1
-            && entry.from == original_piece.2
-        {
-            return true;
-        }
-    }
-    false
-}
-/// Method returning the coordinates of the king of a certain color
-pub fn get_king_coordinates(board: Board, player_turn: PieceColor) -> Coord {
-    for i in 0..8u8 {
-        for j in 0..8u8 {
-            if let Some((piece_type, piece_color)) = board[i as usize][j as usize] {
-                if piece_type == PieceType::King && piece_color == player_turn {
-                    return Coord::new(i, j);
-                }
-            }
-        }
-    }
-    Coord::undefined()
-}
-
-/// Is getting checked
-pub fn is_getting_checked(
-    board: Board,
-    player_turn: PieceColor,
-    move_history: &[PieceMove],
-) -> bool {
-    let coordinates = get_king_coordinates(board, player_turn);
-
-    let checked_cells = get_all_protected_cells(board, player_turn, move_history);
-
-    checked_cells.contains(&coordinates)
-}
-
-pub fn impossible_positions_king_checked(
-    original_coordinates: &Coord,
-    positions: Vec<Coord>,
-    board: Board,
-    color: PieceColor,
-    move_history: &[PieceMove],
-) -> Vec<Coord> {
-    let mut cleaned_position: Vec<Coord> = vec![];
-    for position in positions {
-        let game = GameBoard::new(board, move_history.to_vec(), vec![]);
-
-        // We create a new board
-        let mut new_board = Game::new(game, color);
-
-        // We simulate the move
-
-        Game::move_piece_on_the_board(&mut new_board, original_coordinates, &position);
-
-        // We check if the board is still checked with this move meaning it didn't resolve the problem
-        if !is_getting_checked(
-            new_board.game_board.board,
-            new_board.player_turn,
-            &new_board.game_board.move_history,
-        ) {
-            cleaned_position.push(position);
-        };
-    }
-    cleaned_position
-}
-
 pub fn is_piece_opposite_king(piece: Option<(PieceType, PieceColor)>, color: PieceColor) -> bool {
     match piece {
         Some((piece_type, piece_color)) => {
@@ -218,16 +103,16 @@ pub fn color_to_ratatui_enum(piece_color: Option<PieceColor>) -> Color {
 }
 
 pub fn get_cell_paragraph<'a>(
-    board: &'a Game,
+    game: &'a Game,
     cell_coordinates: &'a Coord,
     bounding_rect: Rect,
 ) -> Paragraph<'a> {
     // Get piece and color
-    let piece_color = get_piece_color(board.game_board.board, cell_coordinates);
-    let piece_type = get_piece_type(board.game_board.board, cell_coordinates);
-    let piece_enum = PieceType::piece_type_to_string_enum(piece_type, &board.display_mode);
+    let piece_color = game.game_board.get_piece_color(cell_coordinates);
+    let piece_type = game.game_board.get_piece_type(cell_coordinates);
+    let piece_enum = PieceType::piece_type_to_string_enum(piece_type, &game.display_mode);
 
-    let paragraph = match board.display_mode {
+    let paragraph = match game.display_mode {
         DisplayMode::DEFAULT => {
             let color_enum = color_to_ratatui_enum(piece_color);
 

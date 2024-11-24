@@ -3,7 +3,6 @@ mod tests {
     use chess_tui::game::game::Game;
     use chess_tui::game::game_board::GameBoard;
     use chess_tui::pieces::{PieceColor, PieceType};
-    use chess_tui::utils::is_getting_checked;
 
     #[test]
     fn is_getting_checked_true() {
@@ -37,7 +36,9 @@ mod tests {
         ];
         let mut game = Game::default();
         game.game_board.board = custom_board;
-        assert!(is_getting_checked(custom_board, PieceColor::White, &[]));
+        assert!(game
+            .game_board
+            .is_getting_checked(custom_board, PieceColor::White));
     }
 
     #[test]
@@ -81,7 +82,9 @@ mod tests {
         ];
         let mut game = Game::default();
         game.game_board.board = custom_board;
-        assert!(!is_getting_checked(custom_board, PieceColor::White, &[]));
+        assert!(!game
+            .game_board
+            .is_getting_checked(custom_board, PieceColor::White));
     }
 
     #[test]
@@ -134,7 +137,9 @@ mod tests {
         ];
         let mut game = Game::default();
         game.game_board.board = custom_board;
-        assert!(!is_getting_checked(custom_board, PieceColor::Black, &[]));
+        assert!(!game
+            .game_board
+            .is_getting_checked(custom_board, PieceColor::Black));
     }
 
     #[test]
@@ -196,7 +201,9 @@ mod tests {
         ];
         let mut game = Game::default();
         game.game_board.board = custom_board;
-        assert!(!is_getting_checked(custom_board, PieceColor::Black, &[]));
+        assert!(!game
+            .game_board
+            .is_getting_checked(custom_board, PieceColor::Black));
     }
 
     #[test]

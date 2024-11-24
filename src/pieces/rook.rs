@@ -2,19 +2,16 @@ use super::{Movable, PieceColor, PieceMove, Position};
 use crate::constants::DisplayMode;
 use crate::game::board::Board;
 use crate::game::coord::Coord;
-use crate::utils::{
-    cleaned_positions, get_piece_color, impossible_positions_king_checked, is_cell_color_ally,
-    is_piece_opposite_king,
-};
+use crate::game::game_board::{self, GameBoard};
+use crate::utils::{cleaned_positions, is_cell_color_ally, is_piece_opposite_king};
 pub struct Rook;
 
 impl Movable for Rook {
     fn piece_move(
         coordinates: &Coord,
         color: PieceColor,
-        board: Board,
+        game_board: &GameBoard,
         allow_move_on_ally_positions: bool,
-        _move_history: &[PieceMove],
     ) -> Vec<Coord> {
         // Pawns can only move in one direction depending on their color
         let mut positions = vec![];
@@ -33,12 +30,12 @@ impl Movable for Rook {
             }
 
             // Empty cell
-            if get_piece_color(board, &new_coordinates).is_none() {
+            if game_board.get_piece_color(&new_coordinates).is_none() {
                 positions.push(new_coordinates);
                 continue;
             }
             // Ally cell
-            if is_cell_color_ally(board, &new_coordinates, color) {
+            if is_cell_color_ally(game_board, &new_coordinates, color) {
                 if !allow_move_on_ally_positions {
                     break;
                 }
@@ -49,7 +46,7 @@ impl Movable for Rook {
             // Enemy cell
             positions.push(new_coordinates);
             if !allow_move_on_ally_positions
-                || !is_piece_opposite_king(board[new_y as usize][new_x as usize], color)
+                || !is_piece_opposite_king(game_board.board[new_y as usize][new_x as usize], color)
             {
                 break;
             }
@@ -64,13 +61,13 @@ impl Movable for Rook {
             };
 
             // Empty piece
-            if get_piece_color(board, &new_coordinates).is_none() {
+            if game_board.get_piece_color(&new_coordinates).is_none() {
                 positions.push(new_coordinates);
                 continue;
             }
 
             // Ally piece
-            if is_cell_color_ally(board, &new_coordinates, color) {
+            if is_cell_color_ally(game_board, &new_coordinates, color) {
                 if !allow_move_on_ally_positions {
                     break;
                 }
@@ -81,7 +78,7 @@ impl Movable for Rook {
             // Enemy cell
             positions.push(new_coordinates);
             if !allow_move_on_ally_positions
-                || !is_piece_opposite_king(board[new_y as usize][new_x as usize], color)
+                || !is_piece_opposite_king(game_board.board[new_y as usize][new_x as usize], color)
             {
                 break;
             }
@@ -99,12 +96,12 @@ impl Movable for Rook {
             }
 
             // Empty cell
-            if get_piece_color(board, &new_coordinates).is_none() {
+            if game_board.get_piece_color(&new_coordinates).is_none() {
                 positions.push(new_coordinates);
                 continue;
             }
             // Ally cell
-            if is_cell_color_ally(board, &new_coordinates, color) {
+            if is_cell_color_ally(game_board, &new_coordinates, color) {
                 if !allow_move_on_ally_positions {
                     break;
                 }
@@ -116,7 +113,7 @@ impl Movable for Rook {
             positions.push(new_coordinates);
 
             if !allow_move_on_ally_positions
-                || !is_piece_opposite_king(board[new_y as usize][new_x as usize], color)
+                || !is_piece_opposite_king(game_board.board[new_y as usize][new_x as usize], color)
             {
                 break;
             }
@@ -131,12 +128,12 @@ impl Movable for Rook {
             };
 
             // Empty cell
-            if get_piece_color(board, &new_coordinates).is_none() {
+            if game_board.get_piece_color(&new_coordinates).is_none() {
                 positions.push(new_coordinates);
                 continue;
             }
             // Ally cell
-            if is_cell_color_ally(board, &new_coordinates, color) {
+            if is_cell_color_ally(game_board, &new_coordinates, color) {
                 if !allow_move_on_ally_positions {
                     break;
                 }
@@ -147,7 +144,7 @@ impl Movable for Rook {
             positions.push(new_coordinates);
 
             if !allow_move_on_ally_positions
-                || !is_piece_opposite_king(board[new_y as usize][new_x as usize], color)
+                || !is_piece_opposite_king(game_board.board[new_y as usize][new_x as usize], color)
             {
                 break;
             }
@@ -161,28 +158,24 @@ impl Position for Rook {
     fn authorized_positions(
         coordinates: &Coord,
         color: PieceColor,
-        board: Board,
-        move_history: &[PieceMove],
+        game_board: &GameBoard,
         _is_king_checked: bool,
     ) -> Vec<Coord> {
         // If the king is not checked we get then normal moves
         // if the king is checked we clean all the position not resolving the check
-        impossible_positions_king_checked(
+        game_board.impossible_positions_king_checked(
             coordinates,
-            Self::piece_move(coordinates, color, board, false, move_history),
-            board,
+            Self::piece_move(coordinates, color, game_board, false),
             color,
-            move_history,
         )
     }
 
     fn protected_positions(
         coordinates: &Coord,
         color: PieceColor,
-        board: Board,
-        move_history: &[PieceMove],
+        game_board: &GameBoard,
     ) -> Vec<Coord> {
-        Self::piece_move(coordinates, color, board, true, move_history)
+        Self::piece_move(coordinates, color, game_board, true)
     }
 }
 

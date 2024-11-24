@@ -4,8 +4,7 @@ use crate::{
     pieces::{pawn::Pawn, PieceColor, PieceMove, PieceType},
     utils::{
         col_to_letter, convert_notation_into_position, convert_position_into_notation,
-        did_piece_already_move, get_cell_paragraph, get_int_from_char, get_king_coordinates,
-        get_piece_color, get_piece_type, invert_position, is_getting_checked,
+        get_cell_paragraph, get_int_from_char, invert_position,
     },
 };
 use ratatui::{
@@ -240,11 +239,12 @@ impl Game {
     }
 
     pub fn move_selected_piece_cursor_mouse(&mut self, coordinates: Coord) {
-        let piece_color = get_piece_color(self.game_board.board, &coordinates);
+        let piece_color = self.game_board.get_piece_color(&self.selected_coordinates);
 
         let authorized_positions = self
             .game_board
-            .get_authorized_positions(self.player_turn, coordinates);
+            .get_authorized_positions(self.player_turn, self.selected_coordinates);
+
         if authorized_positions.contains(&coordinates)
             && match piece_color {
                 Some(piece) => piece == self.player_turn,
@@ -302,8 +302,7 @@ impl Game {
                 if authorized_positions.is_empty() {
                     return;
                 }
-                if let Some(piece_color) =
-                    get_piece_color(self.game_board.board, &self.cursor_coordinates)
+                if let Some(piece_color) = self.game_board.get_piece_color(&self.cursor_coordinates)
                 {
                     if piece_color == self.player_turn {
                         self.selected_coordinates = self.cursor_coordinates;
@@ -388,8 +387,8 @@ impl Game {
             for j in 0..8u8 {
                 // We get the piece type and color
                 let (piece_type, piece_color) = (
-                    get_piece_type(self.game_board.board, &Coord::new(i, j)),
-                    get_piece_color(self.game_board.board, &Coord::new(i, j)),
+                    self.game_board.get_piece_type(&Coord::new(i, j)),
+                    self.game_board.get_piece_color(&Coord::new(i, j)),
                 );
                 let letter = PieceType::piece_to_fen_enum(piece_type, piece_color);
                 // Pattern match directly on the result of piece_to_fen_enum
@@ -431,38 +430,28 @@ impl Game {
         });
 
         // We add the castles availabilities for black
-        if !did_piece_already_move(
-            &self.game_board.move_history,
-            (
-                Some(PieceType::King),
-                Some(self.player_turn),
-                Coord::new(0, 4),
-            ),
-        ) && !is_getting_checked(
-            self.game_board.board,
-            PieceColor::Black,
-            &self.game_board.move_history,
-        ) {
+        if !self.game_board.did_piece_already_move((
+            Some(PieceType::King),
+            Some(self.player_turn),
+            Coord::new(0, 4),
+        )) && !self
+            .game_board
+            .is_getting_checked(self.game_board.board, PieceColor::Black)
+        {
             // king side black castle availability
-            if !did_piece_already_move(
-                &self.game_board.move_history,
-                (
-                    Some(PieceType::Rook),
-                    Some(self.player_turn),
-                    Coord::new(0, 7),
-                ),
-            ) {
+            if !self.game_board.did_piece_already_move((
+                Some(PieceType::Rook),
+                Some(self.player_turn),
+                Coord::new(0, 7),
+            )) {
                 result.push_str(" k");
             }
             // queen side black castle availability
-            if !did_piece_already_move(
-                &self.game_board.move_history,
-                (
-                    Some(PieceType::Rook),
-                    Some(self.player_turn),
-                    Coord::new(0, 0),
-                ),
-            ) {
+            if !self.game_board.did_piece_already_move((
+                Some(PieceType::Rook),
+                Some(self.player_turn),
+                Coord::new(0, 0),
+            )) {
                 result.push('q');
             }
         } else {
@@ -512,10 +501,9 @@ impl Game {
                 _ => unreachable!("Promotion cursor out of boundaries"),
             };
 
-            let current_piece_color = get_piece_color(
-                self.game_board.board,
-                &Coord::new(last_move.to.row, last_move.to.col),
-            );
+            let current_piece_color = self
+                .game_board
+                .get_piece_color(&Coord::new(last_move.to.row, last_move.to.col));
             if let Some(piece_color) = current_piece_color {
                 // we replace the piece by the new piece type
                 self.game_board.board[last_move.to.row as usize][last_move.to.col as usize] =
@@ -537,8 +525,8 @@ impl Game {
             return;
         }
 
-        let piece_type_from = get_piece_type(self.game_board.board, from);
-        let piece_type_to = get_piece_type(self.game_board.board, to);
+        let piece_type_from = self.game_board.get_piece_type(from);
+        let piece_type_to = self.game_board.get_piece_type(to);
 
         // Check if moving a piece
         let Some(piece_type_from) = piece_type_from else {
@@ -560,7 +548,7 @@ impl Game {
         match (piece_type_from, piece_type_to) {
             (_, None) => {}
             (_, Some(piece)) => {
-                let piece_color = get_piece_color(self.game_board.board, to);
+                let piece_color = self.game_board.get_piece_color(to);
                 // We check if there is a piece and we are not doing a castle
                 if piece_color.is_some()
                     && (piece_type_to != Some(PieceType::Rook)
@@ -719,10 +707,8 @@ impl Game {
                 };
                 // Draw the available moves for the selected piece
                 if self.is_cell_selected() {
-                    let selected_piece_type =
-                        get_piece_type(self.game_board.board, &self.selected_coordinates);
                     let selected_piece_color: Option<PieceColor> =
-                        get_piece_color(self.game_board.board, &self.selected_coordinates);
+                        self.game_board.get_piece_color(&self.selected_coordinates);
                     // only draw available moves if it is the right players turn
                     if match selected_piece_color {
                         Some(color) => color == self.player_turn,
@@ -757,12 +743,13 @@ impl Game {
                     Game::render_cell(frame, square, Color::LightBlue, None);
                 }
                 // Draw the cell magenta if the king is getting checked
-                else if is_getting_checked(
-                    self.game_board.board,
-                    self.player_turn,
-                    &self.game_board.move_history,
-                ) && Coord::new(i, j)
-                    == get_king_coordinates(self.game_board.board, self.player_turn)
+                else if self
+                    .game_board
+                    .is_getting_checked(self.game_board.board, self.player_turn)
+                    && Coord::new(i, j)
+                        == self
+                            .game_board
+                            .get_king_coordinates(self.game_board.board, self.player_turn)
                 {
                     Game::render_cell(frame, square, Color::Magenta, Some(Modifier::SLOW_BLINK));
                 }

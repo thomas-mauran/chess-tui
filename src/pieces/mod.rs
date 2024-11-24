@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 use self::{bishop::Bishop, king::King, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook};
 use super::constants::DisplayMode;
-use crate::game::{board::Board, coord::Coord};
+use crate::game::{coord::Coord, game_board::GameBoard};
 
 pub mod bishop;
 pub mod king;
@@ -25,41 +25,28 @@ impl PieceType {
         self,
         coordinates: &Coord,
         color: PieceColor,
-        board: Board,
-        move_history: &[PieceMove],
+        game_board: &GameBoard,
         is_king_checked: bool,
     ) -> Vec<Coord> {
         match self {
             PieceType::Pawn => {
-                Pawn::authorized_positions(coordinates, color, board, move_history, is_king_checked)
+                Pawn::authorized_positions(coordinates, color, game_board, is_king_checked)
             }
             PieceType::Rook => {
-                Rook::authorized_positions(coordinates, color, board, move_history, is_king_checked)
+                Rook::authorized_positions(coordinates, color, game_board, is_king_checked)
             }
-            PieceType::Bishop => Bishop::authorized_positions(
-                coordinates,
-                color,
-                board,
-                move_history,
-                is_king_checked,
-            ),
-            PieceType::Queen => Queen::authorized_positions(
-                coordinates,
-                color,
-                board,
-                move_history,
-                is_king_checked,
-            ),
+            PieceType::Bishop => {
+                Bishop::authorized_positions(coordinates, color, game_board, is_king_checked)
+            }
+            PieceType::Queen => {
+                Queen::authorized_positions(coordinates, color, game_board, is_king_checked)
+            }
             PieceType::King => {
-                King::authorized_positions(coordinates, color, board, move_history, is_king_checked)
+                King::authorized_positions(coordinates, color, game_board, is_king_checked)
             }
-            PieceType::Knight => Knight::authorized_positions(
-                coordinates,
-                color,
-                board,
-                move_history,
-                is_king_checked,
-            ),
+            PieceType::Knight => {
+                Knight::authorized_positions(coordinates, color, game_board, is_king_checked)
+            }
         }
     }
 
@@ -67,27 +54,18 @@ impl PieceType {
         selected_coordinates: &Coord,
         piece_type: PieceType,
         color: PieceColor,
-        board: Board,
-        move_history: &[PieceMove],
+        game_board: &GameBoard,
     ) -> Vec<Coord> {
         match piece_type {
-            PieceType::Pawn => {
-                Pawn::protected_positions(selected_coordinates, color, board, move_history)
-            }
-            PieceType::Rook => {
-                Rook::protected_positions(selected_coordinates, color, board, move_history)
-            }
+            PieceType::Pawn => Pawn::protected_positions(selected_coordinates, color, game_board),
+            PieceType::Rook => Rook::protected_positions(selected_coordinates, color, game_board),
             PieceType::Bishop => {
-                Bishop::protected_positions(selected_coordinates, color, board, move_history)
+                Bishop::protected_positions(selected_coordinates, color, game_board)
             }
-            PieceType::Queen => {
-                Queen::protected_positions(selected_coordinates, color, board, move_history)
-            }
-            PieceType::King => {
-                King::protected_positions(selected_coordinates, color, board, move_history)
-            }
+            PieceType::Queen => Queen::protected_positions(selected_coordinates, color, game_board),
+            PieceType::King => King::protected_positions(selected_coordinates, color, game_board),
             PieceType::Knight => {
-                Knight::protected_positions(selected_coordinates, color, board, move_history)
+                Knight::protected_positions(selected_coordinates, color, game_board)
             }
         }
     }
@@ -208,9 +186,8 @@ pub trait Movable {
     fn piece_move(
         coordinates: &Coord,
         color: PieceColor,
-        board: Board,
+        game_board: &GameBoard,
         allow_move_on_ally_positions: bool,
-        move_history: &[PieceMove],
     ) -> Vec<Coord>;
 }
 
@@ -218,15 +195,13 @@ pub trait Position {
     fn authorized_positions(
         coordinates: &Coord,
         color: PieceColor,
-        board: Board,
-        move_history: &[PieceMove],
+        game_board: &GameBoard,
         is_king_checked: bool,
     ) -> Vec<Coord>;
 
     fn protected_positions(
         coordinates: &Coord,
         color: PieceColor,
-        board: Board,
-        move_history: &[PieceMove],
+        game_board: &GameBoard,
     ) -> Vec<Coord>;
 }

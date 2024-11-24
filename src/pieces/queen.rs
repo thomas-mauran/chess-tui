@@ -1,10 +1,10 @@
 use super::rook::Rook;
-use super::{Movable, PieceColor, PieceMove, Position};
+use super::{Movable, PieceColor, Position};
 use crate::constants::DisplayMode;
-use crate::game::board::Board;
 use crate::game::coord::Coord;
+use crate::game::game_board::GameBoard;
 use crate::pieces::bishop::Bishop;
-use crate::utils::{cleaned_positions, impossible_positions_king_checked};
+use crate::utils::cleaned_positions;
 
 pub struct Queen;
 
@@ -12,9 +12,8 @@ impl Movable for Queen {
     fn piece_move(
         coordinates: &Coord,
         color: PieceColor,
-        board: Board,
+        game_board: &GameBoard,
         allow_move_on_ally_positions: bool,
-        move_history: &[PieceMove],
     ) -> Vec<Coord> {
         let mut positions = vec![];
 
@@ -22,16 +21,14 @@ impl Movable for Queen {
         positions.extend(Bishop::piece_move(
             coordinates,
             color,
-            board,
+            game_board,
             allow_move_on_ally_positions,
-            move_history,
         ));
         positions.extend(Rook::piece_move(
             coordinates,
             color,
-            board,
+            game_board,
             allow_move_on_ally_positions,
-            move_history,
         ));
 
         cleaned_positions(&positions)
@@ -42,25 +39,21 @@ impl Position for Queen {
     fn authorized_positions(
         coordinates: &Coord,
         color: PieceColor,
-        board: Board,
-        move_history: &[PieceMove],
+        game_board: &GameBoard,
         _is_king_checked: bool,
     ) -> Vec<Coord> {
-        impossible_positions_king_checked(
+        game_board.impossible_positions_king_checked(
             coordinates,
-            Self::piece_move(coordinates, color, board, false, move_history),
-            board,
+            Self::piece_move(coordinates, color, game_board, false),
             color,
-            move_history,
         )
     }
     fn protected_positions(
         coordinates: &Coord,
         color: PieceColor,
-        board: Board,
-        move_history: &[PieceMove],
+        game_board: &GameBoard,
     ) -> Vec<Coord> {
-        Self::piece_move(coordinates, color, board, true, move_history)
+        Self::piece_move(coordinates, color, game_board, true)
     }
 }
 

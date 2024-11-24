@@ -1,11 +1,9 @@
 use super::{
     board::{init_board, Board},
     coord::Coord,
+    game::Game,
 };
-use crate::{
-    pieces::{PieceColor, PieceMove, PieceType},
-    utils::{get_piece_type, is_getting_checked},
-};
+use crate::pieces::{PieceColor, PieceMove, PieceType};
 
 /// ## visual representation
 ///
@@ -36,6 +34,7 @@ use crate::{
 /// . a b c d e f g h .
 /// only the pure gameboard, no additional information
 ///
+#[derive(Debug, Clone)]
 pub struct GameBoard {
     // the 8x8 board
     pub board: Board,
@@ -68,26 +67,28 @@ impl GameBoard {
         }
     }
 
+    // Method to get the authorized positions for a piece
     pub fn get_authorized_positions(
         &self,
         player_turn: PieceColor,
         coordinates: Coord,
     ) -> Vec<Coord> {
-        if let Some((piece_type, piece_color)) =
-            self.board[coordinates.row as usize][coordinates.col as usize]
-        {
-            return piece_type.authorized_positions(
+        if let (Some(piece_type), Some(piece_color)) = (
+            self.get_piece_type(&coordinates),
+            self.get_piece_color(&coordinates),
+        ) {
+            piece_type.authorized_positions(
                 &coordinates,
                 piece_color,
-                self.board,
-                &self.move_history,
-                is_getting_checked(self.board, player_turn, &self.move_history),
-            );
+                self,
+                self.is_getting_checked(self.board, player_turn),
+            )
         } else {
-            return vec![];
+            vec![]
         }
     }
 
+    // Method use to flip the board pieces (for the black player)
     pub fn flip_the_board(&mut self) {
         let mut flipped_board = [[None; 8]; 8]; // Create a new empty board of the same type
 
@@ -102,8 +103,8 @@ impl GameBoard {
 
     // Check if the latest move is en passant
     pub fn is_latest_move_en_passant(&self, from: Coord, to: Coord) -> bool {
-        let piece_type_from = get_piece_type(self.board, &from);
-        let piece_type_to = get_piece_type(self.board, &to);
+        let piece_type_from = self.get_piece_type(&from);
+        let piece_type_to = self.get_piece_type(&to);
 
         let from_y: i32 = from.row as i32;
         let from_x: i32 = from.col as i32;
@@ -120,8 +121,8 @@ impl GameBoard {
 
     // Check if the latest move is castling
     pub fn is_latest_move_castling(&self, from: Coord, to: Coord) -> bool {
-        let piece_type_from = get_piece_type(self.board, &from);
-        let piece_type_to = get_piece_type(self.board, &to);
+        let piece_type_from = self.get_piece_type(&from);
+        let piece_type_to = self.get_piece_type(&to);
 
         let from_x: i32 = from.col as i32;
         let to_x: i32 = to.col as i32;
@@ -137,7 +138,7 @@ impl GameBoard {
     pub fn is_latest_move_promotion(&self) -> bool {
         if let Some(last_move) = self.move_history.last() {
             if let Some(piece_type_to) =
-                get_piece_type(self.board, &Coord::new(last_move.to.row, last_move.to.col))
+                self.get_piece_type(&Coord::new(last_move.to.row, last_move.to.col))
             {
                 let last_row = 0;
                 if last_move.to.row == last_row && piece_type_to == PieceType::Pawn {
@@ -155,7 +156,7 @@ impl GameBoard {
         for i in 0..8 {
             for j in 0..8 {
                 let coord = Coord::new(i, j);
-                if let Some((piece_type, piece_color)) = self.board[&coord] {
+                if let Some((_piece_type, piece_color)) = self.board[&coord] {
                     if piece_color == player_turn {
                         possible_moves.extend(self.get_authorized_positions(player_turn, coord));
                     }
@@ -167,7 +168,7 @@ impl GameBoard {
 
     // Check if the game is checkmate
     pub fn is_checkmate(&self, player_turn: PieceColor) -> bool {
-        if !is_getting_checked(self.board, player_turn, &self.move_history) {
+        if !self.is_getting_checked(self.board, player_turn) {
             return false;
         }
 
@@ -210,5 +211,118 @@ impl GameBoard {
 
     pub fn get_consecutive_non_pawn_or_capture(&self) -> i32 {
         self.consecutive_non_pawn_or_capture
+    }
+
+    /// We get all the cells that are getting put in 'check'
+    pub fn get_all_protected_cells(&self, player_turn: PieceColor) -> Vec<Coord> {
+        let mut check_cells: Vec<Coord> = vec![];
+        for i in 0..8u8 {
+            for j in 0..8u8 {
+                if self.get_piece_color(&Coord::new(i, j)) == Some(player_turn) {
+                    continue;
+                }
+                // get the current cell piece color and type protecting positions
+                if let Some(piece_color) = self.get_piece_color(&Coord::new(i, j)) {
+                    if let Some(piece_type) = self.get_piece_type(&Coord::new(i, j)) {
+                        check_cells.extend(PieceType::protected_positions(
+                            &Coord::new(i, j),
+                            piece_type,
+                            piece_color,
+                            &self,
+                        ));
+                    }
+                }
+            }
+        }
+        check_cells
+    }
+
+    /// Method returning the coordinates of the king of a certain color
+    pub fn get_king_coordinates(&self, board: Board, player_turn: PieceColor) -> Coord {
+        for i in 0..8u8 {
+            for j in 0..8u8 {
+                if let Some((piece_type, piece_color)) = board[i as usize][j as usize] {
+                    if piece_type == PieceType::King && piece_color == player_turn {
+                        return Coord::new(i, j);
+                    }
+                }
+            }
+        }
+        Coord::undefined()
+    }
+
+    /// Is getting checked
+    /// Here we keep the board as one of the parameters because for the king position we need to simulate the board if he moves
+    /// to make sure he will not be checked after the move
+    pub fn is_getting_checked(&self, board: Board, player_turn: PieceColor) -> bool {
+        let coordinates = self.get_king_coordinates(board, player_turn);
+
+        let fake_game_board = GameBoard {
+            board,
+            move_history: self.move_history.clone(),
+            board_history: self.board_history.clone(),
+            consecutive_non_pawn_or_capture: self.consecutive_non_pawn_or_capture,
+        };
+
+        let checked_cells = fake_game_board.get_all_protected_cells(player_turn);
+
+        checked_cells.contains(&coordinates)
+    }
+
+    // Check if a piece already moved on the board
+    pub fn did_piece_already_move(
+        &self,
+        original_piece: (Option<PieceType>, Option<PieceColor>, Coord),
+    ) -> bool {
+        for entry in &self.move_history {
+            if Some(entry.piece_type) == original_piece.0
+                && Some(entry.piece_color) == original_piece.1
+                && entry.from == original_piece.2
+            {
+                return true;
+            }
+        }
+        false
+    }
+
+    // Get all the positions where the king can't go because it's checked
+    pub fn impossible_positions_king_checked(
+        &self,
+        original_coordinates: &Coord,
+        positions: Vec<Coord>,
+        color: PieceColor,
+    ) -> Vec<Coord> {
+        let mut cleaned_position: Vec<Coord> = vec![];
+        for position in positions {
+            let game = GameBoard::new(self.board, self.move_history.to_vec(), vec![]);
+
+            // We create a new board
+            let mut new_board = Game::new(game, color);
+
+            // We simulate the move
+
+            Game::move_piece_on_the_board(&mut new_board, original_coordinates, &position);
+
+            // We check if the board is still checked with this move meaning it didn't resolve the problem
+            if !self.is_getting_checked(new_board.game_board.board, new_board.player_turn) {
+                cleaned_position.push(position);
+            };
+        }
+        cleaned_position
+    }
+
+    // Return the color of the piece at a certain position
+    pub fn get_piece_color(&self, coordinates: &Coord) -> Option<PieceColor> {
+        if !coordinates.is_valid() {
+            return None;
+        }
+        self.board[coordinates].map(|(_, piece_color)| piece_color)
+    }
+
+    pub fn get_piece_type(&self, coordinates: &Coord) -> Option<PieceType> {
+        if !coordinates.is_valid() {
+            return None;
+        }
+        self.board[coordinates].map(|(piece_type, _)| piece_type)
     }
 }

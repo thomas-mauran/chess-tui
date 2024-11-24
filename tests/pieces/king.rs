@@ -5,7 +5,6 @@ mod tests {
     use chess_tui::game::game_board::GameBoard;
     use chess_tui::pieces::king::King;
     use chess_tui::pieces::{PieceColor, PieceMove, PieceType, Position};
-    use chess_tui::utils::is_getting_checked;
 
     // Test with multiple enemies around the king
     #[test]
@@ -65,8 +64,7 @@ mod tests {
         let mut positions = King::authorized_positions(
             &Coord::new(4, 4),
             PieceColor::White,
-            game.game_board.board,
-            &[],
+            &game.game_board,
             false,
         );
         positions.sort();
@@ -131,8 +129,7 @@ mod tests {
         let mut positions = King::authorized_positions(
             &Coord::new(4, 4),
             PieceColor::White,
-            game.game_board.board,
-            &[],
+            &game.game_board,
             false,
         );
         positions.sort();
@@ -197,8 +194,7 @@ mod tests {
         let mut positions = King::authorized_positions(
             &Coord::new(4, 4),
             PieceColor::White,
-            game.game_board.board,
-            &[],
+            &game.game_board,
             false,
         );
         positions.sort();
@@ -264,8 +260,7 @@ mod tests {
         let mut positions = King::authorized_positions(
             &Coord::new(7, 4),
             PieceColor::White,
-            game.game_board.board,
-            &[],
+            &game.game_board,
             false,
         );
         positions.sort();
@@ -330,8 +325,7 @@ mod tests {
         let mut positions = King::authorized_positions(
             &Coord::new(7, 4),
             PieceColor::White,
-            game.game_board.board,
-            &[],
+            &game.game_board,
             false,
         );
         positions.sort();
@@ -396,8 +390,7 @@ mod tests {
         let mut positions = King::authorized_positions(
             &Coord::new(7, 3),
             PieceColor::Black,
-            game.game_board.board,
-            &[],
+            &game.game_board,
             false,
         );
         positions.sort();
@@ -461,8 +454,7 @@ mod tests {
         let mut positions = King::authorized_positions(
             &Coord::new(7, 3),
             PieceColor::Black,
-            game.game_board.board,
-            &[],
+            &game.game_board,
             false,
         );
         positions.sort();
@@ -527,8 +519,7 @@ mod tests {
         let mut positions = King::authorized_positions(
             &Coord::new(0, 4),
             PieceColor::Black,
-            game.game_board.board,
-            &[],
+            &game.game_board,
             false,
         );
         positions.sort();
@@ -589,11 +580,9 @@ mod tests {
         let mut game = Game::new(game_board, PieceColor::Black);
         game.game_board.board = custom_board;
 
-        let is_king_checked = is_getting_checked(
-            game.game_board.board,
-            game.player_turn,
-            &game.game_board.move_history,
-        );
+        let is_king_checked = game
+            .game_board
+            .is_getting_checked(game.game_board.board, game.player_turn);
 
         let mut right_positions = vec![Coord::new(0, 5)];
         right_positions.sort();
@@ -601,8 +590,7 @@ mod tests {
         let mut positions = King::authorized_positions(
             &Coord::new(0, 4),
             PieceColor::Black,
-            game.game_board.board,
-            &[],
+            &game.game_board,
             is_king_checked,
         );
         positions.sort();
@@ -660,6 +648,27 @@ mod tests {
         ];
         let mut game = Game::default();
         game.game_board.board = custom_board;
+        game.game_board.move_history = [
+            (PieceMove {
+                piece_type: PieceType::Rook,
+                piece_color: PieceColor::White,
+                from: Coord::new(0, 7),
+                to: Coord::new(4, 7),
+            }),
+            (PieceMove {
+                piece_type: PieceType::Pawn,
+                piece_color: PieceColor::Black,
+                from: Coord::new(6, 2),
+                to: Coord::new(5, 2),
+            }),
+            (PieceMove {
+                piece_type: PieceType::Rook,
+                piece_color: PieceColor::White,
+                from: Coord::new(4, 7),
+                to: Coord::new(0, 7),
+            }),
+        ]
+        .to_vec();
 
         let mut right_positions = vec![Coord::new(0, 5)];
         right_positions.sort();
@@ -667,27 +676,7 @@ mod tests {
         let mut positions = King::authorized_positions(
             &Coord::new(0, 4),
             PieceColor::Black,
-            game.game_board.board,
-            &[
-                (PieceMove {
-                    piece_type: PieceType::Rook,
-                    piece_color: PieceColor::White,
-                    from: Coord::new(0, 7),
-                    to: Coord::new(4, 7),
-                }),
-                (PieceMove {
-                    piece_type: PieceType::Pawn,
-                    piece_color: PieceColor::Black,
-                    from: Coord::new(6, 2),
-                    to: Coord::new(5, 2),
-                }),
-                (PieceMove {
-                    piece_type: PieceType::Rook,
-                    piece_color: PieceColor::White,
-                    from: Coord::new(4, 7),
-                    to: Coord::new(0, 7),
-                }),
-            ],
+            &game.game_board,
             false,
         );
         positions.sort();
@@ -748,11 +737,9 @@ mod tests {
         let mut game = Game::new(game_board, PieceColor::White);
         game.game_board.board = custom_board;
 
-        let is_king_checked = is_getting_checked(
-            game.game_board.board,
-            game.player_turn,
-            &game.game_board.move_history,
-        );
+        let is_king_checked = game
+            .game_board
+            .is_getting_checked(game.game_board.board, game.player_turn);
 
         let mut white_right_positions = vec![Coord::new(7, 5), Coord::new(7, 7)];
         white_right_positions.sort();
@@ -760,8 +747,7 @@ mod tests {
         let mut positions = King::authorized_positions(
             &Coord::new(7, 4),
             PieceColor::White,
-            game.game_board.board,
-            &[],
+            &game.game_board,
             is_king_checked,
         );
         positions.sort();
@@ -777,8 +763,7 @@ mod tests {
         let mut positions = King::authorized_positions(
             &Coord::new(7, 3),
             PieceColor::Black,
-            game.game_board.board,
-            &[],
+            &game.game_board,
             is_king_checked,
         );
         positions.sort();
