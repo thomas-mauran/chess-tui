@@ -1,10 +1,10 @@
-use super::{coord::Coord, game_board::GameBoard};
+use super::{coord::Coord, game_board::GameBoard, ui::UI};
 use crate::{
     constants::{DisplayMode, BLACK, UNDEFINED_POSITION, WHITE},
-    pieces::{pawn::Pawn, PieceColor, PieceMove, PieceType},
+    pieces::{PieceColor, PieceMove, PieceType},
     utils::{
-        col_to_letter, convert_notation_into_position, convert_position_into_notation,
-        get_cell_paragraph, get_int_from_char, invert_position,
+        convert_notation_into_position, convert_position_into_notation, get_cell_paragraph,
+        get_int_from_char, invert_position,
     },
 };
 use ratatui::{
@@ -19,14 +19,8 @@ use uci::Engine;
 pub struct Game {
     // the actual board
     pub game_board: GameBoard,
-    // the cursor position
-    pub cursor_coordinates: Coord,
-    // the selected cell
-    pub selected_coordinates: Coord,
-    // the selected piece cursor when we already selected a piece
-    pub selected_piece_cursor: i8,
-    // the old cursor position used when unslecting a cell
-    pub old_cursor_position: Coord,
+    // The struct to handle UI related stuff
+    pub ui: UI,
     // the player turn
     pub player_turn: PieceColor,
     // if the game is a draw
@@ -37,7 +31,6 @@ pub struct Game {
     pub is_promotion: bool,
     // the cursor for the promotion popup
     pub promotion_cursor: i8,
-
     // the chess engine
     pub engine: Option<Engine>,
     // if the game is against a bot
@@ -46,12 +39,6 @@ pub struct Game {
     pub display_mode: DisplayMode,
     /// Used to indicate if a bot move is following
     pub bot_will_move: bool,
-    // coordinates of the interactable part of the screen (either normal chess board or promotion screen)
-    pub top_x: u16,
-    pub top_y: u16,
-    // dimension of a selectable cell (either 1 of the 64 cells, or 1 of the 4 promotion options)
-    pub width: u16,
-    pub height: u16,
     // last move was with a mouse
     pub mouse_used: bool,
     // if the bot is starting, meaning the player is black
@@ -66,10 +53,7 @@ impl Default for Game {
     fn default() -> Self {
         Self {
             game_board: GameBoard::default(),
-            cursor_coordinates: Coord::new(4, 4),
-            selected_coordinates: Coord::undefined(),
-            selected_piece_cursor: 0,
-            old_cursor_position: Coord::undefined(),
+            ui: UI::default(),
             player_turn: PieceColor::White,
             is_draw: false,
             is_checkmate: false,
@@ -79,10 +63,6 @@ impl Default for Game {
             is_game_against_bot: false,
             display_mode: DisplayMode::DEFAULT,
             bot_will_move: false,
-            top_x: 0,
-            top_y: 0,
-            width: 0,
-            height: 0,
             is_bot_starting: false,
             white_taken_pieces: vec![],
             black_taken_pieces: vec![],
@@ -95,10 +75,7 @@ impl Game {
     pub fn new(game_board: GameBoard, player_turn: PieceColor) -> Self {
         Self {
             game_board,
-            cursor_coordinates: Coord::new(4, 4),
-            selected_coordinates: Coord::undefined(),
-            selected_piece_cursor: 0,
-            old_cursor_position: Coord::undefined(),
+            ui: UI::default(),
             player_turn,
             is_draw: false,
             is_checkmate: false,
@@ -108,10 +85,6 @@ impl Game {
             is_game_against_bot: false,
             display_mode: DisplayMode::DEFAULT,
             bot_will_move: false,
-            top_x: 0,
-            top_y: 0,
-            width: 0,
-            height: 0,
             is_bot_starting: false,
             white_taken_pieces: vec![],
             black_taken_pieces: vec![],
@@ -139,8 +112,8 @@ impl Game {
 
     // Check if a cell has been selected
     fn is_cell_selected(&self) -> bool {
-        self.selected_coordinates.row != UNDEFINED_POSITION
-            && self.selected_coordinates.col != UNDEFINED_POSITION
+        self.ui.selected_coordinates.row != UNDEFINED_POSITION
+            && self.ui.selected_coordinates.col != UNDEFINED_POSITION
     }
 
     pub fn switch_player_turn(&mut self) {
@@ -155,8 +128,8 @@ impl Game {
         if !self.is_checkmate && !self.is_draw && !self.is_promotion {
             if self.is_cell_selected() {
                 self.move_selected_piece_cursor(false, -1);
-            } else if self.cursor_coordinates.row > 0 {
-                self.cursor_coordinates.row -= 1;
+            } else if self.ui.cursor_coordinates.row > 0 {
+                self.ui.cursor_coordinates.row -= 1;
             }
         }
     }
@@ -164,8 +137,8 @@ impl Game {
         if !self.is_checkmate && !self.is_draw && !self.is_promotion {
             if self.is_cell_selected() {
                 self.move_selected_piece_cursor(false, 1);
-            } else if self.cursor_coordinates.row < 7 {
-                self.cursor_coordinates.row += 1;
+            } else if self.ui.cursor_coordinates.row < 7 {
+                self.ui.cursor_coordinates.row += 1;
             }
         }
     }
@@ -180,8 +153,8 @@ impl Game {
         } else if !self.is_checkmate && !self.is_draw {
             if self.is_cell_selected() {
                 self.move_selected_piece_cursor(false, -1);
-            } else if self.cursor_coordinates.col > 0 {
-                self.cursor_coordinates.col -= 1;
+            } else if self.ui.cursor_coordinates.col > 0 {
+                self.ui.cursor_coordinates.col -= 1;
             }
         }
     }
@@ -192,8 +165,8 @@ impl Game {
         } else if !self.is_checkmate && !self.is_draw {
             if self.is_cell_selected() {
                 self.move_selected_piece_cursor(false, 1);
-            } else if self.cursor_coordinates.col < 7 {
-                self.cursor_coordinates.col += 1;
+            } else if self.ui.cursor_coordinates.col < 7 {
+                self.ui.cursor_coordinates.col += 1;
             }
         }
     }
@@ -201,9 +174,9 @@ impl Game {
     // Method to unselect a cell
     pub fn unselect_cell(&mut self) {
         if self.is_cell_selected() {
-            self.selected_coordinates = Coord::undefined();
-            self.selected_piece_cursor = 0;
-            self.cursor_coordinates = self.old_cursor_position;
+            self.ui.selected_coordinates = Coord::undefined();
+            self.ui.selected_piece_cursor = 0;
+            self.ui.cursor_coordinates = self.ui.old_cursor_position;
         }
     }
 
@@ -213,37 +186,41 @@ impl Game {
     fn move_selected_piece_cursor(&mut self, first_time_moving: bool, direction: i8) {
         let mut authorized_positions = self
             .game_board
-            .get_authorized_positions(self.player_turn, self.selected_coordinates);
+            .get_authorized_positions(self.player_turn, self.ui.selected_coordinates);
 
         if authorized_positions.is_empty() {
-            self.cursor_coordinates = Coord::undefined();
+            self.ui.cursor_coordinates = Coord::undefined();
         } else {
-            self.selected_piece_cursor = if self.selected_piece_cursor == 0 && first_time_moving {
-                0
-            } else {
-                let new_cursor =
-                    (self.selected_piece_cursor + direction) % authorized_positions.len() as i8;
-                if new_cursor == -1 {
-                    authorized_positions.len() as i8 - 1
+            self.ui.selected_piece_cursor =
+                if self.ui.selected_piece_cursor == 0 && first_time_moving {
+                    0
                 } else {
-                    new_cursor
-                }
-            };
+                    let new_cursor = (self.ui.selected_piece_cursor + direction)
+                        % authorized_positions.len() as i8;
+                    if new_cursor == -1 {
+                        authorized_positions.len() as i8 - 1
+                    } else {
+                        new_cursor
+                    }
+                };
 
             authorized_positions.sort();
 
-            if let Some(position) = authorized_positions.get(self.selected_piece_cursor as usize) {
-                self.cursor_coordinates = *position;
+            if let Some(position) = authorized_positions.get(self.ui.selected_piece_cursor as usize)
+            {
+                self.ui.cursor_coordinates = *position;
             }
         }
     }
 
     pub fn move_selected_piece_cursor_mouse(&mut self, coordinates: Coord) {
-        let piece_color = self.game_board.get_piece_color(&self.selected_coordinates);
+        let piece_color = self
+            .game_board
+            .get_piece_color(&self.ui.selected_coordinates);
 
         let authorized_positions = self
             .game_board
-            .get_authorized_positions(self.player_turn, self.selected_coordinates);
+            .get_authorized_positions(self.player_turn, self.ui.selected_coordinates);
 
         if authorized_positions.contains(&coordinates)
             && match piece_color {
@@ -251,10 +228,10 @@ impl Game {
                 None => false,
             }
         {
-            self.cursor_coordinates = coordinates;
+            self.ui.cursor_coordinates = coordinates;
             self.select_cell();
         } else {
-            self.selected_coordinates = coordinates;
+            self.ui.selected_coordinates = coordinates;
         }
     }
 
@@ -266,9 +243,9 @@ impl Game {
         } else if !self.is_checkmate && !self.is_draw {
             if self.is_cell_selected() {
                 // We already selected a piece so we apply the move
-                if self.cursor_coordinates.is_valid() {
-                    let selected_coords_usize = &self.selected_coordinates.clone();
-                    let cursor_coords_usize = &self.cursor_coordinates.clone();
+                if self.ui.cursor_coordinates.is_valid() {
+                    let selected_coords_usize = &self.ui.selected_coordinates.clone();
+                    let cursor_coords_usize = &self.ui.cursor_coordinates.clone();
                     self.move_piece_on_the_board(selected_coords_usize, cursor_coords_usize);
                     self.unselect_cell();
                     self.switch_player_turn();
@@ -297,16 +274,17 @@ impl Game {
                 // Check if the piece on the cell can move before selecting it
                 let authorized_positions = self
                     .game_board
-                    .get_authorized_positions(self.player_turn, self.cursor_coordinates);
+                    .get_authorized_positions(self.player_turn, self.ui.cursor_coordinates);
 
                 if authorized_positions.is_empty() {
                     return;
                 }
-                if let Some(piece_color) = self.game_board.get_piece_color(&self.cursor_coordinates)
+                if let Some(piece_color) =
+                    self.game_board.get_piece_color(&self.ui.cursor_coordinates)
                 {
                     if piece_color == self.player_turn {
-                        self.selected_coordinates = self.cursor_coordinates;
-                        self.old_cursor_position = self.cursor_coordinates;
+                        self.ui.selected_coordinates = self.ui.cursor_coordinates;
+                        self.ui.old_cursor_position = self.ui.cursor_coordinates;
                         self.move_selected_piece_cursor(true, 1);
                     }
                 }
@@ -511,10 +489,10 @@ impl Game {
         let border_width = area.width / 2 - (4 * width);
 
         // we update the starting coordinates
-        self.top_x = area.x + border_width;
-        self.top_y = area.y + border_height;
-        self.width = width;
-        self.height = height;
+        self.ui.top_x = area.x + border_width;
+        self.ui.top_y = area.y + border_height;
+        self.ui.width = width;
+        self.ui.height = height;
         // We have 8 vertical lines
         let columns = Layout::default()
             .direction(Direction::Vertical)
@@ -580,16 +558,18 @@ impl Game {
                 };
                 // Draw the available moves for the selected piece
                 if self.is_cell_selected() {
-                    let selected_piece_color: Option<PieceColor> =
-                        self.game_board.get_piece_color(&self.selected_coordinates);
+                    let selected_piece_color: Option<PieceColor> = self
+                        .game_board
+                        .get_piece_color(&self.ui.selected_coordinates);
                     // only draw available moves if it is the right players turn
                     if match selected_piece_color {
                         Some(color) => color == self.player_turn,
                         None => false,
                     } {
-                        positions = self
-                            .game_board
-                            .get_authorized_positions(self.player_turn, self.selected_coordinates);
+                        positions = self.game_board.get_authorized_positions(
+                            self.player_turn,
+                            self.ui.selected_coordinates,
+                        );
 
                         // Draw grey if the color is in the authorized positions
                         for coords in positions.clone() {
@@ -609,8 +589,8 @@ impl Game {
                 // - last move cell: green
                 // - default cell: white or black
                 // Draw the cell blue if this is the current cursor cell
-                if i == self.cursor_coordinates.row
-                    && j == self.cursor_coordinates.col
+                if i == self.ui.cursor_coordinates.row
+                    && j == self.ui.cursor_coordinates.col
                     && !self.mouse_used
                 {
                     Game::render_cell(frame, square, Color::LightBlue, None);
@@ -627,7 +607,8 @@ impl Game {
                     Game::render_cell(frame, square, Color::Magenta, Some(Modifier::SLOW_BLINK));
                 }
                 // Draw the cell green if this is the selected cell or if the cell is part of the last move
-                else if (i == self.selected_coordinates.row && j == self.selected_coordinates.col)
+                else if (i == self.ui.selected_coordinates.row
+                    && j == self.ui.selected_coordinates.col)
                     || (last_move_from == Coord::new(i, j) // If the last move from 
                         || (last_move_to == Coord::new(i, j) // If last move to
                             && !is_cell_in_positions(&positions, i, j)))

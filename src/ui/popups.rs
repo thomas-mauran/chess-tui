@@ -117,10 +117,10 @@ pub fn render_promotion_popup(frame: &mut Frame, app: &mut App) {
         .split(inner_popup_layout_vertical[1]);
 
     // When a promotion is happening, the mouse should be able to know where the icons are
-    app.game.top_x = inner_popup_layout_horizontal[0].x;
-    app.game.top_y = inner_popup_layout_horizontal[0].y;
-    app.game.width = inner_popup_layout_horizontal[0].width;
-    app.game.height = inner_popup_layout_horizontal[0].height;
+    app.game.ui.top_x = inner_popup_layout_horizontal[0].x;
+    app.game.ui.top_y = inner_popup_layout_horizontal[0].y;
+    app.game.ui.width = inner_popup_layout_horizontal[0].width;
+    app.game.ui.height = inner_popup_layout_horizontal[0].height;
 
     let display_mode = &app.game.display_mode;
 

@@ -15,12 +15,12 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
     }
     if app.game.mouse_used {
         app.game.mouse_used = false;
-        if app.game.selected_coordinates != Coord::undefined() {
-            app.game.cursor_coordinates = app.game.selected_coordinates;
-            app.game.selected_coordinates = Coord::undefined();
+        if app.game.ui.selected_coordinates != Coord::undefined() {
+            app.game.ui.cursor_coordinates = app.game.ui.selected_coordinates;
+            app.game.ui.selected_coordinates = Coord::undefined();
         } else {
-            app.game.cursor_coordinates.col = 4;
-            app.game.cursor_coordinates.row = 4;
+            app.game.ui.cursor_coordinates.col = 4;
+            app.game.ui.cursor_coordinates.row = 4;
         }
     }
 
@@ -119,19 +119,19 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
         // If there is a promotion to be done the top_x, top_y, width and height
         // values are updated accordingly
         if app.game.is_promotion {
-            let x = (mouse_event.column - app.game.top_x) / app.game.width;
-            let y = (mouse_event.row - app.game.top_y) / app.game.height;
+            let x = (mouse_event.column - app.game.ui.top_x) / app.game.ui.width;
+            let y = (mouse_event.row - app.game.ui.top_y) / app.game.ui.height;
             if x > 3 || y > 0 {
                 return Ok(());
             }
             app.game.promotion_cursor = x as i8;
             app.game.promote_piece();
         }
-        if mouse_event.column < app.game.top_x || mouse_event.row < app.game.top_y {
+        if mouse_event.column < app.game.ui.top_x || mouse_event.row < app.game.ui.top_y {
             return Ok(());
         }
-        let x = (mouse_event.column - app.game.top_x) / app.game.width;
-        let y = (mouse_event.row - app.game.top_y) / app.game.height;
+        let x = (mouse_event.column - app.game.ui.top_x) / app.game.ui.width;
+        let y = (mouse_event.row - app.game.ui.top_y) / app.game.ui.height;
         if x > 7 || y > 7 {
             return Ok(());
         }
