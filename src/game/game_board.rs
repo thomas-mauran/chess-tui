@@ -3,7 +3,10 @@ use super::{
     coord::Coord,
     game::Game,
 };
-use crate::pieces::{PieceColor, PieceMove, PieceType};
+use crate::{
+    pieces::{pawn::Pawn, PieceColor, PieceMove, PieceType},
+    utils::col_to_letter,
+};
 
 /// ## visual representation
 ///
@@ -324,5 +327,115 @@ impl GameBoard {
             return None;
         }
         self.board[coordinates].map(|(piece_type, _)| piece_type)
+    }
+
+    // Convert the history and game status to a FEN string
+    pub fn fen_position(&mut self, is_bot_starting: bool, player_turn: PieceColor) -> String {
+        let mut result = String::new();
+        let bot_color = if is_bot_starting {
+            PieceColor::White
+        } else {
+            PieceColor::Black
+        };
+
+        // We loop through the board and convert it to a FEN string
+        for i in 0..8u8 {
+            for j in 0..8u8 {
+                // We get the piece type and color
+                let (piece_type, piece_color) = (
+                    self.get_piece_type(&Coord::new(i, j)),
+                    self.get_piece_color(&Coord::new(i, j)),
+                );
+                let letter = PieceType::piece_to_fen_enum(piece_type, piece_color);
+                // Pattern match directly on the result of piece_to_fen_enum
+                match letter {
+                    "" => {
+                        // Check if the string is not empty before using chars().last()
+                        if let Some(last_char) = result.chars().last() {
+                            if last_char.is_ascii_digit() {
+                                let incremented_char =
+                                    char::from_digit(last_char.to_digit(10).unwrap_or(0) + 1, 10)
+                                        .unwrap_or_default();
+                                // Remove the old number and add the new incremented one
+                                result.pop();
+                                result.push_str(incremented_char.to_string().as_str());
+                            } else {
+                                result.push('1');
+                            }
+                        } else {
+                            result.push('1');
+                        }
+                    }
+                    letter => {
+                        // If the result is not an empty string, push '1'
+                        result.push_str(letter);
+                    }
+                };
+            }
+            result.push('/');
+        }
+
+        // we remove the last / and specify the player turn (black)
+        result.pop();
+
+        // We say it is blacks turn to play
+        result.push_str(if bot_color == PieceColor::Black {
+            " b"
+        } else {
+            " w"
+        });
+
+        // We add the castles availabilities for black
+        if !self.did_piece_already_move((
+            Some(PieceType::King),
+            Some(player_turn),
+            Coord::new(0, 4),
+        )) && !self.is_getting_checked(self.board, PieceColor::Black)
+        {
+            // king side black castle availability
+            if !self.did_piece_already_move((
+                Some(PieceType::Rook),
+                Some(player_turn),
+                Coord::new(0, 7),
+            )) {
+                result.push_str(" k");
+            }
+            // queen side black castle availability
+            if !self.did_piece_already_move((
+                Some(PieceType::Rook),
+                Some(player_turn),
+                Coord::new(0, 0),
+            )) {
+                result.push('q');
+            }
+        } else {
+            result.push_str(" -");
+        }
+
+        // We check if the latest move is a pawn moving 2 cells, meaning the next move can be en passant
+        if Pawn::did_pawn_move_two_cells(self.move_history.last()) {
+            // Use an if-let pattern for better readability
+            if let Some(last_move) = self.move_history.last() {
+                let mut converted_move = String::new();
+
+                converted_move += &col_to_letter(last_move.from.col);
+                // FEN starts counting from 1 not 0
+                converted_move += &format!("{}", 8 - last_move.from.row + 1).to_string();
+
+                result.push(' ');
+                result.push_str(&converted_move);
+            }
+        } else {
+            result.push_str(" -");
+        }
+
+        result.push(' ');
+
+        result.push_str(&self.get_consecutive_non_pawn_or_capture().to_string());
+        result.push(' ');
+
+        result.push_str(&(self.move_history.len() / 2).to_string());
+
+        result
     }
 }

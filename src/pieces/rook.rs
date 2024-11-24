@@ -1,8 +1,7 @@
-use super::{Movable, PieceColor, PieceMove, Position};
+use super::{Movable, PieceColor, Position};
 use crate::constants::DisplayMode;
-use crate::game::board::Board;
 use crate::game::coord::Coord;
-use crate::game::game_board::{self, GameBoard};
+use crate::game::game_board::GameBoard;
 use crate::utils::{cleaned_positions, is_cell_color_ally, is_piece_opposite_king};
 pub struct Rook;
 

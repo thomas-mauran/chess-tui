@@ -317,24 +317,14 @@ impl Game {
         self.is_draw = self.game_board.is_draw(self.player_turn);
     }
 
-    // Check if the king has already moved (used for castling)
-    pub fn did_king_already_move(&self) -> bool {
-        for i in 0..self.game_board.move_history.len() {
-            if self.game_board.move_history[i].piece_type == PieceType::King
-                && self.player_turn as usize == i % 2
-            {
-                return true;
-            }
-        }
-        false
-    }
-
     /* Method to make a move for the bot
        We use the UCI protocol to communicate with the chess engine
     */
     pub fn bot_move(&mut self) {
         let engine = self.engine.clone().expect("Missing the chess engine");
-        let fen_position = self.fen_position();
+        let fen_position = self
+            .game_board
+            .fen_position(self.is_bot_starting, self.player_turn);
 
         engine.set_position(&(fen_position as String)).unwrap();
         let best_move = engine.bestmove();
@@ -371,123 +361,6 @@ impl Game {
         if self.is_bot_starting {
             self.game_board.flip_the_board();
         }
-    }
-
-    // Convert the history and game status to a FEN string
-    pub fn fen_position(&mut self) -> String {
-        let mut result = String::new();
-        let bot_color = if self.is_bot_starting {
-            PieceColor::White
-        } else {
-            PieceColor::Black
-        };
-
-        // We loop through the board and convert it to a FEN string
-        for i in 0..8u8 {
-            for j in 0..8u8 {
-                // We get the piece type and color
-                let (piece_type, piece_color) = (
-                    self.game_board.get_piece_type(&Coord::new(i, j)),
-                    self.game_board.get_piece_color(&Coord::new(i, j)),
-                );
-                let letter = PieceType::piece_to_fen_enum(piece_type, piece_color);
-                // Pattern match directly on the result of piece_to_fen_enum
-                match letter {
-                    "" => {
-                        // Check if the string is not empty before using chars().last()
-                        if let Some(last_char) = result.chars().last() {
-                            if last_char.is_ascii_digit() {
-                                let incremented_char =
-                                    char::from_digit(last_char.to_digit(10).unwrap_or(0) + 1, 10)
-                                        .unwrap_or_default();
-                                // Remove the old number and add the new incremented one
-                                result.pop();
-                                result.push_str(incremented_char.to_string().as_str());
-                            } else {
-                                result.push('1');
-                            }
-                        } else {
-                            result.push('1');
-                        }
-                    }
-                    letter => {
-                        // If the result is not an empty string, push '1'
-                        result.push_str(letter);
-                    }
-                };
-            }
-            result.push('/');
-        }
-
-        // we remove the last / and specify the player turn (black)
-        result.pop();
-
-        // We say it is blacks turn to play
-        result.push_str(if bot_color == PieceColor::Black {
-            " b"
-        } else {
-            " w"
-        });
-
-        // We add the castles availabilities for black
-        if !self.game_board.did_piece_already_move((
-            Some(PieceType::King),
-            Some(self.player_turn),
-            Coord::new(0, 4),
-        )) && !self
-            .game_board
-            .is_getting_checked(self.game_board.board, PieceColor::Black)
-        {
-            // king side black castle availability
-            if !self.game_board.did_piece_already_move((
-                Some(PieceType::Rook),
-                Some(self.player_turn),
-                Coord::new(0, 7),
-            )) {
-                result.push_str(" k");
-            }
-            // queen side black castle availability
-            if !self.game_board.did_piece_already_move((
-                Some(PieceType::Rook),
-                Some(self.player_turn),
-                Coord::new(0, 0),
-            )) {
-                result.push('q');
-            }
-        } else {
-            result.push_str(" -");
-        }
-
-        // We check if the latest move is a pawn moving 2 cells, meaning the next move can be en passant
-        if Pawn::did_pawn_move_two_cells(self.game_board.move_history.last()) {
-            // Use an if-let pattern for better readability
-            if let Some(last_move) = self.game_board.move_history.last() {
-                let mut converted_move = String::new();
-
-                converted_move += &col_to_letter(last_move.from.col);
-                // FEN starts counting from 1 not 0
-                converted_move += &format!("{}", 8 - last_move.from.row + 1).to_string();
-
-                result.push(' ');
-                result.push_str(&converted_move);
-            }
-        } else {
-            result.push_str(" -");
-        }
-
-        result.push(' ');
-
-        result.push_str(
-            &self
-                .game_board
-                .get_consecutive_non_pawn_or_capture()
-                .to_string(),
-        );
-        result.push(' ');
-
-        result.push_str(&(self.game_board.move_history.len() / 2).to_string());
-
-        result
     }
 
     // Method to promote a pawn

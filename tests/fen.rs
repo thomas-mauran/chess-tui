@@ -41,7 +41,11 @@ mod tests {
         game.game_board.board = custom_board;
 
         // Move the king to replicate a third time the same position
-        assert_eq!(game.fen_position(), "2k4R/8/4K3/8/8/8/8/8 b - - 0 0");
+        assert_eq!(
+            game.game_board
+                .fen_position(game.is_bot_starting, game.player_turn),
+            "2k4R/8/4K3/8/8/8/8/8 b - - 0 0"
+        );
     }
 
     #[test]
@@ -100,7 +104,11 @@ mod tests {
         game.game_board.board = custom_board;
 
         // Move the king to replicate a third time the same position
-        assert_eq!(game.fen_position(), "2k4R/8/4K3/8/2P5/8/8/8 b - c3 0 0");
+        assert_eq!(
+            game.game_board
+                .fen_position(game.is_bot_starting, game.player_turn),
+            "2k4R/8/4K3/8/2P5/8/8/8 b - c3 0 0"
+        );
     }
     #[test]
     fn fen_converter_castling() {
@@ -157,7 +165,8 @@ mod tests {
 
         // Move the king to replicate a third time the same position
         assert_eq!(
-            game.fen_position(),
+            game.game_board
+                .fen_position(game.is_bot_starting, game.player_turn),
             "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b kq - 0 0"
         );
     }
