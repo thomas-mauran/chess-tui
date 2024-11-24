@@ -2,7 +2,7 @@ use super::{coord::Coord, game::Game};
 use crate::{
     constants::{DisplayMode, BLACK, UNDEFINED_POSITION, WHITE},
     pieces::{PieceColor, PieceMove, PieceType},
-    ui::ui::render_cell,
+    ui::main_ui::render_cell,
     utils::{convert_position_into_notation, get_cell_paragraph, invert_position},
 };
 use ratatui::{

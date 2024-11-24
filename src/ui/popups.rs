@@ -2,7 +2,7 @@ use crate::{
     app::App,
     constants::WHITE,
     pieces::{bishop::Bishop, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook},
-    ui::ui::centered_rect,
+    ui::main_ui::centered_rect,
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},
