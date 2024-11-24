@@ -1,6 +1,6 @@
-use crate::game::coord::Coord;
-use crate::game::game::Game;
-use crate::game::game_board::GameBoard;
+use crate::game_logic::coord::Coord;
+use crate::game_logic::game::Game;
+use crate::game_logic::game_board::GameBoard;
 use crate::{
     constants::{DisplayMode, UNDEFINED_POSITION},
     pieces::{PieceColor, PieceType},

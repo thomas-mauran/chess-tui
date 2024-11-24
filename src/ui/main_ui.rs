@@ -8,7 +8,7 @@ use ratatui::{
 };
 
 use crate::{
-    game::game::GameState,
+    game_logic::game::GameState,
     ui::popups::{
         render_color_selection_popup, render_credit_popup, render_end_popup,
         render_engine_path_error_popup, render_help_popup, render_promotion_popup,
@@ -198,13 +198,12 @@ pub fn render_game_ui(frame: &mut Frame, app: &mut App, main_area: Rect) {
     // We render the board_block in the center layout made above
     frame.render_widget(board_block.clone(), main_layout_vertical[1]);
 
-    // We make the inside of the board
-    let inner_block = {
-        let temp = board_block.inner(main_layout_vertical[1]);
-        temp // Resolve immutable borrow here
-    };
     let game_clone = app.game.clone();
-    app.game.ui.board_render(inner_block, frame, &game_clone); // Mutable borrow now allowed
+    app.game.ui.board_render(
+        board_block.inner(main_layout_vertical[1]),
+        frame,
+        &game_clone,
+    ); // Mutable borrow now allowed
 
     //top box for white material
     app.game.ui.black_material_render(

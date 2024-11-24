@@ -1,7 +1,7 @@
 use super::{Movable, PieceColor, PieceType, Position};
 use crate::constants::DisplayMode;
-use crate::game::coord::Coord;
-use crate::game::game_board::GameBoard;
+use crate::game_logic::coord::Coord;
+use crate::game_logic::game_board::GameBoard;
 use crate::utils::{cleaned_positions, is_cell_color_ally};
 pub struct King;
 

@@ -14,6 +14,7 @@ pub enum GameState {
     Promotion,
 }
 
+#[derive(Clone)]
 pub struct Game {
     // the actual board
     pub game_board: GameBoard,
@@ -55,20 +56,6 @@ impl Game {
             display_mode: DisplayMode::DEFAULT,
             player_turn,
             game_state: GameState::Playing,
-        }
-    }
-
-    // Clone the game
-
-    pub fn clone(&self) -> Self {
-        Self {
-            game_board: self.game_board.clone(),
-            ui: self.ui.clone(),
-            is_game_against_bot: self.is_game_against_bot,
-            bot: self.bot.clone(),
-            display_mode: self.display_mode,
-            player_turn: self.player_turn,
-            game_state: self.game_state,
         }
     }
 

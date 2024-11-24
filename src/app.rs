@@ -3,7 +3,7 @@ use toml::Value;
 
 use crate::{
     constants::{DisplayMode, Pages},
-    game::game::Game,
+    game_logic::game::Game,
     pieces::PieceColor,
 };
 use std::{

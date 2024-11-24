@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 use self::{bishop::Bishop, king::King, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook};
 use super::constants::DisplayMode;
-use crate::game::{coord::Coord, game_board::GameBoard};
+use crate::game_logic::{coord::Coord, game_board::GameBoard};
 
 pub mod bishop;
 pub mod king;
@@ -71,7 +71,7 @@ impl PieceType {
     }
 
     pub fn piece_to_utf_enum(
-        piece_type: PieceType,
+        piece_type: &PieceType,
         piece_color: Option<PieceColor>,
     ) -> &'static str {
         match (piece_type, piece_color) {

@@ -1,5 +1,5 @@
-use crate::game::coord::Coord;
-use crate::game::game::GameState;
+use crate::game_logic::coord::Coord;
+use crate::game_logic::game::GameState;
 use crate::{
     app::{App, AppResult},
     constants::Pages,
@@ -41,37 +41,33 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             // When we are in the color selection menu
             if app.current_page == Pages::Bot && app.selected_color.is_none() {
                 app.menu_cursor_right(2);
-            } else {
-                if app.game.game_state == GameState::Promotion {
-                    app.game.ui.cursor_right_promotion();
-                } else if !(app.game.game_state == GameState::Checkmate)
-                    && !(app.game.game_state == GameState::Draw)
-                {
-                    let authorized_positions = app.game.game_board.get_authorized_positions(
-                        app.game.player_turn,
-                        app.game.ui.selected_coordinates,
-                    );
-                    app.game.ui.cursor_right(authorized_positions);
-                }
+            } else if app.game.game_state == GameState::Promotion {
+                app.game.ui.cursor_right_promotion();
+            } else if !(app.game.game_state == GameState::Checkmate)
+                && !(app.game.game_state == GameState::Draw)
+            {
+                let authorized_positions = app.game.game_board.get_authorized_positions(
+                    app.game.player_turn,
+                    app.game.ui.selected_coordinates,
+                );
+                app.game.ui.cursor_right(authorized_positions);
             }
         }
         KeyCode::Left | KeyCode::Char('h') => {
             // When we are in the color selection menu
             if app.current_page == Pages::Bot && app.selected_color.is_none() {
                 app.menu_cursor_left(2);
-            } else {
-                if app.game.game_state == GameState::Promotion {
-                    app.game.ui.cursor_left_promotion();
-                } else if !(app.game.game_state == GameState::Checkmate)
-                    && !(app.game.game_state == GameState::Draw)
-                {
-                    let authorized_positions = app.game.game_board.get_authorized_positions(
-                        app.game.player_turn,
-                        app.game.ui.selected_coordinates,
-                    );
+            } else if app.game.game_state == GameState::Promotion {
+                app.game.ui.cursor_left_promotion();
+            } else if !(app.game.game_state == GameState::Checkmate)
+                && !(app.game.game_state == GameState::Draw)
+            {
+                let authorized_positions = app.game.game_board.get_authorized_positions(
+                    app.game.player_turn,
+                    app.game.ui.selected_coordinates,
+                );
 
-                    app.game.ui.cursor_left(authorized_positions);
-                }
+                app.game.ui.cursor_left(authorized_positions);
             }
         }
         KeyCode::Up | KeyCode::Char('k') => {

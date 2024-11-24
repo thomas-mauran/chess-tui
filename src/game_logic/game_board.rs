@@ -247,7 +247,7 @@ impl GameBoard {
                             &Coord::new(i, j),
                             piece_type,
                             piece_color,
-                            &self,
+                            self,
                         ));
                     }
                 }

@@ -4,7 +4,7 @@ extern crate chess_tui;
 use chess_tui::app::{App, AppResult};
 use chess_tui::constants::{home_dir, DisplayMode};
 use chess_tui::event::{Event, EventHandler};
-use chess_tui::game::game::GameState;
+use chess_tui::game_logic::game::GameState;
 use chess_tui::handler::{handle_key_events, handle_mouse_events};
 use chess_tui::ratatui::tui::Tui;
 use clap::Parser;

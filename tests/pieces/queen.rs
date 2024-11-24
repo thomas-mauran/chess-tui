@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use chess_tui::game::coord::Coord;
-    use chess_tui::game::game::Game;
-    use chess_tui::game::game_board::GameBoard;
+    use chess_tui::game_logic::coord::Coord;
+    use chess_tui::game_logic::game::Game;
+    use chess_tui::game_logic::game_board::GameBoard;
     use chess_tui::pieces::queen::Queen;
     use chess_tui::pieces::{PieceColor, PieceType, Position};
 

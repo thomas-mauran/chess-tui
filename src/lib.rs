@@ -17,7 +17,7 @@ pub mod handler;
 pub mod pieces;
 
 // Game related structures
-pub mod game;
+pub mod game_logic;
 
 // Constats for the app
 pub mod constants;

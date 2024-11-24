@@ -1,8 +1,8 @@
 use super::rook::Rook;
 use super::{Movable, PieceColor, Position};
 use crate::constants::DisplayMode;
-use crate::game::coord::Coord;
-use crate::game::game_board::GameBoard;
+use crate::game_logic::coord::Coord;
+use crate::game_logic::game_board::GameBoard;
 use crate::pieces::bishop::Bishop;
 use crate::utils::cleaned_positions;
 

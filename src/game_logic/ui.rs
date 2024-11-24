@@ -13,6 +13,7 @@ use ratatui::{
     Frame,
 };
 
+#[derive(Clone)]
 pub struct UI {
     /// the cursor position
     pub cursor_coordinates: Coord,
@@ -52,22 +53,6 @@ impl Default for UI {
 }
 
 impl UI {
-    /// Clone the UI
-    pub fn clone(&self) -> UI {
-        UI {
-            cursor_coordinates: self.cursor_coordinates,
-            selected_coordinates: self.selected_coordinates,
-            selected_piece_cursor: self.selected_piece_cursor,
-            promotion_cursor: self.promotion_cursor,
-            old_cursor_position: self.old_cursor_position,
-            top_x: self.top_x,
-            top_y: self.top_y,
-            width: self.width,
-            height: self.height,
-            mouse_used: self.mouse_used,
-        }
-    }
-
     pub fn reset(&mut self) {
         self.cursor_coordinates = Coord::new(4, 4);
         self.selected_coordinates = Coord::undefined();
@@ -173,7 +158,7 @@ impl UI {
     }
 
     // Method to render the right panel history
-    pub fn history_render(&self, area: Rect, frame: &mut Frame, move_history: &Vec<PieceMove>) {
+    pub fn history_render(&self, area: Rect, frame: &mut Frame, move_history: &[PieceMove]) {
         // We write the history board on the side
         let history_block = Block::default()
             .title("History")
@@ -188,7 +173,7 @@ impl UI {
             let piece_type_from = move_history[i].piece_type;
 
             let utf_icon_white =
-                PieceType::piece_to_utf_enum(piece_type_from, Some(PieceColor::White));
+                PieceType::piece_to_utf_enum(&piece_type_from, Some(PieceColor::White));
             let move_white = convert_position_into_notation(&format!(
                 "{}{}{}{}",
                 move_history[i].from.row,
@@ -212,7 +197,7 @@ impl UI {
                     move_history[i + 1].to.col
                 ));
                 utf_icon_black =
-                    PieceType::piece_to_utf_enum(piece_type_to, Some(PieceColor::Black));
+                    PieceType::piece_to_utf_enum(&piece_type_to, Some(PieceColor::Black));
             }
 
             lines.push(Line::from(vec![
@@ -245,7 +230,7 @@ impl UI {
         &self,
         area: Rect,
         frame: &mut Frame,
-        white_taken_pieces: &Vec<PieceType>,
+        white_taken_pieces: &[PieceType],
     ) {
         let white_block = Block::default()
             .title("White material")
@@ -255,9 +240,8 @@ impl UI {
 
         let mut pieces: String = String::new();
 
-        for i in 0..white_taken_pieces.len() {
-            let utf_icon_white =
-                PieceType::piece_to_utf_enum(white_taken_pieces[i], Some(PieceColor::Black));
+        for piece in white_taken_pieces {
+            let utf_icon_white = PieceType::piece_to_utf_enum(piece, Some(PieceColor::Black));
 
             pieces.push_str(&format!("{utf_icon_white} "));
         }
@@ -299,9 +283,8 @@ impl UI {
 
         let mut pieces: String = String::new();
 
-        for i in 0..black_taken_pieces.len() {
-            let utf_icon_black =
-                PieceType::piece_to_utf_enum(black_taken_pieces[i], Some(PieceColor::White));
+        for piece in black_taken_pieces {
+            let utf_icon_black = PieceType::piece_to_utf_enum(piece, Some(PieceColor::White));
 
             pieces.push_str(&format!("{utf_icon_black} "));
         }
