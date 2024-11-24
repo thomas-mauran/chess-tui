@@ -29,10 +29,6 @@ pub struct Game {
     pub bot_will_move: bool,
     // if the bot is starting, meaning the player is black
     pub is_bot_starting: bool,
-    // The white piece that got taken
-    pub white_taken_pieces: Vec<PieceType>,
-    // The black piece that got taken
-    pub black_taken_pieces: Vec<PieceType>,
 }
 
 impl Default for Game {
@@ -49,8 +45,6 @@ impl Default for Game {
             display_mode: DisplayMode::DEFAULT,
             bot_will_move: false,
             is_bot_starting: false,
-            white_taken_pieces: vec![],
-            black_taken_pieces: vec![],
         }
     }
 }
@@ -69,8 +63,6 @@ impl Game {
             display_mode: DisplayMode::DEFAULT,
             bot_will_move: false,
             is_bot_starting: false,
-            white_taken_pieces: vec![],
-            black_taken_pieces: vec![],
         }
     }
 
@@ -89,8 +81,6 @@ impl Game {
             display_mode: self.display_mode,
             bot_will_move: self.bot_will_move,
             is_bot_starting: self.is_bot_starting,
-            white_taken_pieces: self.white_taken_pieces.clone(),
-            black_taken_pieces: self.black_taken_pieces.clone(),
         }
     }
 
@@ -318,12 +308,12 @@ impl Game {
                 {
                     match piece_color {
                         Some(PieceColor::Black) => {
-                            self.white_taken_pieces.push(piece);
-                            self.white_taken_pieces.sort();
+                            self.game_board.white_taken_pieces.push(piece);
+                            self.game_board.white_taken_pieces.sort();
                         }
                         Some(PieceColor::White) => {
-                            self.black_taken_pieces.push(piece);
-                            self.black_taken_pieces.sort();
+                            self.game_board.black_taken_pieces.push(piece);
+                            self.game_board.black_taken_pieces.sort();
                         }
                         _ => {}
                     }

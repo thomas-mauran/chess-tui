@@ -47,6 +47,10 @@ pub struct GameBoard {
     pub board_history: Vec<Board>,
     // the number of consecutive non pawn or capture moves
     consecutive_non_pawn_or_capture: i32,
+    // The white piece that got taken
+    pub white_taken_pieces: Vec<PieceType>,
+    // The black piece that got taken
+    pub black_taken_pieces: Vec<PieceType>,
 }
 
 impl Default for GameBoard {
@@ -56,6 +60,8 @@ impl Default for GameBoard {
             move_history: vec![],
             board_history: vec![init_board()],
             consecutive_non_pawn_or_capture: 0,
+            white_taken_pieces: vec![],
+            black_taken_pieces: vec![],
         }
     }
 }
@@ -67,6 +73,8 @@ impl GameBoard {
             move_history,
             board_history,
             consecutive_non_pawn_or_capture: 0,
+            white_taken_pieces: vec![],
+            black_taken_pieces: vec![],
         }
     }
 
@@ -273,6 +281,8 @@ impl GameBoard {
             move_history: self.move_history.clone(),
             board_history: self.board_history.clone(),
             consecutive_non_pawn_or_capture: self.consecutive_non_pawn_or_capture,
+            white_taken_pieces: self.white_taken_pieces.clone(),
+            black_taken_pieces: self.black_taken_pieces.clone(),
         };
 
         let checked_cells = fake_game_board.get_all_protected_cells(player_turn);

@@ -207,7 +207,7 @@ pub fn render_game_ui(frame: &mut Frame, app: &mut App, main_area: Rect) {
     app.game.ui.black_material_render(
         board_block.inner(right_box_layout[0]),
         frame,
-        &app.game.black_taken_pieces,
+        &app.game.game_board.black_taken_pieces,
     );
 
     // We make the inside of the board
@@ -221,7 +221,7 @@ pub fn render_game_ui(frame: &mut Frame, app: &mut App, main_area: Rect) {
     app.game.ui.white_material_render(
         board_block.inner(right_box_layout[2]),
         frame,
-        &app.game.white_taken_pieces,
+        &app.game.game_board.white_taken_pieces,
     );
 
     if app.game.is_promotion {
