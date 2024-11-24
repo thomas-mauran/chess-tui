@@ -1,6 +1,6 @@
 use super::{coord::Coord, game_board::GameBoard, ui::UI};
 use crate::{
-    constants::{DisplayMode, BLACK, UNDEFINED_POSITION, WHITE},
+    constants::{DisplayMode, BLACK, WHITE},
     pieces::{PieceColor, PieceMove, PieceType},
     utils::{
         convert_notation_into_position, convert_position_into_notation, get_cell_paragraph,
@@ -179,9 +179,9 @@ impl Game {
                 if let Some(piece_color) =
                     self.game_board.get_piece_color(&self.ui.cursor_coordinates)
                 {
-                    let mut authorized_positions = self
+                    let authorized_positions = self
                         .game_board
-                        .get_authorized_positions(self.player_turn, self.ui.selected_coordinates);
+                        .get_authorized_positions(self.player_turn, self.ui.cursor_coordinates);
 
                     if piece_color == self.player_turn {
                         self.ui.selected_coordinates = self.ui.cursor_coordinates;

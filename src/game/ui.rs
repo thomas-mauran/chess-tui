@@ -1,8 +1,4 @@
-use super::{
-    coord::Coord,
-    game::{self, Game},
-    game_board::{self, GameBoard},
-};
+use super::coord::Coord;
 use crate::constants::UNDEFINED_POSITION;
 
 pub struct UI {
@@ -83,7 +79,7 @@ impl UI {
     }
 
     /// Cursor movement methods
-    pub fn cursor_up(&mut self, mut authorized_positions: Vec<Coord>) {
+    pub fn cursor_up(&mut self, authorized_positions: Vec<Coord>) {
         if self.is_cell_selected() {
             self.move_selected_piece_cursor(false, -1, authorized_positions);
         } else if self.cursor_coordinates.row > 0 {
@@ -91,14 +87,14 @@ impl UI {
         }
     }
 
-    pub fn cursor_down(&mut self, mut authorized_positions: Vec<Coord>) {
+    pub fn cursor_down(&mut self, authorized_positions: Vec<Coord>) {
         if self.is_cell_selected() {
             self.move_selected_piece_cursor(false, 1, authorized_positions);
         } else if self.cursor_coordinates.row < 7 {
             self.cursor_coordinates.row += 1;
         }
     }
-    pub fn cursor_left(&mut self, mut authorized_positions: Vec<Coord>) {
+    pub fn cursor_left(&mut self, authorized_positions: Vec<Coord>) {
         if self.is_cell_selected() {
             self.move_selected_piece_cursor(false, -1, authorized_positions);
         } else if self.cursor_coordinates.col > 0 {
@@ -114,7 +110,7 @@ impl UI {
         };
     }
 
-    pub fn cursor_right(&mut self, mut authorized_positions: Vec<Coord>) {
+    pub fn cursor_right(&mut self, authorized_positions: Vec<Coord>) {
         if self.is_cell_selected() {
             self.move_selected_piece_cursor(false, 1, authorized_positions);
         } else if self.cursor_coordinates.col < 7 {

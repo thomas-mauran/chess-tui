@@ -44,7 +44,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                 if app.game.is_promotion {
                     app.game.ui.cursor_right_promotion();
                 } else if !app.game.is_checkmate && !app.game.is_draw {
-                    let mut authorized_positions = app.game.game_board.get_authorized_positions(
+                    let authorized_positions = app.game.game_board.get_authorized_positions(
                         app.game.player_turn,
                         app.game.ui.selected_coordinates,
                     );
@@ -60,7 +60,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                 if app.game.is_promotion {
                     app.game.ui.cursor_left_promotion();
                 } else if !app.game.is_checkmate && !app.game.is_draw {
-                    let mut authorized_positions = app.game.game_board.get_authorized_positions(
+                    let authorized_positions = app.game.game_board.get_authorized_positions(
                         app.game.player_turn,
                         app.game.ui.selected_coordinates,
                     );
@@ -73,7 +73,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             if app.current_page == Pages::Home {
                 app.menu_cursor_up(Pages::variant_count() as u8);
             } else if !app.game.is_checkmate && !app.game.is_draw && !app.game.is_promotion {
-                let mut authorized_positions = app.game.game_board.get_authorized_positions(
+                let authorized_positions = app.game.game_board.get_authorized_positions(
                     app.game.player_turn,
                     app.game.ui.selected_coordinates,
                 );
@@ -84,7 +84,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             if app.current_page == Pages::Home {
                 app.menu_cursor_down(Pages::variant_count() as u8);
             } else if !app.game.is_checkmate && !app.game.is_draw && !app.game.is_promotion {
-                let mut authorized_positions = app.game.game_board.get_authorized_positions(
+                let authorized_positions = app.game.game_board.get_authorized_positions(
                     app.game.player_turn,
                     app.game.ui.selected_coordinates,
                 );
