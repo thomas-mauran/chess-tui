@@ -77,10 +77,10 @@ fn main() -> AppResult<()> {
             Event::Mouse(mouse_event) => handle_mouse_events(mouse_event, &mut app)?,
             Event::Resize(_, _) => {}
         }
-        if app.game.bot_will_move {
+        if app.game.bot.bot_will_move {
             app.game.bot_move();
             app.game.switch_player_turn();
-            app.game.bot_will_move = false;
+            app.game.bot.bot_will_move = false;
             // need to be centralised
             app.game.is_checkmate = app.game.game_board.is_checkmate(app.game.player_turn);
             app.game.is_draw = app.game.game_board.is_draw(app.game.player_turn);

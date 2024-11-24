@@ -25,7 +25,7 @@ pub fn render(app: &mut App, frame: &mut Frame) {
     if app.current_page == Pages::Solo {
         render_game_ui(frame, app, main_area);
     } else if app.current_page == Pages::Bot {
-        if app.game.engine.is_none() {
+        if app.game.bot.engine.is_none() {
             match &app.chess_engine_path {
                 Some(path) => {
                     app.game.set_engine(path);

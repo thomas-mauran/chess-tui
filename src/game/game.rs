@@ -1,4 +1,4 @@
-use super::{coord::Coord, game_board::GameBoard, ui::UI};
+use super::{bot::Bot, coord::Coord, game_board::GameBoard, ui::UI};
 use crate::{
     constants::DisplayMode,
     pieces::{PieceColor, PieceMove, PieceType},
@@ -11,6 +11,12 @@ pub struct Game {
     pub game_board: GameBoard,
     // The struct to handle UI related stuff
     pub ui: UI,
+    // if the game is against a bot
+    pub is_game_against_bot: bool,
+    // The bot
+    pub bot: Bot,
+    // the display mode
+    pub display_mode: DisplayMode,
     // the player turn
     pub player_turn: PieceColor,
     // if the game is a draw
@@ -19,16 +25,6 @@ pub struct Game {
     pub is_checkmate: bool,
     // if we are doing a promotion
     pub is_promotion: bool,
-    // the chess engine
-    pub engine: Option<Engine>,
-    // if the game is against a bot
-    pub is_game_against_bot: bool,
-    // the display mode
-    pub display_mode: DisplayMode,
-    /// Used to indicate if a bot move is following
-    pub bot_will_move: bool,
-    // if the bot is starting, meaning the player is black
-    pub is_bot_starting: bool,
 }
 
 impl Default for Game {
@@ -36,15 +32,13 @@ impl Default for Game {
         Self {
             game_board: GameBoard::default(),
             ui: UI::default(),
+            is_game_against_bot: false,
+            bot: Bot::default(),
+            display_mode: DisplayMode::DEFAULT,
             player_turn: PieceColor::White,
             is_draw: false,
             is_checkmate: false,
             is_promotion: false,
-            engine: None,
-            is_game_against_bot: false,
-            display_mode: DisplayMode::DEFAULT,
-            bot_will_move: false,
-            is_bot_starting: false,
         }
     }
 }
@@ -54,15 +48,13 @@ impl Game {
         Self {
             game_board,
             ui: UI::default(),
+            is_game_against_bot: false,
+            bot: Bot::default(),
+            display_mode: DisplayMode::DEFAULT,
             player_turn,
             is_draw: false,
             is_checkmate: false,
             is_promotion: false,
-            engine: None,
-            is_game_against_bot: false,
-            display_mode: DisplayMode::DEFAULT,
-            bot_will_move: false,
-            is_bot_starting: false,
         }
     }
 
@@ -72,15 +64,13 @@ impl Game {
         Self {
             game_board: self.game_board.clone(),
             ui: self.ui.clone(),
+            is_game_against_bot: self.is_game_against_bot,
+            bot: self.bot.clone(),
+            display_mode: self.display_mode,
             player_turn: self.player_turn,
             is_draw: self.is_draw,
             is_checkmate: self.is_checkmate,
             is_promotion: self.is_promotion,
-            engine: self.engine.clone(),
-            is_game_against_bot: self.is_game_against_bot,
-            display_mode: self.display_mode,
-            bot_will_move: self.bot_will_move,
-            is_bot_starting: self.is_bot_starting,
         }
     }
 
@@ -96,7 +86,7 @@ impl Game {
     pub fn set_engine(&mut self, engine_path: &str) {
         self.is_game_against_bot = true;
 
-        self.engine = match Engine::new(engine_path) {
+        self.bot.engine = match Engine::new(engine_path) {
             Ok(engine) => Some(engine),
             _ => panic!("An error occcured with the selected chess engine path: {engine_path} Make sure you specified the right path using chess-tui -e"),
         }
@@ -146,7 +136,7 @@ impl Game {
                     self.ui.unselect_cell();
                     self.switch_player_turn();
                     self.is_draw = self.game_board.is_draw(self.player_turn);
-                    if (!self.is_game_against_bot || self.is_bot_starting)
+                    if (!self.is_game_against_bot || self.bot.is_bot_starting)
                         && (!self.game_board.is_latest_move_promotion()
                             || self.game_board.is_draw(self.player_turn)
                             || self.game_board.is_checkmate(self.player_turn))
@@ -161,7 +151,7 @@ impl Game {
                             self.is_checkmate = self.game_board.is_checkmate(self.player_turn);
                             self.is_promotion = self.game_board.is_latest_move_promotion();
                             if !self.is_checkmate {
-                                self.bot_will_move = true;
+                                self.bot.bot_will_move = true;
                             }
                         }
                     }
@@ -200,10 +190,10 @@ impl Game {
        We use the UCI protocol to communicate with the chess engine
     */
     pub fn bot_move(&mut self) {
-        let engine = self.engine.clone().expect("Missing the chess engine");
+        let engine = self.bot.engine.clone().expect("Missing the chess engine");
         let fen_position = self
             .game_board
-            .fen_position(self.is_bot_starting, self.player_turn);
+            .fen_position(self.bot.is_bot_starting, self.player_turn);
 
         engine.set_position(&(fen_position as String)).unwrap();
         let best_move = engine.bestmove();
@@ -237,7 +227,7 @@ impl Game {
             self.game_board.board[to_y as usize][to_x as usize] =
                 Some((promotion_piece.unwrap(), self.player_turn));
         }
-        if self.is_bot_starting {
+        if self.bot.is_bot_starting {
             self.game_board.flip_the_board();
         }
     }

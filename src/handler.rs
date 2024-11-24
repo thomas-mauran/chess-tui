@@ -127,7 +127,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             app.selected_color = None;
             if app.game.is_game_against_bot {
                 app.game.is_game_against_bot = false;
-                app.game.is_bot_starting = false;
+                app.game.bot.is_bot_starting = false;
             }
             app.go_to_home();
             app.game.game_board.reset();
