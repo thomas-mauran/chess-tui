@@ -127,7 +127,7 @@ pub fn render_promotion_popup(frame: &mut Frame, app: &mut App) {
     let queen_p = Paragraph::new(Queen::to_string(display_mode))
         .block(Block::default())
         .alignment(Alignment::Center)
-        .style(Style::default().bg(if app.game.promotion_cursor == 0 {
+        .style(Style::default().bg(if app.game.ui.promotion_cursor == 0 {
             Color::LightBlue
         } else {
             Color::Reset // Set to the default background color when the condition is false
@@ -136,7 +136,7 @@ pub fn render_promotion_popup(frame: &mut Frame, app: &mut App) {
     let rook_p = Paragraph::new(Rook::to_string(display_mode))
         .block(Block::default())
         .alignment(Alignment::Center)
-        .style(Style::default().bg(if app.game.promotion_cursor == 1 {
+        .style(Style::default().bg(if app.game.ui.promotion_cursor == 1 {
             Color::LightBlue
         } else {
             Color::Reset // Set to the default background color when the condition is false
@@ -145,7 +145,7 @@ pub fn render_promotion_popup(frame: &mut Frame, app: &mut App) {
     let bishop_p = Paragraph::new(Bishop::to_string(display_mode))
         .block(Block::default())
         .alignment(Alignment::Center)
-        .style(Style::default().bg(if app.game.promotion_cursor == 2 {
+        .style(Style::default().bg(if app.game.ui.promotion_cursor == 2 {
             Color::LightBlue
         } else {
             Color::Reset // Set to the default background color when the condition is false
@@ -154,7 +154,7 @@ pub fn render_promotion_popup(frame: &mut Frame, app: &mut App) {
     let knight_p = Paragraph::new(Knight::to_string(display_mode))
         .block(Block::default())
         .alignment(Alignment::Center)
-        .style(Style::default().bg(if app.game.promotion_cursor == 3 {
+        .style(Style::default().bg(if app.game.ui.promotion_cursor == 3 {
             Color::LightBlue
         } else {
             Color::Reset // Set to the default background color when the condition is false

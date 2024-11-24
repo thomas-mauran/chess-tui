@@ -13,8 +13,8 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         // crossterm on Windows sends Release and Repeat events as well, which we ignore.
         return Ok(());
     }
-    if app.game.mouse_used {
-        app.game.mouse_used = false;
+    if app.game.ui.mouse_used {
+        app.game.ui.mouse_used = false;
         if app.game.ui.selected_coordinates != Coord::undefined() {
             app.game.ui.cursor_coordinates = app.game.ui.selected_coordinates;
             app.game.ui.selected_coordinates = Coord::undefined();
@@ -41,7 +41,15 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             if app.current_page == Pages::Bot && app.selected_color.is_none() {
                 app.menu_cursor_right(2);
             } else {
-                app.game.cursor_right();
+                if app.game.is_promotion {
+                    app.game.ui.cursor_right_promotion();
+                } else if !app.game.is_checkmate && !app.game.is_draw {
+                    let mut authorized_positions = app.game.game_board.get_authorized_positions(
+                        app.game.player_turn,
+                        app.game.ui.selected_coordinates,
+                    );
+                    app.game.ui.cursor_right(authorized_positions);
+                }
             }
         }
         KeyCode::Left | KeyCode::Char('h') => {
@@ -49,21 +57,39 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             if app.current_page == Pages::Bot && app.selected_color.is_none() {
                 app.menu_cursor_left(2);
             } else {
-                app.game.cursor_left();
+                if app.game.is_promotion {
+                    app.game.ui.cursor_left_promotion();
+                } else if !app.game.is_checkmate && !app.game.is_draw {
+                    let mut authorized_positions = app.game.game_board.get_authorized_positions(
+                        app.game.player_turn,
+                        app.game.ui.selected_coordinates,
+                    );
+
+                    app.game.ui.cursor_left(authorized_positions);
+                }
             }
         }
         KeyCode::Up | KeyCode::Char('k') => {
             if app.current_page == Pages::Home {
                 app.menu_cursor_up(Pages::variant_count() as u8);
-            } else {
-                app.game.cursor_up();
+            } else if !app.game.is_checkmate && !app.game.is_draw && !app.game.is_promotion {
+                let mut authorized_positions = app.game.game_board.get_authorized_positions(
+                    app.game.player_turn,
+                    app.game.ui.selected_coordinates,
+                );
+                app.game.ui.cursor_up(authorized_positions);
             }
         }
         KeyCode::Down | KeyCode::Char('j') => {
             if app.current_page == Pages::Home {
                 app.menu_cursor_down(Pages::variant_count() as u8);
-            } else {
-                app.game.cursor_down();
+            } else if !app.game.is_checkmate && !app.game.is_draw && !app.game.is_promotion {
+                let mut authorized_positions = app.game.game_board.get_authorized_positions(
+                    app.game.player_turn,
+                    app.game.ui.selected_coordinates,
+                );
+
+                app.game.ui.cursor_down(authorized_positions);
             }
         }
         KeyCode::Char(' ') | KeyCode::Enter => {
@@ -91,7 +117,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                 app.show_color_popup = false;
                 app.menu_cursor = 0;
             }
-            app.game.unselect_cell();
+            app.game.ui.unselect_cell();
         }
         KeyCode::Char('b') => {
             app.go_to_home();
@@ -124,7 +150,7 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
             if x > 3 || y > 0 {
                 return Ok(());
             }
-            app.game.promotion_cursor = x as i8;
+            app.game.ui.promotion_cursor = x as i8;
             app.game.promote_piece();
         }
         if mouse_event.column < app.game.ui.top_x || mouse_event.row < app.game.ui.top_y {
@@ -135,7 +161,7 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
         if x > 7 || y > 7 {
             return Ok(());
         }
-        app.game.mouse_used = true;
+        app.game.ui.mouse_used = true;
         let coords: Coord = Coord::new(y as u8, x as u8);
         app.game.move_selected_piece_cursor_mouse(coords);
     }
