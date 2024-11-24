@@ -6,6 +6,14 @@ use crate::{
 };
 use uci::Engine;
 
+#[derive(Clone, Debug, PartialEq, Eq, Copy)]
+pub enum GameState {
+    Checkmate,
+    Draw,
+    Playing,
+    Promotion,
+}
+
 pub struct Game {
     // the actual board
     pub game_board: GameBoard,
@@ -19,12 +27,8 @@ pub struct Game {
     pub display_mode: DisplayMode,
     // the player turn
     pub player_turn: PieceColor,
-    // if the game is a draw
-    pub is_draw: bool,
-    // if the game is a checkmate
-    pub is_checkmate: bool,
-    // if we are doing a promotion
-    pub is_promotion: bool,
+    // The current state of the game
+    pub game_state: GameState,
 }
 
 impl Default for Game {
@@ -36,9 +40,7 @@ impl Default for Game {
             bot: Bot::default(),
             display_mode: DisplayMode::DEFAULT,
             player_turn: PieceColor::White,
-            is_draw: false,
-            is_checkmate: false,
-            is_promotion: false,
+            game_state: GameState::Playing,
         }
     }
 }
@@ -52,9 +54,7 @@ impl Game {
             bot: Bot::default(),
             display_mode: DisplayMode::DEFAULT,
             player_turn,
-            is_draw: false,
-            is_checkmate: false,
-            is_promotion: false,
+            game_state: GameState::Playing,
         }
     }
 
@@ -68,9 +68,7 @@ impl Game {
             bot: self.bot.clone(),
             display_mode: self.display_mode,
             player_turn: self.player_turn,
-            is_draw: self.is_draw,
-            is_checkmate: self.is_checkmate,
-            is_promotion: self.is_promotion,
+            game_state: self.game_state,
         }
     }
 
@@ -124,9 +122,11 @@ impl Game {
     // Methods to select a cell on the board
     pub fn select_cell(&mut self) {
         // If we are doing a promotion the cursor is used for the popup
-        if self.is_promotion {
+        if self.game_state == GameState::Promotion {
             self.promote_piece();
-        } else if !self.is_checkmate && !self.is_draw {
+        } else if !(self.game_state == GameState::Checkmate)
+            && !(self.game_state == GameState::Draw)
+        {
             if self.ui.is_cell_selected() {
                 // We already selected a piece so we apply the move
                 if self.ui.cursor_coordinates.is_valid() {
@@ -135,7 +135,11 @@ impl Game {
                     self.move_piece_on_the_board(selected_coords_usize, cursor_coords_usize);
                     self.ui.unselect_cell();
                     self.switch_player_turn();
-                    self.is_draw = self.game_board.is_draw(self.player_turn);
+
+                    if self.game_board.is_draw(self.player_turn) {
+                        self.game_state = GameState::Draw;
+                    }
+
                     if (!self.is_game_against_bot || self.bot.is_bot_starting)
                         && (!self.game_board.is_latest_move_promotion()
                             || self.game_board.is_draw(self.player_turn)
@@ -146,11 +150,18 @@ impl Game {
                     // If we play against a bot we will play his move and switch the player turn again
                     if self.is_game_against_bot {
                         // do this in background
-                        self.is_promotion = self.game_board.is_latest_move_promotion();
-                        if !self.is_promotion {
-                            self.is_checkmate = self.game_board.is_checkmate(self.player_turn);
-                            self.is_promotion = self.game_board.is_latest_move_promotion();
-                            if !self.is_checkmate {
+                        if self.game_board.is_latest_move_promotion() {
+                            self.game_state = GameState::Promotion;
+                        }
+
+                        if !(self.game_state == GameState::Promotion) {
+                            if self.game_board.is_checkmate(self.player_turn) {
+                                self.game_state = GameState::Checkmate;
+                            }
+                            if self.game_board.is_latest_move_promotion() {
+                                self.game_state = GameState::Promotion;
+                            }
+                            if !(self.game_state == GameState::Checkmate) {
                                 self.bot.bot_will_move = true;
                             }
                         }
@@ -181,9 +192,15 @@ impl Game {
                 }
             }
         }
-        self.is_checkmate = self.game_board.is_checkmate(self.player_turn);
-        self.is_promotion = self.game_board.is_latest_move_promotion();
-        self.is_draw = self.game_board.is_draw(self.player_turn);
+        if self.game_board.is_checkmate(self.player_turn) {
+            self.game_state = GameState::Checkmate;
+        }
+        if self.game_board.is_draw(self.player_turn) {
+            self.game_state = GameState::Draw;
+        }
+        if self.game_board.is_latest_move_promotion() {
+            self.game_state = GameState::Promotion;
+        }
     }
 
     /* Method to make a move for the bot
@@ -252,7 +269,7 @@ impl Game {
                     Some((new_piece, piece_color));
             }
         }
-        self.is_promotion = false;
+        self.game_state = GameState::Playing;
         self.ui.promotion_cursor = 0;
         if !self.game_board.is_draw(self.player_turn)
             && !self.game_board.is_checkmate(self.player_turn)

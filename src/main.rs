@@ -4,6 +4,7 @@ extern crate chess_tui;
 use chess_tui::app::{App, AppResult};
 use chess_tui::constants::{home_dir, DisplayMode};
 use chess_tui::event::{Event, EventHandler};
+use chess_tui::game::game::GameState;
 use chess_tui::handler::{handle_key_events, handle_mouse_events};
 use chess_tui::ratatui::tui::Tui;
 use clap::Parser;
@@ -82,8 +83,14 @@ fn main() -> AppResult<()> {
             app.game.switch_player_turn();
             app.game.bot.bot_will_move = false;
             // need to be centralised
-            app.game.is_checkmate = app.game.game_board.is_checkmate(app.game.player_turn);
-            app.game.is_draw = app.game.game_board.is_draw(app.game.player_turn);
+
+            if app.game.game_board.is_checkmate(app.game.player_turn) {
+                app.game.game_state = GameState::Checkmate;
+            }
+
+            if app.game.game_board.is_draw(app.game.player_turn) {
+                app.game.game_state = GameState::Draw;
+            }
             tui.draw(&mut app)?;
         }
     }

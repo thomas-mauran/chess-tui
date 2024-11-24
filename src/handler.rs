@@ -1,4 +1,5 @@
 use crate::game::coord::Coord;
+use crate::game::game::GameState;
 use crate::{
     app::{App, AppResult},
     constants::Pages,
@@ -41,9 +42,11 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             if app.current_page == Pages::Bot && app.selected_color.is_none() {
                 app.menu_cursor_right(2);
             } else {
-                if app.game.is_promotion {
+                if app.game.game_state == GameState::Promotion {
                     app.game.ui.cursor_right_promotion();
-                } else if !app.game.is_checkmate && !app.game.is_draw {
+                } else if !(app.game.game_state == GameState::Checkmate)
+                    && !(app.game.game_state == GameState::Draw)
+                {
                     let authorized_positions = app.game.game_board.get_authorized_positions(
                         app.game.player_turn,
                         app.game.ui.selected_coordinates,
@@ -57,9 +60,11 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             if app.current_page == Pages::Bot && app.selected_color.is_none() {
                 app.menu_cursor_left(2);
             } else {
-                if app.game.is_promotion {
+                if app.game.game_state == GameState::Promotion {
                     app.game.ui.cursor_left_promotion();
-                } else if !app.game.is_checkmate && !app.game.is_draw {
+                } else if !(app.game.game_state == GameState::Checkmate)
+                    && !(app.game.game_state == GameState::Draw)
+                {
                     let authorized_positions = app.game.game_board.get_authorized_positions(
                         app.game.player_turn,
                         app.game.ui.selected_coordinates,
@@ -72,7 +77,10 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         KeyCode::Up | KeyCode::Char('k') => {
             if app.current_page == Pages::Home {
                 app.menu_cursor_up(Pages::variant_count() as u8);
-            } else if !app.game.is_checkmate && !app.game.is_draw && !app.game.is_promotion {
+            } else if !(app.game.game_state == GameState::Checkmate)
+                && !(app.game.game_state == GameState::Draw)
+                && !(app.game.game_state == GameState::Promotion)
+            {
                 let authorized_positions = app.game.game_board.get_authorized_positions(
                     app.game.player_turn,
                     app.game.ui.selected_coordinates,
@@ -83,7 +91,10 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         KeyCode::Down | KeyCode::Char('j') => {
             if app.current_page == Pages::Home {
                 app.menu_cursor_down(Pages::variant_count() as u8);
-            } else if !app.game.is_checkmate && !app.game.is_draw && !app.game.is_promotion {
+            } else if !(app.game.game_state == GameState::Checkmate)
+                && !(app.game.game_state == GameState::Draw)
+                && !(app.game.game_state == GameState::Promotion)
+            {
                 let authorized_positions = app.game.game_board.get_authorized_positions(
                     app.game.player_turn,
                     app.game.ui.selected_coordinates,
@@ -146,7 +157,7 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
         return Ok(());
     }
     if mouse_event.kind == MouseEventKind::Down(MouseButton::Left) {
-        if app.game.is_checkmate || app.game.is_draw {
+        if app.game.game_state == GameState::Checkmate || app.game.game_state == GameState::Draw {
             return Ok(());
         }
 
@@ -156,7 +167,7 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
 
         // If there is a promotion to be done the top_x, top_y, width and height
         // values are updated accordingly
-        if app.game.is_promotion {
+        if app.game.game_state == GameState::Promotion {
             let x = (mouse_event.column - app.game.ui.top_x) / app.game.ui.width;
             let y = (mouse_event.row - app.game.ui.top_y) / app.game.ui.height;
             if x > 3 || y > 0 {

@@ -7,9 +7,12 @@ use ratatui::{
     Frame,
 };
 
-use crate::ui::popups::{
-    render_color_selection_popup, render_credit_popup, render_end_popup,
-    render_engine_path_error_popup, render_help_popup, render_promotion_popup,
+use crate::{
+    game::game::GameState,
+    ui::popups::{
+        render_color_selection_popup, render_credit_popup, render_end_popup,
+        render_engine_path_error_popup, render_help_popup, render_promotion_popup,
+    },
 };
 
 use crate::{
@@ -224,15 +227,15 @@ pub fn render_game_ui(frame: &mut Frame, app: &mut App, main_area: Rect) {
         &app.game.game_board.white_taken_pieces,
     );
 
-    if app.game.is_promotion {
+    if app.game.game_state == GameState::Promotion {
         render_promotion_popup(frame, app);
     }
 
-    if app.game.is_draw {
+    if app.game.game_state == GameState::Draw {
         render_end_popup(frame, "That's a draw");
     }
 
-    if app.game.is_checkmate {
+    if app.game.game_state == GameState::Checkmate {
         let victorious_player = app.game.player_turn.opposite();
 
         let string_color = match victorious_player {
