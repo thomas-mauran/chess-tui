@@ -245,6 +245,4 @@ pub fn render_game_ui(frame: &mut Frame, app: &mut App, main_area: Rect) {
     if app.game.game_state == GameState::Draw {
         render_end_popup(frame, "That's a draw");
     }
-
-
 }

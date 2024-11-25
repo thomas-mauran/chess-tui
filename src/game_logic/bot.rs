@@ -13,7 +13,7 @@ pub struct Bot {
 }
 
 impl Bot {
-    /// Allows you so set a 
+    /// Allows you so set a
     pub fn set_engine(&mut self, engine_path: &str) {
         self.engine = match Engine::new(engine_path) {
             Ok(engine) => Some(engine),
@@ -21,7 +21,7 @@ impl Bot {
         }
     }
 
-        /* Method to make a move for the bot
+    /* Method to make a move for the bot
        We use the UCI protocol to communicate with the chess engine
     */
     pub fn get_bot_move(&mut self, fen_position: String) -> String {
@@ -35,5 +35,4 @@ impl Bot {
 
         convert_notation_into_position(&movement)
     }
-
 }

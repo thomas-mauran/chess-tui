@@ -183,15 +183,15 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
         app.game.ui.mouse_used = true;
         let coords: Coord = Coord::new(y as u8, x as u8);
 
-
-        let authorized_positions = app.game
+        let authorized_positions = app
+            .game
             .game_board
             .get_authorized_positions(app.game.player_turn, app.game.ui.selected_coordinates);
 
-        let piece_color = app.game
+        let piece_color = app
+            .game
             .game_board
             .get_piece_color(&app.game.ui.selected_coordinates);
-
 
         if authorized_positions.contains(&coords)
             && match piece_color {
