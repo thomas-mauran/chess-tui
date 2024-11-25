@@ -50,7 +50,6 @@ impl Position for King {
 
         let rook_big_castle_x = 0;
         let rook_small_castle_x = 7;
-        let king_x = 4;
         let king_row = 7;
         let king_col = if color == PieceColor::White { 4 } else { 3 };
 
@@ -58,7 +57,7 @@ impl Position for King {
         if !game_board.did_piece_already_move((
             Some(PieceType::King),
             Some(color),
-            Coord::new(king_row, king_x),
+            Coord::new(king_row, king_col),
         )) && !is_king_checked
         {
             // We check if there is no pieces between tower and king
@@ -71,7 +70,7 @@ impl Position for King {
                 game_board,
                 color,
                 0,
-                king_col - 1,
+                king_col as i8 - 1,
                 &checked_cells,
             ) {
                 positions.push(Coord::new(king_row, 0));
@@ -84,7 +83,7 @@ impl Position for King {
             )) && King::check_castling_condition(
                 game_board,
                 color,
-                king_col + 1,
+                king_col as i8 + 1,
                 7,
                 &checked_cells,
             ) {

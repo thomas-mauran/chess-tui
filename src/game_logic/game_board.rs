@@ -337,7 +337,7 @@ impl GameBoard {
         checked_cells.contains(&coordinates)
     }
 
-    // Check if a piece already moved on the board
+    /// Check if a piece already moved on the board
     pub fn did_piece_already_move(
         &self,
         original_piece: (Option<PieceType>, Option<PieceColor>, Coord),
@@ -403,6 +403,8 @@ impl GameBoard {
             PieceColor::Black
         };
 
+        let king_col = if bot_color == PieceColor::White { 4 } else { 3 };
+
         // We loop through the board and convert it to a FEN string
         for i in 0..8u8 {
             for j in 0..8u8 {
@@ -454,14 +456,14 @@ impl GameBoard {
         if !self.did_piece_already_move((
             Some(PieceType::King),
             Some(player_turn),
-            Coord::new(0, 4),
+            Coord::new(7, king_col),
         )) && !self.is_getting_checked(self.board, PieceColor::Black)
         {
             // king side black castle availability
             if !self.did_piece_already_move((
                 Some(PieceType::Rook),
                 Some(player_turn),
-                Coord::new(0, 7),
+                Coord::new(7, 7),
             )) {
                 result.push_str(" k");
             }
@@ -469,7 +471,7 @@ impl GameBoard {
             if !self.did_piece_already_move((
                 Some(PieceType::Rook),
                 Some(player_turn),
-                Coord::new(0, 0),
+                Coord::new(7, 0),
             )) {
                 result.push('q');
             }
