@@ -10,6 +10,8 @@ pub mod knight;
 pub mod pawn;
 pub mod queen;
 pub mod rook;
+
+/// The different type of pieces in the game
 #[derive(Debug, Copy, Clone, PartialEq, Hash)]
 pub enum PieceType {
     Pawn,
@@ -21,6 +23,7 @@ pub enum PieceType {
 }
 
 impl PieceType {
+    /// The authorized position for a piece at a certain coordinate
     pub fn authorized_positions(
         self,
         coordinates: &Coord,
@@ -50,6 +53,7 @@ impl PieceType {
         }
     }
 
+    /// The cells a given piece is protecting
     pub fn protected_positions(
         selected_coordinates: &Coord,
         piece_type: PieceType,
@@ -70,6 +74,7 @@ impl PieceType {
         }
     }
 
+    /// Convert a PieceType to a symbol
     pub fn piece_to_utf_enum(
         piece_type: &PieceType,
         piece_color: Option<PieceColor>,
@@ -91,6 +96,7 @@ impl PieceType {
         }
     }
 
+    /// Convert a PieceType fo a conform fen character
     pub fn piece_to_fen_enum(
         piece_type: Option<PieceType>,
         piece_color: Option<PieceColor>,
@@ -129,7 +135,7 @@ impl PieceType {
     }
 }
 
-// Implementing the PartialOrd trait for PieceType to allow comparison between PieceType
+/// Implementing the PartialOrd trait for PieceType to allow comparison between PieceType
 #[allow(clippy::non_canonical_partial_ord_impl)]
 impl PartialOrd for PieceType {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {

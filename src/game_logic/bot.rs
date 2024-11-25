@@ -32,8 +32,8 @@ impl Bot {
         let Ok(movement) = best_move else {
             panic!("An error has occured")
         };
-        return convert_notation_into_position(&movement);
 
+        convert_notation_into_position(&movement)
     }
 
 }

@@ -185,8 +185,8 @@ impl Game {
         }
 
         self.move_piece_on_the_board(
-            &Coord::new(from_y as u8, from_x as u8),
-            &Coord::new(to_y as u8, to_x as u8),
+            &Coord::new(from_y, from_x),
+            &Coord::new(to_y, to_x),
         );
 
         if promotion_piece.is_some() {

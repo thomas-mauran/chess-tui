@@ -15,23 +15,23 @@ use ratatui::{
 
 #[derive(Clone)]
 pub struct UI {
-    /// the cursor position
+    /// The cursor position
     pub cursor_coordinates: Coord,
-    // the selected cell
+    /// The selected cell
     pub selected_coordinates: Coord,
-    // the selected piece cursor when we already selected a piece
+    /// The selected piece cursor when we already selected a piece
     pub selected_piece_cursor: i8,
-    // the cursor for the promotion popup
+    /// The cursor for The promotion popup
     pub promotion_cursor: i8,
-    // the old cursor position used when unslecting a cell
+    /// The old cursor position used when unslecting a cell
     pub old_cursor_position: Coord,
-    // coordinates of the interactable part of the screen (either normal chess board or promotion screen)
+    /// coordinates of the interactable part of the screen (either normal chess board or promotion screen)
     pub top_x: u16,
     pub top_y: u16,
-    // dimension of a selectable cell (either 1 of the 64 cells, or 1 of the 4 promotion options)
+    /// dimension of a selectable cell (either 1 of the 64 cells, or 1 of the 4 promotion options)
     pub width: u16,
     pub height: u16,
-    // last move was with a mouse
+    /// last move was with a mouse
     pub mouse_used: bool,
     /// The skin of the game
     pub display_mode: DisplayMode,
