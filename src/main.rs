@@ -52,7 +52,7 @@ fn main() -> AppResult<()> {
             }
             // Set the display mode based on the configuration file
             if let Some(display_mode) = config.get("display_mode") {
-                app.game.display_mode = match display_mode.as_str() {
+                app.game.ui.display_mode = match display_mode.as_str() {
                     Some("ASCII") => DisplayMode::ASCII,
                     _ => DisplayMode::DEFAULT,
                 };
@@ -83,12 +83,9 @@ fn main() -> AppResult<()> {
             app.game.switch_player_turn();
             app.game.bot.bot_will_move = false;
             // need to be centralised
-
             if app.game.game_board.is_checkmate(app.game.player_turn) {
                 app.game.game_state = GameState::Checkmate;
-            }
-
-            if app.game.game_board.is_draw(app.game.player_turn) {
+            } else if app.game.game_board.is_draw(app.game.player_turn) {
                 app.game.game_state = GameState::Draw;
             }
             tui.draw(&mut app)?;

@@ -146,7 +146,7 @@ impl App {
                 self.current_page = Pages::Bot
             }
             2 => {
-                self.game.display_mode = match self.game.display_mode {
+                self.game.ui.display_mode = match self.game.ui.display_mode {
                     DisplayMode::ASCII => DisplayMode::DEFAULT,
                     DisplayMode::DEFAULT => DisplayMode::ASCII,
                 };
@@ -171,7 +171,7 @@ impl App {
         if let Some(table) = config.as_table_mut() {
             table.insert(
                 "display_mode".to_string(),
-                Value::String(self.game.display_mode.to_string()),
+                Value::String(self.game.ui.display_mode.to_string()),
             );
         }
 

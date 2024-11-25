@@ -110,9 +110,9 @@ pub fn get_cell_paragraph<'a>(
     // Get piece and color
     let piece_color = game.game_board.get_piece_color(cell_coordinates);
     let piece_type = game.game_board.get_piece_type(cell_coordinates);
-    let piece_enum = PieceType::piece_type_to_string_enum(piece_type, &game.display_mode);
+    let piece_enum = PieceType::piece_type_to_string_enum(piece_type, &game.ui.display_mode);
 
-    let paragraph = match game.display_mode {
+    let paragraph = match game.ui.display_mode {
         DisplayMode::DEFAULT => {
             let color_enum = color_to_ratatui_enum(piece_color);
 

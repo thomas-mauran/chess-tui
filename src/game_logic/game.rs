@@ -1,10 +1,8 @@
 use super::{bot::Bot, coord::Coord, game_board::GameBoard, ui::UI};
 use crate::{
-    constants::DisplayMode,
     pieces::{PieceColor, PieceMove, PieceType},
-    utils::{convert_notation_into_position, get_int_from_char},
+    utils::get_int_from_char,
 };
-use uci::Engine;
 
 #[derive(Clone, Debug, PartialEq, Eq, Copy)]
 pub enum GameState {
@@ -16,19 +14,17 @@ pub enum GameState {
 
 #[derive(Clone)]
 pub struct Game {
-    // the actual board
+    /// The GameBoard storing data about the board related stuff
     pub game_board: GameBoard,
-    // The struct to handle UI related stuff
+    /// The struct to handle UI related stuff
     pub ui: UI,
-    // if the game is against a bot
-    pub is_game_against_bot: bool,
-    // The bot
+    /// The struct to handle Bot related stuff
     pub bot: Bot,
-    // the display mode
-    pub display_mode: DisplayMode,
-    // the player turn
+    /// Indicator on if the game is against a bot or not
+    pub is_game_against_bot: bool,
+    /// Which player is it to play
     pub player_turn: PieceColor,
-    // The current state of the game
+    /// The current state of the game (Playing, Draw, Checkmate. Promotion)
     pub game_state: GameState,
 }
 
@@ -39,7 +35,6 @@ impl Default for Game {
             ui: UI::default(),
             is_game_against_bot: false,
             bot: Bot::default(),
-            display_mode: DisplayMode::DEFAULT,
             player_turn: PieceColor::White,
             game_state: GameState::Playing,
         }
@@ -47,36 +42,29 @@ impl Default for Game {
 }
 
 impl Game {
+    // SETTERS
     pub fn new(game_board: GameBoard, player_turn: PieceColor) -> Self {
         Self {
             game_board,
             ui: UI::default(),
             is_game_against_bot: false,
             bot: Bot::default(),
-            display_mode: DisplayMode::DEFAULT,
             player_turn,
             game_state: GameState::Playing,
         }
     }
 
-    // Setters
+    /// Allows you to pass a specific GameBoard
     pub fn set_board(&mut self, game_board: GameBoard) {
         self.game_board = game_board;
     }
 
+    /// Allows you to set the player turn
     pub fn set_player_turn(&mut self, player_turn: PieceColor) {
         self.player_turn = player_turn;
     }
 
-    pub fn set_engine(&mut self, engine_path: &str) {
-        self.is_game_against_bot = true;
-
-        self.bot.engine = match Engine::new(engine_path) {
-            Ok(engine) => Some(engine),
-            _ => panic!("An error occcured with the selected chess engine path: {engine_path} Make sure you specified the right path using chess-tui -e"),
-        }
-    }
-
+    /// Switch the player turn
     pub fn switch_player_turn(&mut self) {
         match self.player_turn {
             PieceColor::White => self.player_turn = PieceColor::Black,
@@ -84,29 +72,8 @@ impl Game {
         }
     }
 
-    pub fn move_selected_piece_cursor_mouse(&mut self, coordinates: Coord) {
-        let piece_color = self
-            .game_board
-            .get_piece_color(&self.ui.selected_coordinates);
-
-        let authorized_positions = self
-            .game_board
-            .get_authorized_positions(self.player_turn, self.ui.selected_coordinates);
-
-        if authorized_positions.contains(&coordinates)
-            && match piece_color {
-                Some(piece) => piece == self.player_turn,
-                None => false,
-            }
-        {
-            self.ui.cursor_coordinates = coordinates;
-            self.select_cell();
-        } else {
-            self.ui.selected_coordinates = coordinates;
-        }
-    }
-
     // Methods to select a cell on the board
+    // TODO: Split this in multiple methods
     pub fn select_cell(&mut self) {
         // If we are doing a promotion the cursor is used for the popup
         if self.game_state == GameState::Promotion {
@@ -123,9 +90,9 @@ impl Game {
                     self.ui.unselect_cell();
                     self.switch_player_turn();
 
-                    if self.game_board.is_draw(self.player_turn) {
-                        self.game_state = GameState::Draw;
-                    }
+                    // if self.game_board.is_draw(self.player_turn) {
+                    //     self.game_state = GameState::Draw;
+                    // }
 
                     if (!self.is_game_against_bot || self.bot.is_bot_starting)
                         && (!self.game_board.is_latest_move_promotion()
@@ -182,10 +149,10 @@ impl Game {
         if self.game_board.is_checkmate(self.player_turn) {
             self.game_state = GameState::Checkmate;
         }
-        if self.game_board.is_draw(self.player_turn) {
+        else if self.game_board.is_draw(self.player_turn) {
             self.game_state = GameState::Draw;
         }
-        if self.game_board.is_latest_move_promotion() {
+        else if self.game_board.is_latest_move_promotion() {
             self.game_state = GameState::Promotion;
         }
     }
@@ -194,26 +161,21 @@ impl Game {
        We use the UCI protocol to communicate with the chess engine
     */
     pub fn bot_move(&mut self) {
-        let engine = self.bot.engine.clone().expect("Missing the chess engine");
+
         let fen_position = self
             .game_board
             .fen_position(self.bot.is_bot_starting, self.player_turn);
 
-        engine.set_position(&(fen_position as String)).unwrap();
-        let best_move = engine.bestmove();
-        let Ok(movement) = best_move else {
-            panic!("An error has occured")
-        };
-        let converted_move = convert_notation_into_position(&movement);
+        let bot_move = self.bot.get_bot_move(fen_position);
 
-        let from_y = get_int_from_char(converted_move.chars().next());
-        let from_x = get_int_from_char(converted_move.chars().nth(1));
-        let to_y = get_int_from_char(converted_move.chars().nth(2));
-        let to_x = get_int_from_char(converted_move.chars().nth(3));
+        let from_y = get_int_from_char(bot_move.chars().next());
+        let from_x = get_int_from_char(bot_move.chars().nth(1));
+        let to_y = get_int_from_char(bot_move.chars().nth(2));
+        let to_x = get_int_from_char(bot_move.chars().nth(3));
 
         let mut promotion_piece: Option<PieceType> = None;
-        if movement.chars().count() == 5 {
-            promotion_piece = match movement.chars().nth(4) {
+        if bot_move.chars().count() == 5 {
+            promotion_piece = match bot_move.chars().nth(4) {
                 Some('q') => Some(PieceType::Queen),
                 Some('r') => Some(PieceType::Rook),
                 Some('b') => Some(PieceType::Bishop),
@@ -234,6 +196,7 @@ impl Game {
         if self.bot.is_bot_starting {
             self.game_board.flip_the_board();
         }
+
     }
 
     // Method to promote a pawn
@@ -265,7 +228,8 @@ impl Game {
         }
     }
 
-    // Move a piece from a cell to another
+    /// Move a piece from a cell to another
+    // TODO: Split this in multiple methods
     pub fn move_piece_on_the_board(&mut self, from: &Coord, to: &Coord) {
         if !from.is_valid() || !to.is_valid() {
             return;

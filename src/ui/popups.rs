@@ -122,7 +122,7 @@ pub fn render_promotion_popup(frame: &mut Frame, app: &mut App) {
     app.game.ui.width = inner_popup_layout_horizontal[0].width;
     app.game.ui.height = inner_popup_layout_horizontal[0].height;
 
-    let display_mode = &app.game.display_mode;
+    let display_mode = &app.game.ui.display_mode;
 
     let queen_p = Paragraph::new(Queen::to_string(display_mode))
         .block(Block::default())
@@ -306,7 +306,7 @@ pub fn render_color_selection_popup(frame: &mut Frame, app: &App) {
         )
         .split(inner_popup_layout_vertical[1]);
 
-    let display_mode = &app.game.display_mode;
+    let display_mode = &app.game.ui.display_mode;
 
     let white_pawn = Paragraph::new(Pawn::to_string(display_mode))
         .block(Block::default())

@@ -31,7 +31,8 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         if app.game.bot.engine.is_none() {
             match &app.chess_engine_path {
                 Some(path) => {
-                    app.game.set_engine(path);
+                    app.game.is_game_against_bot = true;
+                    app.game.bot.set_engine(path);
                     if app.selected_color.is_none() {
                         app.show_color_popup = true;
                     } else {
@@ -119,7 +120,7 @@ pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
 
     // Determine the "display mode" text
     let display_mode_menu = {
-        let display_mode = match app.game.display_mode {
+        let display_mode = match app.game.ui.display_mode {
             DisplayMode::DEFAULT => "Default",
             DisplayMode::ASCII => "ASCII",
         };
@@ -230,10 +231,6 @@ pub fn render_game_ui(frame: &mut Frame, app: &mut App, main_area: Rect) {
         render_promotion_popup(frame, app);
     }
 
-    if app.game.game_state == GameState::Draw {
-        render_end_popup(frame, "That's a draw");
-    }
-
     if app.game.game_state == GameState::Checkmate {
         let victorious_player = app.game.player_turn.opposite();
 
@@ -244,4 +241,10 @@ pub fn render_game_ui(frame: &mut Frame, app: &mut App, main_area: Rect) {
 
         render_end_popup(frame, &format!("{string_color} Won !!!"));
     }
+
+    if app.game.game_state == GameState::Draw {
+        render_end_popup(frame, "That's a draw");
+    }
+
+
 }

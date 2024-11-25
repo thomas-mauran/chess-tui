@@ -33,6 +33,8 @@ pub struct UI {
     pub height: u16,
     // last move was with a mouse
     pub mouse_used: bool,
+    /// The skin of the game
+    pub display_mode: DisplayMode,
 }
 
 impl Default for UI {
@@ -48,6 +50,7 @@ impl Default for UI {
             width: 0,
             height: 0,
             mouse_used: false,
+            display_mode: DisplayMode::DEFAULT,
         }
     }
 }
@@ -104,7 +107,9 @@ impl UI {
         }
     }
 
-    /// Cursor movement methods
+    /// CURSOR MOVEMENT
+
+    /// Move the cursor up
     pub fn cursor_up(&mut self, authorized_positions: Vec<Coord>) {
         if self.is_cell_selected() {
             self.move_selected_piece_cursor(false, -1, authorized_positions);
@@ -113,6 +118,7 @@ impl UI {
         }
     }
 
+    /// Move the cursor down
     pub fn cursor_down(&mut self, authorized_positions: Vec<Coord>) {
         if self.is_cell_selected() {
             self.move_selected_piece_cursor(false, 1, authorized_positions);
@@ -120,6 +126,8 @@ impl UI {
             self.cursor_coordinates.row += 1;
         }
     }
+
+    /// Move the cursor to the left
     pub fn cursor_left(&mut self, authorized_positions: Vec<Coord>) {
         if self.is_cell_selected() {
             self.move_selected_piece_cursor(false, -1, authorized_positions);
@@ -128,6 +136,7 @@ impl UI {
         }
     }
 
+    /// Move the cursor to the left when we are showing the promotion popup
     pub fn cursor_left_promotion(&mut self) {
         self.promotion_cursor = if self.promotion_cursor > 0 {
             self.promotion_cursor - 1
@@ -136,6 +145,7 @@ impl UI {
         };
     }
 
+    /// Move the cursor to the right
     pub fn cursor_right(&mut self, authorized_positions: Vec<Coord>) {
         if self.is_cell_selected() {
             self.move_selected_piece_cursor(false, 1, authorized_positions);
@@ -144,6 +154,7 @@ impl UI {
         }
     }
 
+    /// Move the cursor to the right when we are doing a promotion
     pub fn cursor_right_promotion(&mut self) {
         self.promotion_cursor = (self.promotion_cursor + 1) % 4;
     }
@@ -157,7 +168,7 @@ impl UI {
         }
     }
 
-    // Method to render the right panel history
+    /// Method to render the right panel history
     pub fn history_render(&self, area: Rect, frame: &mut Frame, move_history: &[PieceMove]) {
         // We write the history board on the side
         let history_block = Block::default()
@@ -226,6 +237,7 @@ impl UI {
         );
     }
 
+    /// Method to render the white material
     pub fn white_material_render(
         &self,
         area: Rect,
@@ -269,6 +281,7 @@ impl UI {
         frame.render_widget(help_paragraph, right_panel_layout[1]);
     }
 
+    /// Method to render the black material
     pub fn black_material_render(
         &self,
         area: Rect,
@@ -307,7 +320,7 @@ impl UI {
         );
     }
 
-    // Method to render the board
+    /// Method to render the board
     pub fn board_render(&mut self, area: Rect, frame: &mut Frame, game: &Game) {
         let width = area.width / 8;
         let height = area.height / 8;
@@ -444,7 +457,7 @@ impl UI {
                 // else as a last resort we draw the cell with the default color either white or black
                 else {
                     let mut cell = Block::default();
-                    cell = match game.display_mode {
+                    cell = match self.display_mode {
                         DisplayMode::DEFAULT => cell.bg(cell_color),
                         DisplayMode::ASCII => match cell_color {
                             WHITE => cell.bg(Color::White).fg(Color::Black),
