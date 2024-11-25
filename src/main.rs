@@ -79,7 +79,7 @@ fn main() -> AppResult<()> {
             Event::Resize(_, _) => {}
         }
         if app.game.bot.bot_will_move {
-            app.game.bot_move();
+            app.game.execute_bot_move();
             app.game.switch_player_turn();
             app.game.bot.bot_will_move = false;
             // need to be centralised

@@ -118,7 +118,7 @@ impl App {
         if let Some(color) = self.selected_color {
             if color == PieceColor::Black {
                 self.game.bot.is_bot_starting = true;
-                self.game.bot_move();
+                self.game.execute_bot_move();
                 self.game.player_turn = PieceColor::Black;
             }
         }
@@ -133,7 +133,7 @@ impl App {
         self.game.is_game_against_bot = game_is_against_bot;
         if is_bot_starting {
             self.game.bot.is_bot_starting = true;
-            self.game.bot_move();
+            self.game.execute_bot_move();
             self.game.player_turn = PieceColor::Black;
         }
     }

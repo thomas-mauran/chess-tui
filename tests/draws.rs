@@ -129,7 +129,7 @@ mod tests {
         assert!(!game.game_board.is_draw(game.player_turn));
 
         // Move the pawn to a make the 50th move
-        game.move_piece_on_the_board(&Coord::new(1, 6), &Coord::new(1, 5));
+        game.execute_move(&Coord::new(1, 6), &Coord::new(1, 5));
         assert!(game.game_board.is_draw(game.player_turn));
     }
 
@@ -217,14 +217,14 @@ mod tests {
         let mut copy_move_history = game.game_board.move_history.clone();
 
         for piece_move in copy_move_history.iter_mut() {
-            game.move_piece_on_the_board(&piece_move.from, &piece_move.to);
+            game.execute_move(&piece_move.from, &piece_move.to);
 
             // In a chess game, board.is_draw() is called after every move
             assert!(!game.game_board.is_draw(game.player_turn));
         }
 
         // Move the king to replicate a third time the same position
-        game.move_piece_on_the_board(&Coord::new(0, 2), &Coord::new(0, 1));
+        game.execute_move(&Coord::new(0, 2), &Coord::new(0, 1));
         assert!(game.game_board.is_draw(game.player_turn));
     }
 }

@@ -754,7 +754,7 @@ mod tests {
 
         assert_eq!(white_right_positions, positions);
 
-        game.move_piece_on_the_board(&Coord::new(7, 4), &Coord::new(7, 7));
+        game.execute_move(&Coord::new(7, 4), &Coord::new(7, 7));
         game.game_board.flip_the_board();
 
         let mut black_right_positions = vec![Coord::new(7, 4), Coord::new(7, 7)];

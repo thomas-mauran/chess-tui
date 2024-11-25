@@ -86,13 +86,13 @@ impl Game {
                 if self.ui.cursor_coordinates.is_valid() {
                     let selected_coords_usize = &self.ui.selected_coordinates.clone();
                     let cursor_coords_usize = &self.ui.cursor_coordinates.clone();
-                    self.move_piece_on_the_board(selected_coords_usize, cursor_coords_usize);
+                    self.execute_move(selected_coords_usize, cursor_coords_usize);
                     self.ui.unselect_cell();
                     self.switch_player_turn();
 
-                    // if self.game_board.is_draw(self.player_turn) {
-                    //     self.game_state = GameState::Draw;
-                    // }
+                    if self.game_board.is_draw(self.player_turn) {
+                        self.game_state = GameState::Draw;
+                    }
 
                     if (!self.is_game_against_bot || self.bot.is_bot_starting)
                         && (!self.game_board.is_latest_move_promotion()
@@ -148,11 +148,9 @@ impl Game {
         }
         if self.game_board.is_checkmate(self.player_turn) {
             self.game_state = GameState::Checkmate;
-        }
-        else if self.game_board.is_draw(self.player_turn) {
+        } else if self.game_board.is_draw(self.player_turn) {
             self.game_state = GameState::Draw;
-        }
-        else if self.game_board.is_latest_move_promotion() {
+        } else if self.game_board.is_latest_move_promotion() {
             self.game_state = GameState::Promotion;
         }
     }
@@ -160,8 +158,7 @@ impl Game {
     /* Method to make a move for the bot
        We use the UCI protocol to communicate with the chess engine
     */
-    pub fn bot_move(&mut self) {
-
+    pub fn execute_bot_move(&mut self) {
         let fen_position = self
             .game_board
             .fen_position(self.bot.is_bot_starting, self.player_turn);
@@ -184,10 +181,7 @@ impl Game {
             };
         }
 
-        self.move_piece_on_the_board(
-            &Coord::new(from_y, from_x),
-            &Coord::new(to_y, to_x),
-        );
+        self.execute_move(&Coord::new(from_y, from_x), &Coord::new(to_y, to_x));
 
         if promotion_piece.is_some() {
             self.game_board.board[to_y as usize][to_x as usize] =
@@ -196,7 +190,6 @@ impl Game {
         if self.bot.is_bot_starting {
             self.game_board.flip_the_board();
         }
-
     }
 
     // Method to promote a pawn
@@ -230,7 +223,7 @@ impl Game {
 
     /// Move a piece from a cell to another
     // TODO: Split this in multiple methods
-    pub fn move_piece_on_the_board(&mut self, from: &Coord, to: &Coord) {
+    pub fn execute_move(&mut self, from: &Coord, to: &Coord) {
         if !from.is_valid() || !to.is_valid() {
             return;
         }
@@ -244,46 +237,17 @@ impl Game {
         };
 
         // We increment the consecutive_non_pawn_or_capture if the piece type is a pawn or if there is no capture
-        match (piece_type_from, piece_type_to) {
-            (PieceType::Pawn, _) | (_, Some(_)) => {
-                self.game_board.set_consecutive_non_pawn_or_capture(0);
-            }
-            _ => {
-                let value = self.game_board.get_consecutive_non_pawn_or_capture() + 1;
-                self.game_board.set_consecutive_non_pawn_or_capture(value);
-            }
-        }
+        self.game_board
+            .increment_consecutive_non_pawn_or_capture(piece_type_from, piece_type_to);
 
         // We check if the move is a capture and add the piece to the taken pieces
-        match (piece_type_from, piece_type_to) {
-            (_, None) => {}
-            (_, Some(piece)) => {
-                let piece_color = self.game_board.get_piece_color(to);
-                // We check if there is a piece and we are not doing a castle
-                if piece_color.is_some()
-                    && (piece_type_to != Some(PieceType::Rook)
-                        && piece_color != Some(self.player_turn))
-                {
-                    match piece_color {
-                        Some(PieceColor::Black) => {
-                            self.game_board.white_taken_pieces.push(piece);
-                            self.game_board.white_taken_pieces.sort();
-                        }
-                        Some(PieceColor::White) => {
-                            self.game_board.black_taken_pieces.push(piece);
-                            self.game_board.black_taken_pieces.sort();
-                        }
-                        _ => {}
-                    }
-                }
-            }
-        }
+        self.game_board
+            .add_piece_to_taken_pieces(from, to, self.player_turn);
 
         // We check for en passant as the latest move
-        if self.game_board.is_latest_move_en_passant(*from, *to) {
+        if self.game_board.is_latest_move_en_passant(from, to) {
             // we kill the pawn
             let row_index = to.row as i32 + 1;
-
             self.game_board.board[row_index as usize][to.col as usize] = None;
         }
 

@@ -78,6 +78,53 @@ impl GameBoard {
         }
     }
 
+    pub fn increment_consecutive_non_pawn_or_capture(
+        &mut self,
+        piece_type_from: PieceType,
+        piece_type_to: Option<PieceType>,
+    ) {
+        match (piece_type_from, piece_type_to) {
+            (PieceType::Pawn, _) | (_, Some(_)) => {
+                self.set_consecutive_non_pawn_or_capture(0);
+            }
+            _ => {
+                let value = self.get_consecutive_non_pawn_or_capture() + 1;
+                self.set_consecutive_non_pawn_or_capture(value);
+            }
+        }
+    }
+
+    pub fn add_piece_to_taken_pieces(&mut self, from: &Coord, to: &Coord, player_turn: PieceColor) {
+        if self.is_latest_move_en_passant(from, to) {
+            self.push_to_taken_piece(PieceType::Pawn, player_turn.opposite());
+        }
+
+        let piece_type_to = self.get_piece_type(to);
+        let piece_color = self.get_piece_color(to);
+        // We check if there is a piece and we are not doing a castle
+        if piece_color.is_some()
+            && piece_type_to.is_some()
+            && (piece_type_to != Some(PieceType::Rook) && piece_color != Some(player_turn))
+        {
+            if let Some(piece_type) = piece_type_to {
+                self.push_to_taken_piece(piece_type, piece_color.unwrap())
+            }
+        }
+    }
+
+    pub fn push_to_taken_piece(&mut self, piece_type: PieceType, piece_color: PieceColor) {
+        match piece_color {
+            PieceColor::Black => {
+                self.white_taken_pieces.push(piece_type);
+                self.white_taken_pieces.sort();
+            }
+            PieceColor::White => {
+                self.black_taken_pieces.push(piece_type);
+                self.black_taken_pieces.sort();
+            }
+        }
+    }
+
     pub fn reset(&mut self) {
         self.board = init_board();
         self.move_history.clear();
@@ -121,9 +168,9 @@ impl GameBoard {
     }
 
     // Check if the latest move is en passant
-    pub fn is_latest_move_en_passant(&self, from: Coord, to: Coord) -> bool {
-        let piece_type_from = self.get_piece_type(&from);
-        let piece_type_to = self.get_piece_type(&to);
+    pub fn is_latest_move_en_passant(&self, from: &Coord, to: &Coord) -> bool {
+        let piece_type_from = self.get_piece_type(from);
+        let piece_type_to = self.get_piece_type(to);
 
         let from_y: i32 = from.row as i32;
         let from_x: i32 = from.col as i32;
@@ -132,7 +179,7 @@ impl GameBoard {
         match (piece_type_from, piece_type_to) {
             (Some(PieceType::Pawn), _) => {
                 // Check if it's a diagonal move, and the destination is an empty cell
-                from_y != to_y && from_x != to_x && self.board[&to].is_none()
+                from_y != to_y && from_x != to_x && self.board[to].is_none()
             }
             _ => false,
         }
@@ -322,7 +369,7 @@ impl GameBoard {
 
             // We simulate the move
 
-            Game::move_piece_on_the_board(&mut new_board, original_coordinates, &position);
+            Game::execute_move(&mut new_board, original_coordinates, &position);
 
             // We check if the board is still checked with this move meaning it didn't resolve the problem
             if !self.is_getting_checked(new_board.game_board.board, new_board.player_turn) {

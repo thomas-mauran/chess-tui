@@ -289,7 +289,7 @@ mod tests {
         assert_eq!(right_positions, positions);
 
         // Perform the en passant move
-        game.move_piece_on_the_board(&Coord { row: 3, col: 2 }, &Coord { row: 2, col: 3 });
+        game.execute_move(&Coord { row: 3, col: 2 }, &Coord { row: 2, col: 3 });
 
         let board_after_move = [
             [None, None, None, None, None, None, None, None],
@@ -357,7 +357,7 @@ mod tests {
         positions.sort();
         assert_eq!(right_positions, positions);
 
-        game.move_piece_on_the_board(&Coord { row: 3, col: 2 }, &Coord { row: 2, col: 3 });
+        game.execute_move(&Coord { row: 3, col: 2 }, &Coord { row: 2, col: 3 });
 
         let board_after_move = [
             [None, None, None, None, None, None, None, None],

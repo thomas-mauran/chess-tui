@@ -171,7 +171,7 @@ mod tests {
         game.game_board.board = custom_board;
 
         // Move the pawn to a promote cell
-        game.move_piece_on_the_board(&Coord::new(1, 4), &Coord::new(0, 4));
+        game.execute_move(&Coord::new(1, 4), &Coord::new(0, 4));
         assert!(game.game_board.is_latest_move_promotion());
 
         // Promote the pawn
@@ -284,7 +284,7 @@ mod tests {
         game.game_board.board = custom_board;
 
         // Move the pawn to a promote cell
-        game.move_piece_on_the_board(&Coord::new(1, 5), &Coord::new(0, 5));
+        game.execute_move(&Coord::new(1, 5), &Coord::new(0, 5));
         assert!(game.game_board.is_latest_move_promotion());
 
         // Promote the pawn
