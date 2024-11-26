@@ -132,9 +132,8 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         KeyCode::Char('b') => {
             let display_mode = app.game.ui.display_mode;
             app.selected_color = None;
-            if app.game.is_game_against_bot {
-                app.game.is_game_against_bot = false;
-                app.game.bot.is_bot_starting = false;
+            if app.game.bot.is_some() {
+                app.game.bot = None;
             }
             app.go_to_home();
             app.game.game_board.reset();

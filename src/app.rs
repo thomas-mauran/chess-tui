@@ -3,7 +3,7 @@ use toml::Value;
 
 use crate::{
     constants::{DisplayMode, Pages},
-    game_logic::game::Game,
+    game_logic::{bot::Bot, game::Game},
     pieces::PieceColor,
 };
 use std::{
@@ -114,10 +114,16 @@ impl App {
         };
         self.selected_color = Some(color);
 
+        let path = match self.chess_engine_path.as_ref() {
+            Some(engine_path) => engine_path,
+            None => &"".to_string(),
+        };
+
         // if the selected Color is Black, we need to switch the Game
         if let Some(color) = self.selected_color {
             if color == PieceColor::Black {
-                self.game.bot.is_bot_starting = true;
+                self.game.bot = Some(Bot::new(path, true));
+
                 self.game.execute_bot_move();
                 self.game.player_turn = PieceColor::Black;
             }
@@ -125,14 +131,10 @@ impl App {
     }
 
     pub fn restart(&mut self) {
-        let is_bot_starting = self.game.bot.is_bot_starting;
-        let engine = self.game.bot.engine.clone();
-        let game_is_against_bot = self.game.is_game_against_bot;
+        let bot = self.game.bot.clone();
         self.game = Game::default();
-        self.game.bot.engine = engine;
-        self.game.is_game_against_bot = game_is_against_bot;
-        if is_bot_starting {
-            self.game.bot.is_bot_starting = true;
+        self.game.bot = bot;
+        if self.game.bot.as_ref().is_some() && self.game.bot.as_ref().map_or(false, |bot| bot.is_bot_starting) {
             self.game.execute_bot_move();
             self.game.player_turn = PieceColor::Black;
         }

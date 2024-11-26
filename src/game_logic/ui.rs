@@ -382,7 +382,7 @@ impl UI {
                 let mut last_move_to = Coord::undefined();
                 if !game.game_board.move_history.is_empty() {
                     last_move = game.game_board.move_history.last();
-                    if game.is_game_against_bot && !game.bot.is_bot_starting {
+                    if game.bot.is_some() && !game.bot.as_ref().map_or(false, |bot| bot.is_bot_starting) {
                         last_move_from = last_move.map(|m| m.from).unwrap();
                         last_move_to = last_move.map(|m| m.to).unwrap();
                     } else {

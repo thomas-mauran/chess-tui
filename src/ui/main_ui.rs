@@ -8,7 +8,7 @@ use ratatui::{
 };
 
 use crate::{
-    game_logic::game::GameState,
+    game_logic::{bot::Bot, game::GameState},
     ui::popups::{
         render_color_selection_popup, render_credit_popup, render_end_popup,
         render_engine_path_error_popup, render_help_popup, render_promotion_popup,
@@ -28,21 +28,14 @@ pub fn render(app: &mut App, frame: &mut Frame) {
     if app.current_page == Pages::Solo {
         render_game_ui(frame, app, main_area);
     } else if app.current_page == Pages::Bot {
-        if app.game.bot.engine.is_none() {
-            match &app.chess_engine_path {
-                Some(path) => {
-                    app.game.is_game_against_bot = true;
-                    app.game.bot.set_engine(path);
-                    if app.selected_color.is_none() {
-                        app.show_color_popup = true;
-                    } else {
-                        render_game_ui(frame, app, main_area);
-                    }
-                }
-                None => render_engine_path_error_popup(frame),
-            }
+        if app.chess_engine_path.is_none() || app.chess_engine_path.as_ref().unwrap().is_empty() {
+            render_engine_path_error_popup(frame);
         } else if app.selected_color.is_none() {
             app.show_color_popup = true;
+        } else if app.game.bot.is_none() {
+            let engine_path = app.chess_engine_path.clone().unwrap();
+            let is_bot_starting = app.selected_color.unwrap() == PieceColor::Black;
+            app.game.bot = Some(Bot::new(engine_path.as_str(), is_bot_starting));
         } else {
             render_game_ui(frame, app, main_area);
         }

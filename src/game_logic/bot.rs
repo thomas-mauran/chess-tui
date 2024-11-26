@@ -13,14 +13,35 @@ pub struct Bot {
 }
 
 impl Bot {
-    /// Allows you so set a
-    pub fn set_engine(&mut self, engine_path: &str) {
-        self.engine = match Engine::new(engine_path) {
-            Ok(engine) => Some(engine),
-            _ => panic!("An error occcured with the selected chess engine path: {engine_path} Make sure you specified the right path using chess-tui -e"),
+    pub fn new(engine_path: &str, is_bot_starting: bool) -> Bot{
+        let engine = match Bot::create_engine(engine_path) {
+            Some(engine) => Some(engine),
+            _ => panic!("An error occcured with the selected chess engine path: {engine_path} Make sure you specified the right path using chess-tui -e")
+        };
+
+        Self {
+            engine,
+            bot_will_move: false,
+            is_bot_starting
         }
     }
 
+    /// Allows you so set a
+    pub fn set_engine(&mut self, engine_path: &str) {
+        self.engine = Bot::create_engine(engine_path)
+    }
+
+    pub fn create_engine(engine_path: &str) -> Option<Engine> {
+        match Engine::new(engine_path) {
+            Ok(engine) => Some(engine),
+            Err(e) => {
+                panic!(
+                    "Failed to initialize the engine at path: {}. Error: {:?}",
+                    engine_path, e
+                );
+            }
+        }
+    }
     /* Method to make a move for the bot
        We use the UCI protocol to communicate with the chess engine
     */

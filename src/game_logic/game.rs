@@ -19,9 +19,7 @@ pub struct Game {
     /// The struct to handle UI related stuff
     pub ui: UI,
     /// The struct to handle Bot related stuff
-    pub bot: Bot,
-    /// Indicator on if the game is against a bot or not
-    pub is_game_against_bot: bool,
+    pub bot: Option<Bot>,
     /// Which player is it to play
     pub player_turn: PieceColor,
     /// The current state of the game (Playing, Draw, Checkmate. Promotion)
@@ -33,8 +31,7 @@ impl Default for Game {
         Self {
             game_board: GameBoard::default(),
             ui: UI::default(),
-            is_game_against_bot: false,
-            bot: Bot::default(),
+            bot: None,
             player_turn: PieceColor::White,
             game_state: GameState::Playing,
         }
@@ -47,8 +44,7 @@ impl Game {
         Self {
             game_board,
             ui: UI::default(),
-            is_game_against_bot: false,
-            bot: Bot::default(),
+            bot: None,
             player_turn,
             game_state: GameState::Playing,
         }
@@ -94,7 +90,7 @@ impl Game {
                         self.game_state = GameState::Draw;
                     }
 
-                    if (!self.is_game_against_bot || self.bot.is_bot_starting)
+                    if (self.bot.is_none() || (self.bot.as_ref().map_or(false, |bot| bot.is_bot_starting)))
                         && (!self.game_board.is_latest_move_promotion()
                             || self.game_board.is_draw(self.player_turn)
                             || self.game_board.is_checkmate(self.player_turn))
@@ -102,7 +98,7 @@ impl Game {
                         self.game_board.flip_the_board();
                     }
                     // If we play against a bot we will play his move and switch the player turn again
-                    if self.is_game_against_bot {
+                    if self.bot.is_some() {
                         // do this in background
                         if self.game_board.is_latest_move_promotion() {
                             self.game_state = GameState::Promotion;
@@ -116,7 +112,9 @@ impl Game {
                                 self.game_state = GameState::Promotion;
                             }
                             if !(self.game_state == GameState::Checkmate) {
-                                self.bot.bot_will_move = true;
+                                if let Some(bot) = self.bot.as_mut() {
+                                    bot.bot_will_move = true;
+                                }
                             }
                         }
                     }
@@ -159,11 +157,25 @@ impl Game {
        We use the UCI protocol to communicate with the chess engine
     */
     pub fn execute_bot_move(&mut self) {
+
+        // Safely extract bot out of self to reduce overlapping borrows
+        let is_bot_starting = if let Some(bot) = self.bot.as_ref() {
+            bot.is_bot_starting
+        } else {
+            return;
+        };
+
+
         let fen_position = self
             .game_board
-            .fen_position(self.bot.is_bot_starting, self.player_turn);
+            .fen_position(is_bot_starting, self.player_turn);
 
-        let bot_move = self.bot.get_bot_move(fen_position);
+                    // Retrieve the bot move from the bot
+        let bot_move = if let Some(bot) = self.bot.as_mut() {
+            bot.get_bot_move(fen_position)
+        } else {
+            return;
+        };
 
         let from_y = get_int_from_char(bot_move.chars().next());
         let from_x = get_int_from_char(bot_move.chars().nth(1));
@@ -187,7 +199,7 @@ impl Game {
             self.game_board.board[to_y as usize][to_x as usize] =
                 Some((promotion_piece.unwrap(), self.player_turn));
         }
-        if self.bot.is_bot_starting {
+        if is_bot_starting {
             self.game_board.flip_the_board();
         }
     }
@@ -269,10 +281,10 @@ impl Game {
 
             // We put the rook 3 cells from it's position if it's a big castling else 2 cells
             // If it is playing against a bot we will receive 4 -> 6  and 4 -> 2 for to_x instead of 4 -> 7 and 4 -> 0
-            if self.is_game_against_bot && to_x == 6 && to.row == 0 {
+            if self.bot.is_some() && to_x == 6 && to.row == 0 {
                 new_to = &Coord { row: 0, col: 7 };
             }
-            if self.is_game_against_bot && to_x == 2 && to.row == 0 {
+            if self.bot.is_some() && to_x == 2 && to.row == 0 {
                 new_to = &Coord { row: 0, col: 0 };
             }
 
