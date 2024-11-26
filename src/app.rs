@@ -114,9 +114,10 @@ impl App {
         };
         self.selected_color = Some(color);
 
+        let empty = "".to_string();
         let path = match self.chess_engine_path.as_ref() {
             Some(engine_path) => engine_path,
-            None => &"".to_string(),
+            None => &empty,
         };
 
         // if the selected Color is Black, we need to switch the Game
