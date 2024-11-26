@@ -1,4 +1,4 @@
-use super::{bot::Bot, coord::Coord, game_board::GameBoard, server::GameServer, ui::UI};
+use super::{bot::Bot, coord::Coord, game_board::GameBoard, game_server::GameServer, ui::UI};
 use crate::{
     pieces::{PieceColor, PieceMove, PieceType},
     utils::get_int_from_char,

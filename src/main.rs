@@ -22,7 +22,9 @@ struct Args {
     engine_path: String,
 }
 
-fn main() -> AppResult<()> {
+#[tokio::main]
+
+async fn main() -> AppResult<()> {
     // Used to enable mouse capture
     ratatui::crossterm::execute!(
         std::io::stdout(),

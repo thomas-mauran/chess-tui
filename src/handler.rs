@@ -106,19 +106,33 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                 app.game.ui.cursor_down(authorized_positions);
             }
         }
-        KeyCode::Char(' ') | KeyCode::Enter => {
-            if (app.current_page == Pages::Bot || app.current_page == Pages::Multiplayer)
-                && app.selected_color.is_none()
-            {
-                app.color_selection();
-            } else if app.current_page == Pages::Multiplayer && app.hosting.is_none() {
-                app.hosting_selection();
-            } else if app.current_page == Pages::Home {
+        KeyCode::Char(' ') | KeyCode::Enter => match app.current_page {
+            Pages::Home => {
                 app.menu_select();
-            } else {
+            }
+            Pages::Bot => {
+                if app.selected_color.is_none() {
+                    app.color_selection();
+                } else {
+                    app.game.select_cell();
+                }
+            }
+            Pages::Multiplayer => {
+                if app.hosting.is_none() {
+                    app.hosting_selection();
+                } else if app.selected_color.is_none() {
+                    app.color_selection();
+                } else {
+                    app.game.select_cell();
+                }
+            }
+            Pages::Credit => {
+                app.current_page = Pages::Home;
+            }
+            _ => {
                 app.game.select_cell();
             }
-        }
+        },
         KeyCode::Char('?') => {
             if app.current_page != Pages::Credit {
                 app.toggle_help_popup();

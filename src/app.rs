@@ -109,7 +109,7 @@ impl App {
     }
 
     pub fn color_selection(&mut self) {
-        self.current_popup = Some(Popups::ColorSelection);
+        self.current_popup = None;
 
         let color = match self.menu_cursor {
             0 => PieceColor::White,
