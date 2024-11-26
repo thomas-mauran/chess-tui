@@ -7,9 +7,6 @@ pub mod event;
 /// Widget renderer.
 pub mod ui;
 
-/// Terminal user interface.
-pub mod ratatui;
-
 /// Event handler.
 pub mod handler;
 
