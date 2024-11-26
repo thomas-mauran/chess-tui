@@ -2,7 +2,7 @@ use crate::app::{App, AppResult};
 use crate::event::EventHandler;
 use crate::ui::main_ui;
 use ratatui::backend::Backend;
-use ratatui::Terminal;
+use ratatui::{Frame, Terminal};
 
 /// Representation of a terminal user interface.
 ///
@@ -26,8 +26,18 @@ impl<B: Backend> Tui<B> {
     ///
     /// [`Draw`]: ratatui::Terminal::draw
     /// [`rendering`]: crate::ui:render
-    pub fn draw(&mut self, app: &mut App) -> AppResult<()> {
-        self.terminal.draw(|frame| main_ui::render(app, frame))?;
+    // Créer une fonction async pour le rendu
+    async fn render_async<'a>(&mut self, app: &mut App, frame: &mut Frame<'a>) {
+        main_ui::render(app, frame).await;
+    }
+
+    pub async fn draw(&mut self, app: &mut App) -> AppResult<()> {
+        // Passe une closure synchrone qui appelle la fonction async
+        self.terminal.draw(|frame| {
+            // Appel de la fonction async avec `.await`
+            tokio::spawn(self.render_async(app, frame)); // ou await dans un contexte async
+            Ok(())
+        })?;
         Ok(())
     }
 }

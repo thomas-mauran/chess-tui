@@ -24,7 +24,7 @@ use crate::{
 };
 
 /// Renders the user interface widgets.
-pub async fn render(app: &mut App, frame: &mut Frame) {
+pub async fn render<'a>(app: &mut App, frame: &mut Frame<'a>) {
     let main_area = frame.area();
 
     // Solo game
@@ -39,7 +39,7 @@ pub async fn render(app: &mut App, frame: &mut Frame) {
             app.current_popup = Some(Popups::ColorSelection);
         } else {
             // We start a new Game server
-            app.game.server = Some(GameServer::new(true));
+            app.game.server = Some(GameServer::new(true).await);
 
             render_game_ui(frame, app, main_area);
         }
