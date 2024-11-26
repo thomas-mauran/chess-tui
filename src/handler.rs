@@ -1,3 +1,4 @@
+use crate::constants::Popups;
 use crate::game_logic::coord::Coord;
 use crate::game_logic::game::GameState;
 use crate::{
@@ -125,19 +126,37 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         }
         KeyCode::Char('r') => app.restart(),
         KeyCode::Esc => {
-            if app.show_help_popup {
-                app.show_help_popup = false;
-            } else if app.show_color_popup || app.show_multiplayer_popup {
-                app.show_color_popup = false;
-                app.show_multiplayer_popup = false;
-                app.current_page = Pages::Home;
-            } else if app.current_page == Pages::Credit {
-                app.current_page = Pages::Home;
-            } else if app.current_page == Pages::Bot && app.selected_color.is_none() {
-                app.current_page = Pages::Home;
-                app.show_color_popup = false;
-                app.menu_cursor = 0;
+            match app.current_popup {
+                Some(Popups::ColorSelection) => {
+                    app.current_popup = None;
+                    app.selected_color = None;
+                    app.current_page = Pages::Home;
+                    app.menu_cursor = 0;
+                }
+                Some(Popups::MultiplayerSelection) => {
+                    app.current_popup = None;
+                    app.selected_color = None;
+                    app.hosting = None;
+                    app.current_page = Pages::Home;
+                    app.menu_cursor = 0;
+                }
+                Some(Popups::Help) => {
+                    app.current_popup = None;
+                }
+                _ => {}
             }
+
+            match app.current_page {
+                Pages::Bot => {
+                    app.current_page = Pages::Home;
+                    app.menu_cursor = 0;
+                }
+                Pages::Credit => {
+                    app.current_page = Pages::Home;
+                }
+                _ => {}
+            }
+
             app.game.ui.unselect_cell();
         }
         KeyCode::Char('b') => {
@@ -167,7 +186,7 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
             return Ok(());
         }
 
-        if app.show_color_popup || app.show_help_popup {
+        if app.current_popup.is_some() {
             return Ok(());
         }
 

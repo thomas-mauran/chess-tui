@@ -8,6 +8,7 @@ use ratatui::{
 };
 
 use crate::{
+    constants::Popups,
     game_logic::{bot::Bot, game::GameState, server::GameServer},
     ui::popups::{
         render_color_selection_popup, render_credit_popup, render_end_popup,
@@ -33,9 +34,9 @@ pub fn render(app: &mut App, frame: &mut Frame) {
     // Multiplayer game
     else if app.current_page == Pages::Multiplayer {
         if app.hosting.is_none() {
-            app.show_multiplayer_popup = true;
+            app.current_popup = Some(Popups::MultiplayerSelection);
         } else if app.selected_color.is_none() {
-            app.show_color_popup = true;
+            app.current_popup = Some(Popups::ColorSelection);
         } else {
             // We start a new Game server
             // app.game.server = Some(GameServer::new(true));
@@ -48,7 +49,7 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         if app.chess_engine_path.is_none() || app.chess_engine_path.as_ref().unwrap().is_empty() {
             render_engine_path_error_popup(frame);
         } else if app.selected_color.is_none() {
-            app.show_color_popup = true;
+            app.current_popup = Some(Popups::ColorSelection);
         } else if app.game.bot.is_none() {
             let engine_path = app.chess_engine_path.clone().unwrap();
             let is_bot_starting = app.selected_color.unwrap() == PieceColor::Black;
@@ -62,15 +63,15 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         render_menu_ui(frame, app, main_area);
     }
     // Render popups
-    if app.show_color_popup {
+    if app.current_popup.is_some() && app.current_popup == Some(Popups::ColorSelection) {
         render_color_selection_popup(frame, app);
     }
 
-    if app.show_multiplayer_popup {
+    if app.current_popup.is_some() && app.current_popup == Some(Popups::MultiplayerSelection) {
         render_multiplayer_selection_popup(frame, app);
     }
 
-    if app.show_help_popup {
+    if app.current_popup.is_some() && app.current_popup == Some(Popups::Help) {
         render_help_popup(frame);
     }
 

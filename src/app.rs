@@ -25,12 +25,6 @@ pub struct App {
     pub current_page: Pages,
     /// Current popup to render
     pub current_popup: Option<Popups>,
-    /// Used to show the help popup during the game or in the home menu
-    pub show_help_popup: bool,
-    /// Used to show the side selection popup when playing against the bot
-    pub show_color_popup: bool,
-    /// Used to show the multiplayer popup when playing against the bot
-    pub show_multiplayer_popup: bool,
     // Selected color when playing against the bot
     pub selected_color: Option<PieceColor>,
     /// Hosting
@@ -48,9 +42,6 @@ impl Default for App {
             game: Game::default(),
             current_page: Pages::Home,
             current_popup: None,
-            show_help_popup: false,
-            show_color_popup: false,
-            show_multiplayer_popup: false,
             selected_color: None,
             hosting: None,
             menu_cursor: 0,
@@ -61,7 +52,11 @@ impl Default for App {
 
 impl App {
     pub fn toggle_help_popup(&mut self) {
-        self.show_help_popup = !self.show_help_popup;
+        if self.current_popup == Some(Popups::Help) {
+            self.current_popup = None;
+        } else {
+            self.current_popup = Some(Popups::Help);
+        }
     }
     pub fn toggle_credit_popup(&mut self) {
         if self.current_page == Pages::Home {
@@ -114,7 +109,7 @@ impl App {
     }
 
     pub fn color_selection(&mut self) {
-        self.show_color_popup = false;
+        self.current_popup = Some(Popups::ColorSelection);
 
         let color = match self.menu_cursor {
             0 => PieceColor::White,
@@ -141,8 +136,7 @@ impl App {
     }
 
     pub fn hosting_selection(&mut self) {
-        self.show_multiplayer_popup = false;
-        self.show_color_popup = true;
+        self.current_popup = Some(Popups::ColorSelection);
         self.hosting = Some(self.menu_cursor == 0);
     }
 
@@ -180,7 +174,7 @@ impl App {
                 };
                 self.update_config();
             }
-            4 => self.show_help_popup = true,
+            4 => self.toggle_help_popup(),
             5 => self.current_page = Pages::Credit,
             _ => {}
         }

@@ -52,6 +52,7 @@ impl Pages {
     }
 }
 
+#[derive(Debug, PartialEq)]
 pub enum Popups {
     ColorSelection,
     MultiplayerSelection,
