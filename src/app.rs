@@ -134,7 +134,13 @@ impl App {
         let bot = self.game.bot.clone();
         self.game = Game::default();
         self.game.bot = bot;
-        if self.game.bot.as_ref().is_some() && self.game.bot.as_ref().map_or(false, |bot| bot.is_bot_starting) {
+        if self.game.bot.as_ref().is_some()
+            && self
+                .game
+                .bot
+                .as_ref()
+                .map_or(false, |bot| bot.is_bot_starting)
+        {
             self.game.execute_bot_move();
             self.game.player_turn = PieceColor::Black;
         }

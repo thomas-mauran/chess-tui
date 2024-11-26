@@ -90,7 +90,8 @@ impl Game {
                         self.game_state = GameState::Draw;
                     }
 
-                    if (self.bot.is_none() || (self.bot.as_ref().map_or(false, |bot| bot.is_bot_starting)))
+                    if (self.bot.is_none()
+                        || (self.bot.as_ref().map_or(false, |bot| bot.is_bot_starting)))
                         && (!self.game_board.is_latest_move_promotion()
                             || self.game_board.is_draw(self.player_turn)
                             || self.game_board.is_checkmate(self.player_turn))
@@ -157,7 +158,6 @@ impl Game {
        We use the UCI protocol to communicate with the chess engine
     */
     pub fn execute_bot_move(&mut self) {
-
         // Safely extract bot out of self to reduce overlapping borrows
         let is_bot_starting = if let Some(bot) = self.bot.as_ref() {
             bot.is_bot_starting
@@ -165,12 +165,11 @@ impl Game {
             return;
         };
 
-
         let fen_position = self
             .game_board
             .fen_position(is_bot_starting, self.player_turn);
 
-                    // Retrieve the bot move from the bot
+        // Retrieve the bot move from the bot
         let bot_move = if let Some(bot) = self.bot.as_mut() {
             bot.get_bot_move(fen_position)
         } else {

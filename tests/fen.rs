@@ -42,8 +42,7 @@ mod tests {
 
         // Move the king to replicate a third time the same position
         assert_eq!(
-            game.game_board
-                .fen_position(false, game.player_turn),
+            game.game_board.fen_position(false, game.player_turn),
             "2k4R/8/4K3/8/8/8/8/8 b - - 0 0"
         );
     }
@@ -105,8 +104,7 @@ mod tests {
 
         // Move the king to replicate a third time the same position
         assert_eq!(
-            game.game_board
-                .fen_position(false, game.player_turn),
+            game.game_board.fen_position(false, game.player_turn),
             "2k4R/8/4K3/8/2P5/8/8/8 b - c3 0 0"
         );
     }
@@ -165,8 +163,7 @@ mod tests {
 
         // Move the king to replicate a third time the same position
         assert_eq!(
-            game.game_board
-                .fen_position(false, game.player_turn),
+            game.game_board.fen_position(false, game.player_turn),
             "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b kq - 0 0"
         );
     }

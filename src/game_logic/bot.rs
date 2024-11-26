@@ -13,7 +13,7 @@ pub struct Bot {
 }
 
 impl Bot {
-    pub fn new(engine_path: &str, is_bot_starting: bool) -> Bot{
+    pub fn new(engine_path: &str, is_bot_starting: bool) -> Bot {
         let engine = match Bot::create_engine(engine_path) {
             Some(engine) => Some(engine),
             _ => panic!("An error occcured with the selected chess engine path: {engine_path} Make sure you specified the right path using chess-tui -e")
@@ -22,7 +22,7 @@ impl Bot {
         Self {
             engine,
             bot_will_move: false,
-            is_bot_starting
+            is_bot_starting,
         }
     }
 
