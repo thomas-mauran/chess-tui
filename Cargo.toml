@@ -1,10 +1,10 @@
 [package]
 name = "chess-tui"
-version = "1.4.0"
+version = "1.5.0"
 authors = ["Thomas Mauran"]
 license = "MIT"
 edition = "2021"
-description = "A chess TUI implementation in rust 🦀"
+description = "A rusty chess game in your terminal 🦀"
 keywords = ["tui", "graphics", "chess", "game", "board"]
 homepage = "https://github.com/thomas-mauran/chess-tui"
 repository = "https://github.com/thomas-mauran/chess-tui"
