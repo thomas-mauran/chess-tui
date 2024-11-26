@@ -1,10 +1,8 @@
 use super::{Movable, PieceColor, PieceMove, PieceType, Position};
-use crate::board::{Coord, GameBoard};
 use crate::constants::DisplayMode;
-use crate::utils::{
-    cleaned_positions, get_piece_color, impossible_positions_king_checked, invert_position,
-    is_cell_color_ally,
-};
+use crate::game_logic::coord::Coord;
+use crate::game_logic::game_board::GameBoard;
+use crate::utils::{cleaned_positions, invert_position, is_cell_color_ally};
 
 pub struct Pawn;
 
@@ -12,9 +10,8 @@ impl Movable for Pawn {
     fn piece_move(
         coordinates: &Coord,
         color: PieceColor,
-        board: GameBoard,
+        game_board: &GameBoard,
         allow_move_on_ally_positions: bool,
-        move_history: &[PieceMove],
     ) -> Vec<Coord> {
         // Pawns can only move in one direction depending of their color
         // -1 we go up
@@ -31,7 +28,9 @@ impl Movable for Pawn {
 
         if new_coordinates_front_one.is_valid()
             && !allow_move_on_ally_positions
-            && get_piece_color(board, &new_coordinates_front_one).is_none()
+            && game_board
+                .get_piece_color(&new_coordinates_front_one)
+                .is_none()
         {
             // Empty cell
             positions.push(new_coordinates_front_one);
@@ -42,7 +41,9 @@ impl Movable for Pawn {
             let new_coordinates_front_two = Coord::new(new_y_front_two as u8, new_x_front_two);
 
             if new_coordinates_front_two.is_valid()
-                && get_piece_color(board, &new_coordinates_front_two).is_none()
+                && game_board
+                    .get_piece_color(&new_coordinates_front_two)
+                    .is_none()
                 && (y == 6)
             {
                 positions.push(new_coordinates_front_two);
@@ -80,21 +81,21 @@ impl Movable for Pawn {
         } else {
             // else we check if it's an ally piece
             if new_coordinates_right.is_valid()
-                && get_piece_color(board, &new_coordinates_right).is_some()
-                && !is_cell_color_ally(board, &new_coordinates_right, color)
+                && game_board.get_piece_color(&new_coordinates_right).is_some()
+                && !is_cell_color_ally(game_board, &new_coordinates_right, color)
             {
                 positions.push(new_coordinates_right);
             }
             if new_coordinates_left.is_valid()
-                && get_piece_color(board, &new_coordinates_left).is_some()
-                && !is_cell_color_ally(board, &new_coordinates_left, color)
+                && game_board.get_piece_color(&new_coordinates_left).is_some()
+                && !is_cell_color_ally(game_board, &new_coordinates_left, color)
             {
                 positions.push(new_coordinates_left);
             }
         }
 
         // We check for en passant
-        if let Some(latest_move) = move_history.last() {
+        if let Some(latest_move) = game_board.move_history.last() {
             let number_of_cells_move = latest_move.to.row as i8 - latest_move.from.row as i8;
 
             let last_coords = invert_position(&Coord::new(latest_move.to.row, latest_move.to.col));
@@ -119,28 +120,24 @@ impl Position for Pawn {
     fn authorized_positions(
         coordinates: &Coord,
         color: PieceColor,
-        board: GameBoard,
-        move_history: &[PieceMove],
+        game_board: &GameBoard,
         _is_king_checked: bool,
     ) -> Vec<Coord> {
         // If the king is not checked we get then normal moves
         // if the king is checked we clean all the position not resolving the check
-        impossible_positions_king_checked(
+        game_board.impossible_positions_king_checked(
             coordinates,
-            Self::piece_move(coordinates, color, board, false, move_history),
-            board,
+            Self::piece_move(coordinates, color, game_board, false),
             color,
-            move_history,
         )
     }
 
     fn protected_positions(
         coordinates: &Coord,
         color: PieceColor,
-        board: GameBoard,
-        move_history: &[PieceMove],
+        game_board: &GameBoard,
     ) -> Vec<Coord> {
-        Self::piece_move(coordinates, color, board, true, move_history)
+        Self::piece_move(coordinates, color, game_board, true)
     }
 }
 
@@ -157,6 +154,21 @@ impl Pawn {
     "
             }
             DisplayMode::ASCII => "P",
+        }
+    }
+
+    // Check if the pawn moved two cells (used for en passant)
+    pub fn did_pawn_move_two_cells(last_move: Option<&PieceMove>) -> bool {
+        match last_move {
+            Some(last_move) => {
+                let distance = (last_move.to.row as i8 - last_move.from.row as i8).abs();
+
+                if last_move.piece_type == PieceType::Pawn && distance == 2 {
+                    return true;
+                }
+                false
+            }
+            _ => false,
         }
     }
 }

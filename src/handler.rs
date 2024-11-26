@@ -1,6 +1,7 @@
+use crate::game_logic::coord::Coord;
+use crate::game_logic::game::GameState;
 use crate::{
     app::{App, AppResult},
-    board::Coord,
     constants::Pages,
 };
 use ratatui::crossterm::event::{
@@ -13,14 +14,14 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         // crossterm on Windows sends Release and Repeat events as well, which we ignore.
         return Ok(());
     }
-    if app.board.mouse_used {
-        app.board.mouse_used = false;
-        if app.board.selected_coordinates != Coord::undefined() {
-            app.board.cursor_coordinates = app.board.selected_coordinates;
-            app.board.selected_coordinates = Coord::undefined();
+    if app.game.ui.mouse_used {
+        app.game.ui.mouse_used = false;
+        if app.game.ui.selected_coordinates != Coord::undefined() {
+            app.game.ui.cursor_coordinates = app.game.ui.selected_coordinates;
+            app.game.ui.selected_coordinates = Coord::undefined();
         } else {
-            app.board.cursor_coordinates.col = 4;
-            app.board.cursor_coordinates.row = 4;
+            app.game.ui.cursor_coordinates.col = 4;
+            app.game.ui.cursor_coordinates.row = 4;
         }
     }
 
@@ -40,30 +41,62 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             // When we are in the color selection menu
             if app.current_page == Pages::Bot && app.selected_color.is_none() {
                 app.menu_cursor_right(2);
-            } else {
-                app.board.cursor_right();
+            } else if app.game.game_state == GameState::Promotion {
+                app.game.ui.cursor_right_promotion();
+            } else if !(app.game.game_state == GameState::Checkmate)
+                && !(app.game.game_state == GameState::Draw)
+            {
+                let authorized_positions = app.game.game_board.get_authorized_positions(
+                    app.game.player_turn,
+                    app.game.ui.selected_coordinates,
+                );
+                app.game.ui.cursor_right(authorized_positions);
             }
         }
         KeyCode::Left | KeyCode::Char('h') => {
             // When we are in the color selection menu
             if app.current_page == Pages::Bot && app.selected_color.is_none() {
                 app.menu_cursor_left(2);
-            } else {
-                app.board.cursor_left();
+            } else if app.game.game_state == GameState::Promotion {
+                app.game.ui.cursor_left_promotion();
+            } else if !(app.game.game_state == GameState::Checkmate)
+                && !(app.game.game_state == GameState::Draw)
+            {
+                let authorized_positions = app.game.game_board.get_authorized_positions(
+                    app.game.player_turn,
+                    app.game.ui.selected_coordinates,
+                );
+
+                app.game.ui.cursor_left(authorized_positions);
             }
         }
         KeyCode::Up | KeyCode::Char('k') => {
             if app.current_page == Pages::Home {
                 app.menu_cursor_up(Pages::variant_count() as u8);
-            } else {
-                app.board.cursor_up();
+            } else if !(app.game.game_state == GameState::Checkmate)
+                && !(app.game.game_state == GameState::Draw)
+                && !(app.game.game_state == GameState::Promotion)
+            {
+                let authorized_positions = app.game.game_board.get_authorized_positions(
+                    app.game.player_turn,
+                    app.game.ui.selected_coordinates,
+                );
+                app.game.ui.cursor_up(authorized_positions);
             }
         }
         KeyCode::Down | KeyCode::Char('j') => {
             if app.current_page == Pages::Home {
                 app.menu_cursor_down(Pages::variant_count() as u8);
-            } else {
-                app.board.cursor_down();
+            } else if !(app.game.game_state == GameState::Checkmate)
+                && !(app.game.game_state == GameState::Draw)
+                && !(app.game.game_state == GameState::Promotion)
+            {
+                let authorized_positions = app.game.game_board.get_authorized_positions(
+                    app.game.player_turn,
+                    app.game.ui.selected_coordinates,
+                );
+
+                app.game.ui.cursor_down(authorized_positions);
             }
         }
         KeyCode::Char(' ') | KeyCode::Enter => {
@@ -72,7 +105,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             } else if app.current_page == Pages::Home {
                 app.menu_select();
             } else {
-                app.board.select_cell();
+                app.game.select_cell();
             }
         }
         KeyCode::Char('?') => {
@@ -84,6 +117,9 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         KeyCode::Esc => {
             if app.show_help_popup {
                 app.show_help_popup = false;
+            } else if app.show_color_popup {
+                app.show_color_popup = false;
+                app.current_page = Pages::Home;
             } else if app.current_page == Pages::Credit {
                 app.current_page = Pages::Home;
             } else if app.current_page == Pages::Bot && app.selected_color.is_none() {
@@ -91,10 +127,18 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                 app.show_color_popup = false;
                 app.menu_cursor = 0;
             }
-            app.board.unselect_cell();
+            app.game.ui.unselect_cell();
         }
         KeyCode::Char('b') => {
+            let display_mode = app.game.ui.display_mode;
+            app.selected_color = None;
+            if app.game.bot.is_some() {
+                app.game.bot = None;
+            }
             app.go_to_home();
+            app.game.game_board.reset();
+            app.game.ui.reset();
+            app.game.ui.display_mode = display_mode;
         }
         // Other handlers you could add here.
         _ => {}
@@ -108,7 +152,7 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
         return Ok(());
     }
     if mouse_event.kind == MouseEventKind::Down(MouseButton::Left) {
-        if app.board.is_checkmate || app.board.is_draw {
+        if app.game.game_state == GameState::Checkmate || app.game.game_state == GameState::Draw {
             return Ok(());
         }
 
@@ -118,26 +162,47 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
 
         // If there is a promotion to be done the top_x, top_y, width and height
         // values are updated accordingly
-        if app.board.is_promotion {
-            let x = (mouse_event.column - app.board.top_x) / app.board.width;
-            let y = (mouse_event.row - app.board.top_y) / app.board.height;
+        if app.game.game_state == GameState::Promotion {
+            let x = (mouse_event.column - app.game.ui.top_x) / app.game.ui.width;
+            let y = (mouse_event.row - app.game.ui.top_y) / app.game.ui.height;
             if x > 3 || y > 0 {
                 return Ok(());
             }
-            app.board.promotion_cursor = x as i8;
-            app.board.promote_piece();
+            app.game.ui.promotion_cursor = x as i8;
+            app.game.promote_piece();
         }
-        if mouse_event.column < app.board.top_x || mouse_event.row < app.board.top_y {
+        if mouse_event.column < app.game.ui.top_x || mouse_event.row < app.game.ui.top_y {
             return Ok(());
         }
-        let x = (mouse_event.column - app.board.top_x) / app.board.width;
-        let y = (mouse_event.row - app.board.top_y) / app.board.height;
+        let x = (mouse_event.column - app.game.ui.top_x) / app.game.ui.width;
+        let y = (mouse_event.row - app.game.ui.top_y) / app.game.ui.height;
         if x > 7 || y > 7 {
             return Ok(());
         }
-        app.board.mouse_used = true;
+        app.game.ui.mouse_used = true;
         let coords: Coord = Coord::new(y as u8, x as u8);
-        app.board.move_selected_piece_cursor_mouse(coords);
+
+        let authorized_positions = app
+            .game
+            .game_board
+            .get_authorized_positions(app.game.player_turn, app.game.ui.selected_coordinates);
+
+        let piece_color = app
+            .game
+            .game_board
+            .get_piece_color(&app.game.ui.selected_coordinates);
+
+        if authorized_positions.contains(&coords)
+            && match piece_color {
+                Some(piece) => Some(piece) == piece_color,
+                None => false,
+            }
+        {
+            app.game.ui.cursor_coordinates = coords;
+            app.game.select_cell();
+        } else {
+            app.game.ui.selected_coordinates = coords;
+        }
     }
     Ok(())
 }

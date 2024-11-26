@@ -1,6 +1,6 @@
 use crate::app::{App, AppResult};
 use crate::event::EventHandler;
-use crate::ui;
+use crate::ui::main_ui;
 use ratatui::backend::Backend;
 use ratatui::Terminal;
 
@@ -27,7 +27,7 @@ impl<B: Backend> Tui<B> {
     /// [`Draw`]: ratatui::Terminal::draw
     /// [`rendering`]: crate::ui:render
     pub fn draw(&mut self, app: &mut App) -> AppResult<()> {
-        self.terminal.draw(|frame| ui::render(app, frame))?;
+        self.terminal.draw(|frame| main_ui::render(app, frame))?;
         Ok(())
     }
 }

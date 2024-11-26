@@ -23,6 +23,22 @@
   --docusaurus-highlighted-code-line-bg: rgba(62, 62, 62, 0.3); /* Highlighted code line background */
 }
 
+a {
+  color: var(--ifm-color-primary-light); /* Light color for links */
+}
+
+a:hover {
+  color: var(--ifm-color-primary-lighter); /* Slightly warmer color for hover state */
+}
+
+.navbar__link--active {
+  color: var(--ifm-color-primary-lighter); /* Slightly warmer color for focus state */
+}
+
+.navbar__link:hover {
+  color: var(--ifm-color-primary-lighter); /* Slightly warmer color for hover state */
+}
+
 /* Apply background color and text color to footer */
 footer.footer {
   background-color: var(--ifm-color-primary-darkest); /* Darkest background for footer */

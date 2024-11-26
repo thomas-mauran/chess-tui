@@ -1,9 +1,8 @@
 use std::cmp::Ordering;
 
-use crate::board::{Coord, GameBoard};
-
 use self::{bishop::Bishop, king::King, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook};
 use super::constants::DisplayMode;
+use crate::game_logic::{coord::Coord, game_board::GameBoard};
 
 pub mod bishop;
 pub mod king;
@@ -11,6 +10,8 @@ pub mod knight;
 pub mod pawn;
 pub mod queen;
 pub mod rook;
+
+/// The different type of pieces in the game
 #[derive(Debug, Copy, Clone, PartialEq, Hash)]
 pub enum PieceType {
     Pawn,
@@ -22,79 +23,60 @@ pub enum PieceType {
 }
 
 impl PieceType {
+    /// The authorized position for a piece at a certain coordinate
     pub fn authorized_positions(
         self,
         coordinates: &Coord,
         color: PieceColor,
-        board: GameBoard,
-        move_history: &[PieceMove],
+        game_board: &GameBoard,
         is_king_checked: bool,
     ) -> Vec<Coord> {
         match self {
             PieceType::Pawn => {
-                Pawn::authorized_positions(coordinates, color, board, move_history, is_king_checked)
+                Pawn::authorized_positions(coordinates, color, game_board, is_king_checked)
             }
             PieceType::Rook => {
-                Rook::authorized_positions(coordinates, color, board, move_history, is_king_checked)
+                Rook::authorized_positions(coordinates, color, game_board, is_king_checked)
             }
-            PieceType::Bishop => Bishop::authorized_positions(
-                coordinates,
-                color,
-                board,
-                move_history,
-                is_king_checked,
-            ),
-            PieceType::Queen => Queen::authorized_positions(
-                coordinates,
-                color,
-                board,
-                move_history,
-                is_king_checked,
-            ),
+            PieceType::Bishop => {
+                Bishop::authorized_positions(coordinates, color, game_board, is_king_checked)
+            }
+            PieceType::Queen => {
+                Queen::authorized_positions(coordinates, color, game_board, is_king_checked)
+            }
             PieceType::King => {
-                King::authorized_positions(coordinates, color, board, move_history, is_king_checked)
+                King::authorized_positions(coordinates, color, game_board, is_king_checked)
             }
-            PieceType::Knight => Knight::authorized_positions(
-                coordinates,
-                color,
-                board,
-                move_history,
-                is_king_checked,
-            ),
+            PieceType::Knight => {
+                Knight::authorized_positions(coordinates, color, game_board, is_king_checked)
+            }
         }
     }
 
+    /// The cells a given piece is protecting
     pub fn protected_positions(
         selected_coordinates: &Coord,
         piece_type: PieceType,
         color: PieceColor,
-        board: GameBoard,
-        move_history: &[PieceMove],
+        game_board: &GameBoard,
     ) -> Vec<Coord> {
         match piece_type {
-            PieceType::Pawn => {
-                Pawn::protected_positions(selected_coordinates, color, board, move_history)
-            }
-            PieceType::Rook => {
-                Rook::protected_positions(selected_coordinates, color, board, move_history)
-            }
+            PieceType::Pawn => Pawn::protected_positions(selected_coordinates, color, game_board),
+            PieceType::Rook => Rook::protected_positions(selected_coordinates, color, game_board),
             PieceType::Bishop => {
-                Bishop::protected_positions(selected_coordinates, color, board, move_history)
+                Bishop::protected_positions(selected_coordinates, color, game_board)
             }
-            PieceType::Queen => {
-                Queen::protected_positions(selected_coordinates, color, board, move_history)
-            }
-            PieceType::King => {
-                King::protected_positions(selected_coordinates, color, board, move_history)
-            }
+            PieceType::Queen => Queen::protected_positions(selected_coordinates, color, game_board),
+            PieceType::King => King::protected_positions(selected_coordinates, color, game_board),
             PieceType::Knight => {
-                Knight::protected_positions(selected_coordinates, color, board, move_history)
+                Knight::protected_positions(selected_coordinates, color, game_board)
             }
         }
     }
 
+    /// Convert a PieceType to a symbol
     pub fn piece_to_utf_enum(
-        piece_type: PieceType,
+        piece_type: &PieceType,
         piece_color: Option<PieceColor>,
     ) -> &'static str {
         match (piece_type, piece_color) {
@@ -114,6 +96,7 @@ impl PieceType {
         }
     }
 
+    /// Convert a PieceType fo a conform fen character
     pub fn piece_to_fen_enum(
         piece_type: Option<PieceType>,
         piece_color: Option<PieceColor>,
@@ -152,7 +135,7 @@ impl PieceType {
     }
 }
 
-// Implementing the PartialOrd trait for PieceType to allow comparison between PieceType
+/// Implementing the PartialOrd trait for PieceType to allow comparison between PieceType
 #[allow(clippy::non_canonical_partial_ord_impl)]
 impl PartialOrd for PieceType {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -209,9 +192,8 @@ pub trait Movable {
     fn piece_move(
         coordinates: &Coord,
         color: PieceColor,
-        board: GameBoard,
+        game_board: &GameBoard,
         allow_move_on_ally_positions: bool,
-        move_history: &[PieceMove],
     ) -> Vec<Coord>;
 }
 
@@ -219,15 +201,13 @@ pub trait Position {
     fn authorized_positions(
         coordinates: &Coord,
         color: PieceColor,
-        board: GameBoard,
-        move_history: &[PieceMove],
+        game_board: &GameBoard,
         is_king_checked: bool,
     ) -> Vec<Coord>;
 
     fn protected_positions(
         coordinates: &Coord,
         color: PieceColor,
-        board: GameBoard,
-        move_history: &[PieceMove],
+        game_board: &GameBoard,
     ) -> Vec<Coord>;
 }

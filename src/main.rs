@@ -4,8 +4,9 @@ extern crate chess_tui;
 use chess_tui::app::{App, AppResult};
 use chess_tui::constants::{home_dir, DisplayMode};
 use chess_tui::event::{Event, EventHandler};
+use chess_tui::game_logic::game::GameState;
 use chess_tui::handler::{handle_key_events, handle_mouse_events};
-use chess_tui::tui::Tui;
+use chess_tui::ui::tui::Tui;
 use clap::Parser;
 use std::fs::{self, File};
 use std::io::Write;
@@ -51,7 +52,7 @@ fn main() -> AppResult<()> {
             }
             // Set the display mode based on the configuration file
             if let Some(display_mode) = config.get("display_mode") {
-                app.board.display_mode = match display_mode.as_str() {
+                app.game.ui.display_mode = match display_mode.as_str() {
                     Some("ASCII") => DisplayMode::ASCII,
                     _ => DisplayMode::DEFAULT,
                 };
@@ -77,13 +78,18 @@ fn main() -> AppResult<()> {
             Event::Mouse(mouse_event) => handle_mouse_events(mouse_event, &mut app)?,
             Event::Resize(_, _) => {}
         }
-        if app.board.bot_will_move {
-            app.board.bot_move();
-            app.board.switch_player_turn();
-            app.board.bot_will_move = false;
+        if app.game.bot.is_some() && app.game.bot.as_ref().map_or(false, |bot| bot.bot_will_move) {
+            app.game.execute_bot_move();
+            app.game.switch_player_turn();
+            if let Some(bot) = app.game.bot.as_mut() {
+                bot.bot_will_move = false;
+            }
             // need to be centralised
-            app.board.is_checkmate = app.board.is_checkmate();
-            app.board.is_draw = app.board.is_draw();
+            if app.game.game_board.is_checkmate(app.game.player_turn) {
+                app.game.game_state = GameState::Checkmate;
+            } else if app.game.game_board.is_draw(app.game.player_turn) {
+                app.game.game_state = GameState::Draw;
+            }
             tui.draw(&mut app)?;
         }
     }

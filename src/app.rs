@@ -2,8 +2,8 @@ use dirs::home_dir;
 use toml::Value;
 
 use crate::{
-    board::Board,
     constants::{DisplayMode, Pages},
+    game_logic::{bot::Bot, game::Game},
     pieces::PieceColor,
 };
 use std::{
@@ -19,8 +19,8 @@ pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 pub struct App {
     /// Is the application running?
     pub running: bool,
-    /// board
-    pub board: Board,
+    /// Game
+    pub game: Game,
     /// Current page to render
     pub current_page: Pages,
     /// Used to show the help popup during the game or in the home menu
@@ -39,7 +39,7 @@ impl Default for App {
     fn default() -> Self {
         Self {
             running: true,
-            board: Board::default(),
+            game: Game::default(),
             current_page: Pages::Home,
             show_help_popup: false,
             show_color_popup: false,
@@ -64,7 +64,7 @@ impl App {
 
     pub fn go_to_home(&mut self) {
         self.current_page = Pages::Home;
-        self.board = Board::default();
+        self.restart();
     }
 
     /// Handles the tick event of the terminal.
@@ -114,29 +114,35 @@ impl App {
         };
         self.selected_color = Some(color);
 
-        // if the selected Color is Black, we need to switch the board
+        let path = match self.chess_engine_path.as_ref() {
+            Some(engine_path) => engine_path,
+            None => &"".to_string(),
+        };
+
+        // if the selected Color is Black, we need to switch the Game
         if let Some(color) = self.selected_color {
             if color == PieceColor::Black {
-                self.board.is_bot_starting = true;
-                self.board.bot_move();
-                self.board.player_turn = PieceColor::Black;
+                self.game.bot = Some(Bot::new(path, true));
+
+                self.game.execute_bot_move();
+                self.game.player_turn = PieceColor::Black;
             }
         }
     }
 
     pub fn restart(&mut self) {
-        if self.board.is_draw || self.board.is_checkmate {
-            let is_bot_starting = self.board.is_bot_starting;
-            let engine = self.board.engine.clone();
-            let game_is_against_bot = self.board.is_game_against_bot;
-            self.board = Board::default();
-            self.board.engine = engine;
-            self.board.is_game_against_bot = game_is_against_bot;
-            if is_bot_starting {
-                self.board.is_bot_starting = true;
-                self.board.bot_move();
-                self.board.player_turn = PieceColor::Black;
-            }
+        let bot = self.game.bot.clone();
+        self.game = Game::default();
+        self.game.bot = bot;
+        if self.game.bot.as_ref().is_some()
+            && self
+                .game
+                .bot
+                .as_ref()
+                .map_or(false, |bot| bot.is_bot_starting)
+        {
+            self.game.execute_bot_move();
+            self.game.player_turn = PieceColor::Black;
         }
     }
 
@@ -148,7 +154,7 @@ impl App {
                 self.current_page = Pages::Bot
             }
             2 => {
-                self.board.display_mode = match self.board.display_mode {
+                self.game.ui.display_mode = match self.game.ui.display_mode {
                     DisplayMode::ASCII => DisplayMode::DEFAULT,
                     DisplayMode::DEFAULT => DisplayMode::ASCII,
                 };
@@ -173,7 +179,7 @@ impl App {
         if let Some(table) = config.as_table_mut() {
             table.insert(
                 "display_mode".to_string(),
-                Value::String(self.board.display_mode.to_string()),
+                Value::String(self.game.ui.display_mode.to_string()),
             );
         }
 

@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use chess_tui::board::Board;
+    use chess_tui::game_logic::game::Game;
+    use chess_tui::game_logic::game_board::GameBoard;
     use chess_tui::pieces::{PieceColor, PieceType};
-    use chess_tui::utils::is_getting_checked;
 
     #[test]
     fn is_getting_checked_true() {
@@ -34,10 +34,11 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::default();
-        board.set_board(custom_board);
-
-        assert!(is_getting_checked(custom_board, PieceColor::White, &[]));
+        let mut game = Game::default();
+        game.game_board.board = custom_board;
+        assert!(game
+            .game_board
+            .is_getting_checked(custom_board, PieceColor::White));
     }
 
     #[test]
@@ -79,10 +80,11 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let mut board = Board::default();
-        board.set_board(custom_board);
-
-        assert!(!is_getting_checked(custom_board, PieceColor::White, &[]));
+        let mut game = Game::default();
+        game.game_board.board = custom_board;
+        assert!(!game
+            .game_board
+            .is_getting_checked(custom_board, PieceColor::White));
     }
 
     #[test]
@@ -133,10 +135,11 @@ mod tests {
                 Some((PieceType::King, PieceColor::White)),
             ],
         ];
-        let mut board = Board::default();
-        board.set_board(custom_board);
-
-        assert!(!is_getting_checked(custom_board, PieceColor::Black, &[]));
+        let mut game = Game::default();
+        game.game_board.board = custom_board;
+        assert!(!game
+            .game_board
+            .is_getting_checked(custom_board, PieceColor::Black));
     }
 
     #[test]
@@ -196,10 +199,11 @@ mod tests {
                 Some((PieceType::King, PieceColor::White)),
             ],
         ];
-        let mut board = Board::default();
-        board.set_board(custom_board);
-
-        assert!(!is_getting_checked(custom_board, PieceColor::Black, &[]));
+        let mut game = Game::default();
+        game.game_board.board = custom_board;
+        assert!(!game
+            .game_board
+            .is_getting_checked(custom_board, PieceColor::Black));
     }
 
     #[test]
@@ -241,9 +245,12 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let board = Board::new(custom_board, PieceColor::White, vec![]);
 
-        assert!(board.is_checkmate());
+        let game_board = GameBoard::new(custom_board, vec![], vec![]);
+        let mut game = Game::new(game_board, PieceColor::White);
+        game.game_board.board = custom_board;
+
+        assert!(game.game_board.is_checkmate(game.player_turn));
     }
 
     #[test]
@@ -285,9 +292,12 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let board = Board::new(custom_board, PieceColor::White, vec![]);
 
-        assert!(!board.is_checkmate());
+        let game_board = GameBoard::new(custom_board, vec![], vec![]);
+        let mut game = Game::new(game_board, PieceColor::White);
+        game.game_board.board = custom_board;
+
+        assert!(!game.game_board.is_checkmate(game.player_turn));
     }
 
     #[test]
@@ -338,8 +348,11 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
         ];
-        let board = Board::new(custom_board, PieceColor::White, vec![]);
 
-        assert!(!board.is_checkmate());
+        let game_board = GameBoard::new(custom_board, vec![], vec![]);
+        let mut game = Game::new(game_board, PieceColor::White);
+        game.game_board.board = custom_board;
+
+        assert!(!game.game_board.is_checkmate(game.player_turn));
     }
 }

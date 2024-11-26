@@ -1,18 +1,17 @@
-use super::{Movable, PieceColor, PieceMove, Position};
-use crate::board::{Coord, GameBoard};
+use super::{Movable, PieceColor, Position};
 use crate::constants::DisplayMode;
-use crate::utils::{cleaned_positions, impossible_positions_king_checked, is_cell_color_ally};
+use crate::game_logic::coord::Coord;
+use crate::game_logic::game_board::GameBoard;
+use crate::utils::{cleaned_positions, is_cell_color_ally};
 pub struct Knight;
 
 impl Movable for Knight {
     fn piece_move(
         coordinates: &Coord,
         color: PieceColor,
-        board: GameBoard,
+        game_board: &GameBoard,
         allow_move_on_ally_positions: bool,
-        move_history: &[PieceMove],
     ) -> Vec<Coord> {
-        let _ = move_history;
         let mut positions: Vec<Coord> = Vec::new();
 
         // Generate knight positions in all eight possible L-shaped moves
@@ -34,7 +33,9 @@ impl Movable for Knight {
                 continue;
             };
 
-            if is_cell_color_ally(board, &new_coordinates, color) && !allow_move_on_ally_positions {
+            if is_cell_color_ally(game_board, &new_coordinates, color)
+                && !allow_move_on_ally_positions
+            {
                 continue;
             }
 
@@ -49,26 +50,22 @@ impl Position for Knight {
     fn authorized_positions(
         coordinates: &Coord,
         color: PieceColor,
-        board: GameBoard,
-        move_history: &[PieceMove],
+        game_board: &GameBoard,
         _is_king_checked: bool,
     ) -> Vec<Coord> {
-        impossible_positions_king_checked(
+        game_board.impossible_positions_king_checked(
             coordinates,
-            Self::piece_move(coordinates, color, board, false, move_history),
-            board,
+            Self::piece_move(coordinates, color, game_board, false),
             color,
-            move_history,
         )
     }
 
     fn protected_positions(
         coordinates: &Coord,
         color: PieceColor,
-        board: GameBoard,
-        _move_history: &[PieceMove],
+        game_board: &GameBoard,
     ) -> Vec<Coord> {
-        Self::piece_move(coordinates, color, board, true, _move_history)
+        Self::piece_move(coordinates, color, game_board, true)
     }
 }
 

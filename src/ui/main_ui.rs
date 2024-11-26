@@ -1,20 +1,24 @@
 use ratatui::{
     layout::{Constraint, Direction, Layout},
     prelude::{Alignment, Rect},
-    style::{Style, Stylize},
+    style::{Color, Modifier, Style, Stylize},
     text::Line,
     widgets::{Block, Paragraph},
     Frame,
 };
 
 use crate::{
-    app::App,
-    constants::{DisplayMode, Pages, TITLE},
-    pieces::PieceColor,
-    popups::{
+    game_logic::{bot::Bot, game::GameState},
+    ui::popups::{
         render_color_selection_popup, render_credit_popup, render_end_popup,
         render_engine_path_error_popup, render_help_popup, render_promotion_popup,
     },
+};
+
+use crate::{
+    app::App,
+    constants::{DisplayMode, Pages, TITLE},
+    pieces::PieceColor,
 };
 
 /// Renders the user interface widgets.
@@ -24,20 +28,14 @@ pub fn render(app: &mut App, frame: &mut Frame) {
     if app.current_page == Pages::Solo {
         render_game_ui(frame, app, main_area);
     } else if app.current_page == Pages::Bot {
-        if app.board.engine.is_none() {
-            match &app.chess_engine_path {
-                Some(path) => {
-                    app.board.set_engine(path);
-                    if app.selected_color.is_none() {
-                        app.show_color_popup = true;
-                    } else {
-                        render_game_ui(frame, app, main_area);
-                    }
-                }
-                None => render_engine_path_error_popup(frame),
-            }
+        if app.chess_engine_path.is_none() || app.chess_engine_path.as_ref().unwrap().is_empty() {
+            render_engine_path_error_popup(frame);
         } else if app.selected_color.is_none() {
             app.show_color_popup = true;
+        } else if app.game.bot.is_none() {
+            let engine_path = app.chess_engine_path.clone().unwrap();
+            let is_bot_starting = app.selected_color.unwrap() == PieceColor::Black;
+            app.game.bot = Some(Bot::new(engine_path.as_str(), is_bot_starting));
         } else {
             render_game_ui(frame, app, main_area);
         }
@@ -57,7 +55,7 @@ pub fn render(app: &mut App, frame: &mut Frame) {
     }
 }
 
-/// helper function to create a centered rect using up certain percentage of the available rect `r`
+/// Helper function to create a centered rect using up certain percentage of the available rect `r`
 pub fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
     let popup_layout = Layout::default()
         .direction(Direction::Vertical)
@@ -76,6 +74,14 @@ pub fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
             Constraint::Percentage((100 - percent_x) / 2),
         ])
         .split(popup_layout[1])[1]
+}
+
+pub fn render_cell(frame: &mut Frame, square: Rect, color: Color, modifier: Option<Modifier>) {
+    let mut cell = Block::default().bg(color);
+    if let Some(modifier) = modifier {
+        cell = cell.add_modifier(modifier);
+    }
+    frame.render_widget(cell, square);
 }
 
 // Method to render the home menu and the options
@@ -107,7 +113,7 @@ pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
 
     // Determine the "display mode" text
     let display_mode_menu = {
-        let display_mode = match app.board.display_mode {
+        let display_mode = match app.game.ui.display_mode {
             DisplayMode::DEFAULT => "Default",
             DisplayMode::ASCII => "ASCII",
         };
@@ -186,32 +192,40 @@ pub fn render_game_ui(frame: &mut Frame, app: &mut App, main_area: Rect) {
     // We render the board_block in the center layout made above
     frame.render_widget(board_block.clone(), main_layout_vertical[1]);
 
-    // We make the inside of the board and update its starting coordinates
-    app.board
-        .board_render(board_block.inner(main_layout_vertical[1]), frame);
+    let game_clone = app.game.clone();
+    app.game.ui.board_render(
+        board_block.inner(main_layout_vertical[1]),
+        frame,
+        &game_clone,
+    ); // Mutable borrow now allowed
 
     //top box for white material
-    app.board
-        .black_material_render(board_block.inner(right_box_layout[0]), frame);
+    app.game.ui.black_material_render(
+        board_block.inner(right_box_layout[0]),
+        frame,
+        &app.game.game_board.black_taken_pieces,
+    );
 
     // We make the inside of the board
-    app.board
-        .history_render(board_block.inner(right_box_layout[1]), frame);
+    app.game.ui.history_render(
+        board_block.inner(right_box_layout[1]),
+        frame,
+        &app.game.game_board.move_history,
+    );
 
     //bottom box for black matetrial
-    app.board
-        .white_material_render(board_block.inner(right_box_layout[2]), frame);
+    app.game.ui.white_material_render(
+        board_block.inner(right_box_layout[2]),
+        frame,
+        &app.game.game_board.white_taken_pieces,
+    );
 
-    if app.board.is_promotion {
+    if app.game.game_state == GameState::Promotion {
         render_promotion_popup(frame, app);
     }
 
-    if app.board.is_draw {
-        render_end_popup(frame, "That's a draw");
-    }
-
-    if app.board.is_checkmate {
-        let victorious_player = app.board.player_turn.opposite();
+    if app.game.game_state == GameState::Checkmate {
+        let victorious_player = app.game.player_turn.opposite();
 
         let string_color = match victorious_player {
             PieceColor::White => "White",
@@ -219,5 +233,9 @@ pub fn render_game_ui(frame: &mut Frame, app: &mut App, main_area: Rect) {
         };
 
         render_end_popup(frame, &format!("{string_color} Won !!!"));
+    }
+
+    if app.game.game_state == GameState::Draw {
+        render_end_popup(frame, "That's a draw");
     }
 }

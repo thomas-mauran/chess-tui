@@ -2,7 +2,7 @@ use crate::{
     app::App,
     constants::WHITE,
     pieces::{bishop::Bishop, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook},
-    ui::centered_rect,
+    ui::main_ui::centered_rect,
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},
@@ -117,17 +117,17 @@ pub fn render_promotion_popup(frame: &mut Frame, app: &mut App) {
         .split(inner_popup_layout_vertical[1]);
 
     // When a promotion is happening, the mouse should be able to know where the icons are
-    app.board.top_x = inner_popup_layout_horizontal[0].x;
-    app.board.top_y = inner_popup_layout_horizontal[0].y;
-    app.board.width = inner_popup_layout_horizontal[0].width;
-    app.board.height = inner_popup_layout_horizontal[0].height;
+    app.game.ui.top_x = inner_popup_layout_horizontal[0].x;
+    app.game.ui.top_y = inner_popup_layout_horizontal[0].y;
+    app.game.ui.width = inner_popup_layout_horizontal[0].width;
+    app.game.ui.height = inner_popup_layout_horizontal[0].height;
 
-    let display_mode = &app.board.display_mode;
+    let display_mode = &app.game.ui.display_mode;
 
     let queen_p = Paragraph::new(Queen::to_string(display_mode))
         .block(Block::default())
         .alignment(Alignment::Center)
-        .style(Style::default().bg(if app.board.promotion_cursor == 0 {
+        .style(Style::default().bg(if app.game.ui.promotion_cursor == 0 {
             Color::LightBlue
         } else {
             Color::Reset // Set to the default background color when the condition is false
@@ -136,7 +136,7 @@ pub fn render_promotion_popup(frame: &mut Frame, app: &mut App) {
     let rook_p = Paragraph::new(Rook::to_string(display_mode))
         .block(Block::default())
         .alignment(Alignment::Center)
-        .style(Style::default().bg(if app.board.promotion_cursor == 1 {
+        .style(Style::default().bg(if app.game.ui.promotion_cursor == 1 {
             Color::LightBlue
         } else {
             Color::Reset // Set to the default background color when the condition is false
@@ -145,7 +145,7 @@ pub fn render_promotion_popup(frame: &mut Frame, app: &mut App) {
     let bishop_p = Paragraph::new(Bishop::to_string(display_mode))
         .block(Block::default())
         .alignment(Alignment::Center)
-        .style(Style::default().bg(if app.board.promotion_cursor == 2 {
+        .style(Style::default().bg(if app.game.ui.promotion_cursor == 2 {
             Color::LightBlue
         } else {
             Color::Reset // Set to the default background color when the condition is false
@@ -154,7 +154,7 @@ pub fn render_promotion_popup(frame: &mut Frame, app: &mut App) {
     let knight_p = Paragraph::new(Knight::to_string(display_mode))
         .block(Block::default())
         .alignment(Alignment::Center)
-        .style(Style::default().bg(if app.board.promotion_cursor == 3 {
+        .style(Style::default().bg(if app.game.ui.promotion_cursor == 3 {
             Color::LightBlue
         } else {
             Color::Reset // Set to the default background color when the condition is false
@@ -306,7 +306,7 @@ pub fn render_color_selection_popup(frame: &mut Frame, app: &App) {
         )
         .split(inner_popup_layout_vertical[1]);
 
-    let display_mode = &app.board.display_mode;
+    let display_mode = &app.game.ui.display_mode;
 
     let white_pawn = Paragraph::new(Pawn::to_string(display_mode))
         .block(Block::default())

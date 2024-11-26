@@ -16,6 +16,7 @@ pub const TITLE: &str = r"
  ╚═════╝╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝      ╚═╝    ╚═════╝ ╚═╝
 ";
 
+#[derive(Debug, Clone, Copy)]
 pub enum DisplayMode {
     DEFAULT,
     ASCII,
