@@ -3,4 +3,5 @@ pub mod bot;
 pub mod coord;
 pub mod game;
 pub mod game_board;
+pub mod server;
 pub mod ui;

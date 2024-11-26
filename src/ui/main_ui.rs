@@ -8,13 +8,14 @@ use ratatui::{
 };
 
 use crate::{
-    game_logic::{bot::Bot, game::GameState},
+    game_logic::{bot::Bot, game::GameState, server::GameServer},
     ui::popups::{
         render_color_selection_popup, render_credit_popup, render_end_popup,
         render_engine_path_error_popup, render_help_popup, render_promotion_popup,
     },
 };
 
+use super::popups::render_multiplayer_selection_popup;
 use crate::{
     app::App,
     constants::{DisplayMode, Pages, TITLE},
@@ -25,9 +26,25 @@ use crate::{
 pub fn render(app: &mut App, frame: &mut Frame) {
     let main_area = frame.area();
 
+    // Solo game
     if app.current_page == Pages::Solo {
         render_game_ui(frame, app, main_area);
-    } else if app.current_page == Pages::Bot {
+    }
+    // Multiplayer game
+    else if app.current_page == Pages::Multiplayer {
+        if app.hosting.is_none() {
+            app.show_multiplayer_popup = true;
+        } else if app.selected_color.is_none() {
+            app.show_color_popup = true;
+        } else {
+            // We start a new Game server
+            // app.game.server = Some(GameServer::new(true));
+
+            // render_game_ui(frame, app, main_area);
+        }
+    }
+    // Play against bot
+    else if app.current_page == Pages::Bot {
         if app.chess_engine_path.is_none() || app.chess_engine_path.as_ref().unwrap().is_empty() {
             render_engine_path_error_popup(frame);
         } else if app.selected_color.is_none() {
@@ -39,11 +56,18 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         } else {
             render_game_ui(frame, app, main_area);
         }
-    } else {
+    }
+    // Render menu
+    else {
         render_menu_ui(frame, app, main_area);
     }
+    // Render popups
     if app.show_color_popup {
         render_color_selection_popup(frame, app);
+    }
+
+    if app.show_multiplayer_popup {
+        render_multiplayer_selection_popup(frame, app);
     }
 
     if app.show_help_popup {
@@ -123,6 +147,7 @@ pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
     // Board block representing the full board div
     let menu_items = [
         "Normal game",
+        "Multiplayer",
         "Play against a bot",
         &display_mode_menu,
         "Help",

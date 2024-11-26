@@ -2,7 +2,7 @@ use dirs::home_dir;
 use toml::Value;
 
 use crate::{
-    constants::{DisplayMode, Pages},
+    constants::{DisplayMode, Pages, Popups},
     game_logic::{bot::Bot, game::Game},
     pieces::PieceColor,
 };
@@ -23,12 +23,18 @@ pub struct App {
     pub game: Game,
     /// Current page to render
     pub current_page: Pages,
+    /// Current popup to render
+    pub current_popup: Option<Popups>,
     /// Used to show the help popup during the game or in the home menu
     pub show_help_popup: bool,
     /// Used to show the side selection popup when playing against the bot
     pub show_color_popup: bool,
+    /// Used to show the multiplayer popup when playing against the bot
+    pub show_multiplayer_popup: bool,
     // Selected color when playing against the bot
     pub selected_color: Option<PieceColor>,
+    /// Hosting
+    pub hosting: Option<bool>,
     /// menu current cursor
     pub menu_cursor: u8,
     /// path of the chess engine
@@ -41,9 +47,12 @@ impl Default for App {
             running: true,
             game: Game::default(),
             current_page: Pages::Home,
+            current_popup: None,
             show_help_popup: false,
             show_color_popup: false,
+            show_multiplayer_popup: false,
             selected_color: None,
+            hosting: None,
             menu_cursor: 0,
             chess_engine_path: None,
         }
@@ -131,6 +140,12 @@ impl App {
         }
     }
 
+    pub fn hosting_selection(&mut self) {
+        self.show_multiplayer_popup = false;
+        self.show_color_popup = true;
+        self.hosting = Some(self.menu_cursor == 0);
+    }
+
     pub fn restart(&mut self) {
         let bot = self.game.bot.clone();
         self.game = Game::default();
@@ -152,17 +167,21 @@ impl App {
             0 => self.current_page = Pages::Solo,
             1 => {
                 self.menu_cursor = 0;
-                self.current_page = Pages::Bot
+                self.current_page = Pages::Multiplayer
             }
             2 => {
+                self.menu_cursor = 0;
+                self.current_page = Pages::Bot
+            }
+            3 => {
                 self.game.ui.display_mode = match self.game.ui.display_mode {
                     DisplayMode::ASCII => DisplayMode::DEFAULT,
                     DisplayMode::DEFAULT => DisplayMode::ASCII,
                 };
                 self.update_config();
             }
-            3 => self.show_help_popup = true,
-            4 => self.current_page = Pages::Credit,
+            4 => self.show_help_popup = true,
+            5 => self.current_page = Pages::Credit,
             _ => {}
         }
     }

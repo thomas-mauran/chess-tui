@@ -1,4 +1,4 @@
-use super::{bot::Bot, coord::Coord, game_board::GameBoard, ui::UI};
+use super::{bot::Bot, coord::Coord, game_board::GameBoard, server::GameServer, ui::UI};
 use crate::{
     pieces::{PieceColor, PieceMove, PieceType},
     utils::get_int_from_char,
@@ -20,6 +20,8 @@ pub struct Game {
     pub ui: UI,
     /// The struct to handle Bot related stuff
     pub bot: Option<Bot>,
+    /// Game stream
+    pub server: Option<GameServer>,
     /// Which player is it to play
     pub player_turn: PieceColor,
     /// The current state of the game (Playing, Draw, Checkmate. Promotion)
@@ -32,6 +34,7 @@ impl Default for Game {
             game_board: GameBoard::default(),
             ui: UI::default(),
             bot: None,
+            server: None,
             player_turn: PieceColor::White,
             game_state: GameState::Playing,
         }
@@ -45,6 +48,7 @@ impl Game {
             game_board,
             ui: UI::default(),
             bot: None,
+            server: None,
             player_turn,
             game_state: GameState::Playing,
         }

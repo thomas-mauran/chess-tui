@@ -15,6 +15,10 @@ dirs = "5.0.1"
 ratatui = "0.28.1"
 uci = "0.2.0"
 toml = "0.5.8"
+async-trait = "0.1.83"
+tokio = { version = "1.41.1", features = ["full"] }
+log = "0.4.22"
+
 
 [features]
 chess-tui = []

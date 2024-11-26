@@ -6,8 +6,8 @@ use crate::{
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},
-    style::{Color, Style, Stylize},
-    text::Line,
+    style::{Color, Modifier, Style, Stylize},
+    text::{Line, Span, Text},
     widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Wrap},
     Frame,
 };
@@ -335,4 +335,77 @@ pub fn render_color_selection_popup(frame: &mut Frame, app: &App) {
                 }),
         );
     frame.render_widget(black_pawn, inner_popup_layout_horizontal[2]);
+}
+
+// This renders a popup for the multiplayer hosting / joining popup
+pub fn render_multiplayer_selection_popup(frame: &mut Frame, app: &App) {
+    let block: Block<'_> = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .padding(Padding::horizontal(1))
+        .border_style(Style::default().fg(WHITE));
+    let area = centered_rect(40, 40, frame.area());
+
+    let text = vec![
+        Line::from(""),
+        Line::from("-- Are you hosting or joining a game ? --").alignment(Alignment::Center),
+        Line::from(""),
+    ];
+
+    let paragraph = Paragraph::new(text)
+        .block(Block::default())
+        .alignment(Alignment::Left)
+        .wrap(Wrap { trim: true });
+    frame.render_widget(Clear, area);
+    frame.render_widget(block, area);
+    frame.render_widget(paragraph, area);
+
+    let inner_popup_layout_vertical = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(
+            [
+                Constraint::Ratio(1, 3),
+                Constraint::Ratio(1, 3),
+                Constraint::Ratio(1, 3),
+            ]
+            .as_ref(),
+        )
+        .split(area);
+
+    let inner_popup_layout_horizontal = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(
+            [
+                Constraint::Ratio(1, 3),
+                Constraint::Ratio(1, 3),
+                Constraint::Ratio(1, 3),
+            ]
+            .as_ref(),
+        )
+        .split(inner_popup_layout_vertical[1]);
+
+    let hosting = Paragraph::new(Text::from(vec![Line::from(vec![Span::styled(
+        "HOSTING",
+        Style::default().add_modifier(if app.menu_cursor == 0 {
+            Modifier::UNDERLINED
+        } else {
+            Modifier::empty()
+        }),
+    )])]))
+    .block(Block::default())
+    .alignment(Alignment::Center);
+
+    frame.render_widget(hosting, inner_popup_layout_horizontal[0]);
+
+    let joining = Paragraph::new(Text::from(vec![Line::from(vec![Span::styled(
+        "JOINING",
+        Style::default().add_modifier(if app.menu_cursor == 1 {
+            Modifier::UNDERLINED
+        } else {
+            Modifier::empty()
+        }),
+    )])]))
+    .block(Block::default())
+    .alignment(Alignment::Center);
+    frame.render_widget(joining, inner_popup_layout_horizontal[2]);
 }
