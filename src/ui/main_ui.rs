@@ -9,7 +9,7 @@ use ratatui::{
 
 use crate::{
     constants::Popups,
-    game_logic::{bot::Bot, game::GameState, game_server::GameServer},
+    game_logic::{bot::Bot, game::GameState},
     ui::popups::{
         render_color_selection_popup, render_credit_popup, render_end_popup,
         render_engine_path_error_popup, render_help_popup, render_promotion_popup,
@@ -24,7 +24,7 @@ use crate::{
 };
 
 /// Renders the user interface widgets.
-pub async fn render<'a>(app: &mut App, frame: &mut Frame<'a>) {
+pub fn render<'a>(app: &mut App, frame: &mut Frame<'a>) {
     let main_area = frame.area();
 
     // Solo game
@@ -38,8 +38,7 @@ pub async fn render<'a>(app: &mut App, frame: &mut Frame<'a>) {
         } else if app.selected_color.is_none() {
             app.current_popup = Some(Popups::ColorSelection);
         } else {
-            // We start a new Game server
-            app.game.server = Some(GameServer::new(true).await);
+            app.setup_game_server();
 
             render_game_ui(frame, app, main_area);
         }

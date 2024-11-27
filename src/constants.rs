@@ -38,7 +38,7 @@ pub fn home_dir() -> Result<PathBuf, &'static str> {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Pages {
     Home,
     Solo,
@@ -52,7 +52,7 @@ impl Pages {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Popups {
     ColorSelection,
     MultiplayerSelection,

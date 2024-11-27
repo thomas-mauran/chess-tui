@@ -41,7 +41,7 @@ async fn main() -> AppResult<()> {
     config_create(&args, &folder_path, &config_path)?;
 
     // Create an application.
-    let mut app: App = App::default();
+    let mut app = App::default();
 
     // We store the chess engine path if there is one
     if let Ok(content) = fs::read_to_string(config_path) {

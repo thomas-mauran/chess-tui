@@ -4,7 +4,7 @@ use toml::Value;
 use crate::{
     constants::{DisplayMode, Pages, Popups},
     game_logic::{bot::Bot, game::Game},
-    pieces::PieceColor,
+    pieces::PieceColor, server::game_server::GameServer,
 };
 use std::{
     error,
@@ -21,6 +21,8 @@ pub struct App {
     pub running: bool,
     /// Game
     pub game: Game,
+    /// Game server
+    pub game_server: Option<tokio::task::JoinHandle<GameServer>>,
     /// Current page to render
     pub current_page: Pages,
     /// Current popup to render
@@ -40,6 +42,7 @@ impl Default for App {
         Self {
             running: true,
             game: Game::default(),
+            game_server: None,
             current_page: Pages::Home,
             current_popup: None,
             selected_color: None,
@@ -63,6 +66,19 @@ impl App {
             self.current_page = Pages::Credit;
         } else {
             self.current_page = Pages::Home;
+        }
+    }
+
+    pub fn setup_game_server(&mut self) {
+
+        
+        if self.game_server.is_none() {
+            let hosting = self.hosting.unwrap(); // Unwrap cautiously; add error handling as needed
+            self.game_server = Some(tokio::spawn(async move {
+                let mut g = GameServer::new(hosting).await;
+                g.run().await;
+                g
+            }));
         }
     }
 
