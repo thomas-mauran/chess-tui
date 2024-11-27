@@ -38,7 +38,9 @@ pub fn render<'a>(app: &mut App, frame: &mut Frame<'a>) {
         } else if app.selected_color.is_none() {
             app.current_popup = Some(Popups::ColorSelection);
         } else {
-            app.setup_game_server();
+            if app.game_server.is_none() {
+                app.setup_game_server();
+            }
 
             render_game_ui(frame, app, main_area);
         }
