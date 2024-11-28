@@ -70,23 +70,24 @@ impl App {
         }
     }
 
-    pub fn setup_game_server(&mut self) {
+    pub async fn setup_game_server(&mut self) {
         let hosting = self.hosting.unwrap(); // Unwrap cautiously; add error handling as needed
         self.game_server = Some(tokio::spawn(async move {
             let g = GameServer::new(hosting).await;
             g.run().await;
             g
         }));
-        self.start_game_stream();
+        self.start_game_stream().await;
     }
 
     pub async fn start_game_stream(&mut self){
+        println!("Starting game stream");
         self.game.start_game_stream("127.0.0.1:2308").await
     }
 
-    pub fn go_to_home(&mut self) {
+    pub async fn go_to_home(&mut self) {
         self.current_page = Pages::Home;
-        self.restart();
+        self.restart().await;
     }
 
     /// Handles the tick event of the terminal.
@@ -126,7 +127,7 @@ impl App {
         }
     }
 
-    pub fn color_selection(&mut self) {
+    pub async fn color_selection(&mut self) {
         self.current_popup = None;
 
         let color = match self.menu_cursor {
@@ -147,7 +148,7 @@ impl App {
             if color == PieceColor::Black {
                 self.game.bot = Some(Bot::new(path, true));
 
-                self.game.execute_bot_move();
+                self.game.execute_bot_move().await;
                 self.game.player_turn = PieceColor::Black;
             }
         }
@@ -158,7 +159,7 @@ impl App {
         self.hosting = Some(self.menu_cursor == 0);
     }
 
-    pub fn restart(&mut self) {
+    pub async fn restart(&mut self) {
         let bot = self.game.bot.clone();
         self.game = Game::default();
         self.game.bot = bot;
@@ -169,7 +170,7 @@ impl App {
                 .as_ref()
                 .map_or(false, |bot| bot.is_bot_starting)
         {
-            self.game.execute_bot_move();
+            self.game.execute_bot_move().await;
             self.game.player_turn = PieceColor::Black;
         }
     }

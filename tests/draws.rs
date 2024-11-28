@@ -4,8 +4,8 @@ mod tests {
     use chess_tui::game_logic::game::Game;
     use chess_tui::game_logic::game_board::GameBoard;
     use chess_tui::pieces::{PieceColor, PieceMove, PieceType};
-    #[test]
-    fn is_draw_true() {
+    #[tokio::test]
+    async fn is_draw_true() {
         let custom_board = [
             [
                 Some((PieceType::King, PieceColor::White)),
@@ -48,11 +48,11 @@ mod tests {
         let mut game = Game::new(game_board, PieceColor::White);
         game.game_board.board = custom_board;
 
-        assert!(game.game_board.is_draw(game.player_turn));
+        assert!(game.game_board.is_draw(game.player_turn).await);
     }
 
-    #[test]
-    fn is_draw_false() {
+    #[tokio::test]
+    async fn is_draw_false() {
         let custom_board = [
             [
                 Some((PieceType::King, PieceColor::White)),
@@ -95,11 +95,11 @@ mod tests {
         let mut game = Game::new(game_board, PieceColor::White);
         game.game_board.board = custom_board;
 
-        assert!(!game.game_board.is_draw(game.player_turn));
+        assert!(!game.game_board.is_draw(game.player_turn).await);
     }
 
-    #[test]
-    fn fifty_moves_draw() {
+    #[tokio::test]
+    async fn fifty_moves_draw() {
         let custom_board = [
             [None, None, None, None, None, None, None, None],
             [
@@ -126,15 +126,15 @@ mod tests {
         game.game_board.board = custom_board;
 
         game.game_board.set_consecutive_non_pawn_or_capture(49);
-        assert!(!game.game_board.is_draw(game.player_turn));
+        assert!(!game.game_board.is_draw(game.player_turn).await);
 
         // Move the pawn to a make the 50th move
-        game.execute_move(&Coord::new(1, 6), &Coord::new(1, 5));
-        assert!(game.game_board.is_draw(game.player_turn));
+        game.execute_move(&Coord::new(1, 6), &Coord::new(1, 5)).await;
+        assert!(game.game_board.is_draw(game.player_turn).await);
     }
 
-    #[test]
-    fn consecutive_position_draw() {
+    #[tokio::test]
+    async fn consecutive_position_draw() {
         let custom_board = [
             [
                 None,
@@ -217,14 +217,14 @@ mod tests {
         let mut copy_move_history = game.game_board.move_history.clone();
 
         for piece_move in copy_move_history.iter_mut() {
-            game.execute_move(&piece_move.from, &piece_move.to);
+            game.execute_move(&piece_move.from, &piece_move.to).await;
 
             // In a chess game, board.is_draw() is called after every move
-            assert!(!game.game_board.is_draw(game.player_turn));
+            assert!(!game.game_board.is_draw(game.player_turn).await);
         }
 
         // Move the king to replicate a third time the same position
-        game.execute_move(&Coord::new(0, 2), &Coord::new(0, 1));
-        assert!(game.game_board.is_draw(game.player_turn));
+        game.execute_move(&Coord::new(0, 2), &Coord::new(0, 1)).await;
+        assert!(game.game_board.is_draw(game.player_turn).await);
     }
 }

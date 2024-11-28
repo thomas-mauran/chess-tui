@@ -24,7 +24,7 @@ pub enum PieceType {
 
 impl PieceType {
     /// The authorized position for a piece at a certain coordinate
-    pub fn authorized_positions(
+    pub async fn authorized_positions(
         self,
         coordinates: &Coord,
         color: PieceColor,
@@ -33,22 +33,22 @@ impl PieceType {
     ) -> Vec<Coord> {
         match self {
             PieceType::Pawn => {
-                Pawn::authorized_positions(coordinates, color, game_board, is_king_checked)
+                Pawn::authorized_positions(coordinates, color, game_board, is_king_checked).await
             }
             PieceType::Rook => {
-                Rook::authorized_positions(coordinates, color, game_board, is_king_checked)
+                Rook::authorized_positions(coordinates, color, game_board, is_king_checked).await
             }
             PieceType::Bishop => {
-                Bishop::authorized_positions(coordinates, color, game_board, is_king_checked)
+                Bishop::authorized_positions(coordinates, color, game_board, is_king_checked).await
             }
             PieceType::Queen => {
-                Queen::authorized_positions(coordinates, color, game_board, is_king_checked)
+                Queen::authorized_positions(coordinates, color, game_board, is_king_checked).await
             }
             PieceType::King => {
-                King::authorized_positions(coordinates, color, game_board, is_king_checked)
+                King::authorized_positions(coordinates, color, game_board, is_king_checked).await
             }
             PieceType::Knight => {
-                Knight::authorized_positions(coordinates, color, game_board, is_king_checked)
+                Knight::authorized_positions(coordinates, color, game_board, is_king_checked).await
             }
         }
     }
@@ -198,7 +198,7 @@ pub trait Movable {
 }
 
 pub trait Position {
-    fn authorized_positions(
+    async fn authorized_positions(
         coordinates: &Coord,
         color: PieceColor,
         game_board: &GameBoard,

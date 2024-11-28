@@ -6,8 +6,8 @@ mod tests {
     use chess_tui::pieces::bishop::Bishop;
     use chess_tui::pieces::{PieceColor, PieceType, Position};
 
-    #[test]
-    fn piece_move_no_enemies() {
+    #[tokio::test]
+    async fn piece_move_no_enemies() {
         let custom_board = [
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
@@ -52,14 +52,14 @@ mod tests {
             PieceColor::White,
             &game.game_board,
             false,
-        );
+        ).await;
         positions.sort();
 
         assert_eq!(right_positions, positions);
     }
 
-    #[test]
-    fn piece_move_one_enemies_top_right() {
+    #[tokio::test]
+    async fn piece_move_one_enemies_top_right() {
         let custom_board = [
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
@@ -111,14 +111,14 @@ mod tests {
             PieceColor::White,
             &game.game_board,
             false,
-        );
+        ).await;
         positions.sort();
 
         assert_eq!(right_positions, positions);
     }
 
-    #[test]
-    fn piece_move_multiple_enemies_and_ally_front() {
+    #[tokio::test]
+    async fn piece_move_multiple_enemies_and_ally_front() {
         let custom_board = [
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
@@ -184,14 +184,14 @@ mod tests {
             PieceColor::White,
             &game.game_board,
             false,
-        );
+        ).await;
         positions.sort();
 
         assert_eq!(right_positions, positions);
     }
 
-    #[test]
-    fn king_checked_can_resolve() {
+    #[tokio::test]
+    async fn king_checked_can_resolve() {
         let custom_board = [
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
@@ -246,14 +246,14 @@ mod tests {
             PieceColor::Black,
             &game.game_board,
             is_king_checked,
-        );
+        ).await;
         positions.sort();
 
         assert_eq!(right_positions, positions);
     }
 
-    #[test]
-    fn king_checked_cant_resolve() {
+    #[tokio::test]
+    async fn king_checked_cant_resolve() {
         let custom_board = [
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
@@ -307,14 +307,14 @@ mod tests {
             PieceColor::Black,
             &game.game_board,
             is_king_checked,
-        );
+        ).await;
         positions.sort();
 
         assert_eq!(right_positions, positions);
     }
 
-    #[test]
-    fn nailing() {
+    #[tokio::test]
+    async fn nailing() {
         let custom_board = [
             [
                 None,
@@ -368,7 +368,7 @@ mod tests {
             PieceColor::Black,
             &game.game_board,
             is_king_checked,
-        );
+        ).await;
         positions.sort();
 
         assert_eq!(right_positions, positions);

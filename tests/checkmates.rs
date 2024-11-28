@@ -206,8 +206,8 @@ mod tests {
             .is_getting_checked(custom_board, PieceColor::Black));
     }
 
-    #[test]
-    fn is_checkmate_true() {
+    #[tokio::test]
+    async fn is_checkmate_true() {
         let custom_board = [
             [
                 Some((PieceType::King, PieceColor::White)),
@@ -250,11 +250,11 @@ mod tests {
         let mut game = Game::new(game_board, PieceColor::White);
         game.game_board.board = custom_board;
 
-        assert!(game.game_board.is_checkmate(game.player_turn));
+        assert!(game.game_board.is_checkmate(game.player_turn).await);
     }
 
-    #[test]
-    fn is_checkmate_false() {
+    #[tokio::test]
+    async fn is_checkmate_false() {
         let custom_board = [
             [
                 Some((PieceType::King, PieceColor::White)),
@@ -297,11 +297,11 @@ mod tests {
         let mut game = Game::new(game_board, PieceColor::White);
         game.game_board.board = custom_board;
 
-        assert!(!game.game_board.is_checkmate(game.player_turn));
+        assert!(!game.game_board.is_checkmate(game.player_turn).await);
     }
 
-    #[test]
-    fn is_checkmate_false_2() {
+    #[tokio::test]
+    async fn is_checkmate_false_2() {
         let custom_board = [
             [
                 Some((PieceType::King, PieceColor::White)),
@@ -353,6 +353,6 @@ mod tests {
         let mut game = Game::new(game_board, PieceColor::White);
         game.game_board.board = custom_board;
 
-        assert!(!game.game_board.is_checkmate(game.player_turn));
+        assert!(!game.game_board.is_checkmate(game.player_turn).await);
     }
 }

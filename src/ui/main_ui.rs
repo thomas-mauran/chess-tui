@@ -24,7 +24,7 @@ use crate::{
 };
 
 /// Renders the user interface widgets.
-pub fn render<'a>(app: &mut App, frame: &mut Frame<'a>) {
+pub async fn render<'a>(app: &mut App, frame: &mut Frame<'a>) {
     let main_area = frame.area();
 
     // Solo game
@@ -38,9 +38,7 @@ pub fn render<'a>(app: &mut App, frame: &mut Frame<'a>) {
         } else if app.selected_color.is_none() {
             app.current_popup = Some(Popups::ColorSelection);
         } else {
-            if app.game_server.is_none() {
-                app.setup_game_server();
-            }
+
 
             render_game_ui(frame, app, main_area);
         }
@@ -176,7 +174,7 @@ pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
 }
 
 // Method to render the game board and handle game popups
-pub fn render_game_ui(frame: &mut Frame, app: &mut App, main_area: Rect) {
+pub async fn render_game_ui<'a>(frame: &mut Frame<'a>, app: &mut App, main_area: Rect) {
     let main_layout_horizontal = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
@@ -224,7 +222,7 @@ pub fn render_game_ui(frame: &mut Frame, app: &mut App, main_area: Rect) {
         board_block.inner(main_layout_vertical[1]),
         frame,
         &game_clone,
-    ); // Mutable borrow now allowed
+    ).await; // Mutable borrow now allowed
 
     //top box for white material
     app.game.ui.black_material_render(

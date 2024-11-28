@@ -157,7 +157,7 @@ impl Movable for Bishop {
 }
 
 impl Position for Bishop {
-    fn authorized_positions(
+    async fn authorized_positions(
         coordinates: &Coord,
         color: PieceColor,
         game_board: &GameBoard,
@@ -168,7 +168,7 @@ impl Position for Bishop {
             coordinates,
             Self::piece_move(coordinates, color, game_board, false),
             color,
-        )
+        ).await
     }
     fn protected_positions(
         coordinates: &Coord,
