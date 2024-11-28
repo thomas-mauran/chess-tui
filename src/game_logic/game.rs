@@ -1,7 +1,8 @@
+use tokio::{io::{AsyncReadExt, AsyncWriteExt}, net::TcpStream};
+
 use super::{bot::Bot, coord::Coord, game_board::GameBoard, ui::UI};
 use crate::{
-    pieces::{PieceColor, PieceMove, PieceType},
-    utils::get_int_from_char,
+    app::{self, App}, pieces::{PieceColor, PieceMove, PieceType}, utils::get_int_from_char
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Copy)]
@@ -12,7 +13,6 @@ pub enum GameState {
     Promotion,
 }
 
-#[derive(Clone)]
 pub struct Game {
     /// The GameBoard storing data about the board related stuff
     pub game_board: GameBoard,
@@ -20,10 +20,25 @@ pub struct Game {
     pub ui: UI,
     /// The struct to handle Bot related stuff
     pub bot: Option<Bot>,
+    /// Game server stream
+    pub game_stream: Option<TcpStream>,
     /// Which player is it to play
     pub player_turn: PieceColor,
     /// The current state of the game (Playing, Draw, Checkmate. Promotion)
     pub game_state: GameState,
+}
+
+impl Clone for Game {
+    fn clone(&self) -> Self {
+        Game {
+            game_board: self.game_board.clone(),
+            ui: self.ui.clone(),
+            bot: self.bot.clone(),
+            game_stream: None, // TcpStream is not cloneable, so handle it accordingly
+            player_turn: self.player_turn,
+            game_state: self.game_state.clone(),
+        }
+    }
 }
 
 impl Default for Game {
@@ -32,6 +47,7 @@ impl Default for Game {
             game_board: GameBoard::default(),
             ui: UI::default(),
             bot: None,
+            game_stream: None,
             player_turn: PieceColor::White,
             game_state: GameState::Playing,
         }
@@ -45,6 +61,7 @@ impl Game {
             game_board,
             ui: UI::default(),
             bot: None,
+            game_stream: None,
             player_turn,
             game_state: GameState::Playing,
         }
@@ -65,6 +82,19 @@ impl Game {
         match self.player_turn {
             PieceColor::White => self.player_turn = PieceColor::Black,
             PieceColor::Black => self.player_turn = PieceColor::White,
+        }
+    }
+
+    pub async fn start_game_stream(&mut self, addr: &str) {
+        let game_stream = TcpStream::connect(addr).await;
+
+        match game_stream {
+            Ok(game_stream) => {
+                self.game_stream = Some(game_stream);
+            }
+            Err(e) => {
+                eprintln!("Failed to connect to game server: {}", e);
+            }
         }
     }
 
@@ -203,6 +233,8 @@ impl Game {
         }
     }
 
+    
+
     // Method to promote a pawn
     pub fn promote_piece(&mut self) {
         if let Some(last_move) = self.game_board.move_history.last() {
@@ -313,5 +345,37 @@ impl Game {
         });
         // We store the current position of the board
         self.game_board.board_history.push(self.game_board.board);
+
+        if self.game_stream.is_some() {
+            // We send the move to the server
+            self.send_move_to_server();
+
+            // We read the stream
+            self.read_stream();
+        }
+
+
+    }
+
+    pub async fn send_move_to_server(&mut self){
+        if let Some(game_stream) = self.game_stream.as_mut() {
+            let move_to_send = self.game_board.move_history.last().unwrap();
+            let move_str = format!(
+                "{}{}{}{}",
+                move_to_send.from.row,
+                move_to_send.from.col,
+                move_to_send.to.row,
+                move_to_send.to.col
+            );
+            let _ = game_stream.write(move_str.as_bytes()).await;
+        }
+    }
+
+    pub fn read_stream(&mut self) {
+        if let Some(game_stream) = self.game_stream.as_mut() {
+            let mut buffer = vec![0; 4];
+            let _ = game_stream.read_buf(&mut buffer);
+            println!("{:?}", buffer);
+        }
     }
 }

@@ -77,6 +77,11 @@ impl App {
             g.run().await;
             g
         }));
+        self.start_game_stream();
+    }
+
+    pub async fn start_game_stream(&mut self){
+        self.game.start_game_stream("127.0.0.1:2308").await
     }
 
     pub fn go_to_home(&mut self) {

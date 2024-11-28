@@ -1,11 +1,8 @@
-use std::sync::Arc;
-
 use crate::app::{App, AppResult};
 use crate::event::EventHandler;
 use crate::ui::main_ui;
 use ratatui::backend::Backend;
-use ratatui::{Frame, Terminal};
-use tokio::sync::Mutex;
+use ratatui::Terminal;
 
 /// Representation of a terminal user interface.
 ///
