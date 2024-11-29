@@ -77,19 +77,19 @@ async fn main() -> AppResult<()> {
         match tui.events.next()? {
             Event::Tick => app.tick(),
             Event::Key(key_event) => handle_key_events(key_event, &mut app).await?,
-            Event::Mouse(mouse_event) => handle_mouse_events(mouse_event, &mut app).await?,
+            Event::Mouse(mouse_event) => handle_mouse_events(mouse_event, &mut app)?,
             Event::Resize(_, _) => {}
         }
         if app.game.bot.is_some() && app.game.bot.as_ref().map_or(false, |bot| bot.bot_will_move) {
-            app.game.execute_bot_move().await;
+            app.game.execute_bot_move();
             app.game.switch_player_turn();
             if let Some(bot) = app.game.bot.as_mut() {
                 bot.bot_will_move = false;
             }
             // need to be centralised
-            if app.game.game_board.is_checkmate(app.game.player_turn).await {
+            if app.game.game_board.is_checkmate(app.game.player_turn) {
                 app.game.game_state = GameState::Checkmate;
-            } else if app.game.game_board.is_draw(app.game.player_turn).await {
+            } else if app.game.game_board.is_draw(app.game.player_turn) {
                 app.game.game_state = GameState::Draw;
             }
             tui.draw(&mut app)?;

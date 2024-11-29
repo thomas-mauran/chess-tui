@@ -134,7 +134,7 @@ impl GameBoard {
     }
 
     // Method to get the authorized positions for a piece
-    pub async fn get_authorized_positions(
+    pub fn get_authorized_positions(
         &self,
         player_turn: PieceColor,
         coordinates: Coord,
@@ -148,7 +148,7 @@ impl GameBoard {
                 piece_color,
                 self,
                 self.is_getting_checked(self.board, player_turn),
-            ).await
+            )
         } else {
             vec![]
         }
@@ -216,7 +216,7 @@ impl GameBoard {
     }
 
     // Method to get the number of authorized positions for the current player (used for the end condition)
-    pub async fn number_of_authorized_positions(&self, player_turn: PieceColor) -> usize {
+    pub fn number_of_authorized_positions(&self, player_turn: PieceColor) -> usize {
         let mut possible_moves: Vec<Coord> = vec![];
 
         for i in 0..8 {
@@ -224,7 +224,7 @@ impl GameBoard {
                 let coord = Coord::new(i, j);
                 if let Some((_piece_type, piece_color)) = self.board[&coord] {
                     if piece_color == player_turn {
-                        possible_moves.extend(self.get_authorized_positions(player_turn, coord).await);
+                        possible_moves.extend(self.get_authorized_positions(player_turn, coord));
                     }
                 }
             }
@@ -233,12 +233,12 @@ impl GameBoard {
     }
 
     // Check if the game is checkmate
-    pub async fn is_checkmate(&self, player_turn: PieceColor) -> bool {
+    pub fn is_checkmate(&self, player_turn: PieceColor) -> bool {
         if !self.is_getting_checked(self.board, player_turn) {
             return false;
         }
 
-        self.number_of_authorized_positions(player_turn).await == 0
+        self.number_of_authorized_positions(player_turn) == 0
     }
 
     // Check if the game is a draw
@@ -265,8 +265,8 @@ impl GameBoard {
     }
 
     // Check if the game is a draw
-    pub async fn is_draw(&mut self, player_turn: PieceColor) -> bool {
-        self.number_of_authorized_positions(player_turn).await == 0
+    pub fn is_draw(&mut self, player_turn: PieceColor) -> bool {
+        self.number_of_authorized_positions(player_turn) == 0
             || self.consecutive_non_pawn_or_capture == 50
             || self.is_draw_by_repetition()
     }
@@ -354,7 +354,7 @@ impl GameBoard {
     }
 
     // Get all the positions where the king can't go because it's checked
-    pub async fn impossible_positions_king_checked(
+    pub fn impossible_positions_king_checked(
         &self,
         original_coordinates: &Coord,
         positions: Vec<Coord>,
@@ -369,7 +369,7 @@ impl GameBoard {
 
             // We simulate the move
 
-            Game::execute_move(&mut new_board, original_coordinates, &position).await;
+            Game::execute_move(&mut new_board, original_coordinates, &position);
 
             // We check if the board is still checked with this move meaning it didn't resolve the problem
             if !self.is_getting_checked(new_board.game_board.board, new_board.player_turn) {

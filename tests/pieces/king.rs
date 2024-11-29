@@ -7,8 +7,8 @@ mod tests {
     use chess_tui::pieces::{PieceColor, PieceMove, PieceType, Position};
 
     // Test with multiple enemies around the king
-    #[tokio::test]
-    async fn multiple_enemies_1() {
+    #[test]
+    fn multiple_enemies_1() {
         let custom_board = [
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
@@ -66,14 +66,14 @@ mod tests {
             PieceColor::White,
             &game.game_board,
             false,
-        ).await;
+        );
         positions.sort();
 
         assert_eq!(right_positions, positions);
     }
 
-    #[tokio::test]
-    async fn multiple_enemies_2() {
+    #[test]
+    fn multiple_enemies_2() {
         let custom_board = [
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
@@ -131,14 +131,14 @@ mod tests {
             PieceColor::White,
             &game.game_board,
             false,
-        ).await;
+        );
         positions.sort();
 
         assert_eq!(right_positions, positions);
     }
 
-    #[tokio::test]
-    async fn multiple_enemies_3() {
+    #[test]
+    fn multiple_enemies_3() {
         let custom_board = [
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
@@ -196,15 +196,15 @@ mod tests {
             PieceColor::White,
             &game.game_board,
             false,
-        ).await;
+        );
         positions.sort();
 
         assert_eq!(right_positions, positions);
     }
 
     // Test for the castling
-    #[tokio::test]
-    async fn big_castle_white() {
+    #[test]
+    fn big_castle_white() {
         let custom_board = [
             [
                 Some((PieceType::Rook, PieceColor::Black)),
@@ -262,14 +262,14 @@ mod tests {
             PieceColor::White,
             &game.game_board,
             false,
-        ).await;
+        );
         positions.sort();
 
         assert_eq!(right_positions, positions);
     }
 
-    #[tokio::test]
-    async fn small_castle_white() {
+    #[test]
+    fn small_castle_white() {
         let custom_board = [
             [
                 Some((PieceType::Rook, PieceColor::Black)),
@@ -327,14 +327,14 @@ mod tests {
             PieceColor::White,
             &game.game_board,
             false,
-        ).await;
+        );
         positions.sort();
 
         assert_eq!(right_positions, positions);
     }
 
-    #[tokio::test]
-    async fn big_castle_black() {
+    #[test]
+    fn big_castle_black() {
         let custom_board = [
             [
                 Some((PieceType::Rook, PieceColor::White)),
@@ -392,13 +392,13 @@ mod tests {
             PieceColor::Black,
             &game.game_board,
             false,
-        ).await;
+        );
         positions.sort();
 
         assert_eq!(right_positions, positions);
     }
-    #[tokio::test]
-    async fn small_castle_black() {
+    #[test]
+    fn small_castle_black() {
         let custom_board = [
             [
                 Some((PieceType::Rook, PieceColor::White)),
@@ -456,14 +456,14 @@ mod tests {
             PieceColor::Black,
             &game.game_board,
             false,
-        ).await;
+        );
         positions.sort();
 
         assert_eq!(right_positions, positions);
     }
 
-    #[tokio::test]
-    async fn big_castle_black_check_blocking() {
+    #[test]
+    fn big_castle_black_check_blocking() {
         let custom_board = [
             [
                 Some((PieceType::Rook, PieceColor::Black)),
@@ -521,14 +521,14 @@ mod tests {
             PieceColor::Black,
             &game.game_board,
             false,
-        ).await;
+        );
         positions.sort();
 
         assert_eq!(right_positions, positions);
     }
 
-    #[tokio::test]
-    async fn big_castle_black_king_checked() {
+    #[test]
+    fn big_castle_black_king_checked() {
         let custom_board = [
             [
                 Some((PieceType::Rook, PieceColor::Black)),
@@ -592,14 +592,14 @@ mod tests {
             PieceColor::Black,
             &game.game_board,
             is_king_checked,
-        ).await;
+        );
         positions.sort();
 
         assert_eq!(right_positions, positions);
     }
 
-    #[tokio::test]
-    async fn big_castle_black_rook_already_moved() {
+    #[test]
+    fn big_castle_black_rook_already_moved() {
         let custom_board = [
             [
                 Some((PieceType::Rook, PieceColor::Black)),
@@ -678,14 +678,14 @@ mod tests {
             PieceColor::Black,
             &game.game_board,
             false,
-        ).await;
+        );
         positions.sort();
 
         assert_eq!(right_positions, positions);
     }
 
-    #[tokio::test]
-    async fn castle_both_sides() {
+    #[test]
+    fn castle_both_sides() {
         let custom_board = [
             [
                 Some((PieceType::Rook, PieceColor::Black)),
@@ -749,12 +749,12 @@ mod tests {
             PieceColor::White,
             &game.game_board,
             is_king_checked,
-        ).await;
+        );
         positions.sort();
 
         assert_eq!(white_right_positions, positions);
 
-        game.execute_move(&Coord::new(7, 4), &Coord::new(7, 7)).await;
+        game.execute_move(&Coord::new(7, 4), &Coord::new(7, 7));
         game.game_board.flip_the_board();
 
         let mut black_right_positions = vec![Coord::new(7, 4), Coord::new(7, 7)];
@@ -765,7 +765,7 @@ mod tests {
             PieceColor::Black,
             &game.game_board,
             is_king_checked,
-        ).await;
+        );
         positions.sort();
 
         assert_eq!(black_right_positions, positions);

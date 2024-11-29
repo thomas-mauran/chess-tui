@@ -126,8 +126,8 @@ mod tests {
         assert!(!game.game_board.is_latest_move_promotion());
     }
 
-    #[tokio::test]
-    async fn promote_and_checkmate() {
+    #[test]
+    fn promote_and_checkmate() {
         let custom_board = [
             [
                 None,
@@ -171,15 +171,15 @@ mod tests {
         game.game_board.board = custom_board;
 
         // Move the pawn to a promote cell
-        game.execute_move(&Coord::new(1, 4), &Coord::new(0, 4)).await;
+        game.execute_move(&Coord::new(1, 4), &Coord::new(0, 4));
         assert!(game.game_board.is_latest_move_promotion());
 
         // Promote the pawn
-        game.promote_piece().await;
+        game.promote_piece();
 
         // The black king gets checkmated
         game.player_turn = PieceColor::Black;
-        assert!(game.game_board.is_checkmate(game.player_turn).await);
+        assert!(game.game_board.is_checkmate(game.player_turn));
     }
 
     #[test]
@@ -239,8 +239,8 @@ mod tests {
         assert!(game.game_board.is_latest_move_promotion());
     }
 
-    #[tokio::test]
-    async fn promote_and_draw() {
+    #[test]
+    fn promote_and_draw() {
         let custom_board = [
             [None, None, None, None, None, None, None, None],
             [
@@ -284,14 +284,14 @@ mod tests {
         game.game_board.board = custom_board;
 
         // Move the pawn to a promote cell
-        game.execute_move(&Coord::new(1, 5), &Coord::new(0, 5)).await;
+        game.execute_move(&Coord::new(1, 5), &Coord::new(0, 5));
         assert!(game.game_board.is_latest_move_promotion());
 
         // Promote the pawn
-        game.promote_piece().await;
+        game.promote_piece();
 
         // The black king gets checkmated
         game.player_turn = PieceColor::White;
-        assert!(game.game_board.is_draw(game.player_turn).await);
+        assert!(game.game_board.is_draw(game.player_turn));
     }
 }

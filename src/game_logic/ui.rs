@@ -321,7 +321,7 @@ impl UI {
     }
 
     /// Method to render the board
-    pub async fn board_render<'a>(&mut self, area: Rect, frame: &mut Frame<'a>, game: &Game) {
+    pub fn board_render<'a>(&mut self, area: Rect, frame: &mut Frame<'a>, game: &Game) {
         let width = area.width / 8;
         let height = area.height / 8;
         let border_height = area.height / 2 - (4 * height);
@@ -408,7 +408,7 @@ impl UI {
                     } {
                         positions = game
                             .game_board
-                            .get_authorized_positions(game.player_turn, self.selected_coordinates).await;
+                            .get_authorized_positions(game.player_turn, self.selected_coordinates);
 
                         // Draw grey if the color is in the authorized positions
                         for coords in positions.clone() {

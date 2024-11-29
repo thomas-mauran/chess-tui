@@ -39,7 +39,7 @@ impl Movable for King {
 }
 
 impl Position for King {
-    async fn authorized_positions(
+    fn authorized_positions(
         coordinates: &Coord,
         color: PieceColor,
         game_board: &GameBoard,

@@ -36,7 +36,7 @@ impl Movable for Queen {
 }
 
 impl Position for Queen {
-    async fn authorized_positions(
+    fn authorized_positions(
         coordinates: &Coord,
         color: PieceColor,
         game_board: &GameBoard,
@@ -46,7 +46,7 @@ impl Position for Queen {
             coordinates,
             Self::piece_move(coordinates, color, game_board, false),
             color,
-        ).await
+        )
     }
     fn protected_positions(
         coordinates: &Coord,

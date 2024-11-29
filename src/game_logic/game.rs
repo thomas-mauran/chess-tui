@@ -1,3 +1,4 @@
+
 use tokio::{io::{AsyncReadExt, AsyncWriteExt}, net::TcpStream};
 
 use super::{bot::Bot, coord::Coord, game_board::GameBoard, ui::UI};
@@ -86,14 +87,10 @@ impl Game {
     }
 
     pub async fn start_game_stream(&mut self, addr: &str) {
-        let game_stream = TcpStream::connect(addr).await;
-
-        println!("{:?}", game_stream);
-
-        // println!("{:?}", game_stream);
-        match game_stream {
-            Ok(game_stream) => {
-                self.game_stream = Some(game_stream);
+        // Block on the connection attempt
+        match TcpStream::connect(addr).await {
+            Ok(stream) => {
+                self.game_stream = Some(stream);
             }
             Err(e) => {
                 eprintln!("Failed to connect to game server: {}", e);
@@ -103,7 +100,7 @@ impl Game {
 
     // Methods to select a cell on the board
     // TODO: Split this in multiple methods
-    pub async fn select_cell(&mut self) {
+    pub fn select_cell(&mut self) {
         // If we are doing a promotion the cursor is used for the popup
         if self.game_state == GameState::Promotion {
             self.promote_piece();
@@ -115,19 +112,19 @@ impl Game {
                 if self.ui.cursor_coordinates.is_valid() {
                     let selected_coords_usize = &self.ui.selected_coordinates.clone();
                     let cursor_coords_usize = &self.ui.cursor_coordinates.clone();
-                    self.execute_move(selected_coords_usize, cursor_coords_usize).await;
+                    self.execute_move(selected_coords_usize, cursor_coords_usize);
                     self.ui.unselect_cell();
                     self.switch_player_turn();
 
-                    if self.game_board.is_draw(self.player_turn).await {
+                    if self.game_board.is_draw(self.player_turn) {
                         self.game_state = GameState::Draw;
                     }
 
                     if (self.bot.is_none()
                         || (self.bot.as_ref().map_or(false, |bot| bot.is_bot_starting)))
                         && (!self.game_board.is_latest_move_promotion()
-                            || self.game_board.is_draw(self.player_turn).await
-                            || self.game_board.is_checkmate(self.player_turn).await)
+                            || self.game_board.is_draw(self.player_turn)
+                            || self.game_board.is_checkmate(self.player_turn))
                     {
                         self.game_board.flip_the_board();
                     }
@@ -139,7 +136,7 @@ impl Game {
                         }
 
                         if !(self.game_state == GameState::Promotion) {
-                            if self.game_board.is_checkmate(self.player_turn).await {
+                            if self.game_board.is_checkmate(self.player_turn) {
                                 self.game_state = GameState::Checkmate;
                             }
                             if self.game_board.is_latest_move_promotion() {
@@ -157,7 +154,7 @@ impl Game {
                 // Check if the piece on the cell can move before selecting it
                 let authorized_positions = self
                     .game_board
-                    .get_authorized_positions(self.player_turn, self.ui.cursor_coordinates).await;
+                    .get_authorized_positions(self.player_turn, self.ui.cursor_coordinates);
 
                 if authorized_positions.is_empty() {
                     return;
@@ -167,7 +164,7 @@ impl Game {
                 {
                     let authorized_positions = self
                         .game_board
-                        .get_authorized_positions(self.player_turn, self.ui.cursor_coordinates).await;
+                        .get_authorized_positions(self.player_turn, self.ui.cursor_coordinates);
 
                     if piece_color == self.player_turn {
                         self.ui.selected_coordinates = self.ui.cursor_coordinates;
@@ -178,9 +175,9 @@ impl Game {
                 }
             }
         }
-        if self.game_board.is_checkmate(self.player_turn).await {
+        if self.game_board.is_checkmate(self.player_turn) {
             self.game_state = GameState::Checkmate;
-        } else if self.game_board.is_draw(self.player_turn).await {
+        } else if self.game_board.is_draw(self.player_turn) {
             self.game_state = GameState::Draw;
         } else if self.game_board.is_latest_move_promotion() {
             self.game_state = GameState::Promotion;
@@ -190,7 +187,7 @@ impl Game {
     /* Method to make a move for the bot
        We use the UCI protocol to communicate with the chess engine
     */
-    pub async fn execute_bot_move(&mut self) {
+    pub fn execute_bot_move(&mut self) {
         // Safely extract bot out of self to reduce overlapping borrows
         let is_bot_starting = if let Some(bot) = self.bot.as_ref() {
             bot.is_bot_starting
@@ -225,7 +222,7 @@ impl Game {
             };
         }
 
-        self.execute_move(&Coord::new(from_y, from_x), &Coord::new(to_y, to_x)).await;
+        self.execute_move(&Coord::new(from_y, from_x), &Coord::new(to_y, to_x));
 
         if promotion_piece.is_some() {
             self.game_board.board[to_y as usize][to_x as usize] =
@@ -239,7 +236,7 @@ impl Game {
     
 
     // Method to promote a pawn
-    pub async fn promote_piece(&mut self) {
+    pub fn promote_piece(&mut self) {
         if let Some(last_move) = self.game_board.move_history.last() {
             let new_piece = match self.ui.promotion_cursor {
                 0 => PieceType::Queen,
@@ -260,8 +257,8 @@ impl Game {
         }
         self.game_state = GameState::Playing;
         self.ui.promotion_cursor = 0;
-        if !self.game_board.is_draw(self.player_turn).await
-            && !self.game_board.is_checkmate(self.player_turn).await
+        if !self.game_board.is_draw(self.player_turn)
+            && !self.game_board.is_checkmate(self.player_turn)
         {
             self.game_board.flip_the_board();
         }
@@ -269,7 +266,7 @@ impl Game {
 
     /// Move a piece from a cell to another
     // TODO: Split this in multiple methods
-    pub async fn execute_move(&mut self, from: &Coord, to: &Coord) {
+    pub fn execute_move(&mut self, from: &Coord, to: &Coord) {
         if !from.is_valid() || !to.is_valid() {
             return;
         }
@@ -349,11 +346,11 @@ impl Game {
         // We store the current position of the board
         self.game_board.board_history.push(self.game_board.board);
 
-        println!("HERE IS THE STREAM{:?}", self.game_stream);
+        println!("STREAM {:?}", self.game_stream);
         if self.game_stream.is_some() {
             // We send the move to the server
-            self.send_move_to_server().await;
-
+            self.send_move_to_server();
+    
             // We read the stream
             self.read_stream();
         }
@@ -361,7 +358,7 @@ impl Game {
 
     }
 
-    pub async fn send_move_to_server(&mut self){
+    pub fn send_move_to_server(&mut self){
         println!("SEND  MOVE TO SERVER");
         if let Some(game_stream) = self.game_stream.as_mut() {
             let move_to_send = self.game_board.move_history.last().unwrap();
@@ -373,14 +370,14 @@ impl Game {
                 move_to_send.to.col
             );
             println!("HERE IS THE MOVE{:?}", move_str);
-            let _ = game_stream.write(move_str.as_bytes()).await;
+            let _ = game_stream.write_all(move_str.as_bytes());
         }
     }
 
     pub fn read_stream(&mut self) {
         if let Some(game_stream) = self.game_stream.as_mut() {
             let mut buffer = vec![0; 4];
-            let _ = game_stream.read_buf(&mut buffer);
+            let _ = game_stream.read(&mut buffer);
             println!("{:?}", buffer);
         }
     }

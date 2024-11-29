@@ -17,7 +17,7 @@ type Rx = mpsc::UnboundedReceiver<String>;
 
 /// `Tx`.
 struct Shared {
-    peers: HashMap<SocketAddr, Tx>,
+    pub peers: HashMap<SocketAddr, Tx>,
 }
 
 impl Shared {

@@ -53,7 +53,7 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<
                 let authorized_positions = app.game.game_board.get_authorized_positions(
                     app.game.player_turn,
                     app.game.ui.selected_coordinates,
-                ).await;
+                );
                 app.game.ui.cursor_right(authorized_positions);
             }
         }
@@ -72,7 +72,7 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<
                 let authorized_positions = app.game.game_board.get_authorized_positions(
                     app.game.player_turn,
                     app.game.ui.selected_coordinates,
-                ).await;
+                );
 
                 app.game.ui.cursor_left(authorized_positions);
             }
@@ -87,7 +87,7 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<
                 let authorized_positions = app.game.game_board.get_authorized_positions(
                     app.game.player_turn,
                     app.game.ui.selected_coordinates,
-                ).await;
+                );
                 app.game.ui.cursor_up(authorized_positions);
             }
         }
@@ -101,7 +101,7 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<
                 let authorized_positions = app.game.game_board.get_authorized_positions(
                     app.game.player_turn,
                     app.game.ui.selected_coordinates,
-                ).await;
+                );
 
                 app.game.ui.cursor_down(authorized_positions);
             }
@@ -112,9 +112,9 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<
             }
             Pages::Bot => {
                 if app.selected_color.is_none() {
-                    app.color_selection().await;
+                    app.color_selection();
                 } else {
-                    app.game.select_cell().await;
+                    app.game.select_cell();
                 }
             }
             Pages::Multiplayer => {
@@ -125,17 +125,17 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<
                         app.setup_game_server().await;
                     }
 
-                    app.color_selection().await;
+                    app.color_selection();
                 } else {
                     
-                    app.game.select_cell().await;
+                    app.game.select_cell();
                 }
             }
             Pages::Credit => {
                 app.current_page = Pages::Home;
             }
             _ => {
-                app.game.select_cell().await;
+                app.game.select_cell();
             }
         },
         KeyCode::Char('?') => {
@@ -143,7 +143,7 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<
                 app.toggle_help_popup();
             }
         }
-        KeyCode::Char('r') => app.restart().await,
+        KeyCode::Char('r') => app.restart(),
         KeyCode::Esc => {
             match app.current_popup {
                 Some(Popups::ColorSelection) => {
@@ -184,7 +184,7 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<
             if app.game.bot.is_some() {
                 app.game.bot = None;
             }
-            app.go_to_home().await;
+            app.go_to_home();
             app.game.game_board.reset();
             app.game.ui.reset();
             app.game.ui.display_mode = display_mode;
@@ -195,7 +195,7 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<
     Ok(())
 }
 
-pub async fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<()> {
+pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<()> {
     // Mouse control only implemented for actual game
     if app.current_page == Pages::Home {
         return Ok(());
@@ -218,7 +218,7 @@ pub async fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppR
                 return Ok(());
             }
             app.game.ui.promotion_cursor = x as i8;
-            app.game.promote_piece().await;
+            app.game.promote_piece();
         }
         if mouse_event.column < app.game.ui.top_x || mouse_event.row < app.game.ui.top_y {
             return Ok(());
@@ -234,7 +234,7 @@ pub async fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppR
         let authorized_positions = app
             .game
             .game_board
-            .get_authorized_positions(app.game.player_turn, app.game.ui.selected_coordinates).await;
+            .get_authorized_positions(app.game.player_turn, app.game.ui.selected_coordinates);
 
         let piece_color = app
             .game
@@ -248,7 +248,7 @@ pub async fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppR
             }
         {
             app.game.ui.cursor_coordinates = coords;
-            app.game.select_cell().await;
+            app.game.select_cell();
         } else {
             app.game.ui.selected_coordinates = coords;
         }
