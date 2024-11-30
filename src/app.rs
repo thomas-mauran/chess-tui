@@ -1,5 +1,4 @@
 use dirs::home_dir;
-use tokio::time::sleep;
 use toml::Value;
 
 use crate::{
@@ -9,9 +8,7 @@ use crate::{
     server::game_server::GameServer,
 };
 use std::{
-    error,
-    fs::{self, File},
-    io::Write, time::Duration,
+    error, fs::{self, File}, io::Write, thread::sleep, time::Duration
 };
 
 /// Application result type.
@@ -23,8 +20,6 @@ pub struct App {
     pub running: bool,
     /// Game
     pub game: Game,
-    /// Game server
-    pub game_server: Option<tokio::task::JoinHandle<GameServer>>,
     /// Current page to render
     pub current_page: Pages,
     /// Current popup to render
@@ -44,7 +39,6 @@ impl Default for App {
         Self {
             running: true,
             game: Game::default(),
-            game_server: None,
             current_page: Pages::Home,
             current_popup: None,
             selected_color: None,
@@ -71,21 +65,21 @@ impl App {
         }
     }
 
-    pub async fn setup_game_server(&mut self) {
+    pub fn setup_game_server(&mut self) {
         let hosting = self.hosting.unwrap(); // Unwrap cautiously; add error handling as needed
 
-        self.game_server = Some(tokio::spawn(async move {
-            let g = GameServer::new(hosting).await;
-            g.run().await;
-            g
-        }));
-        sleep(Duration::from_millis(100)).await;
-        self.start_game_stream().await;
+        std::thread::spawn(move || {
+            let game_server = GameServer::new(hosting);
+            game_server.run();
+        });
+
+        sleep(Duration::from_millis(100));
+        self.start_game_stream();
     }
 
-    pub async fn start_game_stream(&mut self){
+    pub fn start_game_stream(&mut self){
+        self.game.start_game_stream("127.0.0.1:2308");
         println!("Starting game stream");
-        self.game.start_game_stream("127.0.0.1:2308").await;
     }
 
     pub fn go_to_home(&mut self) {

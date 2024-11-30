@@ -22,9 +22,8 @@ struct Args {
     engine_path: String,
 }
 
-#[tokio::main]
 
-async fn main() -> AppResult<()> {
+fn main() -> AppResult<()> {
     // Used to enable mouse capture
     ratatui::crossterm::execute!(
         std::io::stdout(),
@@ -76,7 +75,7 @@ async fn main() -> AppResult<()> {
         // Handle events.
         match tui.events.next()? {
             Event::Tick => app.tick(),
-            Event::Key(key_event) => handle_key_events(key_event, &mut app).await?,
+            Event::Key(key_event) => handle_key_events(key_event, &mut app)?,
             Event::Mouse(mouse_event) => handle_mouse_events(mouse_event, &mut app)?,
             Event::Resize(_, _) => {}
         }

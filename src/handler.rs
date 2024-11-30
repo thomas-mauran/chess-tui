@@ -10,7 +10,7 @@ use ratatui::crossterm::event::{
 };
 
 /// Handles the key events and updates the state of [`App`].
-pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
+pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
     if key_event.kind != KeyEventKind::Press {
         // crossterm on Windows sends Release and Repeat events as well, which we ignore.
         return Ok(());
@@ -121,8 +121,8 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<
                 if app.hosting.is_none() {
                     app.hosting_selection();
                 } else if app.selected_color.is_none() {
-                    if app.hosting.is_some() && app.hosting.unwrap() == true && app.game_server.is_none() {
-                        app.setup_game_server().await;
+                    if app.hosting.is_some() {
+                        app.setup_game_server();
                     }
 
                     app.color_selection();
