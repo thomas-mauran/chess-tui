@@ -17,7 +17,6 @@ pub struct GameServer {
 
 impl GameServer {
     pub fn new(is_server_white: bool) -> Self {
-        log::info!("Creating new server");
         Self {
             clients: Arc::new(Mutex::new(vec![])),
             client_id: 0,
@@ -28,8 +27,6 @@ impl GameServer {
     pub fn run(&self) {
         let listener: TcpListener = TcpListener::bind("127.0.0.1:2308").expect("Failed to create listener");
 
-        log::info!("Server is running on 127.0.0.1:2308");
-        
         let state = self.clients.clone();
 
         for stream in listener.incoming(){
@@ -64,12 +61,11 @@ fn handle_client(state: Arc<Mutex<Vec<Client>>> , mut stream: TcpStream){
 
         let addr = stream.peer_addr().unwrap().to_string();
 
-        stream.read(&mut buffer).expect("Faiiled to read from client!");
+        stream.read(&mut buffer).expect("Failed to read from client!");
 
         let request = String::from_utf8_lossy(&buffer[..]);
 
-        broadcast_message(state.clone(), format!("{}: {}\n",addr, request.to_string()), addr);
-        println!("Received {}", request);
+        broadcast_message(state.clone(), format!("{}", request.to_string()), addr);
     }
 }
 

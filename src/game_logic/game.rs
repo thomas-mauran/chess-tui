@@ -1,4 +1,4 @@
-use std::{net::TcpStream, sync::mpsc};
+use std::{io::{Read, Write}, net::TcpStream, sync::mpsc};
 
 use super::{bot::Bot, coord::Coord, game_board::GameBoard, ui::UI};
 use crate::{
@@ -86,19 +86,9 @@ impl Game {
     }
 
     pub fn start_game_stream(&mut self, addr: &str) {
-        // Block on the connection attempt
-        match TcpStream::connect(addr) {
-            Ok(stream) => {
-                let (tx, mut rx) = mpsc::channel();
-
-                tx.send("HELLO FROM THE GAME");
-
-                self.game_stream = Some(stream);
-            }
-            Err(e) => {
-                eprintln!("Failed to connect to game server: {}", e);
-            }
-        }
+        TcpStream::connect(addr).map(|stream| {
+            self.game_stream = Some(stream);
+        }).unwrap();
     }
 
     // Methods to select a cell on the board
@@ -124,14 +114,10 @@ impl Game {
                     }
 
                     if self.game_stream.is_some() {
-                        // We send the move to the server
-                        // self.send_move_to_server();
-                
-                        // We read the stream
-                        // self.read_stream();
+                        self.send_move_to_server();
                     }
 
-                    if (self.bot.is_none()
+                    if (self.bot.is_none() || self.game_stream.is_none()
                         || (self.bot.as_ref().map_or(false, |bot| bot.is_bot_starting)))
                         && (!self.game_board.is_latest_move_promotion()
                             || self.game_board.is_draw(self.player_turn)
@@ -139,6 +125,12 @@ impl Game {
                     {
                         self.game_board.flip_the_board();
                     }
+
+                    // If we play in multiplayer we will wait for the other player to play
+                    if self.game_stream.is_some() {
+                        self.execute_multiplayer_move();
+                    }
+
                     // If we play against a bot we will play his move and switch the player turn again
                     if self.bot.is_some() {
                         // do this in background
@@ -160,6 +152,7 @@ impl Game {
                             }
                         }
                     }
+
                 }
             } else {
                 // Check if the piece on the cell can move before selecting it
@@ -361,37 +354,65 @@ impl Game {
 
     }
 
-    // pub fn send_move_to_server(&mut self){
+    pub fn execute_multiplayer_move(&mut self){
+        let player_move = self.read_stream();
 
-    //     println!("SEND  MOVE TO SERVER {:?}", self.game_stream);
-    //     if let Some(game_stream) = self.game_stream.as_mut() {
-    //         let move_to_send = self.game_board.move_history.last().unwrap();
-    //         let move_str = format!(
-    //             "{}{}{}{}",
-    //             move_to_send.from.row,
-    //             move_to_send.from.col,
-    //             move_to_send.to.row,
-    //             move_to_send.to.col
-    //         );
-    //         println!("HERE IS THE MOVE{:?}", move_str);
-    //         if let Err(e) = game_stream.write_all(move_str.as_bytes()) {
-    //             eprintln!("Failed to send move: {}", e);
-    //         } else {
-    //             println!("Move sent: {}", move_str);
-    //         }
+        if player_move.is_empty() {
+            return;
+        }
 
-    //         if let Err(e) = game_stream.flush() {
-    //             eprintln!("Failed to flush stream: {}", e);
-    //         }
-    //         // let _ = game_stream.flush().unwrap();
-    //     }
-    // }
+        let from_y = get_int_from_char(player_move.chars().next());
+        let from_x = get_int_from_char(player_move.chars().nth(1));
+        let to_y = get_int_from_char(player_move.chars().nth(2));
+        let to_x = get_int_from_char(player_move.chars().nth(3));
 
-    // pub fn read_stream(&mut self) {
-    //     if let Some(game_stream) = self.game_stream.as_mut() {
-    //         let mut buffer = vec![0; 4];
-    //         let _ = game_stream.read(&mut buffer);
-    //         println!("{:?}", buffer);
-    //     }
-    // }
+        let from = Coord::new(from_y, from_x);
+        let to = Coord::new(to_y, to_x);
+
+        self.execute_move(&from, &to);
+
+        self.game_board.flip_the_board();
+    }
+
+    pub fn send_move_to_server(&mut self){
+
+        if let Some(game_stream) = self.game_stream.as_mut() {
+            let move_to_send = self.game_board.move_history.last().unwrap();
+            let move_str = format!(
+                "{}{}{}{}",
+                move_to_send.from.row,
+                move_to_send.from.col,
+                move_to_send.to.row,
+                move_to_send.to.col
+            );
+            if let Err(e) = game_stream.write_all(move_str.as_bytes()) {
+                eprintln!("Failed to send move: {}", e);
+            }
+
+            if let Err(e) = game_stream.flush() {
+                eprintln!("Failed to flush stream: {}", e);
+            }
+            // let _ = game_stream.flush().unwrap();
+        }
+    }
+
+    pub fn read_stream(&mut self) -> String{
+        if let Some(game_stream) = self.game_stream.as_mut() {
+            let mut buffer = vec![0; 4];
+            let buf = game_stream.read(&mut buffer);
+            match buf {
+                Ok(_) => {
+                    let response = String::from_utf8_lossy(&buffer);
+                    response.to_string()
+                }
+                Err(e) => {
+                    eprintln!("Failed to read from stream: {}", e);
+                    "".to_string()
+                }
+            }
+                
+        }else {
+            "".to_string()
+        }
+    }
 }

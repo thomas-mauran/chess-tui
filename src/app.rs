@@ -79,7 +79,6 @@ impl App {
 
     pub fn start_game_stream(&mut self){
         self.game.start_game_stream("127.0.0.1:2308");
-        println!("Starting game stream");
     }
 
     pub fn go_to_home(&mut self) {
