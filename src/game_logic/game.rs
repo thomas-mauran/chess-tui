@@ -1,4 +1,4 @@
-use std::{io::{Read, Write}, net::TcpStream, sync::mpsc};
+use std::{io::{Read, Write}, net::TcpStream};
 
 use super::{bot::Bot, coord::Coord, game_board::GameBoard, ui::UI};
 use crate::{

@@ -31,11 +31,20 @@ impl GameServer {
 
         for stream in listener.incoming(){
             match stream{
-                Ok(stream) => {
+                Ok(mut stream) => {
                     let state = Arc::clone(&state);
                     std::thread::spawn(move || {
                         {
                             let mut state_lock: std::sync::MutexGuard<'_, Vec<Client>> = state.lock().unwrap();
+
+                            if state_lock.len() >= 2 {
+                                stream.write_all("Game is already full".as_bytes()).expect("Failed to write to client!");
+                                // Close the stream as we won't handle it
+                                drop(stream);
+                                return;
+                            }
+
+                            
                             state_lock.push(Client{
                                 addr: stream.peer_addr().unwrap().to_string(),
                                 stream: stream.try_clone().unwrap(),
