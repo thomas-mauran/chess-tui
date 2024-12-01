@@ -93,6 +93,28 @@ fn main() -> AppResult<()> {
             }
             tui.draw(&mut app)?;
         }
+        // If it's the other player's turn, wait for the player to move
+        if app.game.player.is_some() && app.game.player.as_ref().map_or(false, |player| player.player_will_move) {
+
+            // check the other player color: 
+            if app.game.player.as_ref().map_or(false, |player| player.color == chess_tui::pieces::PieceColor::White) {
+                app.game.game_board.flip_the_board();
+            }
+
+            tui.draw(&mut app)?;
+            app.game.execute_multiplayer_move();
+            app.game.switch_player_turn();
+            if let Some(player) = app.game.player.as_mut() {
+                player.player_will_move = false;
+            }
+            // need to be centralised
+            if app.game.game_board.is_checkmate(app.game.player_turn) {
+                app.game.game_state = GameState::Checkmate;
+            } else if app.game.game_board.is_draw(app.game.player_turn) {
+                app.game.game_state = GameState::Draw;
+            }
+            tui.draw(&mut app)?;
+        }
     }
 
     // Exit the user interface.

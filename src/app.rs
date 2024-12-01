@@ -8,7 +8,7 @@ use crate::{
     server::game_server::GameServer,
 };
 use std::{
-    error, fs::{self, File}, io::{Read, Write}, thread::sleep, time::Duration
+    error, fs::{self, File}, io::Write, thread::sleep, time::Duration
 };
 
 /// Application result type.
@@ -87,9 +87,9 @@ impl App {
         if !self.hosting.unwrap() {
             // If we are not hosting (joining) we set the selected color as the opposite of the opposite player color
              self.selected_color = Some(self.game.player.as_mut().unwrap().color.opposite());
-             if self.selected_color.unwrap() == PieceColor::Black {
-                 self.game.game_board.flip_the_board();
-             }
+            //  if self.selected_color.unwrap() == PieceColor::Black {
+            //      self.game.game_board.flip_the_board();
+            //  }
         }
     }
 

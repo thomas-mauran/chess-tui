@@ -40,9 +40,14 @@ impl Player {
             None => get_color_from_stream(&stream),
         };
 
+        let player_will_move = match color {
+            PieceColor::White => true,
+            PieceColor::Black => false,
+        };
+
         Player {
             stream: Some(stream),                 // Move the stream into the struct
-            player_will_move: false, // Default to false
+            player_will_move, // Default to false
             color,
         }
     }

@@ -105,8 +105,11 @@ impl Game {
                         self.game_state = GameState::Draw;
                     }
 
-                    if self.player.is_some() && self.player.as_mut().unwrap().stream.is_some() {
+                    // We are doing a multiplayer game
+                    if self.player.is_some() {
+                        // If it is the other player turn we wait for his move
                         self.player.as_mut().unwrap().send_move_to_server(self.game_board.move_history.last().unwrap());
+
                     }
 
                     if (self.bot.is_none() || self.player.is_none()
@@ -116,11 +119,6 @@ impl Game {
                             || self.game_board.is_checkmate(self.player_turn))
                     {
                         self.game_board.flip_the_board();
-                    }
-
-                    // If we play in multiplayer we will wait for the other player to play
-                    if self.player.is_some() {
-                        self.execute_multiplayer_move();
                     }
 
                     // If we play against a bot we will play his move and switch the player turn again
@@ -142,6 +140,22 @@ impl Game {
                                     bot.bot_will_move = true;
                                 }
                             }
+                        }
+                    }
+
+                    // If we play against a player we will wait for his move
+                    if self.player.is_some() {
+                        if self.game_board.is_checkmate(self.player_turn) {
+                            self.game_state = GameState::Checkmate;
+                        }
+                        if self.game_board.is_latest_move_promotion() {
+                            self.game_state = GameState::Promotion;
+                        }
+                        if self.game_board.is_draw(self.player_turn) {
+                            self.game_state = GameState::Draw;
+                        }
+                        if self.game_state != GameState::Promotion {
+                            self.player.as_mut().unwrap().player_will_move = true;
                         }
                     }
 
@@ -347,7 +361,12 @@ impl Game {
     }
 
     pub fn execute_multiplayer_move(&mut self){
+        if self.player.as_mut().unwrap().color == PieceColor::Black {
+            self.game_board.flip_the_board();
+        }
         let player_move = self.player.as_mut().unwrap().read_stream();
+
+        println!("Player move: {}", player_move);
 
         if player_move.is_empty() {
             return;
@@ -363,7 +382,6 @@ impl Game {
 
         self.execute_move(&from, &to);
 
-        self.game_board.flip_the_board();
     }
 
     
