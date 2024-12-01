@@ -3,12 +3,12 @@ use toml::Value;
 
 use crate::{
     constants::{DisplayMode, Pages, Popups},
-    game_logic::{bot::Bot, game::Game},
+    game_logic::{bot::Bot, game::Game, player::Player},
     pieces::PieceColor,
     server::game_server::GameServer,
 };
 use std::{
-    error, fs::{self, File}, io::Write, thread::sleep, time::Duration
+    error, fs::{self, File}, io::{Read, Write}, thread::sleep, time::Duration
 };
 
 /// Application result type.
@@ -65,20 +65,32 @@ impl App {
         }
     }
 
-    pub fn setup_game_server(&mut self) {
-        let hosting = self.hosting.unwrap(); // Unwrap cautiously; add error handling as needed
+    pub fn setup_game_server(&mut self, host_color: PieceColor) {
+        let is_host_white = host_color == PieceColor::White;
 
         std::thread::spawn(move || {
-            let game_server = GameServer::new(hosting);
+            let game_server = GameServer::new(is_host_white);
             game_server.run();
         });
 
         sleep(Duration::from_millis(100));
-        self.start_game_stream();
     }
 
-    pub fn start_game_stream(&mut self){
-        self.game.start_game_stream("127.0.0.1:2308");
+    pub fn create_player(&mut self){
+        let other_player_color = if self.selected_color.is_some() {
+            Some(self.selected_color.unwrap().opposite())
+        } else {
+           None
+        };
+        self.game.player = Some(Player::new("127.0.0.1:2308", other_player_color));
+
+        if !self.hosting.unwrap() {
+            // If we are not hosting (joining) we set the selected color as the opposite of the opposite player color
+             self.selected_color = Some(self.game.player.as_mut().unwrap().color.opposite());
+             if self.selected_color.unwrap() == PieceColor::Black {
+                 self.game.game_board.flip_the_board();
+             }
+        }
     }
 
     pub fn go_to_home(&mut self) {
@@ -151,8 +163,10 @@ impl App {
     }
 
     pub fn hosting_selection(&mut self) {
-        self.current_popup = Some(Popups::ColorSelection);
-        self.hosting = Some(self.menu_cursor == 0);
+        let choice = self.menu_cursor == 0;
+        self.hosting = Some(choice);
+        self.current_popup = None;
+
     }
 
     pub fn restart(&mut self) {

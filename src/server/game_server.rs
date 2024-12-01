@@ -12,15 +12,15 @@ pub struct GameServer {
     pub clients: Arc<Mutex<Vec<Client>>>,
     pub client_id: usize,
     /// Defines the color of the server side
-    pub is_server_white: bool,
+    pub is_host_white: bool,
 }
 
 impl GameServer {
-    pub fn new(is_server_white: bool) -> Self {
+    pub fn new(is_host_white: bool) -> Self {
         Self {
             clients: Arc::new(Mutex::new(vec![])),
             client_id: 0,
-            is_server_white,
+            is_host_white,
         }
     }
 
@@ -33,11 +33,22 @@ impl GameServer {
             match stream{
                 Ok(mut stream) => {
                     let state = Arc::clone(&state);
+                    // We send the other player color, so that if the host is white the other player is black
+                    let color = if self.is_host_white {
+                        "white"
+                    }else {
+                        "black"
+                    };
+
                     std::thread::spawn(move || {
                         {
                             let mut state_lock: std::sync::MutexGuard<'_, Vec<Client>> = state.lock().unwrap();
 
-                            if state_lock.len() >= 2 {
+                            // We already have the host in the game we will send the color of the other player
+                            if state_lock.len() == 1 {
+                                stream.write_all(color.as_bytes());
+                            }
+                            else if state_lock.len() >= 2 {
                                 stream.write_all("Game is already full".as_bytes()).expect("Failed to write to client!");
                                 // Close the stream as we won't handle it
                                 drop(stream);

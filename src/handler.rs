@@ -121,13 +121,11 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                 if app.hosting.is_none() {
                     app.hosting_selection();
                 } else if app.selected_color.is_none() {
-                    if app.hosting.is_some() {
-                        app.setup_game_server();
+                    if app.hosting.is_some() && app.hosting.unwrap() == true{
+                        app.color_selection();
                     }
-
-                    app.color_selection();
-                } else {
-                    
+                } 
+                else {
                     app.game.select_cell();
                 }
             }

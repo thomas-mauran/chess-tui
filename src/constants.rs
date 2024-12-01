@@ -56,6 +56,7 @@ impl Pages {
 pub enum Popups {
     ColorSelection,
     MultiplayerSelection,
+    JoinPrompt,
     EnginePathError,
     Help,
 }

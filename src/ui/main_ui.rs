@@ -16,7 +16,7 @@ use crate::{
     },
 };
 
-use super::popups::render_multiplayer_selection_popup;
+use super::popups::{render_join_prompt, render_multiplayer_selection_popup};
 use crate::{
     app::App,
     constants::{DisplayMode, Pages, TITLE},
@@ -35,11 +35,14 @@ pub fn render<'a>(app: &mut App, frame: &mut Frame<'a>) {
     else if app.current_page == Pages::Multiplayer {
         if app.hosting.is_none() {
             app.current_popup = Some(Popups::MultiplayerSelection);
-        } else if app.selected_color.is_none() {
+        } else if app.selected_color.is_none() && app.hosting.unwrap() == true {
             app.current_popup = Some(Popups::ColorSelection);
+        } else if app.game.player.is_none() {
+            if app.hosting.is_some() && app.hosting.unwrap() == true {
+                app.setup_game_server(app.selected_color.unwrap());
+            }
+            app.create_player();
         } else {
-
-
             render_game_ui(frame, app, main_area);
         }
     }
@@ -68,6 +71,10 @@ pub fn render<'a>(app: &mut App, frame: &mut Frame<'a>) {
 
     if app.current_popup.is_some() && app.current_popup == Some(Popups::MultiplayerSelection) {
         render_multiplayer_selection_popup(frame, app);
+    }
+
+    if app.current_popup.is_some() && app.current_popup == Some(Popups::JoinPrompt) {
+        render_join_prompt(frame);
     }
 
     if app.current_popup.is_some() && app.current_popup == Some(Popups::Help) {

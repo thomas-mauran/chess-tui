@@ -1,6 +1,4 @@
-use std::{io::{Read, Write}, net::TcpStream};
-
-use super::{bot::Bot, coord::Coord, game_board::GameBoard, ui::UI};
+use super::{bot::Bot, coord::Coord, game_board::GameBoard, player::Player, ui::UI};
 use crate::{
     pieces::{PieceColor, PieceMove, PieceType}, utils::get_int_from_char
 };
@@ -20,8 +18,8 @@ pub struct Game {
     pub ui: UI,
     /// The struct to handle Bot related stuff
     pub bot: Option<Bot>,
-    /// Game server stream
-    pub game_stream: Option<TcpStream>,
+    /// The other player when playing in multiplayer
+    pub player: Option<Player>,
     /// Which player is it to play
     pub player_turn: PieceColor,
     /// The current state of the game (Playing, Draw, Checkmate. Promotion)
@@ -34,7 +32,7 @@ impl Clone for Game {
             game_board: self.game_board.clone(),
             ui: self.ui.clone(),
             bot: self.bot.clone(),
-            game_stream: None, // TcpStream is not cloneable, so handle it accordingly
+            player: None, // TcpStream is not cloneable, so handle it accordingly
             player_turn: self.player_turn,
             game_state: self.game_state.clone(),
         }
@@ -47,7 +45,7 @@ impl Default for Game {
             game_board: GameBoard::default(),
             ui: UI::default(),
             bot: None,
-            game_stream: None,
+            player: None,
             player_turn: PieceColor::White,
             game_state: GameState::Playing,
         }
@@ -61,7 +59,7 @@ impl Game {
             game_board,
             ui: UI::default(),
             bot: None,
-            game_stream: None,
+            player: None,
             player_turn,
             game_state: GameState::Playing,
         }
@@ -83,12 +81,6 @@ impl Game {
             PieceColor::White => self.player_turn = PieceColor::Black,
             PieceColor::Black => self.player_turn = PieceColor::White,
         }
-    }
-
-    pub fn start_game_stream(&mut self, addr: &str) {
-        TcpStream::connect(addr).map(|stream| {
-            self.game_stream = Some(stream);
-        }).unwrap();
     }
 
     // Methods to select a cell on the board
@@ -113,11 +105,11 @@ impl Game {
                         self.game_state = GameState::Draw;
                     }
 
-                    if self.game_stream.is_some() {
-                        self.send_move_to_server();
+                    if self.player.is_some() && self.player.as_mut().unwrap().stream.is_some() {
+                        self.player.as_mut().unwrap().send_move_to_server(self.game_board.move_history.last().unwrap());
                     }
 
-                    if (self.bot.is_none() || self.game_stream.is_none()
+                    if (self.bot.is_none() || self.player.is_none()
                         || (self.bot.as_ref().map_or(false, |bot| bot.is_bot_starting)))
                         && (!self.game_board.is_latest_move_promotion()
                             || self.game_board.is_draw(self.player_turn)
@@ -127,7 +119,7 @@ impl Game {
                     }
 
                     // If we play in multiplayer we will wait for the other player to play
-                    if self.game_stream.is_some() {
+                    if self.player.is_some() {
                         self.execute_multiplayer_move();
                     }
 
@@ -355,7 +347,7 @@ impl Game {
     }
 
     pub fn execute_multiplayer_move(&mut self){
-        let player_move = self.read_stream();
+        let player_move = self.player.as_mut().unwrap().read_stream();
 
         if player_move.is_empty() {
             return;
@@ -374,45 +366,5 @@ impl Game {
         self.game_board.flip_the_board();
     }
 
-    pub fn send_move_to_server(&mut self){
-
-        if let Some(game_stream) = self.game_stream.as_mut() {
-            let move_to_send = self.game_board.move_history.last().unwrap();
-            let move_str = format!(
-                "{}{}{}{}",
-                move_to_send.from.row,
-                move_to_send.from.col,
-                move_to_send.to.row,
-                move_to_send.to.col
-            );
-            if let Err(e) = game_stream.write_all(move_str.as_bytes()) {
-                eprintln!("Failed to send move: {}", e);
-            }
-
-            if let Err(e) = game_stream.flush() {
-                eprintln!("Failed to flush stream: {}", e);
-            }
-            // let _ = game_stream.flush().unwrap();
-        }
-    }
-
-    pub fn read_stream(&mut self) -> String{
-        if let Some(game_stream) = self.game_stream.as_mut() {
-            let mut buffer = vec![0; 4];
-            let buf = game_stream.read(&mut buffer);
-            match buf {
-                Ok(_) => {
-                    let response = String::from_utf8_lossy(&buffer);
-                    response.to_string()
-                }
-                Err(e) => {
-                    eprintln!("Failed to read from stream: {}", e);
-                    "".to_string()
-                }
-            }
-                
-        }else {
-            "".to_string()
-        }
-    }
+    
 }
