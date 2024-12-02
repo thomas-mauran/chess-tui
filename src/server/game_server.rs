@@ -35,11 +35,10 @@ impl GameServer {
                     let state = Arc::clone(&state);
                     // We send the other player color, so that if the host is white the other player is black
                     let color = if self.is_host_white {
-                        "white"
+                        "w"
                     }else {
-                        "black"
+                        "b"
                     };
-
                     std::thread::spawn(move || {
                         {
                             let mut state_lock: std::sync::MutexGuard<'_, Vec<Client>> = state.lock().unwrap();
@@ -77,11 +76,13 @@ impl GameServer {
     
 fn handle_client(state: Arc<Mutex<Vec<Client>>> , mut stream: TcpStream){
     loop {
-        let mut buffer = [0; 1024];
+        let mut buffer = [0; 4];
 
         let addr = stream.peer_addr().unwrap().to_string();
 
         stream.read(&mut buffer).expect("Failed to read from client!");
+
+        println!("received message: {}", String::from_utf8_lossy(&buffer[..]));
 
         let request = String::from_utf8_lossy(&buffer[..]);
 
@@ -98,6 +99,6 @@ pub fn broadcast_message(state: Arc<Mutex<Vec<Client>>>, message: String, sender
             continue;
         }
         let mut client_stream = client.stream.try_clone().unwrap();
-        client_stream.write(message.as_bytes()).expect("Failed to write to client!");
+        client_stream.write_all(message.as_bytes()).expect("Failed to write to client!");
     }
 }

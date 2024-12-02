@@ -74,13 +74,14 @@ impl Player {
                 move_to_send.to.row,
                 move_to_send.to.col
             );
+            println!("Sending move: {}", move_str);
             if let Err(e) = game_stream.write_all(move_str.as_bytes()) {
-                eprintln!("Failed to send move: {}", e);
+                eprintln!("Failed to send move: {}", e); 
             }
 
-            if let Err(e) = game_stream.flush() {
-                eprintln!("Failed to flush stream: {}", e);
-            }
+            // if let Err(e) = game_stream.flush() {
+            //     eprintln!("Failed to flush stream: {}", e);
+            // }
             // let _ = game_stream.flush().unwrap();
         }
     }
@@ -113,8 +114,8 @@ pub fn get_color_from_stream(mut stream: &TcpStream) -> PieceColor {
     let color = String::from_utf8_lossy(&buffer[..bytes_read]).to_string();
 
     match color.as_str() {
-        "white" => PieceColor::White,
-        "black" => PieceColor::Black,
+        "w" => PieceColor::White,
+        "b" => PieceColor::Black,
         _ => panic!("Failed to get color from stream"),
     }
 }

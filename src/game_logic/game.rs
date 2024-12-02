@@ -1,6 +1,6 @@
 use super::{bot::Bot, coord::Coord, game_board::GameBoard, player::Player, ui::UI};
 use crate::{
-    pieces::{PieceColor, PieceMove, PieceType}, utils::get_int_from_char
+    pieces::{PieceColor, PieceMove, PieceType}, utils::{get_int_from_char, invert_position}
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Copy)]
@@ -105,19 +105,21 @@ impl Game {
                         self.game_state = GameState::Draw;
                     }
 
-                    // We are doing a multiplayer game
-                    if self.player.is_some() {
-                        // If it is the other player turn we wait for his move
-                        self.player.as_mut().unwrap().send_move_to_server(self.game_board.move_history.last().unwrap());
 
-                    }
-
-                    if (self.bot.is_none() || self.player.is_none()
+                    if (self.bot.is_none()
                         || (self.bot.as_ref().map_or(false, |bot| bot.is_bot_starting)))
+                        && (self.player.is_none()
+                            || (self.player.as_ref().map_or(false, |player| player.color == PieceColor::Black)))
                         && (!self.game_board.is_latest_move_promotion()
                             || self.game_board.is_draw(self.player_turn)
                             || self.game_board.is_checkmate(self.player_turn))
                     {
+                        for i in 0..8 {
+                            for j in 0..8 {
+                                println!("Switching player turn{}", self.player.is_none());
+
+                            }
+                        }   
                         self.game_board.flip_the_board();
                     }
 
@@ -142,7 +144,6 @@ impl Game {
                             }
                         }
                     }
-
                     // If we play against a player we will wait for his move
                     if self.player.is_some() {
                         if self.game_board.is_checkmate(self.player_turn) {
@@ -154,9 +155,15 @@ impl Game {
                         if self.game_board.is_draw(self.player_turn) {
                             self.game_state = GameState::Draw;
                         }
-                        if self.game_state != GameState::Promotion {
-                            self.player.as_mut().unwrap().player_will_move = true;
+                        if !(self.game_state == GameState::Checkmate) {
+                            if let Some(player) = self.player.as_mut() {
+                                player.player_will_move = true;
+                            }
                         }
+
+                        self.player.as_mut().unwrap().send_move_to_server(self.game_board.move_history.last().unwrap());
+                        // self.player.as_mut().unwrap().
+
                     }
 
                 }
@@ -192,6 +199,7 @@ impl Game {
         } else if self.game_board.is_latest_move_promotion() {
             self.game_state = GameState::Promotion;
         }
+
     }
 
     /* Method to make a move for the bot
@@ -361,17 +369,23 @@ impl Game {
     }
 
     pub fn execute_multiplayer_move(&mut self){
-        if self.player.as_mut().unwrap().color == PieceColor::Black {
-            self.game_board.flip_the_board();
-        }
+
+        // if self.player.as_mut().unwrap().color == PieceColor::Black {
+        //     self.game_board.flip_the_board();
+        // }        
         let player_move = self.player.as_mut().unwrap().read_stream();
 
+        
         println!("Player move: {}", player_move);
 
         if player_move.is_empty() {
             return;
         }
 
+
+        println!("Player move: {:?}", player_move.chars());
+
+        self.player.as_mut().unwrap().player_will_move = false;
         let from_y = get_int_from_char(player_move.chars().next());
         let from_x = get_int_from_char(player_move.chars().nth(1));
         let to_y = get_int_from_char(player_move.chars().nth(2));
@@ -380,7 +394,16 @@ impl Game {
         let from = Coord::new(from_y, from_x);
         let to = Coord::new(to_y, to_x);
 
+        // println!("Player move: {:?} {:?}", from, to);
+
+
+        // if it's the black player
         self.execute_move(&from, &to);
+
+        // if self.player.as_mut().unwrap().color == PieceColor::Black {
+        //     self.game_board.flip_the_board();
+        // }
+
 
     }
 
