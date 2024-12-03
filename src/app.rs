@@ -137,22 +137,23 @@ impl App {
 
     pub fn color_selection(&mut self) {
         self.current_popup = None;
-
         let color = match self.menu_cursor {
             0 => PieceColor::White,
             1 => PieceColor::Black,
             _ => unreachable!("Invalid color selection"),
         };
         self.selected_color = Some(color);
+    }
 
+    pub fn bot_setup(&mut self) {
         let empty = "".to_string();
         let path = match self.chess_engine_path.as_ref() {
             Some(engine_path) => engine_path,
             None => &empty,
         };
 
-        // if the selected Color is Black, we need to switch the Game
-        if let Some(color) = self.selected_color {
+         // if the selected Color is Black, we need to switch the Game
+         if let Some(color) = self.selected_color {
             if color == PieceColor::Black {
                 self.game.bot = Some(Bot::new(path, true));
 

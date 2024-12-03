@@ -113,6 +113,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             Pages::Bot => {
                 if app.selected_color.is_none() {
                     app.color_selection();
+                    app.bot_setup();
                 } else {
                     app.game.select_cell();
                 }

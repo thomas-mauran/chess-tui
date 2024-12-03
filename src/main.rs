@@ -102,7 +102,7 @@ fn main() -> AppResult<()> {
             // }
 
             tui.draw(&mut app)?;
-            app.game.execute_multiplayer_move();
+            app.game.execute_other_player_move();
             app.game.switch_player_turn();
 
             // need to be centralised

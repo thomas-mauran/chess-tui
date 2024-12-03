@@ -108,18 +108,11 @@ impl Game {
 
                     if (self.bot.is_none()
                         || (self.bot.as_ref().map_or(false, |bot| bot.is_bot_starting)))
-                        && (self.player.is_none()
-                            || (self.player.as_ref().map_or(false, |player| player.color == PieceColor::Black)))
+                        && (self.player.is_none())
                         && (!self.game_board.is_latest_move_promotion()
                             || self.game_board.is_draw(self.player_turn)
                             || self.game_board.is_checkmate(self.player_turn))
                     {
-                        for i in 0..8 {
-                            for j in 0..8 {
-                                println!("Switching player turn{}", self.player.is_none());
-
-                            }
-                        }   
                         self.game_board.flip_the_board();
                     }
 
@@ -368,11 +361,9 @@ impl Game {
 
     }
 
-    pub fn execute_multiplayer_move(&mut self){
+    pub fn execute_other_player_move(&mut self){
 
-        // if self.player.as_mut().unwrap().color == PieceColor::Black {
-        //     self.game_board.flip_the_board();
-        // }        
+        self.game_board.flip_the_board();
         let player_move = self.player.as_mut().unwrap().read_stream();
 
         
@@ -400,9 +391,7 @@ impl Game {
         // if it's the black player
         self.execute_move(&from, &to);
 
-        // if self.player.as_mut().unwrap().color == PieceColor::Black {
-        //     self.game_board.flip_the_board();
-        // }
+        self.game_board.flip_the_board();
 
 
     }
