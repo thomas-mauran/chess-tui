@@ -82,8 +82,6 @@ fn handle_client(state: Arc<Mutex<Vec<Client>>> , mut stream: TcpStream){
 
         stream.read(&mut buffer).expect("Failed to read from client!");
 
-        println!("received message: {}", String::from_utf8_lossy(&buffer[..]));
-
         let request = String::from_utf8_lossy(&buffer[..]);
 
         broadcast_message(state.clone(), format!("{}", request.to_string()), addr);

@@ -24,7 +24,15 @@ impl Default for Player {
 impl Player {
     pub fn clone(self) -> Self {
         Player {
-            stream: self.stream,
+            stream: None,
+            player_will_move: self.player_will_move,
+            color: self.color,
+        }
+    }
+    
+    pub fn copy(&self) -> Self {
+        Player {
+            stream: None,
             player_will_move: self.player_will_move,
             color: self.color,
         }
@@ -74,15 +82,10 @@ impl Player {
                 move_to_send.to.row,
                 move_to_send.to.col
             );
-            println!("Sending move: {}", move_str);
             if let Err(e) = game_stream.write_all(move_str.as_bytes()) {
                 eprintln!("Failed to send move: {}", e); 
             }
 
-            // if let Err(e) = game_stream.flush() {
-            //     eprintln!("Failed to flush stream: {}", e);
-            // }
-            // let _ = game_stream.flush().unwrap();
         }
     }
 

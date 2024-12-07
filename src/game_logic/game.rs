@@ -28,11 +28,18 @@ pub struct Game {
 
 impl Clone for Game {
     fn clone(&self) -> Self {
+
+        let player_clone = Some(Player {
+            stream: None,
+            player_will_move: self.player.as_ref().unwrap().player_will_move,
+            color: self.player.as_ref().unwrap().color,
+        });
+
         Game {
             game_board: self.game_board.clone(),
             ui: self.ui.clone(),
             bot: self.bot.clone(),
-            player: None, // TcpStream is not cloneable, so handle it accordingly
+            player: player_clone,
             player_turn: self.player_turn,
             game_state: self.game_state.clone(),
         }
@@ -363,18 +370,13 @@ impl Game {
 
     pub fn execute_other_player_move(&mut self){
 
-        self.game_board.flip_the_board();
         let player_move = self.player.as_mut().unwrap().read_stream();
 
         
-        println!("Player move: {}", player_move);
-
         if player_move.is_empty() {
             return;
         }
 
-
-        println!("Player move: {:?}", player_move.chars());
 
         self.player.as_mut().unwrap().player_will_move = false;
         let from_y = get_int_from_char(player_move.chars().next());
@@ -382,17 +384,10 @@ impl Game {
         let to_y = get_int_from_char(player_move.chars().nth(2));
         let to_x = get_int_from_char(player_move.chars().nth(3));
 
-        let from = Coord::new(from_y, from_x);
-        let to = Coord::new(to_y, to_x);
+        let from = invert_position(&Coord::new(from_y, from_x));
+        let to = invert_position(&Coord::new(to_y, to_x));
 
-        // println!("Player move: {:?} {:?}", from, to);
-
-
-        // if it's the black player
         self.execute_move(&from, &to);
-
-        self.game_board.flip_the_board();
-
 
     }
 
