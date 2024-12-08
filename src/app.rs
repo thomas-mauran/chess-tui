@@ -82,14 +82,19 @@ impl App {
         } else {
            None
         };
+        if self.hosting.unwrap() {
+            self.current_popup = Some(Popups::WaitingForOpponentToJoin);
+        }
+
         self.game.player = Some(Player::new("127.0.0.1:2308", other_player_color));
 
         if !self.hosting.unwrap() {
             // If we are not hosting (joining) we set the selected color as the opposite of the opposite player color
-             self.selected_color = Some(self.game.player.as_mut().unwrap().color.opposite());
-             if self.selected_color.unwrap() == PieceColor::Black {
-                 self.game.game_board.flip_the_board();
-             }
+            self.selected_color = Some(self.game.player.as_mut().unwrap().color.opposite());
+            self.game.player.as_mut().unwrap().game_started = true;
+        }
+        if self.selected_color.unwrap() == PieceColor::Black {
+            self.game.game_board.flip_the_board();
         }
     }
 

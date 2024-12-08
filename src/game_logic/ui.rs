@@ -380,7 +380,6 @@ impl UI {
                 let last_move;
                 let mut last_move_from = Coord::undefined();
                 let mut last_move_to = Coord::undefined();
-                // println!("player is some {:?}", game.player.is_some());
                 if !game.game_board.move_history.is_empty() {
                     last_move = game.game_board.move_history.last();
                     if (game.bot.is_some()

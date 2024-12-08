@@ -1,6 +1,7 @@
 use std::{io::{Read, Write}, net::{TcpListener, TcpStream}, sync::{Arc, Mutex}};
 
 
+#[derive(Debug)]
 pub struct Client{
     addr: String,
     stream: TcpStream,
@@ -46,6 +47,12 @@ impl GameServer {
                             // We already have the host in the game we will send the color of the other player
                             if state_lock.len() == 1 {
                                 stream.write_all(color.as_bytes());
+
+                                // We tell the other player that the game started
+                                let other_player = state_lock.last().unwrap();
+                                let mut other_player_stream = other_player.stream.try_clone().unwrap();
+                                other_player_stream.write_all("s".as_bytes());
+
                             }
                             else if state_lock.len() >= 2 {
                                 stream.write_all("Game is already full".as_bytes()).expect("Failed to write to client!");
@@ -90,6 +97,7 @@ fn handle_client(state: Arc<Mutex<Vec<Client>>> , mut stream: TcpStream){
 
 
 pub fn broadcast_message(state: Arc<Mutex<Vec<Client>>>, message: String, sender_addr: String){
+
     let state = state.lock().unwrap();
 
     for client in state.iter(){

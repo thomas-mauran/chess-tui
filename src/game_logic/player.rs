@@ -8,6 +8,8 @@ pub struct Player {
     pub player_will_move: bool,
     // The color of the player
     pub color: PieceColor,
+    /// Is Game started
+    pub game_started: bool,
 }
 
 // Custom Default implementation
@@ -17,6 +19,7 @@ impl Default for Player {
             stream: None,
             player_will_move: false,
             color: PieceColor::Black,
+            game_started: false,
         }
     }
 }
@@ -27,6 +30,7 @@ impl Player {
             stream: None,
             player_will_move: self.player_will_move,
             color: self.color,
+            game_started: self.game_started,
         }
     }
     
@@ -35,6 +39,7 @@ impl Player {
             stream: None,
             player_will_move: self.player_will_move,
             color: self.color,
+            game_started: self.game_started,
         }
     }
 
@@ -54,9 +59,10 @@ impl Player {
         };
 
         Player {
-            stream: Some(stream),                 // Move the stream into the struct
-            player_will_move, // Default to false
+            stream: Some(stream),
+            player_will_move,
             color,
+            game_started: false,
         }
     }
 
@@ -108,6 +114,7 @@ impl Player {
             "".to_string()
         }
     }
+
 }
 
 
@@ -119,6 +126,18 @@ pub fn get_color_from_stream(mut stream: &TcpStream) -> PieceColor {
     match color.as_str() {
         "w" => PieceColor::White,
         "b" => PieceColor::Black,
+        _ => panic!("Failed to get color from stream"),
+    }
+}
+
+
+pub fn wait_for_game_start(mut stream: &TcpStream) {
+    let mut buffer = [0; 5];
+    let bytes_read = stream.read(&mut buffer).unwrap(); // Number of bytes read
+    let response = String::from_utf8_lossy(&buffer[..bytes_read]).to_string();
+
+    match response.as_str() {
+        "s" => (),
         _ => panic!("Failed to get color from stream"),
     }
 }

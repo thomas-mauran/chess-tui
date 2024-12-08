@@ -33,6 +33,7 @@ impl Clone for Game {
             stream: None,
             player_will_move: self.player.as_ref().unwrap().player_will_move,
             color: self.player.as_ref().unwrap().color,
+            game_started: self.player.as_ref().unwrap().game_started,
         });
 
         Game {

@@ -9,14 +9,14 @@ use ratatui::{
 
 use crate::{
     constants::Popups,
-    game_logic::{bot::Bot, game::GameState},
+    game_logic::{bot::Bot, game::GameState, player::wait_for_game_start},
     ui::popups::{
         render_color_selection_popup, render_credit_popup, render_end_popup,
         render_engine_path_error_popup, render_help_popup, render_promotion_popup,
     },
 };
 
-use super::popups::{render_join_prompt, render_multiplayer_selection_popup};
+use super::popups::{render_join_prompt, render_multiplayer_selection_popup, render_wait_for_other_player};
 use crate::{
     app::App,
     constants::{DisplayMode, Pages, TITLE},
@@ -42,7 +42,7 @@ pub fn render<'a>(app: &mut App, frame: &mut Frame<'a>) {
                 app.setup_game_server(app.selected_color.unwrap());
             }
             app.create_player();
-        } else {
+        } else if app.game.player.as_mut().unwrap().game_started == true {
             render_game_ui(frame, app, main_area);
         }
     }
@@ -55,7 +55,6 @@ pub fn render<'a>(app: &mut App, frame: &mut Frame<'a>) {
         } else if app.game.bot.is_none() {
             let engine_path = app.chess_engine_path.clone().unwrap();
             let is_bot_starting = app.selected_color.unwrap() == PieceColor::Black;
-            println!("Bot starting: {}", is_bot_starting);
             app.game.bot = Some(Bot::new(engine_path.as_str(), is_bot_starting));
         } else {
             render_game_ui(frame, app, main_area);
@@ -69,7 +68,9 @@ pub fn render<'a>(app: &mut App, frame: &mut Frame<'a>) {
     if app.current_popup.is_some() && app.current_popup == Some(Popups::ColorSelection) {
         render_color_selection_popup(frame, app);
     }
-
+    if app.current_popup.is_some() && app.current_popup == Some(Popups::WaitingForOpponentToJoin) {
+        render_wait_for_other_player(frame);
+    }
     if app.current_popup.is_some() && app.current_popup == Some(Popups::MultiplayerSelection) {
         render_multiplayer_selection_popup(frame, app);
     }

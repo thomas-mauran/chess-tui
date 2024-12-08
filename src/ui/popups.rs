@@ -456,3 +456,30 @@ pub fn render_join_prompt(frame: &mut Frame) {
 
     frame.render_widget(hosting, inner_popup_layout_vertical[1]);
 }
+
+
+// This renders a popup for a promotion
+pub fn render_wait_for_other_player(frame: &mut Frame) {
+    let block = Block::default()
+        .title("Waiting ...")
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .padding(Padding::horizontal(1))
+        .border_style(Style::default().fg(WHITE));
+    let area = centered_rect(40, 40, frame.area());
+
+    let text = vec![
+        Line::from(""),
+        Line::from(""),
+        Line::from("Waiting for other player").alignment(Alignment::Center),
+    ];
+
+    let paragraph = Paragraph::new(text)
+        .block(block.clone())
+        .alignment(Alignment::Left)
+        .wrap(Wrap { trim: true });
+
+    frame.render_widget(Clear, area); //this clears out the background
+    frame.render_widget(block, area);
+    frame.render_widget(paragraph, area);
+}
