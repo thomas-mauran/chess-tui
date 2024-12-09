@@ -78,6 +78,20 @@ impl GameBoard {
         }
     }
 
+    pub fn get_last_move_piece_type_as_string(&self) -> String {
+        if let Some(last_move) = self.move_history.last() {
+            match last_move.piece_type {
+                PieceType::Pawn => return String::from("p"),
+                PieceType::Rook => return String::from("r"),
+                PieceType::Knight => return String::from("k"),
+                PieceType::Bishop => return String::from("b"),
+                PieceType::Queen => return String::from("q"),
+                PieceType::King => return String::from("k"),
+            }
+        }
+        String::from("")
+    }
+
     pub fn increment_consecutive_non_pawn_or_capture(
         &mut self,
         piece_type_from: PieceType,

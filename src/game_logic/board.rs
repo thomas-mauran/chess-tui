@@ -32,7 +32,7 @@ pub fn init_board() -> Board {
         [
             Some((PieceType::Pawn, PieceColor::Black)),
             Some((PieceType::Pawn, PieceColor::Black)),
-            Some((PieceType::Pawn, PieceColor::Black)),
+            Some((PieceType::Pawn, PieceColor::White)),
             Some((PieceType::Pawn, PieceColor::Black)),
             Some((PieceType::Pawn, PieceColor::Black)),
             Some((PieceType::Pawn, PieceColor::Black)),
@@ -41,7 +41,7 @@ pub fn init_board() -> Board {
         ],
         [None, None, None, None, None, None, None, None],
         [None, None, None, None, None, None, None, None],
-        [None, None, Some((PieceType::Pawn, PieceColor::White)), None, None, None, None, None],
+        [None, None, None, None, None, None, None, None],
         [None, None, None, None, None, None, None, None],
         [
             Some((PieceType::Pawn, PieceColor::White)),

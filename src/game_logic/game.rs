@@ -1,6 +1,6 @@
 use super::{bot::Bot, coord::Coord, game_board::GameBoard, player::Player, ui::UI};
 use crate::{
-    pieces::{PieceColor, PieceMove, PieceType}, utils::{get_int_from_char, invert_position}
+    pieces::{PieceColor, PieceMove, PieceType}, utils::get_int_from_char
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Copy)]
@@ -100,6 +100,21 @@ impl Game {
         // If we are doing a promotion the cursor is used for the popup
         if self.game_state == GameState::Promotion {
             self.promote_piece();
+
+            if self.player.is_some() {
+                let player = self.player.as_mut().unwrap();
+
+                let last_move_promotion_type = self.game_board.get_last_move_piece_type_as_string();
+
+                player.send_move_to_server(self.game_board.move_history.last().unwrap(), Some(last_move_promotion_type));
+                player.player_will_move = true;
+
+            }
+
+            if self.bot.is_some() {
+                self.execute_bot_move();
+            }
+
         } else if !(self.game_state == GameState::Checkmate)
             && !(self.game_state == GameState::Draw)
         {
@@ -138,9 +153,11 @@ impl Game {
                             if self.game_board.is_checkmate(self.player_turn) {
                                 self.game_state = GameState::Checkmate;
                             }
-                            if self.game_board.is_latest_move_promotion() {
-                                self.game_state = GameState::Promotion;
+ 
+                            if self.game_board.is_draw(self.player_turn) {
+                                self.game_state = GameState::Draw;
                             }
+
                             if !(self.game_state == GameState::Checkmate) {
                                 if let Some(bot) = self.bot.as_mut() {
                                     bot.bot_will_move = true;
@@ -150,23 +167,24 @@ impl Game {
                     }
                     // If we play against a player we will wait for his move
                     if self.player.is_some() {
-                        if self.game_board.is_checkmate(self.player_turn) {
-                            self.game_state = GameState::Checkmate;
-                        }
                         if self.game_board.is_latest_move_promotion() {
                             self.game_state = GameState::Promotion;
-                        }
-                        if self.game_board.is_draw(self.player_turn) {
-                            self.game_state = GameState::Draw;
-                        }
-                        if !(self.game_state == GameState::Checkmate) {
-                            if let Some(player) = self.player.as_mut() {
-                                player.player_will_move = true;
+                        }else{
+                            if self.game_board.is_checkmate(self.player_turn) {
+                                self.game_state = GameState::Checkmate;
                             }
-                        }
+                             
+                            if self.game_board.is_draw(self.player_turn) {
+                                self.game_state = GameState::Draw;
+                            }
 
-                        self.player.as_mut().unwrap().send_move_to_server(self.game_board.move_history.last().unwrap());
-                        // self.player.as_mut().unwrap().
+                            if !(self.game_state == GameState::Checkmate) {
+                                if let Some(player) = self.player.as_mut() {
+                                    player.player_will_move = true;
+                                }
+                            }
+                            self.player.as_mut().unwrap().send_move_to_server(self.game_board.move_history.last().unwrap(), None);
+                        }
 
                     }
 
@@ -276,11 +294,18 @@ impl Game {
                 self.game_board.board[last_move.to.row as usize][last_move.to.col as usize] =
                     Some((new_piece, piece_color));
             }
+
+            // We replace the piece type in the move history
+            let latest_move = self.game_board.move_history.last_mut().unwrap();
+            latest_move.piece_type = new_piece;
+            self.game_board.board_history.pop();
+            self.game_board.board_history.push(self.game_board.board);
+
         }
         self.game_state = GameState::Playing;
         self.ui.promotion_cursor = 0;
         if !self.game_board.is_draw(self.player_turn)
-            && !self.game_board.is_checkmate(self.player_turn)
+            && !self.game_board.is_checkmate(self.player_turn) && self.player.is_none() && self.bot.is_none()
         {
             self.game_board.flip_the_board();
         }
@@ -376,12 +401,10 @@ impl Game {
 
         self.game_board.flip_the_board();
         let player_move = self.player.as_mut().unwrap().read_stream();
-
         
         if player_move.is_empty() {
             return;
         }
-
 
         self.player.as_mut().unwrap().player_will_move = false;
         let from_y = get_int_from_char(player_move.chars().next());
@@ -389,10 +412,26 @@ impl Game {
         let to_y = get_int_from_char(player_move.chars().nth(2));
         let to_x = get_int_from_char(player_move.chars().nth(3));
 
+        let mut promotion_piece: Option<PieceType> = None;
+        if player_move.chars().count() == 5 {
+            promotion_piece = match player_move.chars().nth(4) {
+                Some('q') => Some(PieceType::Queen),
+                Some('r') => Some(PieceType::Rook),
+                Some('b') => Some(PieceType::Bishop),
+                Some('n') => Some(PieceType::Knight),
+                _ => None,
+            };
+        }
+
         let from = &Coord::new(from_y, from_x);
         let to = &Coord::new(to_y, to_x);
 
         self.execute_move(&from, &to);
+
+        if promotion_piece.is_some() {
+            self.game_board.board[to_y as usize][to_x as usize] =
+                Some((promotion_piece.unwrap(), self.player_turn));
+        }
         self.game_board.flip_the_board();
 
     }

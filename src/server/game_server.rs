@@ -83,7 +83,7 @@ impl GameServer {
     
 fn handle_client(state: Arc<Mutex<Vec<Client>>> , mut stream: TcpStream){
     loop {
-        let mut buffer = [0; 4];
+        let mut buffer = [0; 5];
 
         let addr = stream.peer_addr().unwrap().to_string();
 

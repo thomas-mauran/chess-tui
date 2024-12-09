@@ -79,14 +79,19 @@ impl Player {
 
 
 
-    pub fn send_move_to_server(&mut self, move_to_send: &PieceMove){
+    pub fn send_move_to_server(&mut self, move_to_send: &PieceMove, promotion_type: Option<String>) {
+        println!("promotion type: {:?}", promotion_type);
         if let Some(game_stream) = self.stream.as_mut() {
             let move_str = format!(
-                "{}{}{}{}",
+                "{}{}{}{}{}",
                 move_to_send.from.row,
                 move_to_send.from.col,
                 move_to_send.to.row,
-                move_to_send.to.col
+                move_to_send.to.col,
+                match promotion_type {
+                    Some(promotion) => promotion,
+                    None => "".to_string(),
+                }
             );
             if let Err(e) = game_stream.write_all(move_str.as_bytes()) {
                 eprintln!("Failed to send move: {}", e); 
@@ -97,7 +102,7 @@ impl Player {
 
     pub fn read_stream(&mut self) -> String{
         if let Some(game_stream) = self.stream.as_mut() {
-            let mut buffer = vec![0; 4];
+            let mut buffer = vec![0; 5];
             let buf = game_stream.read(&mut buffer);
             match buf {
                 Ok(_) => {
