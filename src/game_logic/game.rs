@@ -29,12 +29,15 @@ pub struct Game {
 impl Clone for Game {
     fn clone(&self) -> Self {
 
-        let player_clone = Some(Player {
-            stream: None,
-            player_will_move: self.player.as_ref().unwrap().player_will_move,
-            color: self.player.as_ref().unwrap().color,
-            game_started: self.player.as_ref().unwrap().game_started,
-        });
+        let mut player_clone = None;
+        if self.player.is_some() {
+            player_clone = Some(Player {
+                stream: None,
+                player_will_move: self.player.as_ref().unwrap().player_will_move,
+                color: self.player.as_ref().unwrap().color,
+                game_started: self.player.as_ref().unwrap().game_started,
+            });
+        }
 
         Game {
             game_board: self.game_board.clone(),
@@ -371,6 +374,7 @@ impl Game {
 
     pub fn execute_other_player_move(&mut self){
 
+        self.game_board.flip_the_board();
         let player_move = self.player.as_mut().unwrap().read_stream();
 
         
@@ -385,10 +389,11 @@ impl Game {
         let to_y = get_int_from_char(player_move.chars().nth(2));
         let to_x = get_int_from_char(player_move.chars().nth(3));
 
-        let from = invert_position(&Coord::new(from_y, from_x));
-        let to = invert_position(&Coord::new(to_y, to_x));
+        let from = &Coord::new(from_y, from_x);
+        let to = &Coord::new(to_y, to_x);
 
         self.execute_move(&from, &to);
+        self.game_board.flip_the_board();
 
     }
 

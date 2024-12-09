@@ -41,7 +41,7 @@ pub fn init_board() -> Board {
         ],
         [None, None, None, None, None, None, None, None],
         [None, None, None, None, None, None, None, None],
-        [None, None, None, None, None, None, None, None],
+        [None, None, Some((PieceType::Pawn, PieceColor::White)), None, None, None, None, None],
         [None, None, None, None, None, None, None, None],
         [
             Some((PieceType::Pawn, PieceColor::White)),

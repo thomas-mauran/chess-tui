@@ -383,13 +383,19 @@ impl UI {
                 if !game.game_board.move_history.is_empty() {
                     last_move = game.game_board.move_history.last();
                     if (game.bot.is_some()
-                        && !game.bot.as_ref().map_or(false, |bot| bot.is_bot_starting)) || ( game.player.is_some())
+                        && !game.bot.as_ref().map_or(false, |bot| bot.is_bot_starting))
                     {
                         last_move_from = last_move.map(|m| m.from).unwrap();
                         last_move_to = last_move.map(|m| m.to).unwrap();
                     } else {
                         last_move_from = invert_position(&last_move.map(|m| m.from).unwrap());
                         last_move_to = invert_position(&last_move.map(|m| m.to).unwrap());
+                    }
+
+                    // If the player is the same as the last move player, we don't want to show his last move
+                    if game.player.is_some() && game.player.as_ref().unwrap().color == game.player_turn {
+                        last_move_from = Coord::undefined();
+                        last_move_to = Coord::undefined();
                     }
                 }
 
