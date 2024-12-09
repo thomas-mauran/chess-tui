@@ -18,8 +18,9 @@ impl std::ops::IndexMut<&Coord> for Board {
 }
 
 pub fn init_board() -> Board {
-    [[
-                Some((PieceType::King, PieceColor::White)),
+    [
+        [
+                Some((PieceType::King, PieceColor::Black)),
                 None,
                 None,
                 None,
@@ -40,25 +41,16 @@ pub fn init_board() -> Board {
             ],
             [
                 None,
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some((PieceType::Rook, PieceColor::White)),
                 None,
                 None,
                 None,
-                None,
-                None,
-                None,
-            ],
-            [
-                None,
-                None,
-                None,
-                None,
-                Some((PieceType::Queen, PieceColor::Black)),
                 None,
                 None,
                 None,
             ],
             [None, None, None, None, None, None, None, None],
+            [None, None, Some((PieceType::Queen, PieceColor::White)), None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],

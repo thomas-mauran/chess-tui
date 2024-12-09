@@ -1,4 +1,4 @@
-use std::{io::{Read, Write}, net::TcpStream};
+use std::{io::{Read, Write}, net::TcpStream, panic};
 use crate::pieces::{PieceColor, PieceMove};
 
 pub struct Player {
@@ -80,6 +80,13 @@ impl Player {
         }
     }
 
+    pub fn send_end_game_to_server(&mut self) {
+        if let Some(game_stream) = self.stream.as_mut() {
+            if let Err(e) = game_stream.write_all("ended".as_bytes()) {
+                eprintln!("Failed to send end game: {}", e);
+            }
+        }
+    }
 
 
     pub fn send_move_to_server(&mut self, move_to_send: &PieceMove, promotion_type: Option<String>) {
@@ -107,8 +114,16 @@ impl Player {
             let mut buffer = vec![0; 5];
             let buf = game_stream.read(&mut buffer);
             match buf {
-                Ok(_) => {
-                    let response = String::from_utf8_lossy(&buffer);
+                Ok(bytes_read) => {
+                    let response = String::from_utf8_lossy(&buffer[..bytes_read]);
+
+                    println!("Raw response (as bytes): {:?}", &buffer[..bytes_read]);
+                    println!("Response (as string): {}", response.trim());
+    
+                    if response.trim() == "ended" {
+                        panic!("Game ended by the other player");
+                    }
+
                     response.to_string()
                 }
                 Err(e) => {

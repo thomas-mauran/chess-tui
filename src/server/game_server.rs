@@ -87,24 +87,48 @@ fn handle_client(state: Arc<Mutex<Vec<Client>>> , mut stream: TcpStream){
 
         let addr = stream.peer_addr().unwrap().to_string();
 
-        stream.read(&mut buffer).expect("Failed to read from client!");
+        let bytes_read = stream.read(&mut buffer).expect("Failed to read from client!");
 
-        let request = String::from_utf8_lossy(&buffer[..]);
+        // If the client closed the connection, break the loop
+        if bytes_read == 0 {
+            println!("Client {} disconnected", addr);
+            remove_client(&state, &addr);
+            break;
+        }
 
-        broadcast_message(state.clone(), format!("{}", request.to_string()), addr);
+        let request = String::from_utf8_lossy(&buffer[..]); 
+        
+        broadcast_message(state.clone(), format!("{}", request.to_string()), &addr);
+
+        // Check if the request is "end"
+        if request.trim() == "ended" {
+            // Notify other clients about disconnection
+            for client in state.lock().unwrap().iter(){
+                remove_client(&state, &client.addr);
+            }
+            break;
+        }
     }
 }
 
 
-pub fn broadcast_message(state: Arc<Mutex<Vec<Client>>>, message: String, sender_addr: String){
+pub fn broadcast_message(state: Arc<Mutex<Vec<Client>>>, message: String, sender_addr: &String){
 
     let state = state.lock().unwrap();
 
     for client in state.iter(){
-        if client.addr == sender_addr {
+        if &client.addr == sender_addr {
             continue;
         }
         let mut client_stream = client.stream.try_clone().unwrap();
         client_stream.write_all(message.as_bytes()).expect("Failed to write to client!");
+    }
+}
+
+fn remove_client(state: &Arc<Mutex<Vec<Client>>>, addr: &str) {
+    let mut state_lock = state.lock().unwrap();
+    if let Some(index) = state_lock.iter().position(|client| client.addr == addr) {
+        state_lock.remove(index);
+        println!("Removed client {} from the state", addr);
     }
 }

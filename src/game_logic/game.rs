@@ -1,3 +1,5 @@
+use ratatui::text::ToText;
+
 use super::{bot::Bot, coord::Coord, game_board::GameBoard, player::Player, ui::UI};
 use crate::{
     pieces::{PieceColor, PieceMove, PieceType}, utils::get_int_from_char
@@ -398,14 +400,14 @@ impl Game {
 
     pub fn execute_other_player_move(&mut self){
 
-        self.game_board.flip_the_board();
         let player_move = self.player.as_mut().unwrap().read_stream();
-        
+        self.game_board.flip_the_board();
+        self.player.as_mut().unwrap().player_will_move = false;
+
         if player_move.is_empty() {
             return;
         }
 
-        self.player.as_mut().unwrap().player_will_move = false;
         let from_y = get_int_from_char(player_move.chars().next());
         let from_x = get_int_from_char(player_move.chars().nth(1));
         let to_y = get_int_from_char(player_move.chars().nth(2));
