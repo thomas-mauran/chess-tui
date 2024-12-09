@@ -42,7 +42,7 @@ pub fn render_engine_path_error_popup(frame: &mut Frame) {
 }
 
 // This renders a popup for a promotion
-pub fn render_end_popup(frame: &mut Frame, sentence: &str) {
+pub fn render_end_popup(frame: &mut Frame, sentence: &str, is_multiplayer: bool) {
     let block = Block::default()
         .title("Game ended")
         .borders(Borders::ALL)
@@ -55,7 +55,11 @@ pub fn render_end_popup(frame: &mut Frame, sentence: &str) {
         Line::from(sentence).alignment(Alignment::Center),
         Line::from(""),
         Line::from(""),
-        Line::from("Press `R` to start a new game").alignment(Alignment::Center),
+        Line::from(if is_multiplayer {
+            "Press `B` to go back to the menu"
+        } else {
+            "Press `R` to restart a new game"
+        }).alignment(Alignment::Center),
     ];
 
     let paragraph = Paragraph::new(text)
@@ -68,6 +72,7 @@ pub fn render_end_popup(frame: &mut Frame, sentence: &str) {
     frame.render_widget(paragraph, area);
 }
 
+// This renders a popup for a promotion
 pub fn render_promotion_popup(frame: &mut Frame, app: &mut App) {
     let block = Block::default()
         .title("Pawn promotion")

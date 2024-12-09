@@ -9,7 +9,7 @@ use ratatui::{
 
 use crate::{
     constants::Popups,
-    game_logic::{bot::Bot, game::GameState, player::wait_for_game_start},
+    game_logic::{bot::Bot, game::GameState},
     ui::popups::{
         render_color_selection_popup, render_credit_popup, render_end_popup,
         render_engine_path_error_popup, render_help_popup, render_promotion_popup,
@@ -266,10 +266,10 @@ pub fn render_game_ui<'a>(frame: &mut Frame<'a>, app: &mut App, main_area: Rect)
             PieceColor::Black => "Black",
         };
 
-        render_end_popup(frame, &format!("{string_color} Won !!!"));
+            render_end_popup(frame, &format!("{string_color} Won !!!"), app.game.player.is_some());
     }
 
     if app.game.game_state == GameState::Draw {
-        render_end_popup(frame, "That's a draw");
+        render_end_popup(frame, &format!("That's a draw"), app.game.player.is_some());
     }
 }

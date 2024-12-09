@@ -29,15 +29,14 @@ pub struct Game {
 impl Clone for Game {
     fn clone(&self) -> Self {
 
-        let mut player_clone = None;
-        if self.player.is_some() {
-            player_clone = Some(Player {
-                stream: None,
-                player_will_move: self.player.as_ref().unwrap().player_will_move,
-                color: self.player.as_ref().unwrap().color,
-                game_started: self.player.as_ref().unwrap().game_started,
-            });
-        }
+        let player_clone = self.player.as_ref().map(|p| {
+            Player {
+                stream: p.stream.as_ref().and_then(|s| s.try_clone().ok()),
+                player_will_move: p.player_will_move,
+                color: p.color,
+                game_started: p.game_started,
+            }
+        });
 
         Game {
             game_board: self.game_board.clone(),
@@ -150,7 +149,7 @@ impl Game {
                         }
 
                         if !(self.game_state == GameState::Promotion) {
-                            if self.game_board.is_checkmate(self.player_turn) {
+                            if self.game_board.is_checkmate(self.player_turn) {                                
                                 self.game_state = GameState::Checkmate;
                             }
  

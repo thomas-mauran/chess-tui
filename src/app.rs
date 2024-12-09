@@ -3,7 +3,7 @@ use toml::Value;
 
 use crate::{
     constants::{DisplayMode, Pages, Popups},
-    game_logic::{bot::Bot, game::Game, player::Player},
+    game_logic::{bot::Bot, game::{Game, GameState}, player::{self, Player}},
     pieces::PieceColor,
     server::game_server::GameServer,
 };
@@ -177,8 +177,13 @@ impl App {
 
     pub fn restart(&mut self) {
         let bot = self.game.bot.clone();
+        let player = self.game.player.clone();
         self.game = Game::default();
+
         self.game.bot = bot;
+        self.game.player = player;
+        self.current_popup = None;
+
         if self.game.bot.as_ref().is_some()
             && self
                 .game
@@ -189,6 +194,7 @@ impl App {
             self.game.execute_bot_move();
             self.game.player_turn = PieceColor::Black;
         }
+
     }
 
     pub fn menu_select(&mut self) {

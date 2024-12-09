@@ -106,8 +106,11 @@ fn main() -> AppResult<()> {
         if app.game.player.is_some() && app.game.player.as_ref().map_or(false, |player| player.player_will_move) {
             tui.draw(&mut app)?;
 
-            app.game.execute_other_player_move();
-            app.game.switch_player_turn();
+            if !app.game.game_board.is_checkmate(app.game.player_turn){
+                app.game.execute_other_player_move();
+                app.game.switch_player_turn();
+            }
+
 
             // need to be centralised
             if app.game.game_board.is_checkmate(app.game.player_turn) {

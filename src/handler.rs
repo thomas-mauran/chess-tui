@@ -142,7 +142,12 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                 app.toggle_help_popup();
             }
         }
-        KeyCode::Char('r') => app.restart(),
+        KeyCode::Char('r') => {
+            // We can't restart the game if it's a multiplayer one
+            if app.game.player.is_none(){
+                app.restart();
+            }
+        },
         KeyCode::Esc => {
             match app.current_popup {
                 Some(Popups::ColorSelection) => {

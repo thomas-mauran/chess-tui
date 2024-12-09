@@ -24,15 +24,18 @@ impl Default for Player {
     }
 }
 
-impl Player {
-    pub fn clone(self) -> Self {
+impl Clone for Player {
+    fn clone(&self) -> Self {
         Player {
-            stream: None,
+            stream: self.stream.as_ref().and_then(|s| s.try_clone().ok()), // Custom handling for TcpStream
             player_will_move: self.player_will_move,
             color: self.color,
             game_started: self.game_started,
         }
     }
+}
+
+impl Player {
     
     pub fn copy(&self) -> Self {
         Player {
@@ -80,7 +83,6 @@ impl Player {
 
 
     pub fn send_move_to_server(&mut self, move_to_send: &PieceMove, promotion_type: Option<String>) {
-        println!("promotion type: {:?}", promotion_type);
         if let Some(game_stream) = self.stream.as_mut() {
             let move_str = format!(
                 "{}{}{}{}{}",
