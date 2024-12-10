@@ -117,10 +117,7 @@ impl Player {
                 Ok(bytes_read) => {
                     let response = String::from_utf8_lossy(&buffer[..bytes_read]);
 
-                    println!("Raw response (as bytes): {:?}", &buffer[..bytes_read]);
-                    println!("Response (as string): {}", response.trim());
-    
-                    if response.trim() == "ended" {
+                    if response.trim() == "ended" || response.trim() == "" {
                         panic!("Game ended by the other player");
                     }
 

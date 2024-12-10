@@ -191,6 +191,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             if app.game.player.is_some() {
                 app.game.player.as_mut().unwrap().send_end_game_to_server();
                 app.game.player = None;
+                app.hosting = None;
             }
 
             app.go_to_home();
