@@ -8,7 +8,7 @@ use crate::{
     server::game_server::GameServer,
 };
 use std::{
-    error, fs::{self, File}, io::Write, thread::sleep, time::Duration
+    error, fs::{self, File}, io::Write, net::{IpAddr, UdpSocket}, thread::sleep, time::Duration
 };
 
 /// Application result type.
@@ -108,10 +108,12 @@ impl App {
         self.restart();
     }
 
-    pub fn get_host_ip(&self) -> String {
-        println!("Host IP: {:?}", self.game.player.as_ref().unwrap().stream.as_ref().unwrap().peer_addr());
-        
-        self.game.player.as_ref().unwrap().stream.as_ref().unwrap().local_addr().unwrap().to_string()
+    pub fn get_host_ip(&self) -> IpAddr {
+        let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+        socket.connect("8.8.8.8:80").unwrap(); // Use an external IP to identify the default route
+        let default_ip = socket.local_addr().unwrap().ip();
+
+        default_ip
     }
 
     /// Handles the tick event of the terminal.

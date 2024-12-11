@@ -1,3 +1,5 @@
+use std::net::IpAddr;
+
 use crate::{
     app::App,
     constants::WHITE,
@@ -419,7 +421,7 @@ pub fn render_multiplayer_selection_popup(frame: &mut Frame, app: &App) {
 
 // MULTIPLAYER POPUPS
 // This renders a popup indicating we are waiting for the other player
-pub fn render_wait_for_other_player(frame: &mut Frame, ip: String) {
+pub fn render_wait_for_other_player(frame: &mut Frame, ip: IpAddr) {
     let block = Block::default()
         .title("Waiting ...")
         .borders(Borders::ALL)
