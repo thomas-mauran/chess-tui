@@ -118,7 +118,7 @@ impl Player {
                     let response = String::from_utf8_lossy(&buffer[..bytes_read]);
 
                     if response.trim() == "ended" || response.trim() == "" {
-                        panic!("Game ended by the other player");
+                        panic!("Game ended by the other player" );
                     }
 
                     response.to_string()

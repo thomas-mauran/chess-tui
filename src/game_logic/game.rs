@@ -240,6 +240,7 @@ impl Game {
             .game_board
             .fen_position(is_bot_starting, self.player_turn);
 
+
         // Retrieve the bot move from the bot
         let bot_move = if let Some(bot) = self.bot.as_mut() {
             bot.get_bot_move(fen_position)
