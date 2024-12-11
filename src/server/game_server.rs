@@ -30,7 +30,7 @@ impl GameServer {
     }
 
     pub fn run(&self) {
-        let listener = TcpListener::bind("127.0.0.1:2308").expect("Failed to create listener");
+        let listener = TcpListener::bind("0.0.0.0:2308").expect("Failed to create listener");
         listener.set_nonblocking(true).expect("Failed to set listener to non-blocking");
 
         let state = self.clients.clone();

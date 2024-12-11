@@ -46,7 +46,7 @@ impl Player {
         }
     }
 
-    pub fn new(addr: &str, color: Option<PieceColor>) -> Player {
+    pub fn new(addr: String, color: Option<PieceColor>) -> Player {
         // Attempt to connect to the provided address
         let stream = TcpStream::connect(addr).expect("Failed to connect to server");
 

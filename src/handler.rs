@@ -26,182 +26,210 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         }
     }
 
-    match key_event.code {
-        // Exit application on `q`
-        KeyCode::Char('q') => {
-            app.quit();
-        }
-        // Exit application on `Ctrl-C`
-        KeyCode::Char('c' | 'C') => {
-            if key_event.modifiers == KeyModifiers::CONTROL {
-                app.quit();
-            }
-        }
-        // Counter handlers
-        KeyCode::Right | KeyCode::Char('l') => {
-            if app.current_page == Pages::Multiplayer && app.hosting.is_none() {
-                app.menu_cursor_right(2);
-            } else if app.current_page == Pages::Multiplayer && app.selected_color.is_none() {
-                app.menu_cursor_right(2);
-            } else if app.current_page == Pages::Bot && app.selected_color.is_none() {
-                app.menu_cursor_right(2);
-            } else if app.game.game_state == GameState::Promotion {
-                app.game.ui.cursor_right_promotion();
-            } else if !(app.game.game_state == GameState::Checkmate)
-                && !(app.game.game_state == GameState::Draw)
-            {
-                let authorized_positions = app.game.game_board.get_authorized_positions(
-                    app.game.player_turn,
-                    app.game.ui.selected_coordinates,
-                );
-                app.game.ui.cursor_right(authorized_positions);
-            }
-        }
-        KeyCode::Left | KeyCode::Char('h') => {
-            if app.current_page == Pages::Multiplayer && app.hosting.is_none() {
-                app.menu_cursor_left(2);
-            } else if app.current_page == Pages::Multiplayer && app.selected_color.is_none() {
-                app.menu_cursor_left(2);
-            } else if app.current_page == Pages::Bot && app.selected_color.is_none() {
-                app.menu_cursor_left(2);
-            } else if app.game.game_state == GameState::Promotion {
-                app.game.ui.cursor_left_promotion();
-            } else if !(app.game.game_state == GameState::Checkmate)
-                && !(app.game.game_state == GameState::Draw)
-            {
-                let authorized_positions = app.game.game_board.get_authorized_positions(
-                    app.game.player_turn,
-                    app.game.ui.selected_coordinates,
-                );
-
-                app.game.ui.cursor_left(authorized_positions);
-            }
-        }
-        KeyCode::Up | KeyCode::Char('k') => {
-            if app.current_page == Pages::Home {
-                app.menu_cursor_up(Pages::variant_count() as u8);
-            } else if !(app.game.game_state == GameState::Checkmate)
-                && !(app.game.game_state == GameState::Draw)
-                && !(app.game.game_state == GameState::Promotion)
-            {
-                let authorized_positions = app.game.game_board.get_authorized_positions(
-                    app.game.player_turn,
-                    app.game.ui.selected_coordinates,
-                );
-                app.game.ui.cursor_up(authorized_positions);
-            }
-        }
-        KeyCode::Down | KeyCode::Char('j') => {
-            if app.current_page == Pages::Home {
-                app.menu_cursor_down(Pages::variant_count() as u8);
-            } else if !(app.game.game_state == GameState::Checkmate)
-                && !(app.game.game_state == GameState::Draw)
-                && !(app.game.game_state == GameState::Promotion)
-            {
-                let authorized_positions = app.game.game_board.get_authorized_positions(
-                    app.game.player_turn,
-                    app.game.ui.selected_coordinates,
-                );
-
-                app.game.ui.cursor_down(authorized_positions);
-            }
-        }
-        KeyCode::Char(' ') | KeyCode::Enter => match app.current_page {
-            Pages::Home => {
-                app.menu_select();
-            }
-            Pages::Bot => {
-                if app.selected_color.is_none() {
-                    app.color_selection();
-                    app.bot_setup();
-                } else {
-                    app.game.select_cell();
-                }
-            }
-            Pages::Multiplayer => {
-                if app.hosting.is_none() {
-                    app.hosting_selection();
-                } else if app.selected_color.is_none() {
-                    if app.hosting.is_some() && app.hosting.unwrap() == true{
-                        app.color_selection();
+    if app.current_popup == Some(Popups::EnterHostIP) {
+        if key_event.kind == KeyEventKind::Press {
+            match key_event.code {
+                KeyCode::Enter => {
+                        app.game.ui.prompt.submit_message();
+                        if app.current_page == Pages::Multiplayer {
+                            app.host_ip = Some(app.game.ui.prompt.message.clone());
+                        }
+                        app.current_popup = None;
+                    },
+                KeyCode::Char(to_insert) => app.game.ui.prompt.enter_char(to_insert),
+                KeyCode::Backspace => app.game.ui.prompt.delete_char(),
+                KeyCode::Left => app.game.ui.prompt.move_cursor_left(),
+                KeyCode::Right => app.game.ui.prompt.move_cursor_right(),
+                KeyCode::Esc => {
+                    app.current_popup = None;
+                    if app.current_page == Pages::Multiplayer {
+                        app.hosting = None;
+                        app.selected_color = None;
+                        app.menu_cursor = 0;
                     }
-                } 
-                else {
-                    app.game.select_cell();
-                }
-            }
-            Pages::Credit => {
-                app.current_page = Pages::Home;
-            }
-            _ => {
-                app.game.select_cell();
-            }
-        },
-        KeyCode::Char('?') => {
-            if app.current_page != Pages::Credit {
-                app.toggle_help_popup();
-            }
-        }
-        KeyCode::Char('r') => {
-            // We can't restart the game if it's a multiplayer one
-            if app.game.player.is_none(){
-                app.restart();
-            }
-        },
-        KeyCode::Esc => {
-            match app.current_popup {
-                Some(Popups::ColorSelection) => {
-                    app.current_popup = None;
-                    app.selected_color = None;
                     app.current_page = Pages::Home;
-                    app.menu_cursor = 0;
-                }
-                Some(Popups::MultiplayerSelection) => {
-                    app.current_popup = None;
-                    app.selected_color = None;
-                    app.hosting = None;
-                    app.current_page = Pages::Home;
-                    app.menu_cursor = 0;
-                }
-                Some(Popups::Help) => {
-                    app.current_popup = None;
                 }
                 _ => {}
             }
+        }
+    } else {
+        match key_event.code {
+            // Exit application on `q`
+            KeyCode::Char('q') => {
+                app.quit();
+            }
+            // Exit application on `Ctrl-C`
+            KeyCode::Char('c' | 'C') => {
+                if key_event.modifiers == KeyModifiers::CONTROL {
+                    app.quit();
+                }
+            }
+            // Counter handlers
+            KeyCode::Right | KeyCode::Char('l') => {
+                if app.current_page == Pages::Multiplayer && app.hosting.is_none() {
+                    app.menu_cursor_right(2);
+                } else if app.current_page == Pages::Multiplayer && app.selected_color.is_none() {
+                    app.menu_cursor_right(2);
+                } else if app.current_page == Pages::Bot && app.selected_color.is_none() {
+                    app.menu_cursor_right(2);
+                } else if app.game.game_state == GameState::Promotion {
+                    app.game.ui.cursor_right_promotion();
+                } else if !(app.game.game_state == GameState::Checkmate)
+                    && !(app.game.game_state == GameState::Draw)
+                {
+                    let authorized_positions = app.game.game_board.get_authorized_positions(
+                        app.game.player_turn,
+                        app.game.ui.selected_coordinates,
+                    );
+                    app.game.ui.cursor_right(authorized_positions);
+                }
+            }
+            KeyCode::Left | KeyCode::Char('h') => {
+                if app.current_page == Pages::Multiplayer && app.hosting.is_none() {
+                    app.menu_cursor_left(2);
+                } else if app.current_page == Pages::Multiplayer && app.selected_color.is_none() {
+                    app.menu_cursor_left(2);
+                } else if app.current_page == Pages::Bot && app.selected_color.is_none() {
+                    app.menu_cursor_left(2);
+                } else if app.game.game_state == GameState::Promotion {
+                    app.game.ui.cursor_left_promotion();
+                } else if !(app.game.game_state == GameState::Checkmate)
+                    && !(app.game.game_state == GameState::Draw)
+                {
+                    let authorized_positions = app.game.game_board.get_authorized_positions(
+                        app.game.player_turn,
+                        app.game.ui.selected_coordinates,
+                    );
 
-            match app.current_page {
+                    app.game.ui.cursor_left(authorized_positions);
+                }
+            }
+            KeyCode::Up | KeyCode::Char('k') => {
+                if app.current_page == Pages::Home {
+                    app.menu_cursor_up(Pages::variant_count() as u8);
+                } else if !(app.game.game_state == GameState::Checkmate)
+                    && !(app.game.game_state == GameState::Draw)
+                    && !(app.game.game_state == GameState::Promotion)
+                {
+                    let authorized_positions = app.game.game_board.get_authorized_positions(
+                        app.game.player_turn,
+                        app.game.ui.selected_coordinates,
+                    );
+                    app.game.ui.cursor_up(authorized_positions);
+                }
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                if app.current_page == Pages::Home {
+                    app.menu_cursor_down(Pages::variant_count() as u8);
+                } else if !(app.game.game_state == GameState::Checkmate)
+                    && !(app.game.game_state == GameState::Draw)
+                    && !(app.game.game_state == GameState::Promotion)
+                {
+                    let authorized_positions = app.game.game_board.get_authorized_positions(
+                        app.game.player_turn,
+                        app.game.ui.selected_coordinates,
+                    );
+
+                    app.game.ui.cursor_down(authorized_positions);
+                }
+            }
+            KeyCode::Char(' ') | KeyCode::Enter => match app.current_page {
+                Pages::Home => {
+                    app.menu_select();
+                }
                 Pages::Bot => {
-                    app.current_page = Pages::Home;
-                    app.menu_cursor = 0;
+                    if app.selected_color.is_none() {
+                        app.color_selection();
+                        app.bot_setup();
+                    } else {
+                        app.game.select_cell();
+                    }
+                }
+                Pages::Multiplayer => {
+                    if app.hosting.is_none() {
+                        app.hosting_selection();
+                    } else if app.selected_color.is_none() {
+                        if app.hosting.is_some() && app.hosting.unwrap() == true {
+                            app.color_selection();
+                        }
+                    } else {
+                        app.game.select_cell();
+                    }
                 }
                 Pages::Credit => {
                     app.current_page = Pages::Home;
                 }
-                _ => {}
+                _ => {
+                    app.game.select_cell();
+                }
+            },
+            KeyCode::Char('?') => {
+                if app.current_page != Pages::Credit {
+                    app.toggle_help_popup();
+                }
             }
+            KeyCode::Char('r') => {
+                // We can't restart the game if it's a multiplayer one
+                if app.game.player.is_none() {
+                    app.restart();
+                }
+            }
+            KeyCode::Esc => {
+                match app.current_popup {
+                    Some(Popups::ColorSelection) => {
+                        app.current_popup = None;
+                        app.selected_color = None;
+                        app.current_page = Pages::Home;
+                        app.menu_cursor = 0;
+                    }
+                    Some(Popups::MultiplayerSelection) => {
+                        app.current_popup = None;
+                        app.selected_color = None;
+                        app.hosting = None;
+                        app.current_page = Pages::Home;
+                        app.menu_cursor = 0;
+                    }
+                    Some(Popups::Help) => {
+                        app.current_popup = None;
+                    }
+                    _ => {}
+                }
 
-            app.game.ui.unselect_cell();
-        }
-        KeyCode::Char('b') => {
-            let display_mode = app.game.ui.display_mode;
-            app.selected_color = None;
-            if app.game.bot.is_some() {
-                app.game.bot = None;
-            }
-            if app.game.player.is_some() {
-                app.game.player.as_mut().unwrap().send_end_game_to_server();
-                app.game.player = None;
-                app.hosting = None;
-            }
+                match app.current_page {
+                    Pages::Bot => {
+                        app.current_page = Pages::Home;
+                        app.menu_cursor = 0;
+                    }
+                    Pages::Credit => {
+                        app.current_page = Pages::Home;
+                    }
+                    _ => {}
+                }
 
-            app.go_to_home();
-            app.game.game_board.reset();
-            app.game.ui.reset();
-            app.game.ui.display_mode = display_mode;
+                app.game.ui.unselect_cell();
+            }
+            KeyCode::Char('b') => {
+                let display_mode = app.game.ui.display_mode;
+                app.selected_color = None;
+                if app.game.bot.is_some() {
+                    app.game.bot = None;
+                }
+                if app.game.player.is_some() {
+                    app.game.player.as_mut().unwrap().send_end_game_to_server();
+                    app.game.player = None;
+                    app.hosting = None;
+                }
+
+                app.go_to_home();
+                app.game.game_board.reset();
+                app.game.ui.reset();
+                app.game.ui.display_mode = display_mode;
+            }
+            // Other handlers you could add here.
+            _ => {}
         }
-        // Other handlers you could add here.
-        _ => {}
     }
+
     Ok(())
 }
 

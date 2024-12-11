@@ -16,7 +16,7 @@ use crate::{
     },
 };
 
-use super::popups::{render_join_prompt, render_multiplayer_selection_popup, render_wait_for_other_player};
+use super::popups::{render_enter_multiplayer_ip, render_multiplayer_selection_popup, render_wait_for_other_player};
 use crate::{
     app::App,
     constants::{DisplayMode, Pages, TITLE},
@@ -38,10 +38,16 @@ pub fn render<'a>(app: &mut App, frame: &mut Frame<'a>) {
         } else if app.selected_color.is_none() && app.hosting.unwrap() == true {
             app.current_popup = Some(Popups::ColorSelection);
         } else if app.game.player.is_none() {
-            if app.hosting.is_some() && app.hosting.unwrap() == true {
-                app.setup_game_server(app.selected_color.unwrap());
+            if app.host_ip.is_none() {
+                if app.hosting.is_some() && app.hosting.unwrap() == true {
+                    app.setup_game_server(app.selected_color.unwrap());
+                    app.host_ip = Some("127.0.0.1".to_string());
+                } else{
+                    app.current_popup = Some(Popups::EnterHostIP);
+                }
+            } else {
+                app.create_player();
             }
-            app.create_player();
         } else if app.game.player.as_mut().unwrap().game_started == true {
             render_game_ui(frame, app, main_area);
         }
@@ -64,28 +70,31 @@ pub fn render<'a>(app: &mut App, frame: &mut Frame<'a>) {
     else {
         render_menu_ui(frame, app, main_area);
     }
-    // Render popups
-    if app.current_popup.is_some() && app.current_popup == Some(Popups::ColorSelection) {
-        render_color_selection_popup(frame, app);
-    }
-    if app.current_popup.is_some() && app.current_popup == Some(Popups::WaitingForOpponentToJoin) {
-        render_wait_for_other_player(frame);
-    }
-    if app.current_popup.is_some() && app.current_popup == Some(Popups::MultiplayerSelection) {
-        render_multiplayer_selection_popup(frame, app);
-    }
-
-    if app.current_popup.is_some() && app.current_popup == Some(Popups::JoinPrompt) {
-        render_join_prompt(frame);
-    }
-
-    if app.current_popup.is_some() && app.current_popup == Some(Popups::Help) {
-        render_help_popup(frame);
-    }
 
     if app.current_page == Pages::Credit {
         render_credit_popup(frame);
     }
+
+    // Render popups
+    match app.current_popup {
+        Some(Popups::ColorSelection) => {
+            render_color_selection_popup(frame, app);
+        }
+        Some(Popups::MultiplayerSelection) => {
+            render_multiplayer_selection_popup(frame, app);
+        }
+        Some(Popups::EnterHostIP) => {
+            render_enter_multiplayer_ip(frame, &app.game.ui.prompt);
+        }
+        Some(Popups::WaitingForOpponentToJoin) => {
+            render_wait_for_other_player(frame, app.get_host_ip());
+        }
+        Some(Popups::Help) => {
+            render_help_popup(frame);
+        }
+        _ => {}
+    }
+
 }
 
 /// Helper function to create a centered rect using up certain percentage of the available rect `r`

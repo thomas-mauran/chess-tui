@@ -2,7 +2,7 @@ use super::{coord::Coord, game::Game};
 use crate::{
     constants::{DisplayMode, BLACK, UNDEFINED_POSITION, WHITE},
     pieces::{PieceColor, PieceMove, PieceType},
-    ui::main_ui::render_cell,
+    ui::{main_ui::render_cell, prompt::Prompt},
     utils::{convert_position_into_notation, get_cell_paragraph, invert_position},
 };
 use ratatui::{
@@ -35,6 +35,8 @@ pub struct UI {
     pub mouse_used: bool,
     /// The skin of the game
     pub display_mode: DisplayMode,
+    // The prompt for the player
+    pub prompt: Prompt,
 }
 
 impl Default for UI {
@@ -51,6 +53,7 @@ impl Default for UI {
             height: 0,
             mouse_used: false,
             display_mode: DisplayMode::DEFAULT,
+            prompt: Prompt::new(),
         }
     }
 }

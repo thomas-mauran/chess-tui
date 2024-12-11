@@ -3,7 +3,7 @@ use toml::Value;
 
 use crate::{
     constants::{DisplayMode, Pages, Popups},
-    game_logic::{bot::Bot, game::{Game, GameState}, player::{self, Player}},
+    game_logic::{bot::Bot, game::Game, player::Player},
     pieces::PieceColor,
     server::game_server::GameServer,
 };
@@ -28,6 +28,8 @@ pub struct App {
     pub selected_color: Option<PieceColor>,
     /// Hosting
     pub hosting: Option<bool>,
+    /// Host Ip
+    pub host_ip: Option<String>,
     /// menu current cursor
     pub menu_cursor: u8,
     /// path of the chess engine
@@ -43,6 +45,7 @@ impl Default for App {
             current_popup: None,
             selected_color: None,
             hosting: None,
+            host_ip: None,
             menu_cursor: 0,
             chess_engine_path: None,
         }
@@ -86,7 +89,9 @@ impl App {
             self.current_popup = Some(Popups::WaitingForOpponentToJoin);
         }
 
-        self.game.player = Some(Player::new("127.0.0.1:2308", other_player_color));
+        let addr = self.host_ip.as_ref().unwrap().to_string();
+        let addr_with_port = format!("{}:2308", addr);
+        self.game.player = Some(Player::new(addr_with_port, other_player_color));
 
         if !self.hosting.unwrap() {
             // If we are not hosting (joining) we set the selected color as the opposite of the opposite player color
@@ -101,6 +106,12 @@ impl App {
     pub fn go_to_home(&mut self) {
         self.current_page = Pages::Home;
         self.restart();
+    }
+
+    pub fn get_host_ip(&self) -> String {
+        println!("Host IP: {:?}", self.game.player.as_ref().unwrap().stream.as_ref().unwrap().peer_addr());
+        
+        self.game.player.as_ref().unwrap().stream.as_ref().unwrap().local_addr().unwrap().to_string()
     }
 
     /// Handles the tick event of the terminal.
