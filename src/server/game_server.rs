@@ -100,6 +100,7 @@ fn handle_client(state: Arc<Mutex<Vec<Client>>>, stop_signal: Arc<AtomicBool>, m
         let bytes_read = stream.read(&mut buffer).unwrap_or(0);
 
         if bytes_read == 0 {
+            broadcast_message(state.clone(), "ended".to_string(), &addr);
             remove_client(&state, &addr);
             // we stop the server if one of the clients disconnects
             stop_signal.store(true, Ordering::SeqCst);

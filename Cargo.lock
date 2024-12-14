@@ -113,7 +113,6 @@ version = "1.5.0"
 dependencies = [
  "clap",
  "dirs",
- "log",
  "ratatui",
  "toml",
  "uci",
@@ -629,9 +628,9 @@ dependencies = [
 
 [[package]]
 name = "uci"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a6b9b0b262ac8343865c678e09dc793f4065e1359507608a1fe1d2c34426c40"
+checksum = "4c1b9eaa4d073139668463f22d8f5151f53600a10909b9902ffe7547b176044a"
 dependencies = [
  "log",
 ]
