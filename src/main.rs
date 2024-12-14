@@ -9,8 +9,11 @@ use chess_tui::game_logic::opponent::wait_for_game_start;
 use chess_tui::handler::{handle_key_events, handle_mouse_events};
 use chess_tui::ui::tui::Tui;
 use clap::Parser;
+use ratatui::crossterm::execute;
+use ratatui::crossterm::terminal::{disable_raw_mode, LeaveAlternateScreen};
 use std::fs::{self, File};
-use std::io::Write;
+use std::io::{self, stdout, Write};
+use std::panic;
 use std::path::Path;
 use toml::Value;
 
@@ -24,6 +27,7 @@ struct Args {
 }
 
 fn main() -> AppResult<()> {
+    
     // Used to enable mouse capture
     ratatui::crossterm::execute!(
         std::io::stdout(),
@@ -67,6 +71,16 @@ fn main() -> AppResult<()> {
     let terminal = ratatui::try_init()?;
     let events = EventHandler::new(250);
     let mut tui = Tui::new(terminal, events);
+
+    let default_panic = std::panic::take_hook();
+    panic::set_hook(Box::new(move |info| {
+        ratatui::restore();
+        ratatui::crossterm::execute!(
+            std::io::stdout(),
+            ratatui::crossterm::event::DisableMouseCapture
+        ).unwrap();
+        default_panic(info);
+    }));
 
     // Start the main loop.
     while app.running {
@@ -120,7 +134,7 @@ fn main() -> AppResult<()> {
             if !app.game.game_board.is_checkmate(app.game.player_turn)
                 && !app.game.game_board.is_draw(app.game.player_turn)
             {
-                app.game.execute_other_player_move();
+                app.game.execute_opponent_move();
                 app.game.switch_player_turn();
             }
 
@@ -142,6 +156,12 @@ fn main() -> AppResult<()> {
         ratatui::crossterm::event::DisableMouseCapture
     )?;
 
+    Ok(())
+}
+
+pub fn restore_tui() -> io::Result<()> {
+    disable_raw_mode()?;
+    execute!(stdout(), LeaveAlternateScreen)?;
     Ok(())
 }
 

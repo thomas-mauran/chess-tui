@@ -390,7 +390,7 @@ impl Game {
         self.game_board.board_history.push(self.game_board.board);
     }
 
-    pub fn execute_other_player_move(&mut self) {
+    pub fn execute_opponent_move(&mut self) {
         let opponent_move = self.opponent.as_mut().unwrap().read_stream();
         self.game_board.flip_the_board();
         self.opponent.as_mut().unwrap().opponent_will_move = false;
