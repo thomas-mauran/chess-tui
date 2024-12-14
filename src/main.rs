@@ -5,7 +5,7 @@ use chess_tui::app::{App, AppResult};
 use chess_tui::constants::{home_dir, DisplayMode};
 use chess_tui::event::{Event, EventHandler};
 use chess_tui::game_logic::game::GameState;
-use chess_tui::game_logic::player::wait_for_game_start;
+use chess_tui::game_logic::opponent::wait_for_game_start;
 use chess_tui::handler::{handle_key_events, handle_mouse_events};
 use chess_tui::ui::tui::Tui;
 use clap::Parser;
@@ -94,26 +94,26 @@ fn main() -> AppResult<()> {
             tui.draw(&mut app)?;
         }
 
-        if app.game.player.is_some()
+        if app.game.opponent.is_some()
             && app
                 .game
-                .player
+                .opponent
                 .as_ref()
-                .map_or(false, |player| !player.game_started)
+                .map_or(false, |opponent| !opponent.game_started)
         {
-            let player = app.game.player.as_mut().unwrap();
-            wait_for_game_start(&player.stream.as_ref().unwrap());
-            player.game_started = true;
+            let opponent = app.game.opponent.as_mut().unwrap();
+            wait_for_game_start(&opponent.stream.as_ref().unwrap());
+            opponent.game_started = true;
             app.current_popup = None;
         }
 
-        // If it's the other player's turn, wait for the player to move
-        if app.game.player.is_some()
+        // If it's the opponent turn, wait for the opponent to move
+        if app.game.opponent.is_some()
             && app
                 .game
-                .player
+                .opponent
                 .as_ref()
-                .map_or(false, |player| player.player_will_move)
+                .map_or(false, |opponent| opponent.opponent_will_move)
         {
             tui.draw(&mut app)?;
 

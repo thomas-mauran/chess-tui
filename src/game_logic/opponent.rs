@@ -5,70 +5,85 @@ use std::{
     panic,
 };
 
-pub struct Player {
+pub struct Opponent {
     // The stream to communicate with the engine
     pub stream: Option<TcpStream>,
-    /// Used to indicate if a player move is following
-    pub player_will_move: bool,
-    // The color of the player
+    /// Used to indicate if a Opponent move is following
+    pub opponent_will_move: bool,
+    // The color of the Opponent
     pub color: PieceColor,
     /// Is Game started
     pub game_started: bool,
 }
 
 // Custom Default implementation
-impl Default for Player {
+impl Default for Opponent {
     fn default() -> Self {
-        Player {
+        Opponent {
             stream: None,
-            player_will_move: false,
+            opponent_will_move: false,
             color: PieceColor::Black,
             game_started: false,
         }
     }
 }
 
-impl Clone for Player {
+impl Clone for Opponent {
     fn clone(&self) -> Self {
-        Player {
+        Opponent {
             stream: self.stream.as_ref().and_then(|s| s.try_clone().ok()), // Custom handling for TcpStream
-            player_will_move: self.player_will_move,
+            opponent_will_move: self.opponent_will_move,
             color: self.color,
             game_started: self.game_started,
         }
     }
 }
 
-impl Player {
+impl Opponent {
     pub fn copy(&self) -> Self {
-        Player {
+        Opponent {
             stream: None,
-            player_will_move: self.player_will_move,
+            opponent_will_move: self.opponent_will_move,
             color: self.color,
             game_started: self.game_started,
         }
     }
 
-    pub fn new(addr: String, color: Option<PieceColor>) -> Player {
-        // Attempt to connect to the provided address
-        let stream = TcpStream::connect(addr).expect("Failed to connect to server");
+    pub fn new(addr: String, color: Option<PieceColor>) -> Opponent {
+        // Attempt to connect 5 times to the provided address
+        let mut stream: Option<TcpStream> = None; // Initialize `stream` as None
+        for _ in 0..5 {
+            match TcpStream::connect(addr.clone()) {
+                Ok(s) => {
+                    stream = Some(s);
+                    break;
+                }
+                Err(_) => {
+                    println!("Failed to connect to the server addr: {}. Retrying...", addr);
+                }
+            }
+        }
 
-        // Determine the player's color
-        let color = match color {
-            Some(color) => color, // Use the provided color if available
-            None => get_color_from_stream(&stream),
-        };
+        if let Some(stream) = stream {
+            // Determine the Opponent's color
+            let color = match color {
+                Some(color) => color, // Use the provided color if available
+                None => get_color_from_stream(&stream),
+            };
 
-        let player_will_move = match color {
-            PieceColor::White => true,
-            PieceColor::Black => false,
-        };
+            let opponent_will_move = match color {
+                PieceColor::White => true,
+                PieceColor::Black => false,
+            };
 
-        Player {
-            stream: Some(stream),
-            player_will_move,
-            color,
-            game_started: false,
+            Opponent {
+                stream: Some(stream),
+                opponent_will_move,
+                color,
+                game_started: false,
+            }
+        } else {
+            panic!("Failed to connect to the server after 5 attempts to the following address {}", addr);
         }
     }
 
@@ -123,7 +138,7 @@ impl Player {
                     let response = String::from_utf8_lossy(&buffer[..bytes_read]);
 
                     if response.trim() == "ended" || response.trim() == "" {
-                        panic!("Game ended by the other player");
+                        panic!("Game ended by the other Opponent");
                     }
 
                     response.to_string()

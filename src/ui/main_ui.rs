@@ -39,7 +39,7 @@ pub fn render<'a>(app: &mut App, frame: &mut Frame<'a>) {
             app.current_popup = Some(Popups::MultiplayerSelection);
         } else if app.selected_color.is_none() && app.hosting.unwrap() == true {
             app.current_popup = Some(Popups::ColorSelection);
-        } else if app.game.player.is_none() {
+        } else if app.game.opponent.is_none() {
             if app.host_ip.is_none() {
                 if app.hosting.is_some() && app.hosting.unwrap() == true {
                     app.setup_game_server(app.selected_color.unwrap());
@@ -48,9 +48,9 @@ pub fn render<'a>(app: &mut App, frame: &mut Frame<'a>) {
                     app.current_popup = Some(Popups::EnterHostIP);
                 }
             } else {
-                app.create_player();
+                app.create_opponent();
             }
-        } else if app.game.player.as_mut().unwrap().game_started == true {
+        } else if app.game.opponent.as_mut().unwrap().game_started == true {
             render_game_ui(frame, app, main_area);
         }
     }
@@ -279,11 +279,11 @@ pub fn render_game_ui<'a>(frame: &mut Frame<'a>, app: &mut App, main_area: Rect)
         render_end_popup(
             frame,
             &format!("{string_color} Won !!!"),
-            app.game.player.is_some(),
+            app.game.opponent.is_some(),
         );
     }
 
     if app.game.game_state == GameState::Draw {
-        render_end_popup(frame, &format!("That's a draw"), app.game.player.is_some());
+        render_end_popup(frame, &format!("That's a draw"), app.game.opponent.is_some());
     }
 }

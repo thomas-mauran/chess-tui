@@ -170,7 +170,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             }
             KeyCode::Char('r') => {
                 // We can't restart the game if it's a multiplayer one
-                if app.game.player.is_none() {
+                if app.game.opponent.is_none() {
                     app.restart();
                 }
             }
@@ -216,10 +216,11 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                 if app.game.bot.is_some() {
                     app.game.bot = None;
                 }
-                if app.game.player.is_some() {
-                    app.game.player.as_mut().unwrap().send_end_game_to_server();
-                    app.game.player = None;
+                if app.game.opponent.is_some() {
+                    app.game.opponent.as_mut().unwrap().send_end_game_to_server();
+                    app.game.opponent = None;
                     app.hosting = None;
+                    app.host_ip = None;
                 }
 
                 app.go_to_home();
