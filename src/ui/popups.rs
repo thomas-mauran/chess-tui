@@ -460,14 +460,14 @@ pub fn render_enter_multiplayer_ip(frame: &mut Frame, prompt: &Prompt) {
     let current_input = prompt.input.as_str();
 
     let text = vec![
-        Line::from("Enter the ip address of the host:").alignment(Alignment::Center),
+        Line::from("Enter the ip address and port of the host:").alignment(Alignment::Center),
         Line::from(""),
         Line::from(current_input),
         Line::from(""),
         Line::from(""),
         Line::from(""),
         Line::from(""),
-        Line::from("Example: 10.111.6.50; make sure the other player is hosting a game and on your network"),
+        Line::from("Example: 10.111.6.50:2308;"),
         Line::from("[LIEN VERS LA DOC]"),
         Line::from("Press `Esc` to close the popup.").alignment(Alignment::Center),
     ];

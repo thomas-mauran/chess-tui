@@ -87,10 +87,11 @@ impl App {
         };
         if self.hosting.unwrap() {
             self.current_popup = Some(Popups::WaitingForOpponentToJoin);
+            self.host_ip = Some(format!("{}:2308", self.get_host_ip().to_string()));
         }
 
         let addr = self.host_ip.as_ref().unwrap().to_string();
-        let addr_with_port = format!("{}:2308", addr);
+        let addr_with_port = format!("{}", addr);
         self.game.player = Some(Player::new(addr_with_port, other_player_color));
 
         if !self.hosting.unwrap() {
