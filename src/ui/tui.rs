@@ -30,7 +30,7 @@ impl<B: Backend> Tui<B> {
 
     pub fn draw(&mut self, app: &mut App) -> AppResult<()> {
         // Passe une closure synchrone qui appelle la fonction async
-        self.terminal.draw( |frame|main_ui::render(app, frame))?;
+        self.terminal.draw(|frame| main_ui::render(app, frame))?;
         Ok(())
     }
 }

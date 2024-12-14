@@ -396,7 +396,9 @@ impl UI {
                     }
 
                     // If the player is the same as the last move player, we don't want to show his last move
-                    if game.player.is_some() && game.player.as_ref().unwrap().color == game.player_turn {
+                    if game.player.is_some()
+                        && game.player.as_ref().unwrap().color == game.player_turn
+                    {
                         last_move_from = Coord::undefined();
                         last_move_to = Coord::undefined();
                     }

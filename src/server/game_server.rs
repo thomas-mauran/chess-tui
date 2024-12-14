@@ -1,7 +1,10 @@
 use std::{
     io::{Read, Write},
     net::{TcpListener, TcpStream},
-    sync::{mpsc, Arc, Mutex, atomic::{AtomicBool, Ordering}},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        mpsc, Arc, Mutex,
+    },
     thread,
 };
 
@@ -31,7 +34,9 @@ impl GameServer {
 
     pub fn run(&self) {
         let listener = TcpListener::bind("0.0.0.0:2308").expect("Failed to create listener");
-        listener.set_nonblocking(true).expect("Failed to set listener to non-blocking");
+        listener
+            .set_nonblocking(true)
+            .expect("Failed to set listener to non-blocking");
 
         let state = self.clients.clone();
         let stop_signal = self.stop_signal.clone();
@@ -66,7 +71,8 @@ impl GameServer {
                             if state_lock.len() == 1 {
                                 stream.write_all(color.as_bytes()).unwrap();
                                 let other_player = state_lock.last().unwrap();
-                                let mut other_player_stream = other_player.stream.try_clone().unwrap();
+                                let mut other_player_stream =
+                                    other_player.stream.try_clone().unwrap();
                                 other_player_stream.write_all("s".as_bytes()).unwrap();
                             } else if state_lock.len() >= 2 {
                                 stream.write_all("Game is already full".as_bytes()).unwrap();
@@ -93,7 +99,11 @@ impl GameServer {
     }
 }
 
-fn handle_client(state: Arc<Mutex<Vec<Client>>>, stop_signal: Arc<AtomicBool>, mut stream: TcpStream) {
+fn handle_client(
+    state: Arc<Mutex<Vec<Client>>>,
+    stop_signal: Arc<AtomicBool>,
+    mut stream: TcpStream,
+) {
     loop {
         let mut buffer = [0; 5];
         let addr = stream.peer_addr().unwrap().to_string();

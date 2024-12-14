@@ -15,7 +15,7 @@ impl Prompt {
         Self {
             input: "".to_string(),
             character_index: 0,
-            message: String::new(), 
+            message: String::new(),
         }
     }
 

@@ -8,7 +8,12 @@ use crate::{
     server::game_server::GameServer,
 };
 use std::{
-    error, fs::{self, File}, io::Write, net::{IpAddr, UdpSocket}, thread::sleep, time::Duration
+    error,
+    fs::{self, File},
+    io::Write,
+    net::{IpAddr, UdpSocket},
+    thread::sleep,
+    time::Duration,
 };
 
 /// Application result type.
@@ -79,11 +84,11 @@ impl App {
         sleep(Duration::from_millis(100));
     }
 
-    pub fn create_player(&mut self){
+    pub fn create_player(&mut self) {
         let other_player_color = if self.selected_color.is_some() {
             Some(self.selected_color.unwrap().opposite())
         } else {
-           None
+            None
         };
         if self.hosting.unwrap() {
             self.current_popup = Some(Popups::WaitingForOpponentToJoin);
@@ -171,8 +176,8 @@ impl App {
             None => &empty,
         };
 
-         // if the selected Color is Black, we need to switch the Game
-         if let Some(color) = self.selected_color {
+        // if the selected Color is Black, we need to switch the Game
+        if let Some(color) = self.selected_color {
             if color == PieceColor::Black {
                 self.game.bot = Some(Bot::new(path, true));
 
@@ -186,7 +191,6 @@ impl App {
         let choice = self.menu_cursor == 0;
         self.hosting = Some(choice);
         self.current_popup = None;
-
     }
 
     pub fn restart(&mut self) {
@@ -208,7 +212,6 @@ impl App {
             self.game.execute_bot_move();
             self.game.player_turn = PieceColor::Black;
         }
-
     }
 
     pub fn menu_select(&mut self) {

@@ -30,12 +30,12 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         if key_event.kind == KeyEventKind::Press {
             match key_event.code {
                 KeyCode::Enter => {
-                        app.game.ui.prompt.submit_message();
-                        if app.current_page == Pages::Multiplayer {
-                            app.host_ip = Some(app.game.ui.prompt.message.clone());
-                        }
-                        app.current_popup = None;
-                    },
+                    app.game.ui.prompt.submit_message();
+                    if app.current_page == Pages::Multiplayer {
+                        app.host_ip = Some(app.game.ui.prompt.message.clone());
+                    }
+                    app.current_popup = None;
+                }
                 KeyCode::Char(to_insert) => app.game.ui.prompt.enter_char(to_insert),
                 KeyCode::Backspace => app.game.ui.prompt.delete_char(),
                 KeyCode::Left => app.game.ui.prompt.move_cursor_left(),
@@ -271,7 +271,6 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
         }
         app.game.ui.mouse_used = true;
         let coords: Coord = Coord::new(y as u8, x as u8);
-
 
         let authorized_positions = app
             .game

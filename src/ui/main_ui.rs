@@ -16,7 +16,9 @@ use crate::{
     },
 };
 
-use super::popups::{render_enter_multiplayer_ip, render_multiplayer_selection_popup, render_wait_for_other_player};
+use super::popups::{
+    render_enter_multiplayer_ip, render_multiplayer_selection_popup, render_wait_for_other_player,
+};
 use crate::{
     app::App,
     constants::{DisplayMode, Pages, TITLE},
@@ -42,7 +44,7 @@ pub fn render<'a>(app: &mut App, frame: &mut Frame<'a>) {
                 if app.hosting.is_some() && app.hosting.unwrap() == true {
                     app.setup_game_server(app.selected_color.unwrap());
                     app.host_ip = Some("127.0.0.1".to_string());
-                } else{
+                } else {
                     app.current_popup = Some(Popups::EnterHostIP);
                 }
             } else {
@@ -94,7 +96,6 @@ pub fn render<'a>(app: &mut App, frame: &mut Frame<'a>) {
         }
         _ => {}
     }
-
 }
 
 /// Helper function to create a centered rect using up certain percentage of the available rect `r`
@@ -275,7 +276,11 @@ pub fn render_game_ui<'a>(frame: &mut Frame<'a>, app: &mut App, main_area: Rect)
             PieceColor::Black => "Black",
         };
 
-            render_end_popup(frame, &format!("{string_color} Won !!!"), app.game.player.is_some());
+        render_end_popup(
+            frame,
+            &format!("{string_color} Won !!!"),
+            app.game.player.is_some(),
+        );
     }
 
     if app.game.game_state == GameState::Draw {

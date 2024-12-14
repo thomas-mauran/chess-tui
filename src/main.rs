@@ -23,7 +23,6 @@ struct Args {
     engine_path: String,
 }
 
-
 fn main() -> AppResult<()> {
     // Used to enable mouse capture
     ratatui::crossterm::execute!(
@@ -95,7 +94,13 @@ fn main() -> AppResult<()> {
             tui.draw(&mut app)?;
         }
 
-        if app.game.player.is_some() && app.game.player.as_ref().map_or(false, |player| !player.game_started) {
+        if app.game.player.is_some()
+            && app
+                .game
+                .player
+                .as_ref()
+                .map_or(false, |player| !player.game_started)
+        {
             let player = app.game.player.as_mut().unwrap();
             wait_for_game_start(&player.stream.as_ref().unwrap());
             player.game_started = true;
@@ -103,10 +108,18 @@ fn main() -> AppResult<()> {
         }
 
         // If it's the other player's turn, wait for the player to move
-        if app.game.player.is_some() && app.game.player.as_ref().map_or(false, |player| player.player_will_move) {
+        if app.game.player.is_some()
+            && app
+                .game
+                .player
+                .as_ref()
+                .map_or(false, |player| player.player_will_move)
+        {
             tui.draw(&mut app)?;
 
-            if !app.game.game_board.is_checkmate(app.game.player_turn) && !app.game.game_board.is_draw(app.game.player_turn) {
+            if !app.game.game_board.is_checkmate(app.game.player_turn)
+                && !app.game.game_board.is_draw(app.game.player_turn)
+            {
                 app.game.execute_other_player_move();
                 app.game.switch_player_turn();
             }

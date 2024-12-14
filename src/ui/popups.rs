@@ -63,7 +63,8 @@ pub fn render_end_popup(frame: &mut Frame, sentence: &str, is_multiplayer: bool)
             "Press `B` to go back to the menu"
         } else {
             "Press `R` to restart a new game"
-        }).alignment(Alignment::Center),
+        })
+        .alignment(Alignment::Center),
     ];
 
     let paragraph = Paragraph::new(text)

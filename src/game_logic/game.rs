@@ -1,6 +1,7 @@
 use super::{bot::Bot, coord::Coord, game_board::GameBoard, player::Player, ui::UI};
 use crate::{
-    pieces::{PieceColor, PieceMove, PieceType}, utils::get_int_from_char
+    pieces::{PieceColor, PieceMove, PieceType},
+    utils::get_int_from_char,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Copy)]
@@ -28,14 +29,11 @@ pub struct Game {
 
 impl Clone for Game {
     fn clone(&self) -> Self {
-
-        let player_clone = self.player.as_ref().map(|p| {
-            Player {
-                stream: p.stream.as_ref().and_then(|s| s.try_clone().ok()),
-                player_will_move: p.player_will_move,
-                color: p.color,
-                game_started: p.game_started,
-            }
+        let player_clone = self.player.as_ref().map(|p| Player {
+            stream: p.stream.as_ref().and_then(|s| s.try_clone().ok()),
+            player_will_move: p.player_will_move,
+            color: p.color,
+            game_started: p.game_started,
         });
 
         Game {
@@ -105,19 +103,20 @@ impl Game {
 
                 let last_move_promotion_type = self.game_board.get_last_move_piece_type_as_string();
 
-                player.send_move_to_server(self.game_board.move_history.last().unwrap(), Some(last_move_promotion_type));
+                player.send_move_to_server(
+                    self.game_board.move_history.last().unwrap(),
+                    Some(last_move_promotion_type),
+                );
                 player.player_will_move = true;
-
             }
 
             if self.bot.is_some() {
                 self.execute_bot_move();
             }
-
         } else if !(self.game_state == GameState::Checkmate)
             && !(self.game_state == GameState::Draw)
         {
-            if self.ui.is_cell_selected() {                
+            if self.ui.is_cell_selected() {
                 // We already selected a piece so we apply the move
                 if self.ui.cursor_coordinates.is_valid() {
                     let selected_coords_usize = &self.ui.selected_coordinates.clone();
@@ -129,7 +128,6 @@ impl Game {
                     if self.game_board.is_draw(self.player_turn) {
                         self.game_state = GameState::Draw;
                     }
-
 
                     if (self.bot.is_none()
                         || (self.bot.as_ref().map_or(false, |bot| bot.is_bot_starting)))
@@ -149,10 +147,10 @@ impl Game {
                         }
 
                         if !(self.game_state == GameState::Promotion) {
-                            if self.game_board.is_checkmate(self.player_turn) {                                
+                            if self.game_board.is_checkmate(self.player_turn) {
                                 self.game_state = GameState::Checkmate;
                             }
- 
+
                             if self.game_board.is_draw(self.player_turn) {
                                 self.game_state = GameState::Draw;
                             }
@@ -168,11 +166,11 @@ impl Game {
                     if self.player.is_some() {
                         if self.game_board.is_latest_move_promotion() {
                             self.game_state = GameState::Promotion;
-                        }else{
+                        } else {
                             if self.game_board.is_checkmate(self.player_turn) {
                                 self.game_state = GameState::Checkmate;
                             }
-                             
+
                             if self.game_board.is_draw(self.player_turn) {
                                 self.game_state = GameState::Draw;
                             }
@@ -182,11 +180,12 @@ impl Game {
                                     player.player_will_move = true;
                                 }
                             }
-                            self.player.as_mut().unwrap().send_move_to_server(self.game_board.move_history.last().unwrap(), None);
+                            self.player.as_mut().unwrap().send_move_to_server(
+                                self.game_board.move_history.last().unwrap(),
+                                None,
+                            );
                         }
-
                     }
-
                 }
             } else {
                 // Check if the piece on the cell can move before selecting it
@@ -220,7 +219,6 @@ impl Game {
         } else if self.game_board.is_latest_move_promotion() {
             self.game_state = GameState::Promotion;
         }
-
     }
 
     /* Method to make a move for the bot
@@ -237,7 +235,6 @@ impl Game {
         let fen_position = self
             .game_board
             .fen_position(is_bot_starting, self.player_turn);
-
 
         // Retrieve the bot move from the bot
         let bot_move = if let Some(bot) = self.bot.as_mut() {
@@ -273,8 +270,6 @@ impl Game {
         }
     }
 
-    
-
     // Method to promote a pawn
     pub fn promote_piece(&mut self) {
         if let Some(last_move) = self.game_board.move_history.last() {
@@ -300,12 +295,13 @@ impl Game {
             latest_move.piece_type = new_piece;
             self.game_board.board_history.pop();
             self.game_board.board_history.push(self.game_board.board);
-
         }
         self.game_state = GameState::Playing;
         self.ui.promotion_cursor = 0;
         if !self.game_board.is_draw(self.player_turn)
-            && !self.game_board.is_checkmate(self.player_turn) && self.player.is_none() && self.bot.is_none()
+            && !self.game_board.is_checkmate(self.player_turn)
+            && self.player.is_none()
+            && self.bot.is_none()
         {
             self.game_board.flip_the_board();
         }
@@ -314,7 +310,6 @@ impl Game {
     /// Move a piece from a cell to another
     // TODO: Split this in multiple methods
     pub fn execute_move(&mut self, from: &Coord, to: &Coord) {
-
         if !from.is_valid() || !to.is_valid() {
             return;
         }
@@ -393,12 +388,9 @@ impl Game {
         });
         // We store the current position of the board
         self.game_board.board_history.push(self.game_board.board);
-
-
     }
 
-    pub fn execute_other_player_move(&mut self){
-
+    pub fn execute_other_player_move(&mut self) {
         let player_move = self.player.as_mut().unwrap().read_stream();
         self.game_board.flip_the_board();
         self.player.as_mut().unwrap().player_will_move = false;
@@ -433,19 +425,19 @@ impl Game {
                 Some((promotion_piece.unwrap(), self.player_turn));
         }
         self.game_board.flip_the_board();
-
     }
-    
+
     pub fn handle_multiplayer_promotion(&mut self) {
         if self.player.is_some() {
             let player = self.player.as_mut().unwrap();
 
             let last_move_promotion_type = self.game_board.get_last_move_piece_type_as_string();
 
-            player.send_move_to_server(self.game_board.move_history.last().unwrap(), Some(last_move_promotion_type));
+            player.send_move_to_server(
+                self.game_board.move_history.last().unwrap(),
+                Some(last_move_promotion_type),
+            );
             player.player_will_move = true;
-
         }
     }
-    
 }
