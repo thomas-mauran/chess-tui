@@ -1,5 +1,3 @@
-use ratatui::text::ToText;
-
 use super::{bot::Bot, coord::Coord, game_board::GameBoard, player::Player, ui::UI};
 use crate::{
     pieces::{PieceColor, PieceMove, PieceType}, utils::get_int_from_char

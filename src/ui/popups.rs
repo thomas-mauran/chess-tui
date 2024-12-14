@@ -4,7 +4,7 @@ use crate::{
     app::App,
     constants::WHITE,
     pieces::{bishop::Bishop, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook},
-    ui::{main_ui::centered_rect, prompt},
+    ui::main_ui::centered_rect,
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Position},
@@ -468,7 +468,9 @@ pub fn render_enter_multiplayer_ip(frame: &mut Frame, prompt: &Prompt) {
         Line::from(""),
         Line::from(""),
         Line::from("Example: 10.111.6.50:2308;"),
-        Line::from("[LIEN VERS LA DOC]"),
+        Line::from("Documentation: https://thomas-mauran.github.io/chess-tui/docs/Multiplayer/Online%20multiplayer/"),
+        Line::from(""),
+        Line::from(""),
         Line::from("Press `Esc` to close the popup.").alignment(Alignment::Center),
     ];
 
