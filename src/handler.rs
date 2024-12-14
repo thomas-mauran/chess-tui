@@ -179,6 +179,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                     Some(Popups::ColorSelection) => {
                         app.current_popup = None;
                         app.selected_color = None;
+                        app.hosting = None;
                         app.current_page = Pages::Home;
                         app.menu_cursor = 0;
                     }
@@ -257,6 +258,7 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
             }
             app.game.ui.promotion_cursor = x as i8;
             app.game.promote_piece();
+            app.game.handle_multiplayer_promotion();
         }
         if mouse_event.column < app.game.ui.top_x || mouse_event.row < app.game.ui.top_y {
             return Ok(());
