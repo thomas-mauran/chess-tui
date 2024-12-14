@@ -153,10 +153,18 @@ impl GameBoard {
         player_turn: PieceColor,
         coordinates: Coord,
     ) -> Vec<Coord> {
+
         if let (Some(piece_type), Some(piece_color)) = (
             self.get_piece_type(&coordinates),
             self.get_piece_color(&coordinates),
         ) {
+
+            // If the piece color is not the same as the player turn we return an empty vector it's not his turn
+            if player_turn  != piece_color
+            {
+                return vec![];
+            }
+
             piece_type.authorized_positions(
                 &coordinates,
                 piece_color,

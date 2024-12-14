@@ -269,6 +269,7 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
         app.game.ui.mouse_used = true;
         let coords: Coord = Coord::new(y as u8, x as u8);
 
+
         let authorized_positions = app
             .game
             .game_board

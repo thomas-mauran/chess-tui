@@ -437,6 +437,17 @@ impl Game {
         self.game_board.flip_the_board();
 
     }
+    
+    pub fn handle_multiplayer_promotion(&mut self) {
+        if self.player.is_some() {
+            let player = self.player.as_mut().unwrap();
 
+            let last_move_promotion_type = self.game_board.get_last_move_piece_type_as_string();
+
+            player.send_move_to_server(self.game_board.move_history.last().unwrap(), Some(last_move_promotion_type));
+            player.player_will_move = true;
+
+        }
+    }
     
 }
