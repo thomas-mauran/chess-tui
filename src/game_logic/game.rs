@@ -92,132 +92,135 @@ impl Game {
     }
 
     // Methods to select a cell on the board
-    // TODO: Split this in multiple methods
-    pub fn select_cell(&mut self) {
+    pub fn handle_cell_click(&mut self) {
         // If we are doing a promotion the cursor is used for the popup
         if self.game_state == GameState::Promotion {
-            self.promote_piece();
-
-            if self.opponent.is_some() {
-                let opponent = self.opponent.as_mut().unwrap();
-
-                let last_move_promotion_type = self.game_board.get_last_move_piece_type_as_string();
-
-                opponent.send_move_to_server(
-                    self.game_board.move_history.last().unwrap(),
-                    Some(last_move_promotion_type),
-                );
-                opponent.opponent_will_move = true;
-            }
-
-            if self.bot.is_some() {
-                self.execute_bot_move();
-            }
+            self.handle_promotion();
         } else if !(self.game_state == GameState::Checkmate)
             && !(self.game_state == GameState::Draw)
         {
             if self.ui.is_cell_selected() {
-                // We already selected a piece so we apply the move
-                if self.ui.cursor_coordinates.is_valid() {
-                    let selected_coords_usize = &self.ui.selected_coordinates.clone();
-                    let cursor_coords_usize = &self.ui.cursor_coordinates.clone();
-                    self.execute_move(selected_coords_usize, cursor_coords_usize);
-                    self.ui.unselect_cell();
-                    self.switch_player_turn();
-
-                    if self.game_board.is_draw(self.player_turn) {
-                        self.game_state = GameState::Draw;
-                    }
-
-                    if (self.bot.is_none()
-                        || (self.bot.as_ref().map_or(false, |bot| bot.is_bot_starting)))
-                        && (self.opponent.is_none())
-                        && (!self.game_board.is_latest_move_promotion()
-                            || self.game_board.is_draw(self.player_turn)
-                            || self.game_board.is_checkmate(self.player_turn))
-                    {
-                        self.game_board.flip_the_board();
-                    }
-
-                    // If we play against a bot we will play his move and switch the player turn again
-                    if self.bot.is_some() {
-                        // do this in background
-                        if self.game_board.is_latest_move_promotion() {
-                            self.game_state = GameState::Promotion;
-                        }
-
-                        if !(self.game_state == GameState::Promotion) {
-                            if self.game_board.is_checkmate(self.player_turn) {
-                                self.game_state = GameState::Checkmate;
-                            }
-
-                            if self.game_board.is_draw(self.player_turn) {
-                                self.game_state = GameState::Draw;
-                            }
-
-                            if !(self.game_state == GameState::Checkmate) {
-                                if let Some(bot) = self.bot.as_mut() {
-                                    bot.bot_will_move = true;
-                                }
-                            }
-                        }
-                    }
-                    // If we play against a player we will wait for his move
-                    if self.opponent.is_some() {
-                        if self.game_board.is_latest_move_promotion() {
-                            self.game_state = GameState::Promotion;
-                        } else {
-                            if self.game_board.is_checkmate(self.player_turn) {
-                                self.game_state = GameState::Checkmate;
-                            }
-
-                            if self.game_board.is_draw(self.player_turn) {
-                                self.game_state = GameState::Draw;
-                            }
-
-                            if !(self.game_state == GameState::Checkmate) {
-                                if let Some(opponent) = self.opponent.as_mut() {
-                                    opponent.opponent_will_move = true;
-                                }
-                            }
-                            self.opponent.as_mut().unwrap().send_move_to_server(
-                                self.game_board.move_history.last().unwrap(),
-                                None,
-                            );
-                        }
-                    }
-                }
+                self.already_selected_cell_action();
             } else {
-                // Check if the piece on the cell can move before selecting it
-                let authorized_positions = self
-                    .game_board
-                    .get_authorized_positions(self.player_turn, self.ui.cursor_coordinates);
-
-                if authorized_positions.is_empty() {
-                    return;
-                }
-                if let Some(piece_color) =
-                    self.game_board.get_piece_color(&self.ui.cursor_coordinates)
-                {
-                    let authorized_positions = self
-                        .game_board
-                        .get_authorized_positions(self.player_turn, self.ui.cursor_coordinates);
-
-                    if piece_color == self.player_turn {
-                        self.ui.selected_coordinates = self.ui.cursor_coordinates;
-                        self.ui.old_cursor_position = self.ui.cursor_coordinates;
-                        self.ui
-                            .move_selected_piece_cursor(true, 1, authorized_positions);
-                    }
-                }
+                self.select_cell()
             }
         }
+        self.update_game_state();
+    }
+
+    fn update_game_state(&mut self) {
         if self.game_board.is_checkmate(self.player_turn) {
             self.game_state = GameState::Checkmate;
         } else if self.game_board.is_draw(self.player_turn) {
             self.game_state = GameState::Draw;
         } else if self.game_board.is_latest_move_promotion() {
             self.game_state = GameState::Promotion;
+        }
+    }
+
+    pub fn handle_promotion(&mut self) {
+        self.promote_piece();
+
+        if self.opponent.is_some() {
+            self.handle_multiplayer_promotion();
+        }
+
+        if self.bot.is_some() {
+            self.execute_bot_move();
+        }
+    }
+    pub fn already_selected_cell_action(&mut self) {
+        // We already selected a piece so we apply the move
+        if self.ui.cursor_coordinates.is_valid() {
+            let selected_coords_usize = &self.ui.selected_coordinates.clone();
+            let cursor_coords_usize = &self.ui.cursor_coordinates.clone();
+            self.execute_move(selected_coords_usize, cursor_coords_usize);
+            self.ui.unselect_cell();
+            self.switch_player_turn();
+
+            if self.game_board.is_draw(self.player_turn) {
+                self.game_state = GameState::Draw;
+            }
+
+            if (self.bot.is_none() || (self.bot.as_ref().map_or(false, |bot| bot.is_bot_starting)))
+                && (self.opponent.is_none())
+                && (!self.game_board.is_latest_move_promotion()
+                    || self.game_board.is_draw(self.player_turn)
+                    || self.game_board.is_checkmate(self.player_turn))
+            {
+                self.game_board.flip_the_board();
+            }
+
+            // If we play against a bot we will play his move and switch the player turn again
+            if self.bot.is_some() {
+                // do this in background
+                if self.game_board.is_latest_move_promotion() {
+                    self.game_state = GameState::Promotion;
+                }
+
+                if !(self.game_state == GameState::Promotion) {
+                    if self.game_board.is_checkmate(self.player_turn) {
+                        self.game_state = GameState::Checkmate;
+                    }
+
+                    if self.game_board.is_draw(self.player_turn) {
+                        self.game_state = GameState::Draw;
+                    }
+
+                    if !(self.game_state == GameState::Checkmate) {
+                        if let Some(bot) = self.bot.as_mut() {
+                            bot.bot_will_move = true;
+                        }
+                    }
+                }
+            }
+            // If we play against a player we will wait for his move
+            if self.opponent.is_some() {
+                if self.game_board.is_latest_move_promotion() {
+                    self.game_state = GameState::Promotion;
+                } else {
+                    if self.game_board.is_checkmate(self.player_turn) {
+                        self.game_state = GameState::Checkmate;
+                    }
+
+                    if self.game_board.is_draw(self.player_turn) {
+                        self.game_state = GameState::Draw;
+                    }
+
+                    if !(self.game_state == GameState::Checkmate) {
+                        if let Some(opponent) = self.opponent.as_mut() {
+                            opponent.opponent_will_move = true;
+                        }
+                    }
+                    self.opponent
+                        .as_mut()
+                        .unwrap()
+                        .send_move_to_server(self.game_board.move_history.last().unwrap(), None);
+                }
+            }
+        }
+    }
+
+    pub fn select_cell(&mut self) {
+        // Check if the piece on the cell can move before selecting it
+        let authorized_positions = self
+            .game_board
+            .get_authorized_positions(self.player_turn, self.ui.cursor_coordinates);
+
+        if authorized_positions.is_empty() {
+            return;
+        }
+        if let Some(piece_color) = self.game_board.get_piece_color(&self.ui.cursor_coordinates) {
+            let authorized_positions = self
+                .game_board
+                .get_authorized_positions(self.player_turn, self.ui.cursor_coordinates);
+
+            if piece_color == self.player_turn {
+                self.ui.selected_coordinates = self.ui.cursor_coordinates;
+                self.ui.old_cursor_position = self.ui.cursor_coordinates;
+                self.ui
+                    .move_selected_piece_cursor(true, 1, authorized_positions);
+            }
         }
     }
 
@@ -428,16 +431,14 @@ impl Game {
     }
 
     pub fn handle_multiplayer_promotion(&mut self) {
-        if self.opponent.is_some() {
-            let opponent = self.opponent.as_mut().unwrap();
+        let opponent = self.opponent.as_mut().unwrap();
 
-            let last_move_promotion_type = self.game_board.get_last_move_piece_type_as_string();
+        let last_move_promotion_type = self.game_board.get_last_move_piece_type_as_string();
 
-            opponent.send_move_to_server(
-                self.game_board.move_history.last().unwrap(),
-                Some(last_move_promotion_type),
-            );
-            opponent.opponent_will_move = true;
-        }
+        opponent.send_move_to_server(
+            self.game_board.move_history.last().unwrap(),
+            Some(last_move_promotion_type),
+        );
+        opponent.opponent_will_move = true;
     }
 }

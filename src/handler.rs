@@ -142,7 +142,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                         app.color_selection();
                         app.bot_setup();
                     } else {
-                        app.game.select_cell();
+                        app.game.handle_cell_click();
                     }
                 }
                 Pages::Multiplayer => {
@@ -153,14 +153,14 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                             app.color_selection();
                         }
                     } else {
-                        app.game.select_cell();
+                        app.game.handle_cell_click();
                     }
                 }
                 Pages::Credit => {
                     app.current_page = Pages::Home;
                 }
                 _ => {
-                    app.game.select_cell();
+                    app.game.handle_cell_click();
                 }
             },
             KeyCode::Char('?') => {
@@ -260,7 +260,10 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
             }
             app.game.ui.promotion_cursor = x as i8;
             app.game.promote_piece();
-            app.game.handle_multiplayer_promotion();
+            if app.game.opponent.is_some() {
+                app.game.handle_multiplayer_promotion();
+
+            }
         }
         if mouse_event.column < app.game.ui.top_x || mouse_event.row < app.game.ui.top_y {
             return Ok(());
@@ -290,7 +293,7 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
             }
         {
             app.game.ui.cursor_coordinates = coords;
-            app.game.select_cell();
+            app.game.handle_cell_click();
         } else {
             app.game.ui.selected_coordinates = coords;
         }
