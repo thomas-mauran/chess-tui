@@ -110,8 +110,7 @@ impl UI {
         }
     }
 
-    /// CURSOR MOVEMENT
-
+    // CURSOR MOVEMENT
     /// Move the cursor up
     pub fn cursor_up(&mut self, authorized_positions: Vec<Coord>) {
         if self.is_cell_selected() {
