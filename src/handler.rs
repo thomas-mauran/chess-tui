@@ -65,12 +65,12 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                 }
             }
             // Counter handlers
+            // Counter handlers
             KeyCode::Right | KeyCode::Char('l') => {
-                if app.current_page == Pages::Multiplayer && app.hosting.is_none() {
-                    app.menu_cursor_right(2);
-                } else if app.current_page == Pages::Multiplayer && app.selected_color.is_none() {
-                    app.menu_cursor_right(2);
-                } else if app.current_page == Pages::Bot && app.selected_color.is_none() {
+                if (app.current_page == Pages::Multiplayer
+                    && (app.hosting.is_none() || app.selected_color.is_none()))
+                    || (app.current_page == Pages::Bot && app.selected_color.is_none())
+                {
                     app.menu_cursor_right(2);
                 } else if app.game.game_state == GameState::Promotion {
                     app.game.ui.cursor_right_promotion();
@@ -84,12 +84,12 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                     app.game.ui.cursor_right(authorized_positions);
                 }
             }
+
             KeyCode::Left | KeyCode::Char('h') => {
-                if app.current_page == Pages::Multiplayer && app.hosting.is_none() {
-                    app.menu_cursor_left(2);
-                } else if app.current_page == Pages::Multiplayer && app.selected_color.is_none() {
-                    app.menu_cursor_left(2);
-                } else if app.current_page == Pages::Bot && app.selected_color.is_none() {
+                if (app.current_page == Pages::Multiplayer
+                    && (app.hosting.is_none() || app.selected_color.is_none()))
+                    || (app.current_page == Pages::Bot && app.selected_color.is_none())
+                {
                     app.menu_cursor_left(2);
                 } else if app.game.game_state == GameState::Promotion {
                     app.game.ui.cursor_left_promotion();
@@ -149,7 +149,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                     if app.hosting.is_none() {
                         app.hosting_selection();
                     } else if app.selected_color.is_none() {
-                        if app.hosting.is_some() && app.hosting.unwrap() == true {
+                        if app.hosting.is_some() && app.hosting.unwrap() {
                             app.color_selection();
                         }
                     } else {
@@ -224,7 +224,11 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                     app.game.bot = None;
                 }
                 if app.game.opponent.is_some() {
-                    app.game.opponent.as_mut().unwrap().send_end_game_to_server();
+                    app.game
+                        .opponent
+                        .as_mut()
+                        .unwrap()
+                        .send_end_game_to_server();
                     app.game.opponent = None;
                     app.hosting = None;
                     app.host_ip = None;
@@ -269,7 +273,6 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
             app.game.promote_piece();
             if app.game.opponent.is_some() {
                 app.game.handle_multiplayer_promotion();
-
             }
         }
         if mouse_event.column < app.game.ui.top_x || mouse_event.row < app.game.ui.top_y {

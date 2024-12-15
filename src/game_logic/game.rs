@@ -42,7 +42,7 @@ impl Clone for Game {
             bot: self.bot.clone(),
             opponent: opponent_clone,
             player_turn: self.player_turn,
-            game_state: self.game_state.clone(),
+            game_state: self.game_state,
         }
     }
 }
@@ -421,7 +421,7 @@ impl Game {
         let from = &Coord::new(from_y, from_x);
         let to = &Coord::new(to_y, to_x);
 
-        self.execute_move(&from, &to);
+        self.execute_move(from, to);
 
         if promotion_piece.is_some() {
             self.game_board.board[to_y as usize][to_x as usize] =

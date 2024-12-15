@@ -323,7 +323,7 @@ impl UI {
     }
 
     /// Method to render the board
-    pub fn board_render<'a>(&mut self, area: Rect, frame: &mut Frame<'a>, game: &Game) {
+    pub fn board_render(&mut self, area: Rect, frame: &mut Frame<'_>, game: &Game) {
         let width = area.width / 8;
         let height = area.height / 8;
         let border_height = area.height / 2 - (4 * height);

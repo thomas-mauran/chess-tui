@@ -26,7 +26,7 @@ use crate::{
 };
 
 /// Renders the user interface widgets.
-pub fn render<'a>(app: &mut App, frame: &mut Frame<'a>) {
+pub fn render(app: &mut App, frame: &mut Frame<'_>) {
     let main_area = frame.area();
 
     // Solo game
@@ -37,11 +37,11 @@ pub fn render<'a>(app: &mut App, frame: &mut Frame<'a>) {
     else if app.current_page == Pages::Multiplayer {
         if app.hosting.is_none() {
             app.current_popup = Some(Popups::MultiplayerSelection);
-        } else if app.selected_color.is_none() && app.hosting.unwrap() == true {
+        } else if app.selected_color.is_none() && app.hosting.unwrap() {
             app.current_popup = Some(Popups::ColorSelection);
         } else if app.game.opponent.is_none() {
             if app.host_ip.is_none() {
-                if app.hosting.is_some() && app.hosting.unwrap() == true {
+                if app.hosting.is_some() && app.hosting.unwrap() {
                     app.setup_game_server(app.selected_color.unwrap());
                     app.host_ip = Some("127.0.0.1".to_string());
                 } else {
@@ -50,7 +50,7 @@ pub fn render<'a>(app: &mut App, frame: &mut Frame<'a>) {
             } else {
                 app.create_opponent();
             }
-        } else if app.game.opponent.as_mut().unwrap().game_started == true {
+        } else if app.game.opponent.as_mut().unwrap().game_started {
             render_game_ui(frame, app, main_area);
         }
     }
@@ -193,7 +193,7 @@ pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
 }
 
 // Method to render the game board and handle game popups
-pub fn render_game_ui<'a>(frame: &mut Frame<'a>, app: &mut App, main_area: Rect) {
+pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
     let main_layout_horizontal = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
@@ -284,6 +284,6 @@ pub fn render_game_ui<'a>(frame: &mut Frame<'a>, app: &mut App, main_area: Rect)
     }
 
     if app.game.game_state == GameState::Draw {
-        render_end_popup(frame, &format!("That's a draw"), app.game.opponent.is_some());
+        render_end_popup(frame, "That's a draw", app.game.opponent.is_some());
     }
 }

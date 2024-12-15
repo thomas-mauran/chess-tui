@@ -25,7 +25,6 @@ struct Args {
 }
 
 fn main() -> AppResult<()> {
-    
     // Used to enable mouse capture
     ratatui::crossterm::execute!(
         std::io::stdout(),
@@ -76,7 +75,8 @@ fn main() -> AppResult<()> {
         ratatui::crossterm::execute!(
             std::io::stdout(),
             ratatui::crossterm::event::DisableMouseCapture
-        ).unwrap();
+        )
+        .unwrap();
         default_panic(info);
     }));
 
@@ -114,7 +114,7 @@ fn main() -> AppResult<()> {
                 .map_or(false, |opponent| !opponent.game_started)
         {
             let opponent = app.game.opponent.as_mut().unwrap();
-            wait_for_game_start(&opponent.stream.as_ref().unwrap());
+            wait_for_game_start(opponent.stream.as_ref().unwrap());
             opponent.game_started = true;
             app.current_popup = None;
         }

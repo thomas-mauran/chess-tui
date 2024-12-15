@@ -92,11 +92,11 @@ impl App {
         };
         if self.hosting.unwrap() {
             self.current_popup = Some(Popups::WaitingForOpponentToJoin);
-            self.host_ip = Some(format!("{}:2308", self.get_host_ip().to_string()));
+            self.host_ip = Some(format!("{}:2308", self.get_host_ip()));
         }
 
         let addr = self.host_ip.as_ref().unwrap().to_string();
-        let addr_with_port = format!("{}", addr);
+        let addr_with_port = addr.to_string();
 
         // ping the server to see if it's up
 
@@ -127,9 +127,8 @@ impl App {
     pub fn get_host_ip(&self) -> IpAddr {
         let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
         socket.connect("8.8.8.8:80").unwrap(); // Use an external IP to identify the default route
-        let default_ip = socket.local_addr().unwrap().ip();
 
-        default_ip
+        socket.local_addr().unwrap().ip()
     }
 
     /// Handles the tick event of the terminal.
