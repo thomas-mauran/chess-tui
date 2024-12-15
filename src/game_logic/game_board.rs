@@ -78,6 +78,20 @@ impl GameBoard {
         }
     }
 
+    pub fn get_last_move_piece_type_as_string(&self) -> String {
+        if let Some(last_move) = self.move_history.last() {
+            match last_move.piece_type {
+                PieceType::Pawn => return String::from("p"),
+                PieceType::Rook => return String::from("r"),
+                PieceType::Knight => return String::from("n"),
+                PieceType::Bishop => return String::from("b"),
+                PieceType::Queen => return String::from("q"),
+                PieceType::King => return String::from("k"),
+            }
+        }
+        String::from("")
+    }
+
     pub fn increment_consecutive_non_pawn_or_capture(
         &mut self,
         piece_type_from: PieceType,
@@ -143,6 +157,11 @@ impl GameBoard {
             self.get_piece_type(&coordinates),
             self.get_piece_color(&coordinates),
         ) {
+            // If the piece color is not the same as the player turn we return an empty vector it's not his turn
+            if player_turn != piece_color {
+                return vec![];
+            }
+
             piece_type.authorized_positions(
                 &coordinates,
                 piece_color,

@@ -8,6 +8,7 @@ use ratatui::{
 };
 
 use crate::{
+    constants::Popups,
     game_logic::{bot::Bot, game::GameState},
     ui::popups::{
         render_color_selection_popup, render_credit_popup, render_end_popup,
@@ -15,6 +16,9 @@ use crate::{
     },
 };
 
+use super::popups::{
+    render_enter_multiplayer_ip, render_multiplayer_selection_popup, render_wait_for_other_player,
+};
 use crate::{
     app::App,
     constants::{DisplayMode, Pages, TITLE},
@@ -22,16 +26,40 @@ use crate::{
 };
 
 /// Renders the user interface widgets.
-pub fn render(app: &mut App, frame: &mut Frame) {
+pub fn render(app: &mut App, frame: &mut Frame<'_>) {
     let main_area = frame.area();
 
+    // Solo game
     if app.current_page == Pages::Solo {
         render_game_ui(frame, app, main_area);
-    } else if app.current_page == Pages::Bot {
+    }
+    // Multiplayer game
+    else if app.current_page == Pages::Multiplayer {
+        if app.hosting.is_none() {
+            app.current_popup = Some(Popups::MultiplayerSelection);
+        } else if app.selected_color.is_none() && app.hosting.unwrap() {
+            app.current_popup = Some(Popups::ColorSelection);
+        } else if app.game.opponent.is_none() {
+            if app.host_ip.is_none() {
+                if app.hosting.is_some() && app.hosting.unwrap() {
+                    app.setup_game_server(app.selected_color.unwrap());
+                    app.host_ip = Some("127.0.0.1".to_string());
+                } else {
+                    app.current_popup = Some(Popups::EnterHostIP);
+                }
+            } else {
+                app.create_opponent();
+            }
+        } else if app.game.opponent.as_mut().unwrap().game_started {
+            render_game_ui(frame, app, main_area);
+        }
+    }
+    // Play against bot
+    else if app.current_page == Pages::Bot {
         if app.chess_engine_path.is_none() || app.chess_engine_path.as_ref().unwrap().is_empty() {
             render_engine_path_error_popup(frame);
         } else if app.selected_color.is_none() {
-            app.show_color_popup = true;
+            app.current_popup = Some(Popups::ColorSelection);
         } else if app.game.bot.is_none() {
             let engine_path = app.chess_engine_path.clone().unwrap();
             let is_bot_starting = app.selected_color.unwrap() == PieceColor::Black;
@@ -39,19 +67,34 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         } else {
             render_game_ui(frame, app, main_area);
         }
-    } else {
+    }
+    // Render menu
+    else {
         render_menu_ui(frame, app, main_area);
-    }
-    if app.show_color_popup {
-        render_color_selection_popup(frame, app);
-    }
-
-    if app.show_help_popup {
-        render_help_popup(frame);
     }
 
     if app.current_page == Pages::Credit {
         render_credit_popup(frame);
+    }
+
+    // Render popups
+    match app.current_popup {
+        Some(Popups::ColorSelection) => {
+            render_color_selection_popup(frame, app);
+        }
+        Some(Popups::MultiplayerSelection) => {
+            render_multiplayer_selection_popup(frame, app);
+        }
+        Some(Popups::EnterHostIP) => {
+            render_enter_multiplayer_ip(frame, &app.game.ui.prompt);
+        }
+        Some(Popups::WaitingForOpponentToJoin) => {
+            render_wait_for_other_player(frame, app.get_host_ip());
+        }
+        Some(Popups::Help) => {
+            render_help_popup(frame);
+        }
+        _ => {}
     }
 }
 
@@ -123,6 +166,7 @@ pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
     // Board block representing the full board div
     let menu_items = [
         "Normal game",
+        "Multiplayer",
         "Play against a bot",
         &display_mode_menu,
         "Help",
@@ -149,7 +193,7 @@ pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
 }
 
 // Method to render the game board and handle game popups
-pub fn render_game_ui(frame: &mut Frame, app: &mut App, main_area: Rect) {
+pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
     let main_layout_horizontal = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
@@ -232,10 +276,14 @@ pub fn render_game_ui(frame: &mut Frame, app: &mut App, main_area: Rect) {
             PieceColor::Black => "Black",
         };
 
-        render_end_popup(frame, &format!("{string_color} Won !!!"));
+        render_end_popup(
+            frame,
+            &format!("{string_color} Won !!!"),
+            app.game.opponent.is_some(),
+        );
     }
 
     if app.game.game_state == GameState::Draw {
-        render_end_popup(frame, "That's a draw");
+        render_end_popup(frame, "That's a draw", app.game.opponent.is_some());
     }
 }

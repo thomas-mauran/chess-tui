@@ -3,36 +3,44 @@
 ```mermaid
 classDiagram
 
-    class App {
+class App {
         +bool running
         +Game game
         +Pages current_page
-        +bool show_help_popup
-        +bool show_color_popup
-        +Option~PieceColor~ selected_color
+        +Option<Popups> current_popup
+        +Option<PieceColor> selected_color
+        +Option<bool> hosting
+        +Option<String> host_ip
         +u8 menu_cursor
-        +Option~String~ chess_engine_path
+        +Option<String> chess_engine_path
+
         +toggle_help_popup()
         +toggle_credit_popup()
         +go_to_home()
         +tick()
         +quit()
-        +menu_cursor_up(u8)
-        +menu_cursor_right(u8)
-        +menu_cursor_left(u8)
-        +menu_cursor_down(u8)
+        +menu_cursor_up(l: u8)
+        +menu_cursor_right(l: u8)
+        +menu_cursor_left(l: u8)
+        +menu_cursor_down(l: u8)
         +color_selection()
         +restart()
         +menu_select()
         +update_config()
+        +setup_game_server(host_color: PieceColor)
+        +create_opponent()
+        +hosting_selection()
+        +bot_setup()
+        +get_host_ip() IpAddr
     }
-
     class Game {
         +GameBoard game_board
         +UI ui
         +Option<Bot> bot
+        +Option<Opponent> opponent
         +PieceColor player_turn
         +GameState game_state
+
         +new(game_board: GameBoard, player_turn: PieceColor)
         +set_board(game_board: GameBoard)
         +set_player_turn(player_turn: PieceColor)
@@ -41,6 +49,11 @@ classDiagram
         +execute_bot_move()
         +promote_piece()
         +execute_move(from: Coord, to: Coord)
+        +handle_cell_click()
+        +already_selected_cell_action()
+        +handle_promotion()
+        +execute_opponent_move()
+        +handle_multiplayer_promotion()
     }
 
     class GameBoard {
@@ -96,7 +109,20 @@ classDiagram
         +set_engine(engine_path: &str)
         +create_engine(engine_path: &str): Engine
         +get_bot_move(fen_position: String): String
+    }
 
+    class Opponent {
+        +Option<TcpStream> stream
+        +bool opponent_will_move
+        +PieceColor color
+        +bool game_started
+
+        +copy() : Opponent
+        +new(addr: String, color: Option<PieceColor>) : Opponent
+        +start_stream(addr: &str) : void
+        +send_end_game_to_server() : void
+        +send_move_to_server(move_to_send: &PieceMove, promotion_type: Option<String>) : void
+        +read_stream() : String
     }
 
     class Coord {
@@ -149,6 +175,8 @@ classDiagram
     PieceMove "1" --> "1" Coord : from_to
     Coord "1" --> "1" PieceColor : color
     Coord "1" --> "1" PieceType : type
+    Game "1" --> "0..1" Opponent : "has"
+    Opponent "1" --> "1" PieceColor : color
 ```
 
 

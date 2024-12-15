@@ -1,6 +1,6 @@
 <div align="center">
 <h1>chess-tui</h1>
-A chess TUI implementation in rust 🦀
+A rusty chess game in your terminal 🦀
 
 ![board](./examples/play_against_white_bot.gif)
 
@@ -9,6 +9,10 @@ A chess TUI implementation in rust 🦀
   ![GitHub CI](https://github.com/thomas-mauran/chess-tui/actions/workflows/flow_test_build_push.yml/badge.svg)[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)[![GitHub release](https://img.shields.io/github/v/release/thomas-mauran/chess-tui?color=success)](https://github.com/thomas-mauran/chess-tui/releases/latest)
   </div>
 </div>
+
+### Description
+
+Chess-tui is a simple chess game you can play from your terminal. It supports local 2 players mode, online multiplayer and playing against any UCI compatible chess engine.
 
 ### Quick install
 
@@ -30,7 +34,11 @@ If you want to install the game with your favorite package manager, you can find
 </details>
 <details>
   <summary>Local 2 player mode</summary>
-  <img src="./examples/demo.gif" alt="Helper menu" />
+  <img src="./examples/demo.gif" alt="Local 2 players" />
+</details>
+<details>
+  <summary>Online multiplayer</summary>
+  <img src="./website/static/gif/multiplayer.gif" alt="Online multiplayer" />
 </details>
 <details>
   <summary>Draws</summary>

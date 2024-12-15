@@ -53,3 +53,24 @@ footer.footer a {
 footer.footer a:hover {
   color: var(--ifm-color-primary-lighter); /* Slightly warmer color for hover state */
 }
+
+/* Ensure the theme toggle button aligns properly */
+.navbar__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+/* Adjust spacing or alignment if necessary */
+.navbar__toggle svg {
+  vertical-align: middle;
+  height: 1.2em; /* Adjust size to match GitHub icons */
+  margin-left: 8px; /* Fine-tune the spacing */
+  margin-right: 8px; /* Fine-tune the spacing */
+}
+
+/* Adjust GitHub badge alignment */
+.header-github-link img {
+  vertical-align: middle;
+}

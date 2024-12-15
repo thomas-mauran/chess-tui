@@ -5,11 +5,13 @@ use chess_tui::app::{App, AppResult};
 use chess_tui::constants::{home_dir, DisplayMode};
 use chess_tui::event::{Event, EventHandler};
 use chess_tui::game_logic::game::GameState;
+use chess_tui::game_logic::opponent::wait_for_game_start;
 use chess_tui::handler::{handle_key_events, handle_mouse_events};
 use chess_tui::ui::tui::Tui;
 use clap::Parser;
 use std::fs::{self, File};
 use std::io::Write;
+use std::panic;
 use std::path::Path;
 use toml::Value;
 
@@ -39,7 +41,7 @@ fn main() -> AppResult<()> {
     config_create(&args, &folder_path, &config_path)?;
 
     // Create an application.
-    let mut app: App = App::default();
+    let mut app = App::default();
 
     // We store the chess engine path if there is one
     if let Ok(content) = fs::read_to_string(config_path) {
@@ -67,6 +69,17 @@ fn main() -> AppResult<()> {
     let events = EventHandler::new(250);
     let mut tui = Tui::new(terminal, events);
 
+    let default_panic = std::panic::take_hook();
+    panic::set_hook(Box::new(move |info| {
+        ratatui::restore();
+        ratatui::crossterm::execute!(
+            std::io::stdout(),
+            ratatui::crossterm::event::DisableMouseCapture
+        )
+        .unwrap();
+        default_panic(info);
+    }));
+
     // Start the main loop.
     while app.running {
         // Render the user interface.
@@ -84,6 +97,45 @@ fn main() -> AppResult<()> {
             if let Some(bot) = app.game.bot.as_mut() {
                 bot.bot_will_move = false;
             }
+            // need to be centralised
+            if app.game.game_board.is_checkmate(app.game.player_turn) {
+                app.game.game_state = GameState::Checkmate;
+            } else if app.game.game_board.is_draw(app.game.player_turn) {
+                app.game.game_state = GameState::Draw;
+            }
+            tui.draw(&mut app)?;
+        }
+
+        if app.game.opponent.is_some()
+            && app
+                .game
+                .opponent
+                .as_ref()
+                .map_or(false, |opponent| !opponent.game_started)
+        {
+            let opponent = app.game.opponent.as_mut().unwrap();
+            wait_for_game_start(opponent.stream.as_ref().unwrap());
+            opponent.game_started = true;
+            app.current_popup = None;
+        }
+
+        // If it's the opponent turn, wait for the opponent to move
+        if app.game.opponent.is_some()
+            && app
+                .game
+                .opponent
+                .as_ref()
+                .map_or(false, |opponent| opponent.opponent_will_move)
+        {
+            tui.draw(&mut app)?;
+
+            if !app.game.game_board.is_checkmate(app.game.player_turn)
+                && !app.game.game_board.is_draw(app.game.player_turn)
+            {
+                app.game.execute_opponent_move();
+                app.game.switch_player_turn();
+            }
+
             // need to be centralised
             if app.game.game_board.is_checkmate(app.game.player_turn) {
                 app.game.game_state = GameState::Checkmate;

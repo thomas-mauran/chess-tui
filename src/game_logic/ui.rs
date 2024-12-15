@@ -2,7 +2,7 @@ use super::{coord::Coord, game::Game};
 use crate::{
     constants::{DisplayMode, BLACK, UNDEFINED_POSITION, WHITE},
     pieces::{PieceColor, PieceMove, PieceType},
-    ui::main_ui::render_cell,
+    ui::{main_ui::render_cell, prompt::Prompt},
     utils::{convert_position_into_notation, get_cell_paragraph, invert_position},
 };
 use ratatui::{
@@ -35,6 +35,8 @@ pub struct UI {
     pub mouse_used: bool,
     /// The skin of the game
     pub display_mode: DisplayMode,
+    // The prompt for the player
+    pub prompt: Prompt,
 }
 
 impl Default for UI {
@@ -51,6 +53,7 @@ impl Default for UI {
             height: 0,
             mouse_used: false,
             display_mode: DisplayMode::DEFAULT,
+            prompt: Prompt::new(),
         }
     }
 }
@@ -320,7 +323,7 @@ impl UI {
     }
 
     /// Method to render the board
-    pub fn board_render(&mut self, area: Rect, frame: &mut Frame, game: &Game) {
+    pub fn board_render(&mut self, area: Rect, frame: &mut Frame<'_>, game: &Game) {
         let width = area.width / 8;
         let height = area.height / 8;
         let border_height = area.height / 2 - (4 * height);
@@ -389,6 +392,14 @@ impl UI {
                     } else {
                         last_move_from = invert_position(&last_move.map(|m| m.from).unwrap());
                         last_move_to = invert_position(&last_move.map(|m| m.to).unwrap());
+                    }
+
+                    // If the opponent is the same as the last move player, we don't want to show his last move
+                    if game.opponent.is_some()
+                        && game.opponent.as_ref().unwrap().color == game.player_turn
+                    {
+                        last_move_from = Coord::undefined();
+                        last_move_to = Coord::undefined();
                     }
                 }
 

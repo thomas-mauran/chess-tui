@@ -8,7 +8,11 @@ const sidebars: SidebarsConfig = {
       label: 'Installation', 
       items: ['Installation/Packaging status', 'Installation/Cargo', 'Installation/Build from source', 'Installation/NetBSD', 'Installation/Arch Linux', 'Installation/NixOS', 'Installation/Docker'], 
     },
-
+    {
+      type: 'category',
+      label: 'Multiplayer', 
+      items: ['Multiplayer/Local multiplayer', 'Multiplayer/Online multiplayer'], 
+    },
     {
       type: 'category',
       label: 'Code Architecture', 
