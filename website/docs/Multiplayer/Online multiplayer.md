@@ -2,7 +2,7 @@
 
 You can now play chess with your friends online. The online multiplayer feature is available in the `Multiplayer` menu option.
 
-![multiplayer gif demo](./multiplayer.gif)
+![multiplayer gif demo](../../static/gif/multiplayer.gif)
 
 
 ## LAN
