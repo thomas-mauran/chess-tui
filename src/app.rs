@@ -97,6 +97,16 @@ impl App {
 
         let addr = self.host_ip.as_ref().unwrap().to_string();
         let addr_with_port = format!("{}", addr);
+
+        // ping the server to see if it's up
+
+        let s = UdpSocket::bind(addr_with_port.clone());
+        if s.is_err() {
+            eprintln!("\nServer is unreachable. Make sure you entered the correct IP and port.");
+            self.host_ip = None;
+            return;
+        }
+
         self.game.opponent = Some(Opponent::new(addr_with_port, other_player_color));
 
         if !self.hosting.unwrap() {
@@ -257,5 +267,15 @@ impl App {
 
         let mut file = File::create(config_path.clone()).unwrap();
         file.write_all(config.to_string().as_bytes()).unwrap();
+    }
+
+    pub fn reset(&mut self) {
+        self.game = Game::default();
+        self.current_popup = None;
+        self.selected_color = None;
+        self.hosting = None;
+        self.host_ip = None;
+        self.menu_cursor = 0;
+        self.chess_engine_path = None;
     }
 }

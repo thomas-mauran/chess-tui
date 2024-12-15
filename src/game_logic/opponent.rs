@@ -146,7 +146,6 @@ impl Opponent {
                     if response.trim() == "ended" || response.trim() == "" {
                         panic!("Game ended by the other Opponent");
                     }
-
                     response.to_string()
                 }
                 Err(e) => {

@@ -83,7 +83,7 @@ impl GameBoard {
             match last_move.piece_type {
                 PieceType::Pawn => return String::from("p"),
                 PieceType::Rook => return String::from("r"),
-                PieceType::Knight => return String::from("k"),
+                PieceType::Knight => return String::from("n"),
                 PieceType::Bishop => return String::from("b"),
                 PieceType::Queen => return String::from("q"),
                 PieceType::King => return String::from("k"),
