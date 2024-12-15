@@ -159,12 +159,6 @@ fn main() -> AppResult<()> {
     Ok(())
 }
 
-pub fn restore_tui() -> io::Result<()> {
-    disable_raw_mode()?;
-    execute!(stdout(), LeaveAlternateScreen)?;
-    Ok(())
-}
-
 fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResult<()> {
     std::fs::create_dir_all(folder_path)?;
 

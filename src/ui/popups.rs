@@ -224,7 +224,7 @@ pub fn render_help_popup(frame: &mut Frame) {
         Line::from("Game controls:".underlined().bold()),
         Line::from(""),
         Line::from(vec![
-            "←/h ↑/k ↓/j →/l: Use these keys to move the ".into(),
+            "←/h ↑/k ↓/j →/l: Use these keys or the mouse to move the ".into(),
             "blue".blue(),
             " cursor".into(),
         ]),
@@ -435,7 +435,7 @@ pub fn render_wait_for_other_player(frame: &mut Frame, ip: IpAddr) {
         Line::from(""),
         Line::from(""),
         Line::from("Waiting for other player").alignment(Alignment::Center),
-        Line::from(format!("Host IP address: {}", ip)).alignment(Alignment::Center),
+        Line::from(format!("Host IP address and port: {}:2308", ip)).alignment(Alignment::Center),
     ];
 
     let paragraph = Paragraph::new(text)

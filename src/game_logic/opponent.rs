@@ -59,7 +59,10 @@ impl Opponent {
                     break;
                 }
                 Err(_) => {
-                    println!("Failed to connect to the server addr: {}. Retrying...", addr);
+                    println!(
+                        "Failed to connect to the server addr: {}. Retrying...",
+                        addr
+                    );
                 }
             }
         }
@@ -83,7 +86,10 @@ impl Opponent {
                 game_started: false,
             }
         } else {
-            panic!("Failed to connect to the server after 5 attempts to the following address {}", addr);
+            panic!(
+                "Failed to connect to the server after 5 attempts to the following address {}",
+                addr
+            );
         }
     }
 

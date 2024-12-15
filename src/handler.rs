@@ -190,6 +190,13 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                         app.current_page = Pages::Home;
                         app.menu_cursor = 0;
                     }
+                    Some(Popups::WaitingForOpponentToJoin) => {
+                        app.current_popup = None;
+                        app.selected_color = None;
+                        app.hosting = None;
+                        app.current_page = Pages::Home;
+                        app.menu_cursor = 0;
+                    }
                     Some(Popups::Help) => {
                         app.current_popup = None;
                     }
@@ -238,7 +245,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
 
 pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<()> {
     // Mouse control only implemented for actual game
-    if app.current_page == Pages::Home {
+    if app.current_page == Pages::Home || app.current_page == Pages::Credit {
         return Ok(());
     }
     if mouse_event.kind == MouseEventKind::Down(MouseButton::Left) {
