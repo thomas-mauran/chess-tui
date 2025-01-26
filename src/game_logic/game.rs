@@ -142,7 +142,7 @@ impl Game {
                 self.game_state = GameState::Draw;
             }
 
-            if (self.bot.is_none() || (self.bot.as_ref().map_or(false, |bot| bot.is_bot_starting)))
+            if (self.bot.is_none() || (self.bot.as_ref().is_some_and(|bot| bot.is_bot_starting)))
                 && (self.opponent.is_none())
                 && (!self.game_board.is_latest_move_promotion()
                     || self.game_board.is_draw(self.player_turn)
@@ -385,7 +385,7 @@ impl Game {
         // When recording the move, invert coordinates if playing as black
         let (history_from, history_to) = if self.player_turn == PieceColor::Black
                 && self.bot.is_none() // Don't invert for bot moves
-                && (!self.opponent.as_ref().map_or(false, |opp| opp.color == PieceColor::Black))
+                && (!self.opponent.as_ref().is_some_and(|opp| opp.color == PieceColor::Black))
         // Don't invert for multiplayer
         {
             (invert_position(from), invert_position(to))
