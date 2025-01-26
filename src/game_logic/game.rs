@@ -142,7 +142,7 @@ impl Game {
                 self.game_state = GameState::Draw;
             }
 
-            if (self.bot.is_none() || (self.bot.as_ref().map_or(false, |bot| bot.is_bot_starting)))
+            if (self.bot.is_none() || (self.bot.as_ref().is_some_and(|bot| bot.is_bot_starting)))
                 && (self.opponent.is_none())
                 && (!self.game_board.is_latest_move_promotion()
                     || self.game_board.is_draw(self.player_turn)
