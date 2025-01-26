@@ -1,7 +1,7 @@
 use super::{bot::Bot, coord::Coord, game_board::GameBoard, opponent::Opponent, ui::UI};
 use crate::{
     pieces::{PieceColor, PieceMove, PieceType},
-    utils::get_int_from_char,
+    utils::{get_int_from_char, invert_position},
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Copy)]
@@ -382,12 +382,23 @@ impl Game {
 
         self.game_board.board[from] = None;
 
-        // We store it in the history
+        // When recording the move, invert coordinates if playing as black
+        let (history_from, history_to) = if self.player_turn == PieceColor::Black
+                && self.bot.is_none() // Don't invert for bot moves
+                && (!self.opponent.as_ref().map_or(false, |opp| opp.color == PieceColor::Black))
+        // Don't invert for multiplayer
+        {
+            (invert_position(from), invert_position(to))
+        } else {
+            (*from, *to)
+        };
+
+        // Store the move in history with potentially inverted coordinates
         self.game_board.move_history.push(PieceMove {
             piece_type: piece_type_from,
             piece_color: self.player_turn,
-            from: *from,
-            to: *to,
+            from: history_from,
+            to: history_to,
         });
         // We store the current position of the board
         self.game_board.board_history.push(self.game_board.board);
