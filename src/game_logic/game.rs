@@ -384,9 +384,10 @@ impl Game {
 
         // When recording the move, invert coordinates if playing as black
         let (history_from, history_to) = if self.player_turn == PieceColor::Black
-                && self.bot.is_none() // Don't invert for bot moves
-                && (!self.opponent.as_ref().is_some_and(|opp| opp.color == PieceColor::Black))
-        // Don't invert for multiplayer
+                // Don't invert for bot moves
+                && self.bot.is_none()
+                // Don't invert for multiplayer games
+                && self.opponent.is_none()
         {
             (invert_position(from), invert_position(to))
         } else {
