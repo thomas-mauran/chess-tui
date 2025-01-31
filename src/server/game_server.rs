@@ -34,9 +34,10 @@ impl GameServer {
 
     pub fn run(&self) {
         let listener = TcpListener::bind("0.0.0.0:2308").expect("Failed to create listener");
-        listener
-            .set_nonblocking(true)
-            .expect("Failed to set listener to non-blocking");
+
+        // listener
+        //     .set_nonblocking(true)
+        //     .expect("Failed to set listener to non-blocking");
 
         let state = self.clients.clone();
         let stop_signal = self.stop_signal.clone();
@@ -89,7 +90,7 @@ impl GameServer {
                 }
                 Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                     // No connection ready, sleep briefly
-                    thread::sleep(std::time::Duration::from_millis(100));
+                    // thread::sleep(std::time::Duration::from_millis(100));
                 }
                 Err(e) => {
                     eprintln!("Failed to accept connection: {}", e);
@@ -104,27 +105,24 @@ fn handle_client(
     stop_signal: Arc<AtomicBool>,
     mut stream: TcpStream,
 ) {
+    let addr = stream.peer_addr().unwrap().to_string();
+
     loop {
         let mut buffer = [0; 5];
-        let addr = stream.peer_addr().unwrap().to_string();
-        let bytes_read = stream.read(&mut buffer).unwrap_or(0);
-
-        if bytes_read == 0 {
-            broadcast_message(state.clone(), "ended".to_string(), &addr);
-            remove_client(&state, &addr);
-            // we stop the server if one of the clients disconnects
-            stop_signal.store(true, Ordering::SeqCst);
-            break;
-        }
-
-        let request = String::from_utf8_lossy(&buffer[..]);
-        broadcast_message(state.clone(), format!("{}", request), &addr);
-
-        if request.trim() == "ended" {
-            remove_client(&state, &addr);
-            // We stop the server if one of the clients disconnects
-            stop_signal.store(true, Ordering::SeqCst);
-            break;
+        match stream.read(&mut buffer) {
+            Ok(0) => {
+                broadcast_message(state.clone(), "ended".to_string(), &addr);
+                remove_client(&state, &addr);
+                stop_signal.store(true, Ordering::SeqCst);
+                break;
+            }
+            Ok(bytes_read) => {
+                let request = String::from_utf8_lossy(&buffer[..bytes_read]);
+                broadcast_message(state.clone(), format!("{}", request), &addr);
+            }
+            Err(_e) => {
+                break;
+            }
         }
     }
 }

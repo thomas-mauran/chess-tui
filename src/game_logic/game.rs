@@ -318,7 +318,6 @@ impl Game {
         }
 
         let piece_type_from = self.game_board.get_piece_type(from);
-        let piece_type_to = self.game_board.get_piece_type(to);
 
         // Check if moving a piece
         let Some(piece_type_from) = piece_type_from else {
@@ -326,8 +325,10 @@ impl Game {
         };
 
         // We increment the consecutive_non_pawn_or_capture if the piece type is a pawn or if there is no capture
-        self.game_board
-            .increment_consecutive_non_pawn_or_capture(piece_type_from, piece_type_to);
+        self.game_board.increment_consecutive_non_pawn_or_capture(
+            piece_type_from,
+            self.game_board.get_piece_type(to),
+        );
 
         // We check if the move is a capture and add the piece to the taken pieces
         self.game_board

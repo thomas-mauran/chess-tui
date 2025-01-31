@@ -96,18 +96,16 @@ impl App {
         }
 
         let addr = self.host_ip.as_ref().unwrap().to_string();
-        let addr_with_port = addr.to_string();
 
         // ping the server to see if it's up
-
-        let s = UdpSocket::bind(addr_with_port.clone());
+        let s = UdpSocket::bind(addr.clone());
         if s.is_err() {
             eprintln!("\nServer is unreachable. Make sure you entered the correct IP and port.");
             self.host_ip = None;
             return;
         }
 
-        self.game.opponent = Some(Opponent::new(addr_with_port, other_player_color));
+        self.game.opponent = Some(Opponent::new(addr, other_player_color));
 
         if !self.hosting.unwrap() {
             // If we are not hosting (joining) we set the selected color as the opposite of the opposite player color
@@ -253,7 +251,7 @@ impl App {
         let mut config = match fs::read_to_string(config_path.clone()) {
             Ok(content) => content
                 .parse::<Value>()
-                .unwrap_or_else(|_| Value::Table(Default::default())),
+                .unwrap_or_else(|_e| Value::Table(Default::default())),
             Err(_) => Value::Table(Default::default()),
         };
 
