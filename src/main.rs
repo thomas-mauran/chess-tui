@@ -10,6 +10,7 @@ use chess_tui::handler::{handle_key_events, handle_mouse_events};
 use chess_tui::logging;
 use chess_tui::ui::tui::Tui;
 use clap::Parser;
+use log::LevelFilter;
 use std::fs::{self, File};
 use std::io::Write;
 use std::panic;
@@ -39,7 +40,8 @@ fn main() -> AppResult<()> {
     let config_path = home_dir.join(".config/chess-tui/config.toml");
 
     // Setup logging first thing
-    if let Err(e) = logging::setup_logging(&folder_path) {
+    let default_log_level = LevelFilter::Off;
+    if let Err(e) = logging::setup_logging(&folder_path, &default_log_level) {
         eprintln!("Failed to initialize logging: {}", e);
     }
 
@@ -64,6 +66,13 @@ fn main() -> AppResult<()> {
                     Some("ASCII") => DisplayMode::ASCII,
                     _ => DisplayMode::DEFAULT,
                 };
+            }
+            // Add log level handling
+            if let Some(log_level) = config.get("log_level") {
+                app.log_level = log_level
+                    .as_str()
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or(LevelFilter::Off);
             }
         }
     } else {
@@ -198,6 +207,9 @@ fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResu
         table
             .entry("display_mode".to_string())
             .or_insert(Value::String("DEFAULT".to_string()));
+        table
+            .entry("log_level".to_string())
+            .or_insert(Value::String(LevelFilter::Off.to_string()));
     }
 
     let mut file = File::create(config_path)?;

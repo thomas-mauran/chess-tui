@@ -1,4 +1,5 @@
 use dirs::home_dir;
+use log::LevelFilter;
 use toml::Value;
 
 use crate::{
@@ -39,6 +40,7 @@ pub struct App {
     pub menu_cursor: u8,
     /// path of the chess engine
     pub chess_engine_path: Option<String>,
+    pub log_level: LevelFilter,
 }
 
 impl Default for App {
@@ -53,6 +55,7 @@ impl Default for App {
             host_ip: None,
             menu_cursor: 0,
             chess_engine_path: None,
+            log_level: LevelFilter::Off,
         }
     }
 }
@@ -261,6 +264,10 @@ impl App {
             table.insert(
                 "display_mode".to_string(),
                 Value::String(self.game.ui.display_mode.to_string()),
+            );
+            table.insert(
+                "log_level".to_string(),
+                Value::String(self.log_level.to_string().to_string()),
             );
         }
 
