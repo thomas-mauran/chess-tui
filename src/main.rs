@@ -39,12 +39,6 @@ fn main() -> AppResult<()> {
     let folder_path = home_dir.join(".config/chess-tui");
     let config_path = home_dir.join(".config/chess-tui/config.toml");
 
-    // Setup logging first thing
-    let default_log_level = LevelFilter::Off;
-    if let Err(e) = logging::setup_logging(&folder_path, &default_log_level) {
-        eprintln!("Failed to initialize logging: {}", e);
-    }
-
     // Create the configuration file
     config_create(&args, &folder_path, &config_path)?;
 
@@ -77,6 +71,11 @@ fn main() -> AppResult<()> {
         }
     } else {
         println!("Error reading the file or the file does not exist");
+    }
+
+    // Setup logging
+    if let Err(e) = logging::setup_logging(&folder_path, &app.log_level) {
+        eprintln!("Failed to initialize logging: {}", e);
     }
 
     // Initialize the terminal user interface.
