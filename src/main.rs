@@ -7,6 +7,7 @@ use chess_tui::event::{Event, EventHandler};
 use chess_tui::game_logic::game::GameState;
 use chess_tui::game_logic::opponent::wait_for_game_start;
 use chess_tui::handler::{handle_key_events, handle_mouse_events};
+use chess_tui::logging;
 use chess_tui::ui::tui::Tui;
 use clap::Parser;
 use std::fs::{self, File};
@@ -36,6 +37,11 @@ fn main() -> AppResult<()> {
     let home_dir = home_dir()?;
     let folder_path = home_dir.join(".config/chess-tui");
     let config_path = home_dir.join(".config/chess-tui/config.toml");
+
+    // Setup logging first thing
+    if let Err(e) = logging::setup_logging(&folder_path) {
+        eprintln!("Failed to initialize logging: {}", e);
+    }
 
     // Create the configuration file
     config_create(&args, &folder_path, &config_path)?;
