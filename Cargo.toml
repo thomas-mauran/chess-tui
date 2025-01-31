@@ -15,6 +15,9 @@ dirs = "5.0.1"
 ratatui = "0.28.1"
 uci = "0.2.1"
 toml = "0.5.8"
+log = "0.4"
+simplelog = "0.12"
+chrono = "0.4"
 
 [features]
 chess-tui = []
