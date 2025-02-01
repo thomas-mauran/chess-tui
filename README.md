@@ -74,6 +74,46 @@ chess-tui -e /your/bin/path
 Here I installed stockfish using homebrew and gave chess-tui the path the the engine binary.
 This command will store in your home directory the chess engine path so you don't have to relink it everytime !
 
+### Configuration
+
+Chess-tui uses a TOML configuration file located at `~/.config/chess-tui/config.toml`. Here are the available configuration options:
+
+```toml
+# Path to the chess engine binary
+engine_path = "/path/to/engine"
+
+# Display mode: "DEFAULT" or "ASCII"
+display_mode = "DEFAULT"
+
+# Logging level: "Off", "Error", "Warn", "Info", "Debug", "Trace"
+log_level = "Off"
+```
+
+#### Configuration Options:
+
+- **engine_path**: Path to your UCI-compatible chess engine binary
+- **display_mode**:
+  - `DEFAULT`: Uses unicode chess pieces
+  - `ASCII`: Uses ASCII characters for pieces
+- **log_level**: Controls the verbosity of logging
+  - `Off`: No logging (default)
+  - `Error`: Only errors
+  - `Warn`: Warnings and errors
+  - `Info`: General information, warnings and errors
+  - `Debug`: Debugging information
+  - `Trace`: Very verbose debugging information
+
+The config file is automatically created when you first run chess-tui. You can manually edit it to customize your experience.
+
+All logs are stored in `~/.config/chess-tui/logs`.
+
+Base config:
+```toml
+# no engine path
+display_mode = "DEFAULT"
+log_level = "Off"
+```
+
 ### Documentation
 
 You can find the documentation of the project [here](https://thomas-mauran.github.io/chess-tui/docs/intro)

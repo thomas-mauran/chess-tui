@@ -23,3 +23,6 @@ pub mod constants;
 
 // Utils methods for the board
 pub mod utils;
+
+// Logging
+pub mod logging;
