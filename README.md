@@ -105,6 +105,8 @@ log_level = "Off"
 
 The config file is automatically created when you first run chess-tui. You can manually edit it to customize your experience.
 
+All logs are stored in `~/.config/chess-tui/logs`.
+
 Base config:
 ```toml
 # no engine path
