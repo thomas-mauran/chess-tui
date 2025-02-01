@@ -10,6 +10,16 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
+      label: 'Configuration',
+      items: [
+        'Configuration/configuration-intro',
+        'Configuration/display',
+        'Configuration/logging',
+        'Configuration/engine',
+      ],
+    },
+    {
+      type: 'category',
       label: 'Multiplayer', 
       items: ['Multiplayer/Local multiplayer', 'Multiplayer/Online multiplayer'], 
     },
