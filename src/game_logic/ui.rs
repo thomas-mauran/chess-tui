@@ -385,7 +385,7 @@ impl UI {
                 if !game.game_board.move_history.is_empty() {
                     last_move = game.game_board.move_history.last();
                     if game.bot.is_some()
-                        && !game.bot.as_ref().map_or(false, |bot| bot.is_bot_starting)
+                        && !game.bot.as_ref().is_some_and(|bot| bot.is_bot_starting)
                     {
                         last_move_from = last_move.map(|m| m.from).unwrap();
                         last_move_to = last_move.map(|m| m.to).unwrap();
@@ -457,7 +457,7 @@ impl UI {
                 }
                 // Draw the cell green if this is the selected cell or if the cell is part of the last move
                 else if (i == self.selected_coordinates.row && j == self.selected_coordinates.col)
-                    || (last_move_from == Coord::new(i, j) // If the last move from 
+                    || (last_move_from == Coord::new(i, j) // If the last move from
                         || (last_move_to == Coord::new(i, j) // If last move to
                             && !is_cell_in_positions(&positions, i, j)))
                 // and not in the authorized positions (grey instead of green)

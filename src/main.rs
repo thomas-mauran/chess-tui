@@ -7,8 +7,10 @@ use chess_tui::event::{Event, EventHandler};
 use chess_tui::game_logic::game::GameState;
 use chess_tui::game_logic::opponent::wait_for_game_start;
 use chess_tui::handler::{handle_key_events, handle_mouse_events};
+use chess_tui::logging;
 use chess_tui::ui::tui::Tui;
 use clap::Parser;
+use log::LevelFilter;
 use std::fs::{self, File};
 use std::io::Write;
 use std::panic;
@@ -59,9 +61,21 @@ fn main() -> AppResult<()> {
                     _ => DisplayMode::DEFAULT,
                 };
             }
+            // Add log level handling
+            if let Some(log_level) = config.get("log_level") {
+                app.log_level = log_level
+                    .as_str()
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or(LevelFilter::Off);
+            }
         }
     } else {
         println!("Error reading the file or the file does not exist");
+    }
+
+    // Setup logging
+    if let Err(e) = logging::setup_logging(&folder_path, &app.log_level) {
+        eprintln!("Failed to initialize logging: {}", e);
     }
 
     // Initialize the terminal user interface.
@@ -91,7 +105,7 @@ fn main() -> AppResult<()> {
             Event::Mouse(mouse_event) => handle_mouse_events(mouse_event, &mut app)?,
             Event::Resize(_, _) => {}
         }
-        if app.game.bot.is_some() && app.game.bot.as_ref().map_or(false, |bot| bot.bot_will_move) {
+        if app.game.bot.is_some() && app.game.bot.as_ref().is_some_and(|bot| bot.bot_will_move) {
             app.game.execute_bot_move();
             app.game.switch_player_turn();
             if let Some(bot) = app.game.bot.as_mut() {
@@ -111,7 +125,7 @@ fn main() -> AppResult<()> {
                 .game
                 .opponent
                 .as_ref()
-                .map_or(false, |opponent| !opponent.game_started)
+                .is_some_and(|opponent| !opponent.game_started)
         {
             let opponent = app.game.opponent.as_mut().unwrap();
             wait_for_game_start(opponent.stream.as_ref().unwrap());
@@ -125,7 +139,7 @@ fn main() -> AppResult<()> {
                 .game
                 .opponent
                 .as_ref()
-                .map_or(false, |opponent| opponent.opponent_will_move)
+                .is_some_and(|opponent| opponent.opponent_will_move)
         {
             tui.draw(&mut app)?;
 
@@ -192,6 +206,9 @@ fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResu
         table
             .entry("display_mode".to_string())
             .or_insert(Value::String("DEFAULT".to_string()));
+        table
+            .entry("log_level".to_string())
+            .or_insert(Value::String(LevelFilter::Off.to_string()));
     }
 
     let mut file = File::create(config_path)?;

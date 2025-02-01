@@ -1,7 +1,7 @@
 use super::{bot::Bot, coord::Coord, game_board::GameBoard, opponent::Opponent, ui::UI};
 use crate::{
     pieces::{PieceColor, PieceMove, PieceType},
-    utils::get_int_from_char,
+    utils::{get_int_from_char, invert_position},
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Copy)]
@@ -142,7 +142,7 @@ impl Game {
                 self.game_state = GameState::Draw;
             }
 
-            if (self.bot.is_none() || (self.bot.as_ref().map_or(false, |bot| bot.is_bot_starting)))
+            if (self.bot.is_none() || (self.bot.as_ref().is_some_and(|bot| bot.is_bot_starting)))
                 && (self.opponent.is_none())
                 && (!self.game_board.is_latest_move_promotion()
                     || self.game_board.is_draw(self.player_turn)
@@ -318,7 +318,6 @@ impl Game {
         }
 
         let piece_type_from = self.game_board.get_piece_type(from);
-        let piece_type_to = self.game_board.get_piece_type(to);
 
         // Check if moving a piece
         let Some(piece_type_from) = piece_type_from else {
@@ -326,8 +325,10 @@ impl Game {
         };
 
         // We increment the consecutive_non_pawn_or_capture if the piece type is a pawn or if there is no capture
-        self.game_board
-            .increment_consecutive_non_pawn_or_capture(piece_type_from, piece_type_to);
+        self.game_board.increment_consecutive_non_pawn_or_capture(
+            piece_type_from,
+            self.game_board.get_piece_type(to),
+        );
 
         // We check if the move is a capture and add the piece to the taken pieces
         self.game_board
@@ -382,12 +383,24 @@ impl Game {
 
         self.game_board.board[from] = None;
 
-        // We store it in the history
+        // When recording the move, invert coordinates if playing as black
+        let (history_from, history_to) = if self.player_turn == PieceColor::Black
+                // Don't invert for bot moves
+                && self.bot.is_none()
+                // Don't invert for multiplayer games
+                && self.opponent.is_none()
+        {
+            (invert_position(from), invert_position(to))
+        } else {
+            (*from, *to)
+        };
+
+        // Store the move in history with potentially inverted coordinates
         self.game_board.move_history.push(PieceMove {
             piece_type: piece_type_from,
             piece_color: self.player_turn,
-            from: *from,
-            to: *to,
+            from: history_from,
+            to: history_to,
         });
         // We store the current position of the board
         self.game_board.board_history.push(self.game_board.board);

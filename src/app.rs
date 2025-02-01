@@ -1,4 +1,5 @@
 use dirs::home_dir;
+use log::LevelFilter;
 use toml::Value;
 
 use crate::{
@@ -39,6 +40,7 @@ pub struct App {
     pub menu_cursor: u8,
     /// path of the chess engine
     pub chess_engine_path: Option<String>,
+    pub log_level: LevelFilter,
 }
 
 impl Default for App {
@@ -53,6 +55,7 @@ impl Default for App {
             host_ip: None,
             menu_cursor: 0,
             chess_engine_path: None,
+            log_level: LevelFilter::Off,
         }
     }
 }
@@ -96,18 +99,16 @@ impl App {
         }
 
         let addr = self.host_ip.as_ref().unwrap().to_string();
-        let addr_with_port = addr.to_string();
 
         // ping the server to see if it's up
-
-        let s = UdpSocket::bind(addr_with_port.clone());
+        let s = UdpSocket::bind(addr.clone());
         if s.is_err() {
             eprintln!("\nServer is unreachable. Make sure you entered the correct IP and port.");
             self.host_ip = None;
             return;
         }
 
-        self.game.opponent = Some(Opponent::new(addr_with_port, other_player_color));
+        self.game.opponent = Some(Opponent::new(addr, other_player_color));
 
         if !self.hosting.unwrap() {
             // If we are not hosting (joining) we set the selected color as the opposite of the opposite player color
@@ -216,7 +217,7 @@ impl App {
                 .game
                 .bot
                 .as_ref()
-                .map_or(false, |bot| bot.is_bot_starting)
+                .is_some_and(|bot| bot.is_bot_starting)
         {
             self.game.execute_bot_move();
             self.game.player_turn = PieceColor::Black;
@@ -253,7 +254,7 @@ impl App {
         let mut config = match fs::read_to_string(config_path.clone()) {
             Ok(content) => content
                 .parse::<Value>()
-                .unwrap_or_else(|_| Value::Table(Default::default())),
+                .unwrap_or_else(|_e| Value::Table(Default::default())),
             Err(_) => Value::Table(Default::default()),
         };
 
@@ -261,6 +262,10 @@ impl App {
             table.insert(
                 "display_mode".to_string(),
                 Value::String(self.game.ui.display_mode.to_string()),
+            );
+            table.insert(
+                "log_level".to_string(),
+                Value::String(self.log_level.to_string().to_string()),
             );
         }
 
