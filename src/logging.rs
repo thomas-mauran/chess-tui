@@ -25,7 +25,7 @@ pub fn setup_logging(
                 fs::File::create(log_file)?,
             )])?;
 
-            log::info!("Logging initialized at {} level", level);
+            log::info!("Logging initialized at {level} level");
             Ok(())
         }
     }
