@@ -1,4 +1,5 @@
 use crate::pieces::{PieceColor, PieceMove};
+use log;
 use std::{
     io::{Read, Write},
     net::TcpStream,
@@ -50,34 +51,49 @@ impl Opponent {
     }
 
     pub fn new(addr: String, color: Option<PieceColor>) -> Opponent {
+        log::info!(
+            "Creating new opponent with addr: {} and color: {:?}",
+            addr,
+            color
+        );
+
         // Attempt to connect 5 times to the provided address
-        let mut stream: Option<TcpStream> = None; // Initialize `stream` as None
-        for _ in 0..5 {
+        let mut stream: Option<TcpStream> = None;
+        for attempt in 1..=5 {
+            log::debug!("Connection attempt {} to {}", attempt, addr);
             match TcpStream::connect(addr.clone()) {
                 Ok(s) => {
+                    log::info!("Successfully connected to server");
                     stream = Some(s);
                     break;
                 }
-                Err(_) => {
-                    println!(
-                        "Failed to connect to the server addr: {}. Retrying...",
-                        addr
-                    );
+                Err(e) => {
+                    log::error!("Failed connection attempt {} to {}: {}", attempt, addr, e);
                 }
             }
         }
 
         if let Some(stream) = stream {
-            // Determine the Opponent's color
             let color = match color {
-                Some(color) => color, // Use the provided color if available
-                None => get_color_from_stream(&stream),
+                Some(color) => {
+                    log::info!("Using provided color: {:?}", color);
+                    color
+                }
+                None => {
+                    log::info!("Getting color from stream");
+                    get_color_from_stream(&stream)
+                }
             };
 
             let opponent_will_move = match color {
                 PieceColor::White => true,
                 PieceColor::Black => false,
             };
+            log::info!(
+                "Created opponent with color {:?}, will_move: {}",
+                color,
+                opponent_will_move
+            );
 
             Opponent {
                 stream: Some(stream),
@@ -86,6 +102,7 @@ impl Opponent {
                 game_started: false,
             }
         } else {
+            log::error!("Failed to connect after 5 attempts to {}", addr);
             panic!(
                 "Failed to connect to the server after 5 attempts to the following address {}",
                 addr
@@ -138,23 +155,30 @@ impl Opponent {
     pub fn read_stream(&mut self) -> String {
         if let Some(game_stream) = self.stream.as_mut() {
             let mut buffer = vec![0; 5];
-            let buf = game_stream.read(&mut buffer);
-            match buf {
+            match game_stream.read(&mut buffer) {
                 Ok(bytes_read) => {
+                    if bytes_read == 0 {
+                        return String::new();
+                    }
                     let response = String::from_utf8_lossy(&buffer[..bytes_read]);
-
                     if response.trim() == "ended" || response.trim() == "" {
-                        panic!("Game ended by the other Opponent");
+                        log::error!("Game ended by the other opponent");
+                        panic!("Game ended by the other opponent");
                     }
                     response.to_string()
                 }
+                Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                    // This is expected for non-blocking sockets
+                    log::debug!("Socket not ready, would block");
+                    String::new()
+                }
                 Err(e) => {
-                    eprintln!("Failed to read from stream: {}", e);
-                    "".to_string()
+                    log::error!("Failed to read from stream: {}", e);
+                    String::new()
                 }
             }
         } else {
-            "".to_string()
+            String::new()
         }
     }
 }

@@ -8,6 +8,8 @@ use std::{
     thread,
 };
 
+use log;
+
 #[derive(Debug)]
 pub struct Client {
     addr: String,
@@ -33,6 +35,7 @@ impl GameServer {
     }
 
     pub fn run(&self) {
+        log::info!("Starting game server on 0.0.0.0:2308");
         let listener = TcpListener::bind("0.0.0.0:2308").expect("Failed to create listener");
         listener
             .set_nonblocking(true)
@@ -54,12 +57,14 @@ impl GameServer {
         loop {
             // Check for shutdown signal
             if shutdown_rx.try_recv().is_ok() {
+                log::info!("Received shutdown signal, stopping server");
                 break;
             }
 
             // Handle incoming connections
             match listener.accept() {
-                Ok((mut stream, _addr)) => {
+                Ok((mut stream, addr)) => {
+                    log::info!("New connection from: {}", addr);
                     let state = Arc::clone(&state);
                     let stop_signal = Arc::clone(&stop_signal);
                     let color = if self.is_host_white { "w" } else { "b" };
@@ -88,11 +93,10 @@ impl GameServer {
                     });
                 }
                 Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                    // No connection ready, sleep briefly
                     thread::sleep(std::time::Duration::from_millis(100));
                 }
                 Err(e) => {
-                    eprintln!("Failed to accept connection: {}", e);
+                    log::error!("Failed to accept connection: {}", e);
                 }
             }
         }
@@ -104,27 +108,46 @@ fn handle_client(
     stop_signal: Arc<AtomicBool>,
     mut stream: TcpStream,
 ) {
+    let addr = stream.peer_addr().unwrap().to_string();
+    log::info!("Starting client handler for: {}", addr);
+
+    // Set socket to non-blocking mode
+    if let Err(e) = stream.set_nonblocking(true) {
+        log::error!("Failed to set non-blocking mode for client {}: {}", addr, e);
+        return;
+    }
+
     loop {
         let mut buffer = [0; 5];
-        let addr = stream.peer_addr().unwrap().to_string();
-        let bytes_read = stream.read(&mut buffer).unwrap_or(0);
+        match stream.read(&mut buffer) {
+            Ok(0) => {
+                log::info!("Client {} disconnected", addr);
+                broadcast_message(state.clone(), "ended".to_string(), &addr);
+                remove_client(&state, &addr);
+                stop_signal.store(true, Ordering::SeqCst);
+                break;
+            }
+            Ok(bytes_read) => {
+                let request = String::from_utf8_lossy(&buffer[..bytes_read]);
+                log::debug!("Received message from {}: {}", addr, request.trim());
+                broadcast_message(state.clone(), format!("{}", request), &addr);
 
-        if bytes_read == 0 {
-            broadcast_message(state.clone(), "ended".to_string(), &addr);
-            remove_client(&state, &addr);
-            // we stop the server if one of the clients disconnects
-            stop_signal.store(true, Ordering::SeqCst);
-            break;
-        }
-
-        let request = String::from_utf8_lossy(&buffer[..]);
-        broadcast_message(state.clone(), format!("{}", request), &addr);
-
-        if request.trim() == "ended" {
-            remove_client(&state, &addr);
-            // We stop the server if one of the clients disconnects
-            stop_signal.store(true, Ordering::SeqCst);
-            break;
+                if request.trim() == "ended" {
+                    log::info!("Client {} sent end signal", addr);
+                    remove_client(&state, &addr);
+                    stop_signal.store(true, Ordering::SeqCst);
+                    break;
+                }
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                // This is normal for non-blocking sockets
+                std::thread::sleep(std::time::Duration::from_millis(50));
+                continue;
+            }
+            Err(e) => {
+                log::error!("Error reading from client {}: {}", addr, e);
+                break;
+            }
         }
     }
 }
