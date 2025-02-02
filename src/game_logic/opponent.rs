@@ -1,10 +1,10 @@
 use crate::pieces::{PieceColor, PieceMove};
+use log;
 use std::{
     io::{Read, Write},
     net::TcpStream,
     panic,
 };
-use log;
 
 pub struct Opponent {
     // The stream to communicate with the engine
@@ -51,8 +51,12 @@ impl Opponent {
     }
 
     pub fn new(addr: String, color: Option<PieceColor>) -> Opponent {
-        log::info!("Creating new opponent with addr: {} and color: {:?}", addr, color);
-        
+        log::info!(
+            "Creating new opponent with addr: {} and color: {:?}",
+            addr,
+            color
+        );
+
         // Attempt to connect 5 times to the provided address
         let mut stream: Option<TcpStream> = None;
         for attempt in 1..=5 {
@@ -64,12 +68,7 @@ impl Opponent {
                     break;
                 }
                 Err(e) => {
-                    log::error!(
-                        "Failed connection attempt {} to {}: {}",
-                        attempt,
-                        addr,
-                        e
-                    );
+                    log::error!("Failed connection attempt {} to {}: {}", attempt, addr, e);
                 }
             }
         }
@@ -90,7 +89,11 @@ impl Opponent {
                 PieceColor::White => true,
                 PieceColor::Black => false,
             };
-            log::info!("Created opponent with color {:?}, will_move: {}", color, opponent_will_move);
+            log::info!(
+                "Created opponent with color {:?}, will_move: {}",
+                color,
+                opponent_will_move
+            );
 
             Opponent {
                 stream: Some(stream),

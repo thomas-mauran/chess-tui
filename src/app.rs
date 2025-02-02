@@ -78,9 +78,9 @@ impl App {
 
     pub fn setup_game_server(&mut self, host_color: PieceColor) {
         let is_host_white = host_color == PieceColor::White;
-        
+
         log::info!("Starting game server with host color: {:?}", host_color);
-        
+
         std::thread::spawn(move || {
             let game_server = GameServer::new(is_host_white);
             log::info!("Game server created, starting server...");
@@ -96,7 +96,7 @@ impl App {
         } else {
             None
         };
-        
+
         if self.hosting.unwrap() {
             log::info!("Setting up host with color: {:?}", self.selected_color);
             self.current_popup = Some(Popups::WaitingForOpponentToJoin);
@@ -110,7 +110,11 @@ impl App {
         // ping the server to see if it's up
         let s = UdpSocket::bind(addr_with_port.clone());
         if s.is_err() {
-            log::error!("Server is unreachable at {}: {}", addr_with_port, s.err().unwrap());
+            log::error!(
+                "Server is unreachable at {}: {}",
+                addr_with_port,
+                s.err().unwrap()
+            );
             self.host_ip = None;
             return;
         }
@@ -123,7 +127,7 @@ impl App {
             self.selected_color = Some(self.game.opponent.as_mut().unwrap().color.opposite());
             self.game.opponent.as_mut().unwrap().game_started = true;
         }
-        
+
         if self.selected_color.unwrap() == PieceColor::Black {
             log::debug!("Flipping board for black player");
             self.game.game_board.flip_the_board();
