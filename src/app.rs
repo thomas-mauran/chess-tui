@@ -78,9 +78,12 @@ impl App {
 
     pub fn setup_game_server(&mut self, host_color: PieceColor) {
         let is_host_white = host_color == PieceColor::White;
-
+        
+        log::info!("Starting game server with host color: {:?}", host_color);
+        
         std::thread::spawn(move || {
             let game_server = GameServer::new(is_host_white);
+            log::info!("Game server created, starting server...");
             game_server.run();
         });
 
@@ -93,31 +96,36 @@ impl App {
         } else {
             None
         };
+        
         if self.hosting.unwrap() {
+            log::info!("Setting up host with color: {:?}", self.selected_color);
             self.current_popup = Some(Popups::WaitingForOpponentToJoin);
             self.host_ip = Some(format!("{}:2308", self.get_host_ip()));
         }
 
         let addr = self.host_ip.as_ref().unwrap().to_string();
         let addr_with_port = addr.to_string();
+        log::info!("Attempting to connect to: {}", addr_with_port);
 
         // ping the server to see if it's up
-
         let s = UdpSocket::bind(addr_with_port.clone());
         if s.is_err() {
-            eprintln!("\nServer is unreachable. Make sure you entered the correct IP and port.");
+            log::error!("Server is unreachable at {}: {}", addr_with_port, s.err().unwrap());
             self.host_ip = None;
             return;
         }
 
+        log::info!("Creating opponent with color: {:?}", other_player_color);
         self.game.opponent = Some(Opponent::new(addr_with_port, other_player_color));
 
         if !self.hosting.unwrap() {
-            // If we are not hosting (joining) we set the selected color as the opposite of the opposite player color
+            log::info!("Setting up client (non-host) player");
             self.selected_color = Some(self.game.opponent.as_mut().unwrap().color.opposite());
             self.game.opponent.as_mut().unwrap().game_started = true;
         }
+        
         if self.selected_color.unwrap() == PieceColor::Black {
+            log::debug!("Flipping board for black player");
             self.game.game_board.flip_the_board();
         }
     }
