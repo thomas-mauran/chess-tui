@@ -251,11 +251,9 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
     );
 
     // We make the inside of the board
-    app.game.ui.history_render(
-        board_block.inner(right_box_layout[1]),
-        frame,
-        &app.game.game_board.move_history,
-    );
+    app.game
+        .ui
+        .history_render(board_block.inner(right_box_layout[1]), frame, &app.game);
 
     //bottom box for black matetrial
     app.game.ui.white_material_render(
