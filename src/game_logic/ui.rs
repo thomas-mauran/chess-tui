@@ -1,7 +1,7 @@
 use super::{coord::Coord, game::Game};
 use crate::{
     constants::{DisplayMode, BLACK, UNDEFINED_POSITION, WHITE},
-    pieces::{PieceColor, PieceMove, PieceType},
+    pieces::{PieceColor, PieceType},
     ui::{main_ui::render_cell, prompt::Prompt},
     utils::{convert_position_into_notation, get_cell_paragraph, invert_position},
 };
@@ -171,7 +171,7 @@ impl UI {
     }
 
     /// Method to render the right panel history
-    pub fn history_render(&self, area: Rect, frame: &mut Frame, move_history: &[PieceMove]) {
+    pub fn history_render(&self, area: Rect, frame: &mut Frame, game: &Game) {
         // We write the history board on the side
         let history_block = Block::default()
             .title("History")
@@ -182,32 +182,40 @@ impl UI {
 
         let mut lines: Vec<Line> = vec![];
 
-        for i in (0..move_history.len()).step_by(2) {
-            let piece_type_from = move_history[i].piece_type;
+        for i in (0..game.game_board.move_history.len()).step_by(2) {
+            let piece_type_from = game.game_board.move_history[i].piece_type;
 
             let utf_icon_white =
                 PieceType::piece_to_utf_enum(&piece_type_from, Some(PieceColor::White));
             let move_white = convert_position_into_notation(&format!(
                 "{}{}{}{}",
-                move_history[i].from.row,
-                move_history[i].from.col,
-                move_history[i].to.row,
-                move_history[i].to.col
+                game.game_board.move_history[i].from.row,
+                game.game_board.move_history[i].from.col,
+                game.game_board.move_history[i].to.row,
+                game.game_board.move_history[i].to.col
             ));
 
             let mut utf_icon_black = "   ";
             let mut move_black: String = "   ".to_string();
 
             // If there is something for black
-            if i + 1 < move_history.len() {
-                let piece_type_to = move_history[i + 1].piece_type;
+            if i + 1 < game.game_board.move_history.len() {
+                let piece_type_to = game.game_board.move_history[i + 1].piece_type;
+                let black_move = &game.game_board.move_history[i + 1];
+
+                // Invert black moves if not playing against bot
+                let (from, to) = if game.bot.is_none() {
+                    (
+                        invert_position(&black_move.from),
+                        invert_position(&black_move.to),
+                    )
+                } else {
+                    (black_move.from, black_move.to)
+                };
 
                 move_black = convert_position_into_notation(&format!(
                     "{}{}{}{}",
-                    move_history[i + 1].from.row,
-                    move_history[i + 1].from.col,
-                    move_history[i + 1].to.row,
-                    move_history[i + 1].to.col
+                    from.row, from.col, to.row, to.col
                 ));
                 utf_icon_black =
                     PieceType::piece_to_utf_enum(&piece_type_to, Some(PieceColor::Black));
@@ -218,7 +226,7 @@ impl UI {
                 Span::styled(format!("{utf_icon_white} "), Style::default().fg(WHITE)), // white symbol
                 Span::raw(move_white.to_string()), // white move
                 Span::raw("     "),                // separator
-                Span::styled(format!("{utf_icon_black} "), Style::default().fg(WHITE)), // white symbol
+                Span::styled(format!("{utf_icon_black} "), Style::default().fg(WHITE)), // black symbol
                 Span::raw(move_black.to_string()), // black move
             ]));
         }
