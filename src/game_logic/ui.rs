@@ -1,7 +1,7 @@
 use super::{coord::Coord, game::Game};
 use crate::{
     constants::{DisplayMode, BLACK, UNDEFINED_POSITION, WHITE},
-    pieces::{PieceColor, PieceMove, PieceType},
+    pieces::{PieceColor, PieceType},
     ui::{main_ui::render_cell, prompt::Prompt},
     utils::{convert_position_into_notation, get_cell_paragraph, invert_position},
 };
@@ -185,7 +185,8 @@ impl UI {
         for i in (0..game.game_board.move_history.len()).step_by(2) {
             let piece_type_from = game.game_board.move_history[i].piece_type;
 
-            let utf_icon_white = PieceType::piece_to_utf_enum(&piece_type_from, Some(PieceColor::White));
+            let utf_icon_white =
+                PieceType::piece_to_utf_enum(&piece_type_from, Some(PieceColor::White));
             let move_white = convert_position_into_notation(&format!(
                 "{}{}{}{}",
                 game.game_board.move_history[i].from.row,
@@ -206,7 +207,7 @@ impl UI {
                 let (from, to) = if game.bot.is_none() {
                     (
                         invert_position(&black_move.from),
-                        invert_position(&black_move.to)
+                        invert_position(&black_move.to),
                     )
                 } else {
                     (black_move.from, black_move.to)
@@ -214,19 +215,17 @@ impl UI {
 
                 move_black = convert_position_into_notation(&format!(
                     "{}{}{}{}",
-                    from.row,
-                    from.col,
-                    to.row,
-                    to.col
+                    from.row, from.col, to.row, to.col
                 ));
-                utf_icon_black = PieceType::piece_to_utf_enum(&piece_type_to, Some(PieceColor::Black));
+                utf_icon_black =
+                    PieceType::piece_to_utf_enum(&piece_type_to, Some(PieceColor::Black));
             }
 
             lines.push(Line::from(vec![
                 Span::raw(format!("{}.  ", i / 2 + 1)), // line number
                 Span::styled(format!("{utf_icon_white} "), Style::default().fg(WHITE)), // white symbol
                 Span::raw(move_white.to_string()), // white move
-                Span::raw("     "), // separator
+                Span::raw("     "),                // separator
                 Span::styled(format!("{utf_icon_black} "), Style::default().fg(WHITE)), // black symbol
                 Span::raw(move_black.to_string()), // black move
             ]));
@@ -242,7 +241,10 @@ impl UI {
             .split(area);
 
         frame.render_widget(history_block.clone(), right_panel_layout[0]);
-        frame.render_widget(history_paragraph, history_block.inner(right_panel_layout[0]));
+        frame.render_widget(
+            history_paragraph,
+            history_block.inner(right_panel_layout[0]),
+        );
     }
 
     /// Method to render the white material
