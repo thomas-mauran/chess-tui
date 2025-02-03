@@ -203,16 +203,8 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                     _ => {}
                 }
 
-                match app.current_page {
-                    Pages::Bot => {
-                        app.current_page = Pages::Home;
-                        app.menu_cursor = 0;
-                        app.selected_color = None;
-                    }
-                    Pages::Credit => {
-                        app.current_page = Pages::Home;
-                    }
-                    _ => {}
+                if app.current_page == Pages::Credit {
+                    app.current_page = Pages::Home;
                 }
 
                 app.game.ui.unselect_cell();
