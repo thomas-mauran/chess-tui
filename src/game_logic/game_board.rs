@@ -414,7 +414,7 @@ impl GameBoard {
     }
 
     // Convert the history and game status to a FEN string
-    pub fn fen_position(&mut self, is_bot_starting: bool, player_turn: PieceColor) -> String {
+    pub fn fen_position(&mut self, is_bot_starting: bool, _player_turn: PieceColor) -> String {
         let mut result = String::new();
         let bot_color = if is_bot_starting {
             PieceColor::White
@@ -471,31 +471,42 @@ impl GameBoard {
             " w"
         });
 
-        // We add the castles availabilities for black
-        if !self.did_piece_already_move((
-            Some(PieceType::King),
-            Some(player_turn),
-            Coord::new(7, king_col),
-        )) && !self.is_getting_checked(self.board, PieceColor::Black)
-        {
-            // king side black castle availability
+        let mut possible_castles = vec![];
+        for turn in [PieceColor::White, PieceColor::Black] {
+            // We add the castles availabilities for black
             if !self.did_piece_already_move((
-                Some(PieceType::Rook),
-                Some(player_turn),
-                Coord::new(7, 7),
-            )) {
-                result.push_str(" k");
+                Some(PieceType::King),
+                Some(turn),
+                Coord::new(7, king_col),
+            )) && !self.is_getting_checked(self.board, PieceColor::Black)
+            {
+                // king side black castle availability
+                if !self.did_piece_already_move((
+                    Some(PieceType::Rook),
+                    Some(turn),
+                    Coord::new(7, 7),
+                )) {
+                    possible_castles.push((turn, 'k'));
+                }
+                // queen side black castle availability
+                if !self.did_piece_already_move((
+                    Some(PieceType::Rook),
+                    Some(turn),
+                    Coord::new(7, 0),
+                )) {
+                    possible_castles.push((turn, 'q'));
+                }
             }
-            // queen side black castle availability
-            if !self.did_piece_already_move((
-                Some(PieceType::Rook),
-                Some(player_turn),
-                Coord::new(7, 0),
-            )) {
-                result.push('q');
-            }
-        } else {
+        }
+
+        if possible_castles.is_empty() {
             result.push_str(" -");
+        } else {
+            result.push(' ');
+            for (turn, c) in possible_castles {
+                let is_white = turn == PieceColor::White;
+                result.push(if is_white { c.to_ascii_uppercase() } else { c });
+            }
         }
 
         // We check if the latest move is a pawn moving 2 cells, meaning the next move can be en passant
@@ -520,7 +531,7 @@ impl GameBoard {
         result.push_str(&self.get_consecutive_non_pawn_or_capture().to_string());
         result.push(' ');
 
-        result.push_str(&(self.move_history.len() / 2).to_string());
+        result.push_str(&(1 + (self.move_history.len() / 2)).to_string());
 
         result
     }
