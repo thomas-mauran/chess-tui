@@ -70,7 +70,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                 let to_move_col: u8 = c as u8 - 97;
 
                 if !(app.game.game_state == GameState::Checkmate)
-                && !(app.game.game_state == GameState::Draw)
+                    && !(app.game.game_state == GameState::Draw)
                 {
                     app.game.ui.cursor_custom_column(to_move_col);
                 }
@@ -80,7 +80,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                 let to_move_row: u8 = r as u8 - 48 - 1;
 
                 if !(app.game.game_state == GameState::Checkmate)
-                && !(app.game.game_state == GameState::Draw)
+                    && !(app.game.game_state == GameState::Draw)
                 {
                     app.game.ui.cursor_custom_row(to_move_row);
                 }
@@ -144,14 +144,14 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                 } else if !(app.game.game_state == GameState::Checkmate)
                     && !(app.game.game_state == GameState::Draw)
                     && !(app.game.game_state == GameState::Promotion)
-                    {
-                        let authorized_positions = app.game.game_board.get_authorized_positions(
-                            app.game.player_turn,
-                            app.game.ui.selected_coordinates,
-                        );
+                {
+                    let authorized_positions = app.game.game_board.get_authorized_positions(
+                        app.game.player_turn,
+                        app.game.ui.selected_coordinates,
+                    );
 
-                        app.game.ui.cursor_down(authorized_positions);
-                    }
+                    app.game.ui.cursor_down(authorized_positions);
+                }
             }
             KeyCode::Char(' ') | KeyCode::Enter => match app.current_page {
                 Pages::Home => {

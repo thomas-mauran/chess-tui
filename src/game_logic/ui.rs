@@ -111,24 +111,24 @@ impl UI {
     }
 
     // CURSOR MOVEMENT
-    
+
     pub fn cursor_custom_column(&mut self, to_move_col: u8) {
         if !self.is_cell_selected() {
             self.cursor_coordinates.col = to_move_col;
-        } 
+        }
     }
 
     pub fn cursor_custom_row(&mut self, to_move_row: u8) {
         if !self.is_cell_selected() {
             self.cursor_coordinates.row = to_move_row;
-        } 
+        }
     }
 
     /// Move the cursor up
     pub fn cursor_up(&mut self, authorized_positions: Vec<Coord>) {
         if self.is_cell_selected() {
             self.move_selected_piece_cursor(false, -1, authorized_positions);
-        } else if self.cursor_coordinates.row == 0{
+        } else if self.cursor_coordinates.row == 0 {
             self.cursor_coordinates.row = 7;
         } else {
             self.cursor_coordinates.row -= 1;
