@@ -3,7 +3,8 @@ mod tests {
     use chess_tui::game_logic::coord::Coord;
     use chess_tui::game_logic::game::Game;
     use chess_tui::game_logic::game_board::GameBoard;
-    use chess_tui::pieces::{PieceColor, PieceMove, PieceType};
+    use chess_tui::pieces::{PieceMove, PieceType};
+    use shakmaty::Color;
 
     #[test]
     fn fen_converter_1() {
@@ -11,12 +12,12 @@ mod tests {
             [
                 None,
                 None,
-                Some((PieceType::King, PieceColor::Black)),
+                Some((PieceType::King, Color::Black)),
                 None,
                 None,
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::White)),
+                Some((PieceType::Rook, Color::White)),
             ],
             [None, None, None, None, None, None, None, None],
             [
@@ -24,7 +25,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::King, PieceColor::White)),
+                Some((PieceType::King, Color::White)),
                 None,
                 None,
                 None,
@@ -37,7 +38,7 @@ mod tests {
         ];
         // We setup the game
         let game_board = GameBoard::new(custom_board, vec![], vec![]);
-        let mut game = Game::new(game_board, PieceColor::White);
+        let mut game = Game::new(game_board, Color::White);
         game.game_board.board = custom_board;
 
         // Move the king to replicate a third time the same position
@@ -53,12 +54,12 @@ mod tests {
             [
                 None,
                 None,
-                Some((PieceType::King, PieceColor::Black)),
+                Some((PieceType::King, Color::Black)),
                 None,
                 None,
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::White)),
+                Some((PieceType::Rook, Color::White)),
             ],
             [None, None, None, None, None, None, None, None],
             [
@@ -66,7 +67,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::King, PieceColor::White)),
+                Some((PieceType::King, Color::White)),
                 None,
                 None,
                 None,
@@ -75,7 +76,7 @@ mod tests {
             [
                 None,
                 None,
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, Color::White)),
                 None,
                 None,
                 None,
@@ -92,14 +93,14 @@ mod tests {
             vec![
                 (PieceMove {
                     piece_type: PieceType::Pawn,
-                    piece_color: PieceColor::White,
+                    piece_color: Color::White,
                     from: Coord::new(6, 2),
                     to: Coord::new(4, 2),
                 }),
             ],
             vec![],
         );
-        let mut game = Game::new(game_board, PieceColor::White);
+        let mut game = Game::new(game_board, Color::White);
         game.game_board.board = custom_board;
 
         // Move the king to replicate a third time the same position
@@ -112,53 +113,53 @@ mod tests {
     fn fen_converter_castling() {
         let custom_board = [
             [
-                Some((PieceType::Rook, PieceColor::Black)),
-                Some((PieceType::Knight, PieceColor::Black)),
-                Some((PieceType::Bishop, PieceColor::Black)),
-                Some((PieceType::Queen, PieceColor::Black)),
-                Some((PieceType::King, PieceColor::Black)),
-                Some((PieceType::Bishop, PieceColor::Black)),
-                Some((PieceType::Knight, PieceColor::Black)),
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some((PieceType::Rook, Color::Black)),
+                Some((PieceType::Knight, Color::Black)),
+                Some((PieceType::Bishop, Color::Black)),
+                Some((PieceType::Queen, Color::Black)),
+                Some((PieceType::King, Color::Black)),
+                Some((PieceType::Bishop, Color::Black)),
+                Some((PieceType::Knight, Color::Black)),
+                Some((PieceType::Rook, Color::Black)),
             ],
             [
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
             ],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
             ],
             [
-                Some((PieceType::Rook, PieceColor::White)),
-                Some((PieceType::Knight, PieceColor::White)),
-                Some((PieceType::Bishop, PieceColor::White)),
-                Some((PieceType::Queen, PieceColor::White)),
-                Some((PieceType::King, PieceColor::White)),
-                Some((PieceType::Bishop, PieceColor::White)),
-                Some((PieceType::Knight, PieceColor::White)),
-                Some((PieceType::Rook, PieceColor::White)),
+                Some((PieceType::Rook, Color::White)),
+                Some((PieceType::Knight, Color::White)),
+                Some((PieceType::Bishop, Color::White)),
+                Some((PieceType::Queen, Color::White)),
+                Some((PieceType::King, Color::White)),
+                Some((PieceType::Bishop, Color::White)),
+                Some((PieceType::Knight, Color::White)),
+                Some((PieceType::Rook, Color::White)),
             ],
         ];
         // We setup the game
         let game_board = GameBoard::new(custom_board, vec![], vec![]);
-        let mut game = Game::new(game_board, PieceColor::White);
+        let mut game = Game::new(game_board, Color::White);
         game.game_board.board = custom_board;
 
         // Move the king to replicate a third time the same position

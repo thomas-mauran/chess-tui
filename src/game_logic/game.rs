@@ -1,8 +1,9 @@
 use super::{bot::Bot, coord::Coord, game_board::GameBoard, opponent::Opponent, ui::UI};
 use crate::{
-    pieces::{PieceColor, PieceMove, PieceType},
+    pieces::{PieceMove, PieceType},
     utils::get_int_from_char,
 };
+use shakmaty::Color;
 
 #[derive(Clone, Debug, PartialEq, Eq, Copy)]
 pub enum GameState {
@@ -22,7 +23,7 @@ pub struct Game {
     /// The other player when playing in multiplayer
     pub opponent: Option<Opponent>,
     /// Which player is it to play
-    pub player_turn: PieceColor,
+    pub player_turn: Color,
     /// The current state of the game (Playing, Draw, Checkmate. Promotion)
     pub game_state: GameState,
 }
@@ -54,7 +55,7 @@ impl Default for Game {
             ui: UI::default(),
             bot: None,
             opponent: None,
-            player_turn: PieceColor::White,
+            player_turn: Color::White,
             game_state: GameState::Playing,
         }
     }
@@ -62,7 +63,7 @@ impl Default for Game {
 
 impl Game {
     // SETTERS
-    pub fn new(game_board: GameBoard, player_turn: PieceColor) -> Self {
+    pub fn new(game_board: GameBoard, player_turn: Color) -> Self {
         Self {
             game_board,
             ui: UI::default(),
@@ -79,15 +80,15 @@ impl Game {
     }
 
     /// Allows you to set the player turn
-    pub fn set_player_turn(&mut self, player_turn: PieceColor) {
+    pub fn set_player_turn(&mut self, player_turn: Color) {
         self.player_turn = player_turn;
     }
 
     /// Switch the player turn
     pub fn switch_player_turn(&mut self) {
         match self.player_turn {
-            PieceColor::White => self.player_turn = PieceColor::Black,
-            PieceColor::Black => self.player_turn = PieceColor::White,
+            Color::White => self.player_turn = Color::Black,
+            Color::Black => self.player_turn = Color::White,
         }
     }
 

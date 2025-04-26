@@ -4,7 +4,8 @@ mod tests {
     use chess_tui::game_logic::game::Game;
     use chess_tui::game_logic::game_board::GameBoard;
     use chess_tui::pieces::knight::Knight;
-    use chess_tui::pieces::{PieceColor, PieceType, Position};
+    use chess_tui::pieces::{PieceType, Position};
+    use shakmaty::Color;
 
     #[test]
     fn no_enemies() {
@@ -18,7 +19,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Knight, PieceColor::White)),
+                Some((PieceType::Knight, Color::White)),
                 None,
                 None,
                 None,
@@ -42,12 +43,8 @@ mod tests {
         ];
         right_positions.sort();
 
-        let mut positions = Knight::authorized_positions(
-            &Coord::new(4, 4),
-            PieceColor::White,
-            &game.game_board,
-            false,
-        );
+        let mut positions =
+            Knight::authorized_positions(&Coord::new(4, 4), Color::White, &game.game_board, false);
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -68,7 +65,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, Color::White)),
                 None,
             ],
             [
@@ -77,7 +74,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, Color::Black)),
                 None,
                 None,
             ],
@@ -89,7 +86,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Knight, PieceColor::White)),
+                Some((PieceType::Knight, Color::White)),
             ],
         ];
         let mut game = Game::default();
@@ -98,12 +95,8 @@ mod tests {
         let mut right_positions = vec![Coord::new(6, 5)];
         right_positions.sort();
 
-        let mut positions = Knight::authorized_positions(
-            &Coord::new(7, 7),
-            PieceColor::White,
-            &game.game_board,
-            false,
-        );
+        let mut positions =
+            Knight::authorized_positions(&Coord::new(7, 7), Color::White, &game.game_board, false);
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -124,7 +117,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::King, PieceColor::White)),
+                Some((PieceType::King, Color::White)),
                 None,
             ],
             [
@@ -133,7 +126,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Knight, PieceColor::White)),
+                Some((PieceType::Knight, Color::White)),
                 None,
                 None,
             ],
@@ -145,11 +138,11 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Knight, PieceColor::Black)),
+                Some((PieceType::Knight, Color::Black)),
             ],
         ];
         let game_board = GameBoard::new(custom_board, vec![], vec![]);
-        let mut game = Game::new(game_board, PieceColor::White);
+        let mut game = Game::new(game_board, Color::White);
         game.game_board.board = custom_board;
 
         let is_king_checked = game
@@ -161,7 +154,7 @@ mod tests {
 
         let mut positions = Knight::authorized_positions(
             &Coord::new(6, 5),
-            PieceColor::White,
+            Color::White,
             &game.game_board,
             is_king_checked,
         );
@@ -185,7 +178,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::King, PieceColor::White)),
+                Some((PieceType::King, Color::White)),
                 None,
             ],
             [
@@ -193,7 +186,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Knight, PieceColor::White)),
+                Some((PieceType::Knight, Color::White)),
                 None,
                 None,
                 None,
@@ -206,11 +199,11 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Knight, PieceColor::Black)),
+                Some((PieceType::Knight, Color::Black)),
             ],
         ];
         let game_board = GameBoard::new(custom_board, vec![], vec![]);
-        let mut game = Game::new(game_board, PieceColor::White);
+        let mut game = Game::new(game_board, Color::White);
         game.game_board.board = custom_board;
 
         let is_king_checked = game
@@ -222,7 +215,7 @@ mod tests {
 
         let mut positions = Knight::authorized_positions(
             &Coord::new(6, 4),
-            PieceColor::White,
+            Color::White,
             &game.game_board,
             is_king_checked,
         );
@@ -238,7 +231,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::King, PieceColor::Black)),
+                Some((PieceType::King, Color::Black)),
                 None,
                 None,
                 None,
@@ -248,7 +241,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Knight, PieceColor::Black)),
+                Some((PieceType::Knight, Color::Black)),
                 None,
                 None,
                 None,
@@ -259,7 +252,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Queen, PieceColor::White)),
+                Some((PieceType::Queen, Color::White)),
                 None,
                 None,
                 None,
@@ -271,7 +264,7 @@ mod tests {
         ];
 
         let game_board = GameBoard::new(custom_board, vec![], vec![]);
-        let mut game = Game::new(game_board, PieceColor::Black);
+        let mut game = Game::new(game_board, Color::Black);
         game.game_board.board = custom_board;
 
         let is_king_checked = game
@@ -283,7 +276,7 @@ mod tests {
 
         let mut positions = Knight::authorized_positions(
             &Coord::new(1, 4),
-            PieceColor::Black,
+            Color::Black,
             &game.game_board,
             is_king_checked,
         );

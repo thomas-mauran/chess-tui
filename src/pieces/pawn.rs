@@ -1,15 +1,16 @@
-use super::{Movable, PieceColor, PieceMove, PieceType, Position};
+use super::{Movable, PieceMove, PieceType, Position};
 use crate::constants::DisplayMode;
 use crate::game_logic::coord::Coord;
 use crate::game_logic::game_board::GameBoard;
 use crate::utils::{cleaned_positions, invert_position, is_cell_color_ally};
+use shakmaty::Color;
 
 pub struct Pawn;
 
 impl Movable for Pawn {
     fn piece_move(
         coordinates: &Coord,
-        color: PieceColor,
+        color: Color,
         game_board: &GameBoard,
         allow_move_on_ally_positions: bool,
     ) -> Vec<Coord> {
@@ -119,7 +120,7 @@ impl Movable for Pawn {
 impl Position for Pawn {
     fn authorized_positions(
         coordinates: &Coord,
-        color: PieceColor,
+        color: Color,
         game_board: &GameBoard,
         _is_king_checked: bool,
     ) -> Vec<Coord> {
@@ -134,7 +135,7 @@ impl Position for Pawn {
 
     fn protected_positions(
         coordinates: &Coord,
-        color: PieceColor,
+        color: Color,
         game_board: &GameBoard,
     ) -> Vec<Coord> {
         Self::piece_move(coordinates, color, game_board, true)

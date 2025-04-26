@@ -4,9 +4,10 @@ use super::{
     game::Game,
 };
 use crate::{
-    pieces::{pawn::Pawn, PieceColor, PieceMove, PieceType},
+    pieces::{pawn::Pawn, PieceMove, PieceType},
     utils::col_to_letter,
 };
+use shakmaty::Color;
 
 /// ## visual representation
 ///
@@ -108,9 +109,9 @@ impl GameBoard {
         }
     }
 
-    pub fn add_piece_to_taken_pieces(&mut self, from: &Coord, to: &Coord, player_turn: PieceColor) {
+    pub fn add_piece_to_taken_pieces(&mut self, from: &Coord, to: &Coord, player_turn: Color) {
         if self.is_latest_move_en_passant(from, to) {
-            self.push_to_taken_piece(PieceType::Pawn, player_turn.opposite());
+            self.push_to_taken_piece(PieceType::Pawn, player_turn.other());
         }
 
         let piece_type_to = self.get_piece_type(to);
@@ -126,13 +127,13 @@ impl GameBoard {
         }
     }
 
-    pub fn push_to_taken_piece(&mut self, piece_type: PieceType, piece_color: PieceColor) {
+    pub fn push_to_taken_piece(&mut self, piece_type: PieceType, piece_color: Color) {
         match piece_color {
-            PieceColor::Black => {
+            Color::Black => {
                 self.white_taken_pieces.push(piece_type);
                 self.white_taken_pieces.sort();
             }
-            PieceColor::White => {
+            Color::White => {
                 self.black_taken_pieces.push(piece_type);
                 self.black_taken_pieces.sort();
             }
@@ -148,11 +149,7 @@ impl GameBoard {
     }
 
     // Method to get the authorized positions for a piece
-    pub fn get_authorized_positions(
-        &self,
-        player_turn: PieceColor,
-        coordinates: Coord,
-    ) -> Vec<Coord> {
+    pub fn get_authorized_positions(&self, player_turn: Color, coordinates: Coord) -> Vec<Coord> {
         if let (Some(piece_type), Some(piece_color)) = (
             self.get_piece_type(&coordinates),
             self.get_piece_color(&coordinates),
@@ -235,7 +232,7 @@ impl GameBoard {
     }
 
     // Method to get the number of authorized positions for the current player (used for the end condition)
-    pub fn number_of_authorized_positions(&self, player_turn: PieceColor) -> usize {
+    pub fn number_of_authorized_positions(&self, player_turn: Color) -> usize {
         let mut possible_moves: Vec<Coord> = vec![];
 
         for i in 0..8 {
@@ -252,7 +249,7 @@ impl GameBoard {
     }
 
     // Check if the game is checkmate
-    pub fn is_checkmate(&self, player_turn: PieceColor) -> bool {
+    pub fn is_checkmate(&self, player_turn: Color) -> bool {
         if !self.is_getting_checked(self.board, player_turn) {
             return false;
         }
@@ -284,7 +281,7 @@ impl GameBoard {
     }
 
     // Check if the game is a draw
-    pub fn is_draw(&mut self, player_turn: PieceColor) -> bool {
+    pub fn is_draw(&mut self, player_turn: Color) -> bool {
         self.number_of_authorized_positions(player_turn) == 0
             || self.consecutive_non_pawn_or_capture == 50
             || self.is_draw_by_repetition()
@@ -299,7 +296,7 @@ impl GameBoard {
     }
 
     /// We get all the cells that are getting put in 'check'
-    pub fn get_all_protected_cells(&self, player_turn: PieceColor) -> Vec<Coord> {
+    pub fn get_all_protected_cells(&self, player_turn: Color) -> Vec<Coord> {
         let mut check_cells: Vec<Coord> = vec![];
         for i in 0..8u8 {
             for j in 0..8u8 {
@@ -323,7 +320,7 @@ impl GameBoard {
     }
 
     /// Method returning the coordinates of the king of a certain color
-    pub fn get_king_coordinates(&self, board: Board, player_turn: PieceColor) -> Coord {
+    pub fn get_king_coordinates(&self, board: Board, player_turn: Color) -> Coord {
         for i in 0..8u8 {
             for j in 0..8u8 {
                 if let Some((piece_type, piece_color)) = board[i as usize][j as usize] {
@@ -339,7 +336,7 @@ impl GameBoard {
     /// Is getting checked
     /// Here we keep the board as one of the parameters because for the king position we need to simulate the board if he moves
     /// to make sure he will not be checked after the move
-    pub fn is_getting_checked(&self, board: Board, player_turn: PieceColor) -> bool {
+    pub fn is_getting_checked(&self, board: Board, player_turn: Color) -> bool {
         let coordinates = self.get_king_coordinates(board, player_turn);
 
         let fake_game_board = GameBoard {
@@ -359,7 +356,7 @@ impl GameBoard {
     /// Check if a piece already moved on the board
     pub fn did_piece_already_move(
         &self,
-        original_piece: (Option<PieceType>, Option<PieceColor>, Coord),
+        original_piece: (Option<PieceType>, Option<Color>, Coord),
     ) -> bool {
         for entry in &self.move_history {
             if Some(entry.piece_type) == original_piece.0
@@ -377,7 +374,7 @@ impl GameBoard {
         &self,
         original_coordinates: &Coord,
         positions: Vec<Coord>,
-        color: PieceColor,
+        color: Color,
     ) -> Vec<Coord> {
         let mut cleaned_position: Vec<Coord> = vec![];
         for position in positions {
@@ -399,7 +396,7 @@ impl GameBoard {
     }
 
     // Return the color of the piece at a certain position
-    pub fn get_piece_color(&self, coordinates: &Coord) -> Option<PieceColor> {
+    pub fn get_piece_color(&self, coordinates: &Coord) -> Option<Color> {
         if !coordinates.is_valid() {
             return None;
         }
@@ -414,15 +411,15 @@ impl GameBoard {
     }
 
     // Convert the history and game status to a FEN string
-    pub fn fen_position(&mut self, is_bot_starting: bool, _player_turn: PieceColor) -> String {
+    pub fn fen_position(&mut self, is_bot_starting: bool, _player_turn: Color) -> String {
         let mut result = String::new();
         let bot_color = if is_bot_starting {
-            PieceColor::White
+            Color::White
         } else {
-            PieceColor::Black
+            Color::Black
         };
 
-        let king_col = if bot_color == PieceColor::White { 4 } else { 3 };
+        let king_col = if bot_color == Color::White { 4 } else { 3 };
 
         // We loop through the board and convert it to a FEN string
         for i in 0..8u8 {
@@ -465,20 +462,20 @@ impl GameBoard {
         result.pop();
 
         // We say it is blacks turn to play
-        result.push_str(if bot_color == PieceColor::Black {
+        result.push_str(if bot_color == Color::Black {
             " b"
         } else {
             " w"
         });
 
         let mut possible_castles = vec![];
-        for turn in [PieceColor::White, PieceColor::Black] {
+        for turn in [Color::White, Color::Black] {
             // We add the castles availabilities for black
             if !self.did_piece_already_move((
                 Some(PieceType::King),
                 Some(turn),
                 Coord::new(7, king_col),
-            )) && !self.is_getting_checked(self.board, PieceColor::Black)
+            )) && !self.is_getting_checked(self.board, Color::Black)
             {
                 // king side black castle availability
                 if !self.did_piece_already_move((
@@ -504,7 +501,7 @@ impl GameBoard {
         } else {
             result.push(' ');
             for (turn, c) in possible_castles {
-                let is_white = turn == PieceColor::White;
+                let is_white = turn == Color::White;
                 result.push(if is_white { c.to_ascii_uppercase() } else { c });
             }
         }

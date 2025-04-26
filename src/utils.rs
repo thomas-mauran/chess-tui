@@ -3,7 +3,7 @@ use crate::game_logic::game::Game;
 use crate::game_logic::game_board::GameBoard;
 use crate::{
     constants::{DisplayMode, UNDEFINED_POSITION},
-    pieces::{PieceColor, PieceType},
+    pieces::PieceType,
 };
 use ratatui::{
     layout::{Alignment, Rect},
@@ -21,7 +21,11 @@ pub fn cleaned_positions(positions: &[Coord]) -> Vec<Coord> {
 }
 
 /// Return true for ally cell color; false for enemy
-pub fn is_cell_color_ally(game_board: &GameBoard, coordinates: &Coord, color: PieceColor) -> bool {
+pub fn is_cell_color_ally(
+    game_board: &GameBoard,
+    coordinates: &Coord,
+    color: shakmaty::Color,
+) -> bool {
     match game_board.get_piece_color(coordinates) {
         Some(cell_color) => cell_color == color,
         None => false, // Treat empty cell as ally
@@ -85,19 +89,22 @@ pub fn get_int_from_char(ch: Option<char>) -> u8 {
     }
 }
 
-pub fn is_piece_opposite_king(piece: Option<(PieceType, PieceColor)>, color: PieceColor) -> bool {
+pub fn is_piece_opposite_king(
+    piece: Option<(PieceType, shakmaty::Color)>,
+    color: shakmaty::Color,
+) -> bool {
     match piece {
         Some((piece_type, piece_color)) => {
-            piece_type == PieceType::King && piece_color == color.opposite()
+            piece_type == PieceType::King && piece_color == color.other()
         }
         _ => false,
     }
 }
 
-pub fn color_to_ratatui_enum(piece_color: Option<PieceColor>) -> Color {
+pub fn color_to_ratatui_enum(piece_color: Option<shakmaty::Color>) -> Color {
     match piece_color {
-        Some(PieceColor::Black) => Color::Black,
-        Some(PieceColor::White) => Color::White,
+        Some(shakmaty::Color::Black) => Color::Black,
+        Some(shakmaty::Color::White) => Color::White,
         None => Color::Red,
     }
 }
@@ -123,9 +130,11 @@ pub fn get_cell_paragraph<'a>(
             // Determine piece letter case
             let paragraph = match piece_color {
                 // pieces belonging to the player on top will be lower case
-                Some(PieceColor::Black) => Paragraph::new(piece_enum.to_lowercase()),
+                Some(shakmaty::Color::Black) => Paragraph::new(piece_enum.to_lowercase()),
                 // pieces belonging to the player on bottom will be upper case
-                Some(PieceColor::White) => Paragraph::new(piece_enum.to_uppercase().underlined()),
+                Some(shakmaty::Color::White) => {
+                    Paragraph::new(piece_enum.to_uppercase().underlined())
+                }
                 // Pass through original value
                 None => Paragraph::new(piece_enum),
             };

@@ -1,7 +1,7 @@
 use super::{coord::Coord, game::Game};
 use crate::{
     constants::{DisplayMode, BLACK, UNDEFINED_POSITION, WHITE},
-    pieces::{PieceColor, PieceType},
+    pieces::PieceType,
     ui::{main_ui::render_cell, prompt::Prompt},
     utils::{convert_position_into_notation, get_cell_paragraph, invert_position},
 };
@@ -186,7 +186,7 @@ impl UI {
             let piece_type_from = game.game_board.move_history[i].piece_type;
 
             let utf_icon_white =
-                PieceType::piece_to_utf_enum(&piece_type_from, Some(PieceColor::White));
+                PieceType::piece_to_utf_enum(&piece_type_from, Some(shakmaty::Color::White));
             let move_white = convert_position_into_notation(&format!(
                 "{}{}{}{}",
                 game.game_board.move_history[i].from.row,
@@ -218,7 +218,7 @@ impl UI {
                     from.row, from.col, to.row, to.col
                 ));
                 utf_icon_black =
-                    PieceType::piece_to_utf_enum(&piece_type_to, Some(PieceColor::Black));
+                    PieceType::piece_to_utf_enum(&piece_type_to, Some(shakmaty::Color::Black));
             }
 
             lines.push(Line::from(vec![
@@ -263,7 +263,7 @@ impl UI {
         let mut pieces: String = String::new();
 
         for piece in white_taken_pieces {
-            let utf_icon_white = PieceType::piece_to_utf_enum(piece, Some(PieceColor::Black));
+            let utf_icon_white = PieceType::piece_to_utf_enum(piece, Some(shakmaty::Color::Black));
 
             pieces.push_str(&format!("{utf_icon_white} "));
         }
@@ -307,7 +307,7 @@ impl UI {
         let mut pieces: String = String::new();
 
         for piece in black_taken_pieces {
-            let utf_icon_black = PieceType::piece_to_utf_enum(piece, Some(PieceColor::White));
+            let utf_icon_black = PieceType::piece_to_utf_enum(piece, Some(shakmaty::Color::White));
 
             pieces.push_str(&format!("{utf_icon_black} "));
         }
@@ -417,7 +417,7 @@ impl UI {
                 };
                 // Draw the available moves for the selected piece
                 if self.is_cell_selected() {
-                    let selected_piece_color: Option<PieceColor> =
+                    let selected_piece_color: Option<shakmaty::Color> =
                         game.game_board.get_piece_color(&self.selected_coordinates);
                     // only draw available moves if it is the right players turn
                     if match selected_piece_color {

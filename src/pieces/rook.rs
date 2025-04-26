@@ -1,14 +1,16 @@
-use super::{Movable, PieceColor, Position};
+use super::{Movable, Position};
 use crate::constants::DisplayMode;
 use crate::game_logic::coord::Coord;
 use crate::game_logic::game_board::GameBoard;
 use crate::utils::{cleaned_positions, is_cell_color_ally, is_piece_opposite_king};
+use shakmaty::Color;
+
 pub struct Rook;
 
 impl Movable for Rook {
     fn piece_move(
         coordinates: &Coord,
-        color: PieceColor,
+        color: Color,
         game_board: &GameBoard,
         allow_move_on_ally_positions: bool,
     ) -> Vec<Coord> {
@@ -156,7 +158,7 @@ impl Movable for Rook {
 impl Position for Rook {
     fn authorized_positions(
         coordinates: &Coord,
-        color: PieceColor,
+        color: Color,
         game_board: &GameBoard,
         _is_king_checked: bool,
     ) -> Vec<Coord> {
@@ -171,7 +173,7 @@ impl Position for Rook {
 
     fn protected_positions(
         coordinates: &Coord,
-        color: PieceColor,
+        color: Color,
         game_board: &GameBoard,
     ) -> Vec<Coord> {
         Self::piece_move(coordinates, color, game_board, true)

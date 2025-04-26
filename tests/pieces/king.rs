@@ -4,7 +4,8 @@ mod tests {
     use chess_tui::game_logic::game::Game;
     use chess_tui::game_logic::game_board::GameBoard;
     use chess_tui::pieces::king::King;
-    use chess_tui::pieces::{PieceColor, PieceMove, PieceType, Position};
+    use chess_tui::pieces::{PieceMove, PieceType, Position};
+    use shakmaty::Color;
 
     // Test with multiple enemies around the king
     #[test]
@@ -15,10 +16,10 @@ mod tests {
             [
                 None,
                 None,
-                Some((PieceType::Bishop, PieceColor::Black)),
+                Some((PieceType::Bishop, Color::Black)),
                 None,
                 None,
-                Some((PieceType::Bishop, PieceColor::Black)),
+                Some((PieceType::Bishop, Color::Black)),
                 None,
                 None,
             ],
@@ -28,7 +29,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::King, PieceColor::White)),
+                Some((PieceType::King, Color::White)),
                 None,
                 None,
                 None,
@@ -39,14 +40,14 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Bishop, PieceColor::Black)),
+                Some((PieceType::Bishop, Color::Black)),
                 None,
                 None,
             ],
             [
                 None,
                 None,
-                Some((PieceType::Bishop, PieceColor::Black)),
+                Some((PieceType::Bishop, Color::Black)),
                 None,
                 None,
                 None,
@@ -61,12 +62,8 @@ mod tests {
         let mut right_positions = vec![Coord::new(4, 5), Coord::new(5, 4)];
         right_positions.sort();
 
-        let mut positions = King::authorized_positions(
-            &Coord::new(4, 4),
-            PieceColor::White,
-            &game.game_board,
-            false,
-        );
+        let mut positions =
+            King::authorized_positions(&Coord::new(4, 4), Color::White, &game.game_board, false);
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -79,11 +76,11 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [
                 None,
-                Some((PieceType::Queen, PieceColor::Black)),
+                Some((PieceType::Queen, Color::Black)),
                 None,
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some((PieceType::Rook, Color::Black)),
                 None,
                 None,
             ],
@@ -93,7 +90,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::King, PieceColor::White)),
+                Some((PieceType::King, Color::White)),
                 None,
                 None,
                 None,
@@ -104,14 +101,14 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Bishop, PieceColor::Black)),
+                Some((PieceType::Bishop, Color::Black)),
                 None,
                 None,
             ],
             [
                 None,
                 None,
-                Some((PieceType::Bishop, PieceColor::Black)),
+                Some((PieceType::Bishop, Color::Black)),
                 None,
                 None,
                 None,
@@ -126,12 +123,8 @@ mod tests {
         let mut right_positions = vec![Coord::new(3, 4)];
         right_positions.sort();
 
-        let mut positions = King::authorized_positions(
-            &Coord::new(4, 4),
-            PieceColor::White,
-            &game.game_board,
-            false,
-        );
+        let mut positions =
+            King::authorized_positions(&Coord::new(4, 4), Color::White, &game.game_board, false);
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -147,7 +140,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some((PieceType::Rook, Color::Black)),
                 None,
                 None,
                 None,
@@ -158,8 +151,8 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::King, PieceColor::White)),
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some((PieceType::King, Color::White)),
+                Some((PieceType::Rook, Color::Black)),
                 None,
                 None,
             ],
@@ -169,14 +162,14 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Bishop, PieceColor::Black)),
+                Some((PieceType::Bishop, Color::Black)),
                 None,
                 None,
             ],
             [
                 None,
                 None,
-                Some((PieceType::Bishop, PieceColor::Black)),
+                Some((PieceType::Bishop, Color::Black)),
                 None,
                 None,
                 None,
@@ -191,12 +184,8 @@ mod tests {
         let mut right_positions = vec![Coord::new(4, 5)];
         right_positions.sort();
 
-        let mut positions = King::authorized_positions(
-            &Coord::new(4, 4),
-            PieceColor::White,
-            &game.game_board,
-            false,
-        );
+        let mut positions =
+            King::authorized_positions(&Coord::new(4, 4), Color::White, &game.game_board, false);
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -207,48 +196,48 @@ mod tests {
     fn big_castle_white() {
         let custom_board = [
             [
-                Some((PieceType::Rook, PieceColor::Black)),
-                Some((PieceType::Knight, PieceColor::Black)),
-                Some((PieceType::Bishop, PieceColor::Black)),
-                Some((PieceType::Queen, PieceColor::Black)),
-                Some((PieceType::King, PieceColor::Black)),
-                Some((PieceType::Bishop, PieceColor::Black)),
-                Some((PieceType::Knight, PieceColor::Black)),
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some((PieceType::Rook, Color::Black)),
+                Some((PieceType::Knight, Color::Black)),
+                Some((PieceType::Bishop, Color::Black)),
+                Some((PieceType::Queen, Color::Black)),
+                Some((PieceType::King, Color::Black)),
+                Some((PieceType::Bishop, Color::Black)),
+                Some((PieceType::Knight, Color::Black)),
+                Some((PieceType::Rook, Color::Black)),
             ],
             [
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
             ],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
             ],
             [
-                Some((PieceType::Rook, PieceColor::White)),
+                Some((PieceType::Rook, Color::White)),
                 None,
                 None,
                 None,
-                Some((PieceType::King, PieceColor::White)),
-                Some((PieceType::Bishop, PieceColor::White)),
-                Some((PieceType::Knight, PieceColor::White)),
-                Some((PieceType::Rook, PieceColor::White)),
+                Some((PieceType::King, Color::White)),
+                Some((PieceType::Bishop, Color::White)),
+                Some((PieceType::Knight, Color::White)),
+                Some((PieceType::Rook, Color::White)),
             ],
         ];
         let mut game = Game::default();
@@ -257,12 +246,8 @@ mod tests {
         let mut right_positions = vec![Coord::new(7, 3), Coord::new(7, 0)];
         right_positions.sort();
 
-        let mut positions = King::authorized_positions(
-            &Coord::new(7, 4),
-            PieceColor::White,
-            &game.game_board,
-            false,
-        );
+        let mut positions =
+            King::authorized_positions(&Coord::new(7, 4), Color::White, &game.game_board, false);
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -272,48 +257,48 @@ mod tests {
     fn small_castle_white() {
         let custom_board = [
             [
-                Some((PieceType::Rook, PieceColor::Black)),
-                Some((PieceType::Knight, PieceColor::Black)),
-                Some((PieceType::Bishop, PieceColor::Black)),
-                Some((PieceType::Queen, PieceColor::Black)),
-                Some((PieceType::King, PieceColor::Black)),
-                Some((PieceType::Bishop, PieceColor::Black)),
-                Some((PieceType::Knight, PieceColor::Black)),
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some((PieceType::Rook, Color::Black)),
+                Some((PieceType::Knight, Color::Black)),
+                Some((PieceType::Bishop, Color::Black)),
+                Some((PieceType::Queen, Color::Black)),
+                Some((PieceType::King, Color::Black)),
+                Some((PieceType::Bishop, Color::Black)),
+                Some((PieceType::Knight, Color::Black)),
+                Some((PieceType::Rook, Color::Black)),
             ],
             [
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
             ],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
             ],
             [
-                Some((PieceType::Rook, PieceColor::White)),
-                Some((PieceType::Bishop, PieceColor::White)),
-                Some((PieceType::Bishop, PieceColor::White)),
-                Some((PieceType::Queen, PieceColor::White)),
-                Some((PieceType::King, PieceColor::White)),
+                Some((PieceType::Rook, Color::White)),
+                Some((PieceType::Bishop, Color::White)),
+                Some((PieceType::Bishop, Color::White)),
+                Some((PieceType::Queen, Color::White)),
+                Some((PieceType::King, Color::White)),
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::White)),
+                Some((PieceType::Rook, Color::White)),
             ],
         ];
         let mut game = Game::default();
@@ -322,12 +307,8 @@ mod tests {
         let mut right_positions = vec![Coord::new(7, 5), Coord::new(7, 7)];
         right_positions.sort();
 
-        let mut positions = King::authorized_positions(
-            &Coord::new(7, 4),
-            PieceColor::White,
-            &game.game_board,
-            false,
-        );
+        let mut positions =
+            King::authorized_positions(&Coord::new(7, 4), Color::White, &game.game_board, false);
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -337,48 +318,48 @@ mod tests {
     fn big_castle_black() {
         let custom_board = [
             [
-                Some((PieceType::Rook, PieceColor::White)),
-                Some((PieceType::Knight, PieceColor::White)),
-                Some((PieceType::Bishop, PieceColor::White)),
-                Some((PieceType::King, PieceColor::White)),
-                Some((PieceType::Queen, PieceColor::White)),
-                Some((PieceType::Bishop, PieceColor::White)),
-                Some((PieceType::Knight, PieceColor::White)),
-                Some((PieceType::Rook, PieceColor::White)),
+                Some((PieceType::Rook, Color::White)),
+                Some((PieceType::Knight, Color::White)),
+                Some((PieceType::Bishop, Color::White)),
+                Some((PieceType::King, Color::White)),
+                Some((PieceType::Queen, Color::White)),
+                Some((PieceType::Bishop, Color::White)),
+                Some((PieceType::Knight, Color::White)),
+                Some((PieceType::Rook, Color::White)),
             ],
             [
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
             ],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
             ],
             [
-                Some((PieceType::Rook, PieceColor::Black)),
-                Some((PieceType::Knight, PieceColor::Black)),
-                Some((PieceType::Bishop, PieceColor::Black)),
-                Some((PieceType::King, PieceColor::Black)),
+                Some((PieceType::Rook, Color::Black)),
+                Some((PieceType::Knight, Color::Black)),
+                Some((PieceType::Bishop, Color::Black)),
+                Some((PieceType::King, Color::Black)),
                 None,
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some((PieceType::Rook, Color::Black)),
             ],
         ];
         let mut game = Game::default();
@@ -387,12 +368,8 @@ mod tests {
         let mut right_positions = vec![Coord::new(7, 4), Coord::new(7, 7)];
         right_positions.sort();
 
-        let mut positions = King::authorized_positions(
-            &Coord::new(7, 3),
-            PieceColor::Black,
-            &game.game_board,
-            false,
-        );
+        let mut positions =
+            King::authorized_positions(&Coord::new(7, 3), Color::Black, &game.game_board, false);
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -401,48 +378,48 @@ mod tests {
     fn small_castle_black() {
         let custom_board = [
             [
-                Some((PieceType::Rook, PieceColor::White)),
-                Some((PieceType::Knight, PieceColor::White)),
-                Some((PieceType::Bishop, PieceColor::White)),
-                Some((PieceType::King, PieceColor::White)),
-                Some((PieceType::Queen, PieceColor::White)),
-                Some((PieceType::Bishop, PieceColor::White)),
-                Some((PieceType::Knight, PieceColor::White)),
-                Some((PieceType::Rook, PieceColor::White)),
+                Some((PieceType::Rook, Color::White)),
+                Some((PieceType::Knight, Color::White)),
+                Some((PieceType::Bishop, Color::White)),
+                Some((PieceType::King, Color::White)),
+                Some((PieceType::Queen, Color::White)),
+                Some((PieceType::Bishop, Color::White)),
+                Some((PieceType::Knight, Color::White)),
+                Some((PieceType::Rook, Color::White)),
             ],
             [
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
             ],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
             ],
             [
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some((PieceType::Rook, Color::Black)),
                 None,
                 None,
-                Some((PieceType::King, PieceColor::Black)),
-                Some((PieceType::Queen, PieceColor::Black)),
-                Some((PieceType::Bishop, PieceColor::Black)),
-                Some((PieceType::Knight, PieceColor::Black)),
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some((PieceType::King, Color::Black)),
+                Some((PieceType::Queen, Color::Black)),
+                Some((PieceType::Bishop, Color::Black)),
+                Some((PieceType::Knight, Color::Black)),
+                Some((PieceType::Rook, Color::Black)),
             ],
         ];
         let mut game = Game::default();
@@ -451,12 +428,8 @@ mod tests {
         let mut right_positions = vec![Coord::new(7, 0), Coord::new(7, 2)];
         right_positions.sort();
 
-        let mut positions = King::authorized_positions(
-            &Coord::new(7, 3),
-            PieceColor::Black,
-            &game.game_board,
-            false,
-        );
+        let mut positions =
+            King::authorized_positions(&Coord::new(7, 3), Color::Black, &game.game_board, false);
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -466,47 +439,47 @@ mod tests {
     fn big_castle_black_check_blocking() {
         let custom_board = [
             [
-                Some((PieceType::Rook, PieceColor::Black)),
-                Some((PieceType::Knight, PieceColor::Black)),
-                Some((PieceType::Bishop, PieceColor::Black)),
-                Some((PieceType::Queen, PieceColor::Black)),
-                Some((PieceType::King, PieceColor::Black)),
+                Some((PieceType::Rook, Color::Black)),
+                Some((PieceType::Knight, Color::Black)),
+                Some((PieceType::Bishop, Color::Black)),
+                Some((PieceType::Queen, Color::Black)),
+                Some((PieceType::King, Color::Black)),
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some((PieceType::Rook, Color::Black)),
             ],
             [
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
                 None,
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, Color::Black)),
             ],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
                 None,
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, Color::White)),
             ],
             [
-                Some((PieceType::Rook, PieceColor::White)),
-                Some((PieceType::Knight, PieceColor::White)),
-                Some((PieceType::Bishop, PieceColor::White)),
-                Some((PieceType::Queen, PieceColor::White)),
-                Some((PieceType::King, PieceColor::White)),
-                Some((PieceType::Bishop, PieceColor::White)),
-                Some((PieceType::Rook, PieceColor::White)),
+                Some((PieceType::Rook, Color::White)),
+                Some((PieceType::Knight, Color::White)),
+                Some((PieceType::Bishop, Color::White)),
+                Some((PieceType::Queen, Color::White)),
+                Some((PieceType::King, Color::White)),
+                Some((PieceType::Bishop, Color::White)),
+                Some((PieceType::Rook, Color::White)),
                 None,
             ],
         ];
@@ -516,12 +489,8 @@ mod tests {
         let mut right_positions = vec![Coord::new(0, 5)];
         right_positions.sort();
 
-        let mut positions = King::authorized_positions(
-            &Coord::new(0, 4),
-            PieceColor::Black,
-            &game.game_board,
-            false,
-        );
+        let mut positions =
+            King::authorized_positions(&Coord::new(0, 4), Color::Black, &game.game_board, false);
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -531,53 +500,53 @@ mod tests {
     fn big_castle_black_king_checked() {
         let custom_board = [
             [
-                Some((PieceType::Rook, PieceColor::Black)),
-                Some((PieceType::Knight, PieceColor::Black)),
-                Some((PieceType::Bishop, PieceColor::Black)),
-                Some((PieceType::Queen, PieceColor::Black)),
-                Some((PieceType::King, PieceColor::Black)),
+                Some((PieceType::Rook, Color::Black)),
+                Some((PieceType::Knight, Color::Black)),
+                Some((PieceType::Bishop, Color::Black)),
+                Some((PieceType::Queen, Color::Black)),
+                Some((PieceType::King, Color::Black)),
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some((PieceType::Rook, Color::Black)),
             ],
             [
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
                 None,
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
             ],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
                 None,
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
             ],
             [
-                Some((PieceType::Rook, PieceColor::White)),
-                Some((PieceType::Knight, PieceColor::White)),
-                Some((PieceType::Bishop, PieceColor::White)),
-                Some((PieceType::Queen, PieceColor::White)),
-                Some((PieceType::Rook, PieceColor::White)),
-                Some((PieceType::Bishop, PieceColor::White)),
+                Some((PieceType::Rook, Color::White)),
+                Some((PieceType::Knight, Color::White)),
+                Some((PieceType::Bishop, Color::White)),
+                Some((PieceType::Queen, Color::White)),
+                Some((PieceType::Rook, Color::White)),
+                Some((PieceType::Bishop, Color::White)),
                 None,
-                Some((PieceType::King, PieceColor::White)),
+                Some((PieceType::King, Color::White)),
             ],
         ];
 
         let game_board = GameBoard::new(custom_board, vec![], vec![]);
-        let mut game = Game::new(game_board, PieceColor::Black);
+        let mut game = Game::new(game_board, Color::Black);
         game.game_board.board = custom_board;
 
         let is_king_checked = game
@@ -589,7 +558,7 @@ mod tests {
 
         let mut positions = King::authorized_positions(
             &Coord::new(0, 4),
-            PieceColor::Black,
+            Color::Black,
             &game.game_board,
             is_king_checked,
         );
@@ -602,23 +571,23 @@ mod tests {
     fn big_castle_black_rook_already_moved() {
         let custom_board = [
             [
-                Some((PieceType::Rook, PieceColor::Black)),
-                Some((PieceType::Knight, PieceColor::Black)),
-                Some((PieceType::Bishop, PieceColor::Black)),
-                Some((PieceType::Queen, PieceColor::Black)),
-                Some((PieceType::King, PieceColor::Black)),
+                Some((PieceType::Rook, Color::Black)),
+                Some((PieceType::Knight, Color::Black)),
+                Some((PieceType::Bishop, Color::Black)),
+                Some((PieceType::Queen, Color::Black)),
+                Some((PieceType::King, Color::Black)),
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some((PieceType::Rook, Color::Black)),
             ],
             [
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
                 None,
             ],
             [None, None, None, None, None, None, None, None],
@@ -626,24 +595,24 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
             ],
             [
-                Some((PieceType::Rook, PieceColor::White)),
-                Some((PieceType::Knight, PieceColor::White)),
-                Some((PieceType::Bishop, PieceColor::White)),
-                Some((PieceType::Queen, PieceColor::White)),
-                Some((PieceType::King, PieceColor::White)),
-                Some((PieceType::Bishop, PieceColor::White)),
-                Some((PieceType::Knight, PieceColor::White)),
-                Some((PieceType::Rook, PieceColor::White)),
+                Some((PieceType::Rook, Color::White)),
+                Some((PieceType::Knight, Color::White)),
+                Some((PieceType::Bishop, Color::White)),
+                Some((PieceType::Queen, Color::White)),
+                Some((PieceType::King, Color::White)),
+                Some((PieceType::Bishop, Color::White)),
+                Some((PieceType::Knight, Color::White)),
+                Some((PieceType::Rook, Color::White)),
             ],
         ];
         let mut game = Game::default();
@@ -651,19 +620,19 @@ mod tests {
         game.game_board.move_history = [
             (PieceMove {
                 piece_type: PieceType::Rook,
-                piece_color: PieceColor::White,
+                piece_color: Color::White,
                 from: Coord::new(0, 7),
                 to: Coord::new(4, 7),
             }),
             (PieceMove {
                 piece_type: PieceType::Pawn,
-                piece_color: PieceColor::Black,
+                piece_color: Color::Black,
                 from: Coord::new(6, 2),
                 to: Coord::new(5, 2),
             }),
             (PieceMove {
                 piece_type: PieceType::Rook,
-                piece_color: PieceColor::White,
+                piece_color: Color::White,
                 from: Coord::new(4, 7),
                 to: Coord::new(0, 7),
             }),
@@ -673,12 +642,8 @@ mod tests {
         let mut right_positions = vec![Coord::new(0, 5)];
         right_positions.sort();
 
-        let mut positions = King::authorized_positions(
-            &Coord::new(0, 4),
-            PieceColor::Black,
-            &game.game_board,
-            false,
-        );
+        let mut positions =
+            King::authorized_positions(&Coord::new(0, 4), Color::Black, &game.game_board, false);
         positions.sort();
 
         assert_eq!(right_positions, positions);
@@ -688,53 +653,53 @@ mod tests {
     fn castle_both_sides() {
         let custom_board = [
             [
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some((PieceType::Rook, Color::Black)),
                 None,
                 None,
                 None,
-                Some((PieceType::King, PieceColor::Black)),
-                Some((PieceType::Bishop, PieceColor::Black)),
-                Some((PieceType::Knight, PieceColor::Black)),
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some((PieceType::King, Color::Black)),
+                Some((PieceType::Bishop, Color::Black)),
+                Some((PieceType::Knight, Color::Black)),
+                Some((PieceType::Rook, Color::Black)),
             ],
             [
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
             ],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
             [
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
             ],
             [
-                Some((PieceType::Rook, PieceColor::White)),
-                Some((PieceType::Knight, PieceColor::White)),
-                Some((PieceType::Bishop, PieceColor::White)),
-                Some((PieceType::Queen, PieceColor::White)),
-                Some((PieceType::King, PieceColor::White)),
+                Some((PieceType::Rook, Color::White)),
+                Some((PieceType::Knight, Color::White)),
+                Some((PieceType::Bishop, Color::White)),
+                Some((PieceType::Queen, Color::White)),
+                Some((PieceType::King, Color::White)),
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::White)),
+                Some((PieceType::Rook, Color::White)),
             ],
         ];
 
         let game_board = GameBoard::new(custom_board, vec![], vec![]);
-        let mut game = Game::new(game_board, PieceColor::White);
+        let mut game = Game::new(game_board, Color::White);
         game.game_board.board = custom_board;
 
         let is_king_checked = game
@@ -746,7 +711,7 @@ mod tests {
 
         let mut positions = King::authorized_positions(
             &Coord::new(7, 4),
-            PieceColor::White,
+            Color::White,
             &game.game_board,
             is_king_checked,
         );
@@ -762,7 +727,7 @@ mod tests {
 
         let mut positions = King::authorized_positions(
             &Coord::new(7, 3),
-            PieceColor::Black,
+            Color::Black,
             &game.game_board,
             is_king_checked,
         );

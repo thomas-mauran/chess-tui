@@ -4,7 +4,8 @@ mod tests {
     use chess_tui::game_logic::game::Game;
     use chess_tui::game_logic::game_board::GameBoard;
     use chess_tui::pieces::pawn::Pawn;
-    use chess_tui::pieces::{PieceColor, PieceMove, PieceType, Position};
+    use chess_tui::pieces::{PieceMove, PieceType, Position};
+    use shakmaty::Color;
 
     #[test]
     fn piece_move_one_cell_forward() {
@@ -18,7 +19,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, Color::White)),
                 None,
                 None,
                 None,
@@ -32,12 +33,8 @@ mod tests {
         let mut right_positions = vec![Coord::new(3, 4)];
         right_positions.sort();
 
-        let mut positions = Pawn::authorized_positions(
-            &Coord::new(4, 4),
-            PieceColor::White,
-            &game.game_board,
-            false,
-        );
+        let mut positions =
+            Pawn::authorized_positions(&Coord::new(4, 4), Color::White, &game.game_board, false);
         positions.sort();
         assert_eq!(right_positions, positions);
     }
@@ -56,7 +53,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, Color::White)),
                 None,
                 None,
                 None,
@@ -68,12 +65,8 @@ mod tests {
         let mut right_positions = vec![Coord::new(5, 4), Coord::new(4, 4)];
         right_positions.sort();
 
-        let mut positions = Pawn::authorized_positions(
-            &Coord::new(6, 4),
-            PieceColor::White,
-            &game.game_board,
-            false,
-        );
+        let mut positions =
+            Pawn::authorized_positions(&Coord::new(6, 4), Color::White, &game.game_board, false);
         positions.sort();
         assert_eq!(right_positions, positions);
     }
@@ -89,9 +82,9 @@ mod tests {
             [
                 None,
                 None,
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, Color::White)),
                 None,
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, Color::White)),
                 None,
                 None,
                 None,
@@ -100,7 +93,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, Color::Black)),
                 None,
                 None,
                 None,
@@ -118,12 +111,8 @@ mod tests {
         ];
         right_positions.sort();
 
-        let mut positions = Pawn::authorized_positions(
-            &Coord::new(6, 3),
-            PieceColor::Black,
-            &game.game_board,
-            false,
-        );
+        let mut positions =
+            Pawn::authorized_positions(&Coord::new(6, 3), Color::Black, &game.game_board, false);
         positions.sort();
         assert_eq!(right_positions, positions);
     }
@@ -139,9 +128,9 @@ mod tests {
             [
                 None,
                 None,
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
                 None,
                 None,
                 None,
@@ -150,7 +139,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, Color::Black)),
                 None,
                 None,
                 None,
@@ -163,12 +152,8 @@ mod tests {
         let mut right_positions = vec![Coord::new(5, 4), Coord::new(5, 2)];
         right_positions.sort();
 
-        let mut positions = Pawn::authorized_positions(
-            &Coord::new(6, 3),
-            PieceColor::Black,
-            &game.game_board,
-            false,
-        );
+        let mut positions =
+            Pawn::authorized_positions(&Coord::new(6, 3), Color::Black, &game.game_board, false);
         positions.sort();
         assert_eq!(right_positions, positions);
     }
@@ -181,7 +166,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, Color::Black)),
                 None,
                 None,
                 None,
@@ -190,9 +175,9 @@ mod tests {
             [
                 None,
                 None,
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
                 None,
                 None,
                 None,
@@ -209,12 +194,8 @@ mod tests {
         let mut right_positions_first_pawn = vec![Coord::new(1, 2), Coord::new(1, 3)];
         right_positions_first_pawn.sort();
 
-        let mut positions = Pawn::authorized_positions(
-            &Coord::new(2, 2),
-            PieceColor::White,
-            &game.game_board,
-            false,
-        );
+        let mut positions =
+            Pawn::authorized_positions(&Coord::new(2, 2), Color::White, &game.game_board, false);
         positions.sort();
         assert_eq!(right_positions_first_pawn, positions);
 
@@ -222,12 +203,8 @@ mod tests {
         let mut right_positions_second_pawn: Vec<Coord> = vec![];
         right_positions_second_pawn.sort();
 
-        let mut positions = Pawn::authorized_positions(
-            &Coord::new(2, 3),
-            PieceColor::White,
-            &game.game_board,
-            false,
-        );
+        let mut positions =
+            Pawn::authorized_positions(&Coord::new(2, 3), Color::White, &game.game_board, false);
         positions.sort();
         assert_eq!(right_positions_second_pawn, positions);
 
@@ -235,12 +212,8 @@ mod tests {
         let mut right_positions_third_pawn: Vec<Coord> = vec![Coord::new(1, 3), Coord::new(1, 4)];
         right_positions_third_pawn.sort();
 
-        let mut positions = Pawn::authorized_positions(
-            &Coord::new(2, 4),
-            PieceColor::White,
-            &game.game_board,
-            false,
-        );
+        let mut positions =
+            Pawn::authorized_positions(&Coord::new(2, 4), Color::White, &game.game_board, false);
         positions.sort();
         assert_eq!(right_positions_third_pawn, positions);
     }
@@ -254,8 +227,8 @@ mod tests {
             [
                 None,
                 None,
-                Some((PieceType::Pawn, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, Color::White)),
+                Some((PieceType::Pawn, Color::Black)),
                 None,
                 None,
                 None,
@@ -270,7 +243,7 @@ mod tests {
         game.game_board.board = custom_board;
         game.game_board.move_history = [(PieceMove {
             piece_type: PieceType::Pawn,
-            piece_color: PieceColor::Black,
+            piece_color: Color::Black,
             from: Coord::new(6, 4),
             to: Coord::new(4, 4),
         })]
@@ -279,12 +252,8 @@ mod tests {
         let mut right_positions = vec![Coord::new(2, 2), Coord::new(2, 3)];
         right_positions.sort();
 
-        let mut positions = Pawn::authorized_positions(
-            &Coord::new(3, 2),
-            PieceColor::White,
-            &game.game_board,
-            false,
-        );
+        let mut positions =
+            Pawn::authorized_positions(&Coord::new(3, 2), Color::White, &game.game_board, false);
         positions.sort();
         assert_eq!(right_positions, positions);
 
@@ -298,7 +267,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, Color::White)),
                 None,
                 None,
                 None,
@@ -323,8 +292,8 @@ mod tests {
             [
                 None,
                 None,
-                Some((PieceType::Pawn, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, Color::Black)),
+                Some((PieceType::Pawn, Color::White)),
                 None,
                 None,
                 None,
@@ -339,7 +308,7 @@ mod tests {
         game.game_board.board = custom_board;
         game.game_board.move_history = [(PieceMove {
             piece_type: PieceType::Pawn,
-            piece_color: PieceColor::White,
+            piece_color: Color::White,
             from: Coord::new(6, 4),
             to: Coord::new(4, 4),
         })]
@@ -348,12 +317,8 @@ mod tests {
         let mut right_positions = vec![Coord::new(2, 2), Coord::new(2, 3)];
         right_positions.sort();
 
-        let mut positions = Pawn::authorized_positions(
-            &Coord::new(3, 2),
-            PieceColor::Black,
-            &game.game_board,
-            false,
-        );
+        let mut positions =
+            Pawn::authorized_positions(&Coord::new(3, 2), Color::Black, &game.game_board, false);
         positions.sort();
         assert_eq!(right_positions, positions);
 
@@ -366,7 +331,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, Color::Black)),
                 None,
                 None,
                 None,
@@ -392,7 +357,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, Color::White)),
                 None,
                 None,
                 None,
@@ -402,7 +367,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [
                 None,
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, Color::Black)),
                 None,
                 None,
                 None,
@@ -416,7 +381,7 @@ mod tests {
         game.game_board.board = custom_board;
         game.game_board.move_history = [(PieceMove {
             piece_type: PieceType::Pawn,
-            piece_color: PieceColor::White,
+            piece_color: Color::White,
             from: Coord::new(6, 4),
             to: Coord::new(4, 4),
         })]
@@ -425,12 +390,8 @@ mod tests {
         let mut right_positions = vec![Coord::new(5, 1), Coord::new(4, 1)];
         right_positions.sort();
 
-        let mut positions = Pawn::authorized_positions(
-            &Coord::new(6, 1),
-            PieceColor::Black,
-            &game.game_board,
-            false,
-        );
+        let mut positions =
+            Pawn::authorized_positions(&Coord::new(6, 1), Color::Black, &game.game_board, false);
         positions.sort();
         assert_eq!(right_positions, positions);
     }
@@ -443,7 +404,7 @@ mod tests {
             [
                 None,
                 None,
-                Some((PieceType::Queen, PieceColor::White)),
+                Some((PieceType::Queen, Color::White)),
                 None,
                 None,
                 None,
@@ -453,8 +414,8 @@ mod tests {
             [
                 None,
                 None,
-                Some((PieceType::King, PieceColor::Black)),
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::King, Color::Black)),
+                Some((PieceType::Pawn, Color::Black)),
                 None,
                 None,
                 None,
@@ -466,7 +427,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
         ];
         let game_board = GameBoard::new(custom_board, vec![], vec![]);
-        let mut game = Game::new(game_board, PieceColor::Black);
+        let mut game = Game::new(game_board, Color::Black);
         game.game_board.board = custom_board;
 
         let is_king_checked = game
@@ -478,7 +439,7 @@ mod tests {
 
         let mut positions = Pawn::authorized_positions(
             &Coord::new(3, 3),
-            PieceColor::Black,
+            Color::Black,
             &game.game_board,
             is_king_checked,
         );
@@ -495,9 +456,9 @@ mod tests {
             [
                 None,
                 None,
-                Some((PieceType::King, PieceColor::Black)),
+                Some((PieceType::King, Color::Black)),
                 None,
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, Color::Black)),
                 None,
                 None,
                 None,
@@ -505,7 +466,7 @@ mod tests {
             [
                 None,
                 None,
-                Some((PieceType::Queen, PieceColor::White)),
+                Some((PieceType::Queen, Color::White)),
                 None,
                 None,
                 None,
@@ -518,7 +479,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
         ];
         let game_board = GameBoard::new(custom_board, vec![], vec![]);
-        let mut game = Game::new(game_board, PieceColor::Black);
+        let mut game = Game::new(game_board, Color::Black);
         game.game_board.board = custom_board;
 
         let is_king_checked = game
@@ -530,7 +491,7 @@ mod tests {
 
         let mut positions = Pawn::authorized_positions(
             &Coord::new(2, 4),
-            PieceColor::Black,
+            Color::Black,
             &game.game_board,
             is_king_checked,
         );
@@ -547,7 +508,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::King, PieceColor::Black)),
+                Some((PieceType::King, Color::Black)),
                 None,
                 None,
                 None,
@@ -558,7 +519,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, Color::Black)),
                 None,
                 None,
             ],
@@ -571,7 +532,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Queen, PieceColor::White)),
+                Some((PieceType::Queen, Color::White)),
             ],
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
@@ -579,7 +540,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
         ];
         let game_board = GameBoard::new(custom_board, vec![], vec![]);
-        let mut game = Game::new(game_board, PieceColor::Black);
+        let mut game = Game::new(game_board, Color::Black);
         game.game_board.board = custom_board;
 
         let is_king_checked = game
@@ -591,7 +552,7 @@ mod tests {
 
         let mut positions = Pawn::authorized_positions(
             &Coord::new(1, 5),
-            PieceColor::Black,
+            Color::Black,
             &game.game_board,
             is_king_checked,
         );

@@ -22,7 +22,6 @@ use super::popups::{
 use crate::{
     app::App,
     constants::{DisplayMode, Pages, TITLE},
-    pieces::PieceColor,
 };
 
 /// Renders the user interface widgets.
@@ -62,7 +61,7 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
             app.current_popup = Some(Popups::ColorSelection);
         } else if app.game.bot.is_none() {
             let engine_path = app.chess_engine_path.clone().unwrap();
-            let is_bot_starting = app.selected_color.unwrap() == PieceColor::Black;
+            let is_bot_starting = app.selected_color.unwrap() == shakmaty::Color::Black;
             app.game.bot = Some(Bot::new(engine_path.as_str(), is_bot_starting));
         } else {
             render_game_ui(frame, app, main_area);
@@ -267,11 +266,11 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
     }
 
     if app.game.game_state == GameState::Checkmate {
-        let victorious_player = app.game.player_turn.opposite();
+        let victorious_player = app.game.player_turn.other();
 
         let string_color = match victorious_player {
-            PieceColor::White => "White",
-            PieceColor::Black => "Black",
+            shakmaty::Color::White => "White",
+            shakmaty::Color::Black => "Black",
         };
 
         render_end_popup(

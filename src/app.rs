@@ -5,9 +5,9 @@ use toml::Value;
 use crate::{
     constants::{DisplayMode, Pages, Popups},
     game_logic::{bot::Bot, game::Game, opponent::Opponent},
-    pieces::PieceColor,
     server::game_server::GameServer,
 };
+use shakmaty::Color;
 use std::{
     error,
     fs::{self, File},
@@ -31,7 +31,7 @@ pub struct App {
     /// Current popup to render
     pub current_popup: Option<Popups>,
     // Selected color when playing against the bot
-    pub selected_color: Option<PieceColor>,
+    pub selected_color: Option<Color>,
     /// Hosting
     pub hosting: Option<bool>,
     /// Host Ip
@@ -76,8 +76,8 @@ impl App {
         }
     }
 
-    pub fn setup_game_server(&mut self, host_color: PieceColor) {
-        let is_host_white = host_color == PieceColor::White;
+    pub fn setup_game_server(&mut self, host_color: Color) {
+        let is_host_white = host_color == Color::White;
 
         log::info!("Starting game server with host color: {:?}", host_color);
 
@@ -92,7 +92,7 @@ impl App {
 
     pub fn create_opponent(&mut self) {
         let other_player_color = if self.selected_color.is_some() {
-            Some(self.selected_color.unwrap().opposite())
+            Some(self.selected_color.unwrap().other())
         } else {
             None
         };
@@ -124,11 +124,11 @@ impl App {
 
         if !self.hosting.unwrap() {
             log::info!("Setting up client (non-host) player");
-            self.selected_color = Some(self.game.opponent.as_mut().unwrap().color.opposite());
+            self.selected_color = Some(self.game.opponent.as_mut().unwrap().color.other());
             self.game.opponent.as_mut().unwrap().game_started = true;
         }
 
-        if self.selected_color.unwrap() == PieceColor::Black {
+        if self.selected_color.unwrap() == Color::Black {
             log::debug!("Flipping board for black player");
             self.game.game_board.flip_the_board();
         }
@@ -186,8 +186,8 @@ impl App {
     pub fn color_selection(&mut self) {
         self.current_popup = None;
         let color = match self.menu_cursor {
-            0 => PieceColor::White,
-            1 => PieceColor::Black,
+            0 => Color::White,
+            1 => Color::Black,
             _ => unreachable!("Invalid color selection"),
         };
         self.selected_color = Some(color);
@@ -202,11 +202,11 @@ impl App {
 
         // if the selected Color is Black, we need to switch the Game
         if let Some(color) = self.selected_color {
-            if color == PieceColor::Black {
+            if color == Color::Black {
                 self.game.bot = Some(Bot::new(path, true));
 
                 self.game.execute_bot_move();
-                self.game.player_turn = PieceColor::Black;
+                self.game.player_turn = Color::Black;
             }
         }
     }
@@ -234,7 +234,7 @@ impl App {
                 .is_some_and(|bot| bot.is_bot_starting)
         {
             self.game.execute_bot_move();
-            self.game.player_turn = PieceColor::Black;
+            self.game.player_turn = Color::Black;
         }
     }
 

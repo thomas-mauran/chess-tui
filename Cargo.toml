@@ -18,6 +18,7 @@ toml = "0.5.8"
 log = "0.4.25"
 simplelog = "0.12.2"
 chrono = "0.4.39"
+shakmaty = "0.27.3"
 
 [features]
 chess-tui = []

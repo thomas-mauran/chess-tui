@@ -1,17 +1,18 @@
 use super::rook::Rook;
-use super::{Movable, PieceColor, Position};
+use super::{Movable, Position};
 use crate::constants::DisplayMode;
 use crate::game_logic::coord::Coord;
 use crate::game_logic::game_board::GameBoard;
 use crate::pieces::bishop::Bishop;
 use crate::utils::cleaned_positions;
+use shakmaty::Color;
 
 pub struct Queen;
 
 impl Movable for Queen {
     fn piece_move(
         coordinates: &Coord,
-        color: PieceColor,
+        color: Color,
         game_board: &GameBoard,
         allow_move_on_ally_positions: bool,
     ) -> Vec<Coord> {
@@ -38,7 +39,7 @@ impl Movable for Queen {
 impl Position for Queen {
     fn authorized_positions(
         coordinates: &Coord,
-        color: PieceColor,
+        color: Color,
         game_board: &GameBoard,
         _is_king_checked: bool,
     ) -> Vec<Coord> {
@@ -50,7 +51,7 @@ impl Position for Queen {
     }
     fn protected_positions(
         coordinates: &Coord,
-        color: PieceColor,
+        color: Color,
         game_board: &GameBoard,
     ) -> Vec<Coord> {
         Self::piece_move(coordinates, color, game_board, true)

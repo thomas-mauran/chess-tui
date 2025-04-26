@@ -1,14 +1,15 @@
-use super::{Movable, PieceColor, PieceType, Position};
+use super::{Movable, PieceType, Position};
 use crate::constants::DisplayMode;
 use crate::game_logic::coord::Coord;
 use crate::game_logic::game_board::GameBoard;
 use crate::utils::{cleaned_positions, is_cell_color_ally};
+use shakmaty::Color;
 pub struct King;
 
 impl Movable for King {
     fn piece_move(
         coordinates: &Coord,
-        color: PieceColor,
+        color: Color,
         game_board: &GameBoard,
         allow_move_on_ally_positions: bool,
     ) -> Vec<Coord> {
@@ -41,7 +42,7 @@ impl Movable for King {
 impl Position for King {
     fn authorized_positions(
         coordinates: &Coord,
-        color: PieceColor,
+        color: Color,
         game_board: &GameBoard,
         is_king_checked: bool,
     ) -> Vec<Coord> {
@@ -51,7 +52,7 @@ impl Position for King {
         let rook_big_castle_x = 0;
         let rook_small_castle_x = 7;
         let king_row = 7;
-        let king_col = if color == PieceColor::White { 4 } else { 3 };
+        let king_col = if color == Color::White { 4 } else { 3 };
 
         // We check the condition for small and big castling
         if !game_board.did_piece_already_move((
@@ -106,7 +107,7 @@ impl Position for King {
     // This method is used to calculated the cells the king is actually covering and is used when the other king authorized position is called
     fn protected_positions(
         coordinates: &Coord,
-        color: PieceColor,
+        color: Color,
         game_board: &GameBoard,
     ) -> Vec<Coord> {
         Self::piece_move(coordinates, color, game_board, true)
@@ -132,7 +133,7 @@ impl King {
     // Check if nothing is in between the king and a rook and if none of those cells are getting checked
     pub fn check_castling_condition(
         game_board: &GameBoard,
-        color: PieceColor,
+        color: Color,
         start: i8,
         end: i8,
         checked_cells: &[Coord],

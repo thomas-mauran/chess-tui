@@ -1,14 +1,16 @@
-use super::{Movable, PieceColor, Position};
+use super::{Movable, Position};
 use crate::constants::DisplayMode;
 use crate::game_logic::coord::Coord;
 use crate::game_logic::game_board::GameBoard;
 use crate::utils::{cleaned_positions, is_cell_color_ally};
+use shakmaty::Color;
+
 pub struct Knight;
 
 impl Movable for Knight {
     fn piece_move(
         coordinates: &Coord,
-        color: PieceColor,
+        color: Color,
         game_board: &GameBoard,
         allow_move_on_ally_positions: bool,
     ) -> Vec<Coord> {
@@ -49,7 +51,7 @@ impl Movable for Knight {
 impl Position for Knight {
     fn authorized_positions(
         coordinates: &Coord,
-        color: PieceColor,
+        color: Color,
         game_board: &GameBoard,
         _is_king_checked: bool,
     ) -> Vec<Coord> {
@@ -62,7 +64,7 @@ impl Position for Knight {
 
     fn protected_positions(
         coordinates: &Coord,
-        color: PieceColor,
+        color: Color,
         game_board: &GameBoard,
     ) -> Vec<Coord> {
         Self::piece_move(coordinates, color, game_board, true)
