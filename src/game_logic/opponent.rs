@@ -1,5 +1,6 @@
-use crate::pieces::{PieceColor, PieceMove};
+use crate::pieces::PieceMove;
 use log;
+use shakmaty::Color;
 use std::{
     io::{Read, Write},
     net::TcpStream,
@@ -12,7 +13,7 @@ pub struct Opponent {
     /// Used to indicate if a Opponent move is following
     pub opponent_will_move: bool,
     // The color of the Opponent
-    pub color: PieceColor,
+    pub color: Color,
     /// Is Game started
     pub game_started: bool,
 }
@@ -23,7 +24,7 @@ impl Default for Opponent {
         Opponent {
             stream: None,
             opponent_will_move: false,
-            color: PieceColor::Black,
+            color: Color::Black,
             game_started: false,
         }
     }
@@ -50,7 +51,7 @@ impl Opponent {
         }
     }
 
-    pub fn new(addr: String, color: Option<PieceColor>) -> Opponent {
+    pub fn new(addr: String, color: Option<Color>) -> Opponent {
         log::info!(
             "Creating new opponent with addr: {} and color: {:?}",
             addr,
@@ -86,8 +87,8 @@ impl Opponent {
             };
 
             let opponent_will_move = match color {
-                PieceColor::White => true,
-                PieceColor::Black => false,
+                Color::White => true,
+                Color::Black => false,
             };
             log::info!(
                 "Created opponent with color {:?}, will_move: {}",
@@ -183,14 +184,14 @@ impl Opponent {
     }
 }
 
-pub fn get_color_from_stream(mut stream: &TcpStream) -> PieceColor {
+pub fn get_color_from_stream(mut stream: &TcpStream) -> Color {
     let mut buffer = [0; 5];
     let bytes_read = stream.read(&mut buffer).unwrap(); // Number of bytes read
     let color = String::from_utf8_lossy(&buffer[..bytes_read]).to_string();
 
     match color.as_str() {
-        "w" => PieceColor::White,
-        "b" => PieceColor::Black,
+        "w" => Color::White,
+        "b" => Color::Black,
         _ => panic!("Failed to get color from stream"),
     }
 }

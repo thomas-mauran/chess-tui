@@ -12,9 +12,6 @@ pub mod server;
 /// Event handler.
 pub mod handler;
 
-// Chess pieces structures
-pub mod pieces;
-
 // Game related structures
 pub mod game_logic;
 

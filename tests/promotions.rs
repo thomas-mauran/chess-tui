@@ -3,7 +3,9 @@ mod tests {
     use chess_tui::game_logic::coord::Coord;
     use chess_tui::game_logic::game::Game;
     use chess_tui::game_logic::game_board::GameBoard;
-    use chess_tui::pieces::{PieceColor, PieceMove, PieceType};
+    use chess_tui::pieces::{PieceMove, PieceType};
+    use shakmaty::Color;
+
     #[test]
     fn is_promote_true() {
         let custom_board = [
@@ -12,16 +14,16 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, Color::White)),
                 None,
                 None,
-                Some((PieceType::King, PieceColor::Black)),
+                Some((PieceType::King, Color::Black)),
             ],
             [
                 None,
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::White)),
+                Some((PieceType::Rook, Color::White)),
                 None,
                 None,
                 None,
@@ -34,7 +36,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [
                 None,
-                Some((PieceType::King, PieceColor::White)),
+                Some((PieceType::King, Color::White)),
                 None,
                 None,
                 None,
@@ -48,14 +50,14 @@ mod tests {
             vec![
                 (PieceMove {
                     piece_type: PieceType::Pawn,
-                    piece_color: PieceColor::White,
+                    piece_color: Color::White,
                     from: Coord::new(1, 4),
                     to: Coord::new(0, 4),
                 }),
             ],
             vec![],
         );
-        let mut game = Game::new(game_board, PieceColor::Black);
+        let mut game = Game::new(game_board, Color::Black);
         game.game_board.board = custom_board;
 
         assert!(game.game_board.is_latest_move_promotion());
@@ -71,13 +73,13 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::King, PieceColor::Black)),
+                Some((PieceType::King, Color::Black)),
             ],
             [
                 None,
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::White)),
+                Some((PieceType::Rook, Color::White)),
                 None,
                 None,
                 None,
@@ -91,7 +93,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Pawn, Color::White)),
                 None,
                 None,
                 None,
@@ -99,7 +101,7 @@ mod tests {
             ],
             [
                 None,
-                Some((PieceType::King, PieceColor::White)),
+                Some((PieceType::King, Color::White)),
                 None,
                 None,
                 None,
@@ -113,14 +115,14 @@ mod tests {
             vec![
                 (PieceMove {
                     piece_type: PieceType::Pawn,
-                    piece_color: PieceColor::White,
+                    piece_color: Color::White,
                     from: Coord::new(7, 3),
                     to: Coord::new(6, 3),
                 }),
             ],
             vec![],
         );
-        let mut game = Game::new(game_board, PieceColor::Black);
+        let mut game = Game::new(game_board, Color::Black);
         game.game_board.board = custom_board;
 
         assert!(!game.game_board.is_latest_move_promotion());
@@ -137,14 +139,14 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::King, PieceColor::Black)),
+                Some((PieceType::King, Color::Black)),
             ],
             [
                 None,
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::White)),
-                Some((PieceType::Pawn, PieceColor::White)),
+                Some((PieceType::Rook, Color::White)),
+                Some((PieceType::Pawn, Color::White)),
                 None,
                 None,
                 None,
@@ -156,7 +158,7 @@ mod tests {
             [None, None, None, None, None, None, None, None],
             [
                 None,
-                Some((PieceType::King, PieceColor::White)),
+                Some((PieceType::King, Color::White)),
                 None,
                 None,
                 None,
@@ -167,7 +169,7 @@ mod tests {
         ];
         // We setup the game
         let game_board = GameBoard::new(custom_board, vec![], vec![]);
-        let mut game = Game::new(game_board, PieceColor::White);
+        let mut game = Game::new(game_board, Color::White);
         game.game_board.board = custom_board;
 
         // Move the pawn to a promote cell
@@ -178,7 +180,7 @@ mod tests {
         game.promote_piece();
 
         // The black king gets checkmated
-        game.player_turn = PieceColor::Black;
+        game.player_turn = Color::Black;
         assert!(game.game_board.is_checkmate(game.player_turn));
     }
 
@@ -190,16 +192,16 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, Color::Black)),
                 None,
                 None,
-                Some((PieceType::King, PieceColor::White)),
+                Some((PieceType::King, Color::White)),
             ],
             [
                 None,
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some((PieceType::Rook, Color::Black)),
                 None,
                 None,
                 None,
@@ -207,7 +209,7 @@ mod tests {
             ],
             [
                 None,
-                Some((PieceType::King, PieceColor::Black)),
+                Some((PieceType::King, Color::Black)),
                 None,
                 None,
                 None,
@@ -226,14 +228,14 @@ mod tests {
             vec![
                 (PieceMove {
                     piece_type: PieceType::Pawn,
-                    piece_color: PieceColor::Black,
+                    piece_color: Color::Black,
                     from: Coord::new(1, 4),
                     to: Coord::new(0, 4),
                 }),
             ],
             vec![],
         );
-        let mut game = Game::new(game_board, PieceColor::Black);
+        let mut game = Game::new(game_board, Color::Black);
         game.game_board.board = custom_board;
 
         assert!(game.game_board.is_latest_move_promotion());
@@ -249,13 +251,13 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Pawn, PieceColor::Black)),
+                Some((PieceType::Pawn, Color::Black)),
                 None,
-                Some((PieceType::King, PieceColor::White)),
+                Some((PieceType::King, Color::White)),
             ],
             [
                 None,
-                Some((PieceType::King, PieceColor::Black)),
+                Some((PieceType::King, Color::Black)),
                 None,
                 None,
                 None,
@@ -271,7 +273,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some((PieceType::Rook, Color::Black)),
                 None,
             ],
             [None, None, None, None, None, None, None, None],
@@ -280,7 +282,7 @@ mod tests {
         ];
         // We setup the game
         let game_board = GameBoard::new(custom_board, vec![], vec![]);
-        let mut game = Game::new(game_board, PieceColor::Black);
+        let mut game = Game::new(game_board, Color::Black);
         game.game_board.board = custom_board;
 
         // Move the pawn to a promote cell
@@ -291,7 +293,7 @@ mod tests {
         game.promote_piece();
 
         // The black king gets checkmated
-        game.player_turn = PieceColor::White;
+        game.player_turn = Color::White;
         assert!(game.game_board.is_draw(game.player_turn));
     }
 }

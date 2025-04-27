@@ -3,12 +3,14 @@ mod tests {
     use chess_tui::game_logic::coord::Coord;
     use chess_tui::game_logic::game::Game;
     use chess_tui::game_logic::game_board::GameBoard;
-    use chess_tui::pieces::{PieceColor, PieceMove, PieceType};
+    use chess_tui::pieces::{PieceMove, PieceType};
+    use shakmaty::Color;
+
     #[test]
     fn is_draw_true() {
         let custom_board = [
             [
-                Some((PieceType::King, PieceColor::White)),
+                Some((PieceType::King, Color::White)),
                 None,
                 None,
                 None,
@@ -20,7 +22,7 @@ mod tests {
             [
                 None,
                 None,
-                Some((PieceType::Queen, PieceColor::Black)),
+                Some((PieceType::Queen, Color::Black)),
                 None,
                 None,
                 None,
@@ -29,7 +31,7 @@ mod tests {
             ],
             [
                 None,
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some((PieceType::Rook, Color::Black)),
                 None,
                 None,
                 None,
@@ -45,7 +47,7 @@ mod tests {
         ];
 
         let game_board = GameBoard::new(custom_board, vec![], vec![]);
-        let mut game = Game::new(game_board, PieceColor::White);
+        let mut game = Game::new(game_board, Color::White);
         game.game_board.board = custom_board;
 
         assert!(game.game_board.is_draw(game.player_turn));
@@ -55,7 +57,7 @@ mod tests {
     fn is_draw_false() {
         let custom_board = [
             [
-                Some((PieceType::King, PieceColor::White)),
+                Some((PieceType::King, Color::White)),
                 None,
                 None,
                 None,
@@ -69,7 +71,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some((PieceType::Queen, PieceColor::Black)),
+                Some((PieceType::Queen, Color::Black)),
                 None,
                 None,
                 None,
@@ -77,7 +79,7 @@ mod tests {
             [
                 None,
                 None,
-                Some((PieceType::Rook, PieceColor::Black)),
+                Some((PieceType::Rook, Color::Black)),
                 None,
                 None,
                 None,
@@ -92,7 +94,7 @@ mod tests {
         ];
 
         let game_board = GameBoard::new(custom_board, vec![], vec![]);
-        let mut game = Game::new(game_board, PieceColor::White);
+        let mut game = Game::new(game_board, Color::White);
         game.game_board.board = custom_board;
 
         assert!(!game.game_board.is_draw(game.player_turn));
@@ -105,11 +107,11 @@ mod tests {
             [
                 None,
                 None,
-                Some((PieceType::King, PieceColor::White)),
+                Some((PieceType::King, Color::White)),
                 None,
                 None,
                 None,
-                Some((PieceType::King, PieceColor::Black)),
+                Some((PieceType::King, Color::Black)),
                 None,
             ],
             [None, None, None, None, None, None, None, None],
@@ -122,7 +124,7 @@ mod tests {
         // We setup the game
 
         let game_board = GameBoard::new(custom_board, vec![], vec![]);
-        let mut game = Game::new(game_board, PieceColor::White);
+        let mut game = Game::new(game_board, Color::White);
         game.game_board.board = custom_board;
 
         game.game_board.set_consecutive_non_pawn_or_capture(49);
@@ -139,11 +141,11 @@ mod tests {
             [
                 None,
                 None,
-                Some((PieceType::King, PieceColor::White)),
+                Some((PieceType::King, Color::White)),
                 None,
                 None,
                 None,
-                Some((PieceType::King, PieceColor::Black)),
+                Some((PieceType::King, Color::Black)),
                 None,
             ],
             [None, None, None, None, None, None, None, None],
@@ -162,56 +164,56 @@ mod tests {
             vec![
                 (PieceMove {
                     piece_type: PieceType::King,
-                    piece_color: PieceColor::White,
+                    piece_color: Color::White,
                     from: Coord::new(0, 2),
                     to: Coord::new(0, 1),
                 }),
                 (PieceMove {
                     piece_type: PieceType::King,
-                    piece_color: PieceColor::Black,
+                    piece_color: Color::Black,
                     from: Coord::new(0, 6),
                     to: Coord::new(0, 5),
                 }),
                 (PieceMove {
                     piece_type: PieceType::King,
-                    piece_color: PieceColor::White,
+                    piece_color: Color::White,
                     from: Coord::new(0, 1),
                     to: Coord::new(0, 2),
                 }),
                 (PieceMove {
                     piece_type: PieceType::King,
-                    piece_color: PieceColor::Black,
+                    piece_color: Color::Black,
                     from: Coord::new(0, 5),
                     to: Coord::new(0, 6),
                 }),
                 (PieceMove {
                     piece_type: PieceType::King,
-                    piece_color: PieceColor::White,
+                    piece_color: Color::White,
                     from: Coord::new(0, 2),
                     to: Coord::new(0, 1),
                 }),
                 (PieceMove {
                     piece_type: PieceType::King,
-                    piece_color: PieceColor::Black,
+                    piece_color: Color::Black,
                     from: Coord::new(0, 6),
                     to: Coord::new(0, 5),
                 }),
                 (PieceMove {
                     piece_type: PieceType::King,
-                    piece_color: PieceColor::White,
+                    piece_color: Color::White,
                     from: Coord::new(0, 1),
                     to: Coord::new(0, 2),
                 }),
                 (PieceMove {
                     piece_type: PieceType::King,
-                    piece_color: PieceColor::Black,
+                    piece_color: Color::Black,
                     from: Coord::new(0, 5),
                     to: Coord::new(0, 6),
                 }),
             ],
             vec![],
         );
-        let mut game = Game::new(game_board, PieceColor::White);
+        let mut game = Game::new(game_board, Color::White);
         game.game_board.board = custom_board;
 
         let mut copy_move_history = game.game_board.move_history.clone();
