@@ -119,9 +119,9 @@ fn handle_solo_page_events(app: &mut App, key_event: KeyEvent) {
 }
 
 fn handle_multiplayer_page_events(app: &mut App, key_event: KeyEvent) {
-    let is_selecting = app.hosting == None || app.selected_color == None;
-    let should_select_color = app.selected_color == None && app.hosting == Some(true);
-    let should_select_hosting = app.hosting == None;
+    let is_selecting = app.hosting.is_none() || app.selected_color.is_none();
+    let should_select_color = app.selected_color.is_none() && app.hosting == Some(true);
+    let should_select_hosting = app.hosting.is_none();
     let is_playing = app.game.game_state == GameState::Playing;
 
     match key_event.code {
@@ -208,7 +208,7 @@ fn go_down_in_game(app: &mut App) {
 
 // NOT TESTED (didn't try with a bot)
 fn handle_bot_page_events(app: &mut App, key_event: KeyEvent) {
-    let is_selecting = app.selected_color == None;
+    let is_selecting = app.selected_color.is_none();
 
     match key_event.code {
         KeyCode::Char('q') => app.quit(),
