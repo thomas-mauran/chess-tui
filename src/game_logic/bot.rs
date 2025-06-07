@@ -10,7 +10,8 @@ use std::str::FromStr;
 
 #[derive(Clone)]
 pub struct Bot {
-    // Never waited on because we're cloning the process handle instead of creating a new one...
+    // TODO, FIXME: Don't reuse the same process... Chess engines are not meant to be used like this
+    #[allow(dead_code)]
     process: Rc<RefCell<Child>>,
     engine: Rc<RefCell<Engine<BufReader<ChildStdout>, ChildStdin>>>,
     /// Used to indicate if a bot move is following
