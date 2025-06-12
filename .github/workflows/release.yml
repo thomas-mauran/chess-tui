@@ -12,15 +12,19 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        name: Checkout project
 
-      - name: Install the Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@stable
+        name: Install the Rust toolchain
 
-      - name: Build release binary
-        run: cargo build --release
+      - uses: Swatinem/rust-cache@v2
+        name: Use cached dependencies and artifacts
 
-      - name: Upload binary to release
-        uses: softprops/action-gh-release@v2
+      - run: cargo build --release
+        name: Build release binary
+
+      - uses: softprops/action-gh-release@v2
+        name: Upload binary to release
         if: github.ref_type == 'tag'
         with:
           files: target/release/chess-tui
