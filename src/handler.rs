@@ -59,14 +59,34 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                 app.quit();
             }
             // Exit application on `Ctrl-C`
-            KeyCode::Char('c' | 'C') => {
+            KeyCode::Char('C') => {
                 if key_event.modifiers == KeyModifiers::CONTROL {
                     app.quit();
                 }
             }
             // Counter handlers
             // Counter handlers
-            KeyCode::Right | KeyCode::Char('l') => {
+            KeyCode::Char(c) if ('a'..='h').contains(&c) => {
+                let to_move_col: u8 = c as u8 - 97;
+
+                if !(app.game.game_state == GameState::Checkmate)
+                    && !(app.game.game_state == GameState::Draw)
+                {
+                    app.game.ui.cursor_custom_column(to_move_col);
+                }
+            }
+
+            KeyCode::Char(r) if ('1'..='8').contains(&r) => {
+                let to_move_row: u8 = r as u8 - 48 - 1;
+
+                if !(app.game.game_state == GameState::Checkmate)
+                    && !(app.game.game_state == GameState::Draw)
+                {
+                    app.game.ui.cursor_custom_row(to_move_row);
+                }
+            }
+
+            KeyCode::Right | KeyCode::Char('r') => {
                 if (app.current_page == Pages::Multiplayer
                     && (app.hosting.is_none() || app.selected_color.is_none()))
                     || (app.current_page == Pages::Bot && app.selected_color.is_none())
@@ -85,7 +105,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                 }
             }
 
-            KeyCode::Left | KeyCode::Char('h') => {
+            KeyCode::Left | KeyCode::Char('e') => {
                 if (app.current_page == Pages::Multiplayer
                     && (app.hosting.is_none() || app.selected_color.is_none()))
                     || (app.current_page == Pages::Bot && app.selected_color.is_none())
@@ -104,7 +124,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                     app.game.ui.cursor_left(authorized_positions);
                 }
             }
-            KeyCode::Up | KeyCode::Char('k') => {
+            KeyCode::Up | KeyCode::Char('w') => {
                 if app.current_page == Pages::Home {
                     app.menu_cursor_up(Pages::variant_count() as u8);
                 } else if !(app.game.game_state == GameState::Checkmate)
@@ -118,7 +138,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                     app.game.ui.cursor_up(authorized_positions);
                 }
             }
-            KeyCode::Down | KeyCode::Char('j') => {
+            KeyCode::Down | KeyCode::Char('s') => {
                 if app.current_page == Pages::Home {
                     app.menu_cursor_down(Pages::variant_count() as u8);
                 } else if !(app.game.game_state == GameState::Checkmate)
@@ -168,7 +188,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                     app.toggle_help_popup();
                 }
             }
-            KeyCode::Char('r') => {
+            KeyCode::Char('h') => {
                 // We can't restart the game if it's a multiplayer one
                 if app.game.opponent.is_none() {
                     app.restart();
