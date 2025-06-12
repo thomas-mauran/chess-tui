@@ -1,0 +1,28 @@
+name: Release Build
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-and-upload-binary:
+    name: Build and Upload Binary to release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build release binary
+        run: cargo build --release
+
+      - name: Upload binary to release
+        uses: softprops/action-gh-release@v2
+        if: github.ref_type == 'tag'
+        with:
+          files: target/release/chess-tui
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
