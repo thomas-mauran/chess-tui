@@ -23,10 +23,22 @@ jobs:
       - run: cargo build --release
         name: Build release binary
 
+      - run: |
+          TAG=${{ github.event.release.tag_name }}
+          PLATFORM=$(cargo -vV | grep '^host:' | awk '{print $2}')
+          TAR_NAME=chess-tui-$TAG-$PLATFORM.tar.gz
+          echo "TAR_NAME=$TAR_NAME" >> $GITHUB_ENV
+        name: Set TAR_NAME from tag and platform
+
+      - run: |
+          cp target/release/chess-tui .
+          tar -czvf $TAR_NAME ./chess-tui
+        name: Create tar file containing the binary
+
       - uses: softprops/action-gh-release@v2
         name: Upload binary to release
         if: github.ref_type == 'tag'
         with:
-          files: target/release/chess-tui
+          files: ${{ env.TAR_NAME }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
