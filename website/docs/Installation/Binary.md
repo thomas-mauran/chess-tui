@@ -1,4 +1,4 @@
-# Wget / Curl
+# Binary
 
 **Chess-tui** is just a binary, so you can just download it through `wget` or `curl`.
 

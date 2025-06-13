@@ -6,7 +6,7 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Installation', 
-      items: ['Installation/Packaging status', 'Installation/Wget Curl', 'Installation/Cargo', 'Installation/Build from source', 'Installation/NetBSD', 'Installation/Arch Linux', 'Installation/NixOS', 'Installation/Docker'], 
+      items: ['Installation/Packaging status', 'Installation/Binary', 'Installation/Cargo', 'Installation/Build from source', 'Installation/NetBSD', 'Installation/Arch Linux', 'Installation/NixOS', 'Installation/Docker'], 
     },
     {
       type: 'category',
