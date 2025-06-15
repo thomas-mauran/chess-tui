@@ -296,4 +296,36 @@ impl App {
         self.menu_cursor = 0;
         self.chess_engine_path = None;
     }
+
+    pub fn go_left_in_game(&mut self) {
+        let authorized_positions = self
+            .game
+            .game_board
+            .get_authorized_positions(self.game.player_turn, self.game.ui.selected_coordinates);
+        self.game.ui.cursor_left(authorized_positions);
+    }
+
+    pub fn go_right_in_game(&mut self) {
+        let authorized_positions = self
+            .game
+            .game_board
+            .get_authorized_positions(self.game.player_turn, self.game.ui.selected_coordinates);
+        self.game.ui.cursor_right(authorized_positions);
+    }
+
+    pub fn go_up_in_game(&mut self) {
+        let authorized_positions = self
+            .game
+            .game_board
+            .get_authorized_positions(self.game.player_turn, self.game.ui.selected_coordinates);
+        self.game.ui.cursor_up(authorized_positions);
+    }
+
+    pub fn go_down_in_game(&mut self) {
+        let authorized_positions = self
+            .game
+            .game_board
+            .get_authorized_positions(self.game.player_turn, self.game.ui.selected_coordinates);
+        self.game.ui.cursor_down(authorized_positions);
+    }
 }
