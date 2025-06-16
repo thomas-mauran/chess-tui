@@ -1,0 +1,44 @@
+name: Upload binary to published release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-and-upload-binary:
+    name: Build and Upload Binary to release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        name: Checkout project
+
+      - uses: dtolnay/rust-toolchain@stable
+        name: Install the Rust toolchain
+
+      - uses: Swatinem/rust-cache@v2
+        name: Use cached dependencies and artifacts
+
+      - run: cargo build --release
+        name: Build release binary
+
+      - run: |
+          TAG=${{ github.event.release.tag_name }}
+          PLATFORM=$(cargo -vV | grep '^host:' | awk '{print $2}')
+          TAR_NAME=chess-tui-$TAG-$PLATFORM.tar.gz
+          echo "TAR_NAME=$TAR_NAME" >> $GITHUB_ENV
+        name: Set TAR_NAME from tag and platform
+
+      - run: |
+          cp target/release/chess-tui .
+          tar -czvf $TAR_NAME ./chess-tui
+        name: Create tar file containing the binary
+
+      - uses: softprops/action-gh-release@v2
+        name: Upload binary to release
+        if: github.ref_type == 'tag'
+        with:
+          files: ${{ env.TAR_NAME }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
