@@ -1,4 +1,4 @@
-name: Release Build
+name: Upload binary to published release
 
 on:
   release:
