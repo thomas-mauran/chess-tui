@@ -76,7 +76,7 @@ fn main() -> AppResult<()> {
                 app.bot_depth = bot_depth
                     .as_integer()
                     .and_then(|d| {
-                        if d >= 0 && d <= 255 {
+                        if (0..=255).contains(&d) {
                             Some(d as u8)
                         } else {
                             None

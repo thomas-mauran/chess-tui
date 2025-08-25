@@ -264,9 +264,9 @@ impl Game {
 
         self.execute_move(&Coord::new(from_y, from_x), &Coord::new(to_y, to_x));
 
-        if promotion_piece.is_some() {
+        if let Some(promotion_piece_type) = promotion_piece {
             self.game_board.board[to_y as usize][to_x as usize] =
-                Some((promotion_piece.unwrap(), self.player_turn));
+                Some((promotion_piece_type, self.player_turn));
         }
         if is_bot_starting {
             self.game_board.flip_the_board();
@@ -423,9 +423,9 @@ impl Game {
 
         self.execute_move(from, to);
 
-        if promotion_piece.is_some() {
+        if let Some(promotion_piece_type) = promotion_piece {
             self.game_board.board[to_y as usize][to_x as usize] =
-                Some((promotion_piece.unwrap(), self.player_turn));
+                Some((promotion_piece_type, self.player_turn));
         }
         self.game_board.flip_the_board();
     }

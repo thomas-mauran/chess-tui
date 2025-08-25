@@ -116,12 +116,9 @@ impl GameBoard {
         let piece_type_to = self.get_piece_type(to);
         let piece_color = self.get_piece_color(to);
         // We check if there is a piece and we are not doing a castle
-        if piece_color.is_some()
-            && piece_type_to.is_some()
-            && (piece_type_to != Some(PieceType::Rook) && piece_color != Some(player_turn))
-        {
-            if let Some(piece_type) = piece_type_to {
-                self.push_to_taken_piece(piece_type, piece_color.unwrap())
+        if let (Some(piece_type), Some(piece_color)) = (piece_type_to, piece_color) {
+            if piece_type != PieceType::Rook && piece_color != player_turn {
+                self.push_to_taken_piece(piece_type, piece_color)
             }
         }
     }
