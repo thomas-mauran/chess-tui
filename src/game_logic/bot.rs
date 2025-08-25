@@ -53,7 +53,7 @@ impl Bot {
         let best_move = engine
             .go(
                 &Go {
-                    depth: Some(18),
+                    depth: Some(10),
                     ..Default::default()
                 },
                 |_| {},
