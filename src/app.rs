@@ -41,6 +41,8 @@ pub struct App {
     /// path of the chess engine
     pub chess_engine_path: Option<String>,
     pub log_level: LevelFilter,
+    /// Bot thinking depth for chess engine
+    pub bot_depth: u8,
 }
 
 impl Default for App {
@@ -56,6 +58,7 @@ impl Default for App {
             menu_cursor: 0,
             chess_engine_path: None,
             log_level: LevelFilter::Off,
+            bot_depth: 10,
         }
     }
 }
@@ -203,7 +206,7 @@ impl App {
         // if the selected Color is Black, we need to switch the Game
         if let Some(color) = self.selected_color {
             if color == PieceColor::Black {
-                self.game.bot = Some(Bot::new(path, true));
+                self.game.bot = Some(Bot::new(path, true, self.bot_depth));
 
                 self.game.execute_bot_move();
                 self.game.player_turn = PieceColor::Black;
@@ -281,6 +284,10 @@ impl App {
                 "log_level".to_string(),
                 Value::String(self.log_level.to_string().to_string()),
             );
+            table.insert(
+                "bot_depth".to_string(),
+                Value::Integer(self.bot_depth as i64),
+            );
         }
 
         let mut file = File::create(config_path.clone()).unwrap();
@@ -295,6 +302,7 @@ impl App {
         self.host_ip = None;
         self.menu_cursor = 0;
         self.chess_engine_path = None;
+        self.bot_depth = 10;
     }
 
     pub fn go_left_in_game(&mut self) {

@@ -63,7 +63,11 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
         } else if app.game.bot.is_none() {
             let engine_path = app.chess_engine_path.clone().unwrap();
             let is_bot_starting = app.selected_color.unwrap() == PieceColor::Black;
-            app.game.bot = Some(Bot::new(engine_path.as_str(), is_bot_starting));
+            app.game.bot = Some(Bot::new(
+                engine_path.as_str(),
+                is_bot_starting,
+                app.bot_depth,
+            ));
         } else {
             render_game_ui(frame, app, main_area);
         }

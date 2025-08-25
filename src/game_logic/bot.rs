@@ -18,10 +18,12 @@ pub struct Bot {
     pub bot_will_move: bool,
     // if the bot is starting, meaning the player is black
     pub is_bot_starting: bool,
+    /// Bot thinking depth for chess engine
+    pub depth: u8,
 }
 
 impl Bot {
-    pub fn new(engine_path: &str, is_bot_starting: bool) -> Bot {
+    pub fn new(engine_path: &str, is_bot_starting: bool, depth: u8) -> Bot {
         let mut process = Command::new(engine_path)
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped())
@@ -37,6 +39,7 @@ impl Bot {
             engine,
             bot_will_move: false,
             is_bot_starting,
+            depth,
         }
     }
 
@@ -53,7 +56,7 @@ impl Bot {
         let best_move = engine
             .go(
                 &Go {
-                    depth: Some(10),
+                    depth: Some(self.depth as usize),
                     ..Default::default()
                 },
                 |_| {},
