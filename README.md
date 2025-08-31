@@ -74,6 +74,14 @@ chess-tui -e /your/bin/path
 Here I installed stockfish using homebrew and gave chess-tui the path the the engine binary.
 This command will store in your home directory the chess engine path so you don't have to relink it everytime !
 
+You can also set the bot thinking depth directly from the command line:
+
+```bash
+chess-tui -e /your/bin/path --depth 15
+```
+
+This will set the bot to think at depth 15 for this session.
+
 ### Configuration
 
 Chess-tui uses a TOML configuration file located at `~/.config/chess-tui/config.toml`. Here are the available configuration options:
@@ -87,6 +95,9 @@ display_mode = "DEFAULT"
 
 # Logging level: "Off", "Error", "Warn", "Info", "Debug", "Trace"
 log_level = "Off"
+
+# Bot thinking depth for chess engine (1-255, default: 10)
+bot_depth = 10
 ```
 
 #### Configuration Options:
@@ -102,6 +113,9 @@ log_level = "Off"
   - `Info`: General information, warnings and errors
   - `Debug`: Debugging information
   - `Trace`: Very verbose debugging information
+- **bot_depth**: Controls how deep the chess engine thinks (1-255, default: 10)
+  - Higher values make the bot stronger but slower
+  - Lower values make the bot faster but weaker
 
 The config file is automatically created when you first run chess-tui. You can manually edit it to customize your experience.
 
@@ -112,6 +126,7 @@ Base config:
 # no engine path
 display_mode = "DEFAULT"
 log_level = "Off"
+bot_depth = 10
 ```
 
 ### Documentation

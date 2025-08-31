@@ -24,6 +24,9 @@ struct Args {
     /// Path for the chess engine
     #[arg(short, long, default_value = "")]
     engine_path: String,
+    /// Bot thinking depth for chess engine (1-255)
+    #[arg(short, long, default_value = "10")]
+    depth: u8,
 }
 
 fn main() -> AppResult<()> {
@@ -68,10 +71,31 @@ fn main() -> AppResult<()> {
                     .and_then(|s| s.parse().ok())
                     .unwrap_or(LevelFilter::Off);
             }
+            // Add bot depth handling
+            if let Some(bot_depth) = config.get("bot_depth") {
+                app.bot_depth = bot_depth
+                    .as_integer()
+                    .and_then(|d| {
+                        if (0..=255).contains(&d) {
+                            Some(d as u8)
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap_or(10);
+            }
         }
     } else {
         println!("Error reading the file or the file does not exist");
     }
+
+    // Command line arguments take precedence over configuration file
+    if !args.engine_path.is_empty() {
+        app.chess_engine_path = Some(args.engine_path.clone());
+    }
+
+    // Command line depth argument takes precedence over configuration file
+    app.bot_depth = args.depth;
 
     // Setup logging
     if let Err(e) = logging::setup_logging(&folder_path, &app.log_level) {
@@ -209,6 +233,14 @@ fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResu
         table
             .entry("log_level".to_string())
             .or_insert(Value::String(LevelFilter::Off.to_string()));
+        table
+            .entry("bot_depth".to_string())
+            .or_insert(Value::Integer(10));
+
+        // Update bot_depth if provided via command line
+        if args.depth != 10 {
+            table.insert("bot_depth".to_string(), Value::Integer(args.depth as i64));
+        }
     }
 
     let mut file = File::create(config_path)?;
@@ -227,6 +259,7 @@ mod tests {
     fn test_config_create() {
         let args = Args {
             engine_path: "test_engine_path".to_string(),
+            depth: 10,
         };
 
         let home_dir = home_dir().expect("Failed to get home directory");

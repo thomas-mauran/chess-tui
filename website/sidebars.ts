@@ -16,6 +16,7 @@ const sidebars: SidebarsConfig = {
         'Configuration/display',
         'Configuration/logging',
         'Configuration/engine',
+        'Configuration/bot',
       ],
     },
     {
