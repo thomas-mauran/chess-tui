@@ -60,4 +60,5 @@ pub enum Popups {
     WaitingForOpponentToJoin,
     EnginePathError,
     Help,
+    EndScreen,
 }

@@ -138,8 +138,10 @@ fn main() -> AppResult<()> {
             // need to be centralised
             if app.game.game_board.is_checkmate(app.game.player_turn) {
                 app.game.game_state = GameState::Checkmate;
+                app.show_end_screen();
             } else if app.game.game_board.is_draw(app.game.player_turn) {
                 app.game.game_state = GameState::Draw;
+                app.show_end_screen();
             }
             tui.draw(&mut app)?;
         }
@@ -177,8 +179,10 @@ fn main() -> AppResult<()> {
             // need to be centralised
             if app.game.game_board.is_checkmate(app.game.player_turn) {
                 app.game.game_state = GameState::Checkmate;
+                app.show_end_screen();
             } else if app.game.game_board.is_draw(app.game.player_turn) {
                 app.game.game_state = GameState::Draw;
+                app.show_end_screen();
             }
             tui.draw(&mut app)?;
         }
