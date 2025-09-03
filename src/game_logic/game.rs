@@ -1,4 +1,7 @@
-use super::{bot::Bot, coord::Coord, game_board::GameBoard, opponent::Opponent, ui::UI};
+use super::{
+    bot::Bot, coord::Coord, game_board::GameBoard, opponent::Opponent,
+    perspective::PerspectiveManager, ui::UI,
+};
 use crate::{
     pieces::{PieceColor, PieceMove, PieceType},
     utils::get_int_from_char,
@@ -25,6 +28,8 @@ pub struct Game {
     pub player_turn: PieceColor,
     /// The current state of the game (Playing, Draw, Checkmate. Promotion)
     pub game_state: GameState,
+    /// Manages the perspective from which the board is viewed
+    pub perspective: PerspectiveManager,
 }
 
 impl Clone for Game {
@@ -43,6 +48,7 @@ impl Clone for Game {
             opponent: opponent_clone,
             player_turn: self.player_turn,
             game_state: self.game_state,
+            perspective: self.perspective.clone(),
         }
     }
 }
@@ -56,6 +62,7 @@ impl Default for Game {
             opponent: None,
             player_turn: PieceColor::White,
             game_state: GameState::Playing,
+            perspective: PerspectiveManager::default(),
         }
     }
 }
@@ -70,6 +77,7 @@ impl Game {
             opponent: None,
             player_turn,
             game_state: GameState::Playing,
+            perspective: PerspectiveManager::new(player_turn),
         }
     }
 
@@ -89,6 +97,26 @@ impl Game {
             PieceColor::White => self.player_turn = PieceColor::Black,
             PieceColor::Black => self.player_turn = PieceColor::White,
         }
+    }
+
+    /// Set up perspective for bot game
+    pub fn setup_bot_perspective(&mut self, player_color: PieceColor) {
+        self.perspective.set_perspective_for_player(player_color);
+    }
+
+    /// Set up perspective for multiplayer game
+    pub fn setup_multiplayer_perspective(&mut self, player_color: PieceColor) {
+        self.perspective.set_perspective_for_player(player_color);
+    }
+
+    /// Toggle perspective for local games (when players alternate)
+    pub fn toggle_local_perspective(&mut self) {
+        self.perspective.toggle_perspective();
+    }
+
+    /// Check if board needs to be flipped for current perspective (backward compatibility)
+    pub fn needs_board_flip(&self) -> bool {
+        self.perspective.needs_transformation()
     }
 
     // Methods to select a cell on the board
@@ -134,21 +162,38 @@ impl Game {
         if self.ui.cursor_coordinates.is_valid() {
             let selected_coords_usize = &self.ui.selected_coordinates.clone();
             let cursor_coords_usize = &self.ui.cursor_coordinates.clone();
-            self.execute_move(selected_coords_usize, cursor_coords_usize);
-            self.ui.unselect_cell();
-            self.switch_player_turn();
+
+            // Validate the move before executing it
+            let authorized_positions = self.game_board.get_authorized_positions_with_perspective(
+                self.player_turn,
+                *selected_coords_usize,
+                Some(&self.perspective),
+            );
+
+            // Only execute the move if it's in the authorized positions
+            if authorized_positions.contains(cursor_coords_usize) {
+                self.execute_move(selected_coords_usize, cursor_coords_usize);
+                self.ui.unselect_cell();
+                self.switch_player_turn();
+            } else {
+                // Invalid move - just unselect the cell
+                self.ui.unselect_cell();
+                return;
+            }
 
             if self.game_board.is_draw(self.player_turn) {
                 self.game_state = GameState::Draw;
             }
 
-            if (self.bot.is_none() || (self.bot.as_ref().is_some_and(|bot| bot.is_bot_starting)))
-                && (self.opponent.is_none())
+            // For local games only (no bot, no opponent), toggle perspective after each move
+            // This gives each player their preferred view when it's their turn
+            if self.bot.is_none()
+                && self.opponent.is_none()
                 && (!self.game_board.is_latest_move_promotion()
                     || self.game_board.is_draw(self.player_turn)
                     || self.game_board.is_checkmate(self.player_turn))
             {
-                self.game_board.flip_the_board();
+                self.toggle_local_perspective();
             }
 
             // If we play against a bot we will play his move and switch the player turn again
@@ -203,17 +248,21 @@ impl Game {
 
     pub fn select_cell(&mut self) {
         // Check if the piece on the cell can move before selecting it
-        let authorized_positions = self
-            .game_board
-            .get_authorized_positions(self.player_turn, self.ui.cursor_coordinates);
+        let authorized_positions = self.game_board.get_authorized_positions_with_perspective(
+            self.player_turn,
+            self.ui.cursor_coordinates,
+            Some(&self.perspective),
+        );
 
         if authorized_positions.is_empty() {
             return;
         }
         if let Some(piece_color) = self.game_board.get_piece_color(&self.ui.cursor_coordinates) {
-            let authorized_positions = self
-                .game_board
-                .get_authorized_positions(self.player_turn, self.ui.cursor_coordinates);
+            let authorized_positions = self.game_board.get_authorized_positions_with_perspective(
+                self.player_turn,
+                self.ui.cursor_coordinates,
+                Some(&self.perspective),
+            );
 
             if piece_color == self.player_turn {
                 self.ui.selected_coordinates = self.ui.cursor_coordinates;
@@ -268,9 +317,7 @@ impl Game {
             self.game_board.board[to_y as usize][to_x as usize] =
                 Some((promotion_piece.unwrap(), self.player_turn));
         }
-        if is_bot_starting {
-            self.game_board.flip_the_board();
-        }
+        // Note: Bot perspective is now handled by PerspectiveManager, no need to flip board
     }
 
     // Method to promote a pawn
@@ -301,12 +348,13 @@ impl Game {
         }
         self.game_state = GameState::Playing;
         self.ui.promotion_cursor = 0;
+        // For local games, toggle perspective after promotion
         if !self.game_board.is_draw(self.player_turn)
             && !self.game_board.is_checkmate(self.player_turn)
             && self.opponent.is_none()
             && self.bot.is_none()
         {
-            self.game_board.flip_the_board();
+            self.toggle_local_perspective();
         }
     }
 
@@ -335,8 +383,13 @@ impl Game {
 
         // We check for en passant as the latest move
         if self.game_board.is_latest_move_en_passant(from, to) {
-            // we kill the pawn
-            let row_index = to.row as i32 + 1;
+            // we kill the pawn according to the perspective
+            let row_index = if self.perspective.needs_transformation() {
+                to.row as i32 - 1
+            } else {
+                to.row as i32 + 1
+            };
+
             self.game_board.board[row_index as usize][to.col as usize] = None;
         }
 
@@ -395,7 +448,7 @@ impl Game {
 
     pub fn execute_opponent_move(&mut self) {
         let opponent_move = self.opponent.as_mut().unwrap().read_stream();
-        self.game_board.flip_the_board();
+        // Note: Coordinate transformation is now handled by PerspectiveManager
         self.opponent.as_mut().unwrap().opponent_will_move = false;
 
         if opponent_move.is_empty() {
@@ -418,16 +471,25 @@ impl Game {
             };
         }
 
-        let from = &Coord::new(from_y, from_x);
-        let to = &Coord::new(to_y, to_x);
+        // Transform coordinates from opponent's perspective to logical coordinates
+        let from_opponent = Coord::new(from_y, from_x);
+        let to_opponent = Coord::new(to_y, to_x);
 
-        self.execute_move(from, to);
+        // Execute the move as the opponent's turn (not the current player's turn)
+        let opponent_color = self.opponent.as_ref().unwrap().color;
+        let original_player_turn = self.player_turn;
+        self.player_turn = opponent_color;
+
+        self.execute_move(&from_opponent, &to_opponent);
 
         if promotion_piece.is_some() {
-            self.game_board.board[to_y as usize][to_x as usize] =
-                Some((promotion_piece.unwrap(), self.player_turn));
+            // Use the transformed coordinates for promotion
+            self.game_board.board[to_opponent.row as usize][to_opponent.col as usize] =
+                Some((promotion_piece.unwrap(), opponent_color));
         }
-        self.game_board.flip_the_board();
+
+        // Restore the original player turn
+        self.player_turn = original_player_turn;
     }
 
     pub fn handle_multiplayer_promotion(&mut self) {

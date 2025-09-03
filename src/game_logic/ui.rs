@@ -1,9 +1,9 @@
 use super::{coord::Coord, game::Game};
 use crate::{
     constants::{DisplayMode, BLACK, UNDEFINED_POSITION, WHITE},
-    pieces::{PieceColor, PieceType},
+    pieces::{PieceColor, PieceMove, PieceType},
     ui::{main_ui::render_cell, prompt::Prompt},
-    utils::{convert_position_into_notation, get_cell_paragraph, invert_position},
+    utils::{convert_position_into_notation, get_cell_paragraph},
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -182,47 +182,62 @@ impl UI {
 
         let mut lines: Vec<Line> = vec![];
 
-        for i in (0..game.game_board.move_history.len()).step_by(2) {
-            let piece_type_from = game.game_board.move_history[i].piece_type;
+        // Group moves by color and display them correctly
+        let mut white_moves: Vec<&PieceMove> = vec![];
+        let mut black_moves: Vec<&PieceMove> = vec![];
 
-            let utf_icon_white =
-                PieceType::piece_to_utf_enum(&piece_type_from, Some(PieceColor::White));
-            let move_white = convert_position_into_notation(&format!(
-                "{}{}{}{}",
-                game.game_board.move_history[i].from.row,
-                game.game_board.move_history[i].from.col,
-                game.game_board.move_history[i].to.row,
-                game.game_board.move_history[i].to.col
-            ));
+        for piece_move in &game.game_board.move_history {
+            match piece_move.piece_color {
+                PieceColor::White => white_moves.push(piece_move),
+                PieceColor::Black => black_moves.push(piece_move),
+            }
+        }
 
+        // Display moves in pairs (white, black)
+        let max_moves = std::cmp::max(white_moves.len(), black_moves.len());
+        for i in 0..max_moves {
+            let mut move_white = "   ".to_string();
+            let mut utf_icon_white = "   ";
+
+            if i < white_moves.len() {
+                let white_move = white_moves[i];
+                utf_icon_white =
+                    PieceType::piece_to_utf_enum(&white_move.piece_type, Some(PieceColor::White));
+                move_white = convert_position_into_notation(&format!(
+                    "{}{}{}{}",
+                    white_move.from.row, white_move.from.col, white_move.to.row, white_move.to.col
+                ));
+            }
+
+            let mut move_black = "   ".to_string();
             let mut utf_icon_black = "   ";
-            let mut move_black: String = "   ".to_string();
 
-            // If there is something for black
-            if i + 1 < game.game_board.move_history.len() {
-                let piece_type_to = game.game_board.move_history[i + 1].piece_type;
-                let black_move = &game.game_board.move_history[i + 1];
+            if i < black_moves.len() {
+                let black_move = black_moves[i];
+                utf_icon_black =
+                    PieceType::piece_to_utf_enum(&black_move.piece_type, Some(PieceColor::Black));
 
-                // Invert black moves if not playing against bot
-                let (from, to) = if game.bot.is_none() {
-                    (
-                        invert_position(&black_move.from),
-                        invert_position(&black_move.to),
-                    )
-                } else {
-                    (black_move.from, black_move.to)
+                // Transform black moves for display using perspective system
+                let black_piece_move = PieceMove {
+                    piece_type: black_move.piece_type,
+                    piece_color: black_move.piece_color,
+                    from: black_move.from,
+                    to: black_move.to,
                 };
-
+                let transformed_move = game
+                    .perspective
+                    .transform_move_for_display(&black_piece_move);
                 move_black = convert_position_into_notation(&format!(
                     "{}{}{}{}",
-                    from.row, from.col, to.row, to.col
+                    transformed_move.from.row,
+                    transformed_move.from.col,
+                    transformed_move.to.row,
+                    transformed_move.to.col
                 ));
-                utf_icon_black =
-                    PieceType::piece_to_utf_enum(&piece_type_to, Some(PieceColor::Black));
             }
 
             lines.push(Line::from(vec![
-                Span::raw(format!("{}.  ", i / 2 + 1)), // line number
+                Span::raw(format!("{}.  ", i + 1)), // line number
                 Span::styled(format!("{utf_icon_white} "), Style::default().fg(WHITE)), // white symbol
                 Span::raw(move_white.to_string()), // white move
                 Span::raw("     "),                // separator
@@ -364,7 +379,14 @@ impl UI {
             .split(area);
 
         // For each line we set 8 layout
-        for i in 0..8u8 {
+        for display_row in 0..8u8 {
+            // Transform display row to logical row based on perspective
+            let _logical_row = if game.perspective.needs_transformation() {
+                7 - display_row
+            } else {
+                display_row
+            };
+
             let lines = Layout::default()
                 .direction(Direction::Horizontal)
                 .constraints(
@@ -382,24 +404,26 @@ impl UI {
                     ]
                     .as_ref(),
                 )
-                .split(columns[i as usize + 1]);
+                .split(columns[display_row as usize + 1]);
             for j in 0..8u8 {
                 // Color of the cell to draw the board
-                let cell_color: Color = if (i + j) % 2 == 0 { WHITE } else { BLACK };
+                let cell_color: Color = if (display_row + j) % 2 == 0 {
+                    WHITE
+                } else {
+                    BLACK
+                };
 
                 let last_move;
                 let mut last_move_from = Coord::undefined();
                 let mut last_move_to = Coord::undefined();
                 if !game.game_board.move_history.is_empty() {
                     last_move = game.game_board.move_history.last();
-                    if game.bot.is_some()
-                        && !game.bot.as_ref().is_some_and(|bot| bot.is_bot_starting)
-                    {
-                        last_move_from = last_move.map(|m| m.from).unwrap();
-                        last_move_to = last_move.map(|m| m.to).unwrap();
-                    } else {
-                        last_move_from = invert_position(&last_move.map(|m| m.from).unwrap());
-                        last_move_to = invert_position(&last_move.map(|m| m.to).unwrap());
+                    // Transform the last move for display using the perspective system
+                    if let Some(last_move_data) = last_move {
+                        let transformed_move =
+                            game.perspective.transform_move_for_display(last_move_data);
+                        last_move_from = transformed_move.from;
+                        last_move_to = transformed_move.to;
                     }
 
                     // If the opponent is the same as the last move player, we don't want to show his last move
@@ -424,13 +448,19 @@ impl UI {
                         Some(color) => color == game.player_turn,
                         None => false,
                     } {
-                        positions = game
-                            .game_board
-                            .get_authorized_positions(game.player_turn, self.selected_coordinates);
+                        positions = game.game_board.get_authorized_positions_with_perspective(
+                            game.player_turn,
+                            self.selected_coordinates,
+                            Some(&game.perspective),
+                        );
 
                         // Draw grey if the color is in the authorized positions
-                        for coords in positions.clone() {
-                            if i == coords.row && j == coords.col {
+                        let display_positions: Vec<Coord> = positions
+                            .iter()
+                            .map(|c| game.perspective.logical_to_display(*c))
+                            .collect();
+                        for coords in display_positions.clone() {
+                            if display_row == coords.row && j == coords.col {
                                 // cell_color = Color::Rgb(100, 100, 100);
                             }
                         }
@@ -446,51 +476,105 @@ impl UI {
                 // - last move cell: green
                 // - default cell: white or black
                 // Draw the cell blue if this is the current cursor cell
-                if i == self.cursor_coordinates.row
-                    && j == self.cursor_coordinates.col
-                    && !self.mouse_used
+                let display_cursor = game.perspective.logical_to_display(self.cursor_coordinates);
+                if display_row == display_cursor.row && j == display_cursor.col && !self.mouse_used
                 {
                     render_cell(frame, square, Color::LightBlue, None);
                 }
-                // Draw the cell magenta if the king is getting checked
+                // Draw the cell magenta if this is the king in check
                 else if game
                     .game_board
                     .is_getting_checked(game.game_board.board, game.player_turn)
-                    && Coord::new(i, j)
-                        == game
-                            .game_board
-                            .get_king_coordinates(game.game_board.board, game.player_turn)
                 {
-                    render_cell(frame, square, Color::Magenta, Some(Modifier::SLOW_BLINK));
+                    let king_coord_display = game.perspective.logical_to_display(
+                        game.game_board
+                            .get_king_coordinates(game.game_board.board, game.player_turn),
+                    );
+                    if Coord::new(display_row, j) == king_coord_display {
+                        render_cell(frame, square, Color::Magenta, Some(Modifier::SLOW_BLINK));
+                    } else {
+                        // For non-king cells when king is in check, continue with normal rendering
+                        let display_selected = game
+                            .perspective
+                            .logical_to_display(self.selected_coordinates);
+                        if (display_row == display_selected.row && j == display_selected.col)
+                            || (last_move_from == Coord::new(display_row, j)
+                                || (last_move_to == Coord::new(display_row, j) && {
+                                    let display_positions: Vec<Coord> = positions
+                                        .iter()
+                                        .map(|c| game.perspective.logical_to_display(*c))
+                                        .collect();
+                                    !is_cell_in_positions(&display_positions, display_row, j)
+                                }))
+                        // and not in the authorized positions (grey instead of green)
+                        {
+                            render_cell(frame, square, Color::LightGreen, None);
+                        } else {
+                            let display_positions: Vec<Coord> = positions
+                                .iter()
+                                .map(|c| game.perspective.logical_to_display(*c))
+                                .collect();
+                            if is_cell_in_positions(&display_positions, display_row, j) {
+                                render_cell(frame, square, Color::Rgb(100, 100, 100), None);
+                            } else {
+                                let mut cell = Block::default();
+                                cell = match self.display_mode {
+                                    DisplayMode::DEFAULT => cell.bg(cell_color),
+                                    DisplayMode::ASCII => match cell_color {
+                                        WHITE => cell.bg(Color::White).fg(Color::Black),
+                                        BLACK => cell.bg(Color::Black).fg(Color::White),
+                                        _ => cell.bg(cell_color),
+                                    },
+                                };
+                                frame.render_widget(cell.clone(), square);
+                            }
+                        }
+                    }
                 }
                 // Draw the cell green if this is the selected cell or if the cell is part of the last move
-                else if (i == self.selected_coordinates.row && j == self.selected_coordinates.col)
-                    || (last_move_from == Coord::new(i, j) // If the last move from
-                        || (last_move_to == Coord::new(i, j) // If last move to
-                            && !is_cell_in_positions(&positions, i, j)))
-                // and not in the authorized positions (grey instead of green)
-                {
-                    render_cell(frame, square, Color::LightGreen, None);
-                } else if is_cell_in_positions(&positions, i, j) {
-                    render_cell(frame, square, Color::Rgb(100, 100, 100), None);
-                }
-                // else as a last resort we draw the cell with the default color either white or black
                 else {
-                    let mut cell = Block::default();
-                    cell = match self.display_mode {
-                        DisplayMode::DEFAULT => cell.bg(cell_color),
-                        DisplayMode::ASCII => match cell_color {
-                            WHITE => cell.bg(Color::White).fg(Color::Black),
-                            BLACK => cell.bg(Color::Black).fg(Color::White),
-                            _ => cell.bg(cell_color),
-                        },
-                    };
-                    frame.render_widget(cell.clone(), square);
+                    let display_selected = game
+                        .perspective
+                        .logical_to_display(self.selected_coordinates);
+                    if (display_row == display_selected.row && j == display_selected.col)
+                        || (last_move_from == Coord::new(display_row, j)
+                            || (last_move_to == Coord::new(display_row, j) && {
+                                let display_positions: Vec<Coord> = positions
+                                    .iter()
+                                    .map(|c| game.perspective.logical_to_display(*c))
+                                    .collect();
+                                !is_cell_in_positions(&display_positions, display_row, j)
+                            }))
+                    // and not in the authorized positions (grey instead of green)
+                    {
+                        render_cell(frame, square, Color::LightGreen, None);
+                    } else {
+                        let display_positions: Vec<Coord> = positions
+                            .iter()
+                            .map(|c| game.perspective.logical_to_display(*c))
+                            .collect();
+                        if is_cell_in_positions(&display_positions, display_row, j) {
+                            render_cell(frame, square, Color::Rgb(100, 100, 100), None);
+                        } else {
+                            let mut cell = Block::default();
+                            cell = match self.display_mode {
+                                DisplayMode::DEFAULT => cell.bg(cell_color),
+                                DisplayMode::ASCII => match cell_color {
+                                    WHITE => cell.bg(Color::White).fg(Color::Black),
+                                    BLACK => cell.bg(Color::Black).fg(Color::White),
+                                    _ => cell.bg(cell_color),
+                                },
+                            };
+                            frame.render_widget(cell.clone(), square);
+                        }
+                    }
                 }
 
                 // Get piece and color
-                let coord = Coord::new(i, j);
-                let paragraph = get_cell_paragraph(game, &coord, square);
+                let logical_coord = game
+                    .perspective
+                    .display_to_logical(Coord::new(display_row, j));
+                let paragraph = get_cell_paragraph(game, &logical_coord, square);
 
                 frame.render_widget(paragraph, square);
             }

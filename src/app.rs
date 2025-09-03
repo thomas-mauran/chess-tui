@@ -124,13 +124,33 @@ impl App {
 
         if !self.hosting.unwrap() {
             log::info!("Setting up client (non-host) player");
-            self.selected_color = Some(self.game.opponent.as_mut().unwrap().color.opposite());
+            // The opponent's color received from stream is actually the client's own color
+            let client_color = self.game.opponent.as_mut().unwrap().color;
+            log::info!(
+                "DEBUG: Client color received from stream: {:?}",
+                client_color
+            );
+            self.selected_color = Some(client_color);
+            log::info!("DEBUG: Selected color set to: {:?}", self.selected_color);
+            // Set the opponent's color to the opposite of the client's color
+            self.game.opponent.as_mut().unwrap().color = client_color;
+            log::info!(
+                "DEBUG: Opponent color set to: {:?}",
+                self.game.opponent.as_mut().unwrap().color
+            );
             self.game.opponent.as_mut().unwrap().game_started = true;
         }
+        log::info!(
+            "DEBUG: Opponent color: {:?}",
+            self.game.opponent.as_mut().unwrap().color
+        );
 
-        if self.selected_color.unwrap() == PieceColor::Black {
-            log::debug!("Flipping board for black player");
-            self.game.game_board.flip_the_board();
+        if self.game.opponent.as_mut().unwrap().color == PieceColor::Black {
+            log::debug!("DEBUG: Setting up multiplayer perspective for black player");
+            self.game.setup_multiplayer_perspective(PieceColor::White);
+        } else if self.game.opponent.as_mut().unwrap().color == PieceColor::White {
+            log::debug!("DEBUG: Setting up multiplayer perspective for white player");
+            self.game.setup_multiplayer_perspective(PieceColor::Black);
         }
     }
 
@@ -200,13 +220,22 @@ impl App {
             None => &empty,
         };
 
-        // if the selected Color is Black, we need to switch the Game
+        // Set up the game based on the selected color
         if let Some(color) = self.selected_color {
-            if color == PieceColor::Black {
-                self.game.bot = Some(Bot::new(path, true));
+            self.game.setup_bot_perspective(color);
 
+            if color == PieceColor::Black {
+                // Player chose black, so bot plays white and starts first
+                self.game.bot = Some(Bot::new(path, true)); // is_bot_starting = true
+                self.game.player_turn = PieceColor::White; // Bot (white) starts first
+
+                // Execute the bot's first move
                 self.game.execute_bot_move();
-                self.game.player_turn = PieceColor::Black;
+                self.game.switch_player_turn(); // Now it's player's turn (black)
+            } else {
+                // Player chose white, so bot plays black
+                self.game.bot = Some(Bot::new(path, false)); // is_bot_starting = false
+                self.game.player_turn = PieceColor::White; // Player (white) starts first
             }
         }
     }
@@ -220,21 +249,35 @@ impl App {
     pub fn restart(&mut self) {
         let bot = self.game.bot.clone();
         let opponent = self.game.opponent.clone();
+        let selected_color = self.selected_color;
+
         self.game = Game::default();
 
         self.game.bot = bot;
         self.game.opponent = opponent;
         self.current_popup = None;
 
-        if self.game.bot.as_ref().is_some()
-            && self
-                .game
-                .bot
-                .as_ref()
-                .is_some_and(|bot| bot.is_bot_starting)
-        {
-            self.game.execute_bot_move();
-            self.game.player_turn = PieceColor::Black;
+        // Re-setup the perspective based on game type
+        if let Some(color) = selected_color {
+            if self.game.opponent.is_some() {
+                // Multiplayer game - set up multiplayer perspective
+                self.game.setup_multiplayer_perspective(color);
+            } else if self.game.bot.is_some() {
+                // Bot game - set up bot perspective
+                self.game.setup_bot_perspective(color);
+
+                if let Some(bot) = self.game.bot.as_ref() {
+                    if bot.is_bot_starting {
+                        // Bot starts first (player chose black)
+                        self.game.player_turn = PieceColor::White; // Bot (white) starts
+                        self.game.execute_bot_move();
+                        self.game.switch_player_turn(); // Now player's turn (black)
+                    } else {
+                        // Player starts first (player chose white)
+                        self.game.player_turn = PieceColor::White; // Player (white) starts
+                    }
+                }
+            }
         }
     }
 
@@ -301,31 +344,63 @@ impl App {
         let authorized_positions = self
             .game
             .game_board
-            .get_authorized_positions(self.game.player_turn, self.game.ui.selected_coordinates);
-        self.game.ui.cursor_left(authorized_positions);
+            .get_authorized_positions_with_perspective(
+                self.game.player_turn,
+                self.game.ui.selected_coordinates,
+                Some(&self.game.perspective),
+            );
+        if self.game.perspective.needs_transformation() {
+            self.game.ui.cursor_right(authorized_positions);
+        } else {
+            self.game.ui.cursor_left(authorized_positions);
+        }
     }
 
     pub fn go_right_in_game(&mut self) {
         let authorized_positions = self
             .game
             .game_board
-            .get_authorized_positions(self.game.player_turn, self.game.ui.selected_coordinates);
-        self.game.ui.cursor_right(authorized_positions);
+            .get_authorized_positions_with_perspective(
+                self.game.player_turn,
+                self.game.ui.selected_coordinates,
+                Some(&self.game.perspective),
+            );
+        if self.game.perspective.needs_transformation() {
+            self.game.ui.cursor_left(authorized_positions);
+        } else {
+            self.game.ui.cursor_right(authorized_positions);
+        }
     }
 
     pub fn go_up_in_game(&mut self) {
         let authorized_positions = self
             .game
             .game_board
-            .get_authorized_positions(self.game.player_turn, self.game.ui.selected_coordinates);
-        self.game.ui.cursor_up(authorized_positions);
+            .get_authorized_positions_with_perspective(
+                self.game.player_turn,
+                self.game.ui.selected_coordinates,
+                Some(&self.game.perspective),
+            );
+        if self.game.perspective.needs_transformation() {
+            self.game.ui.cursor_down(authorized_positions);
+        } else {
+            self.game.ui.cursor_up(authorized_positions);
+        }
     }
 
     pub fn go_down_in_game(&mut self) {
         let authorized_positions = self
             .game
             .game_board
-            .get_authorized_positions(self.game.player_turn, self.game.ui.selected_coordinates);
-        self.game.ui.cursor_down(authorized_positions);
+            .get_authorized_positions_with_perspective(
+                self.game.player_turn,
+                self.game.ui.selected_coordinates,
+                Some(&self.game.perspective),
+            );
+        if self.game.perspective.needs_transformation() {
+            self.game.ui.cursor_up(authorized_positions);
+        } else {
+            self.game.ui.cursor_down(authorized_positions);
+        }
     }
 }

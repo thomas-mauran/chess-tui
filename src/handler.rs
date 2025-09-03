@@ -267,12 +267,18 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
             return Ok(());
         }
         app.game.ui.mouse_used = true;
-        let coords: Coord = Coord::new(y as u8, x as u8);
+        let display_coords: Coord = Coord::new(y as u8, x as u8);
+        // Map screen/display coordinates to logical board coordinates using perspective
+        let coords: Coord = app.game.perspective.display_to_logical(display_coords);
 
         let authorized_positions = app
             .game
             .game_board
-            .get_authorized_positions(app.game.player_turn, app.game.ui.selected_coordinates);
+            .get_authorized_positions_with_perspective(
+                app.game.player_turn, 
+                app.game.ui.selected_coordinates,
+                Some(&app.game.perspective)
+            );
 
         let piece_color = app
             .game

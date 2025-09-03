@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 use self::{bishop::Bishop, king::King, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook};
 use super::constants::DisplayMode;
-use crate::game_logic::{coord::Coord, game_board::GameBoard};
+use crate::game_logic::{coord::Coord, game_board::GameBoard, perspective::PerspectiveManager};
 
 pub mod bishop;
 pub mod king;
@@ -35,6 +35,42 @@ impl PieceType {
             PieceType::Pawn => {
                 Pawn::authorized_positions(coordinates, color, game_board, is_king_checked)
             }
+            PieceType::Rook => {
+                Rook::authorized_positions(coordinates, color, game_board, is_king_checked)
+            }
+            PieceType::Bishop => {
+                Bishop::authorized_positions(coordinates, color, game_board, is_king_checked)
+            }
+            PieceType::Queen => {
+                Queen::authorized_positions(coordinates, color, game_board, is_king_checked)
+            }
+            PieceType::King => {
+                King::authorized_positions(coordinates, color, game_board, is_king_checked)
+            }
+            PieceType::Knight => {
+                Knight::authorized_positions(coordinates, color, game_board, is_king_checked)
+            }
+        }
+    }
+
+    /// The authorized position for a piece at a certain coordinate with perspective information
+    pub fn authorized_positions_with_perspective(
+        self,
+        coordinates: &Coord,
+        color: PieceColor,
+        game_board: &GameBoard,
+        is_king_checked: bool,
+        perspective: Option<&PerspectiveManager>,
+    ) -> Vec<Coord> {
+        match self {
+            PieceType::Pawn => Pawn::authorized_positions_with_perspective(
+                coordinates,
+                color,
+                game_board,
+                is_king_checked,
+                perspective,
+            ),
+            // For other pieces, perspective doesn't affect movement, so use the regular method
             PieceType::Rook => {
                 Rook::authorized_positions(coordinates, color, game_board, is_king_checked)
             }
@@ -204,6 +240,18 @@ pub trait Position {
         game_board: &GameBoard,
         is_king_checked: bool,
     ) -> Vec<Coord>;
+
+    /// Perspective-aware authorized positions (default implementation calls regular method)
+    fn authorized_positions_with_perspective(
+        coordinates: &Coord,
+        color: PieceColor,
+        game_board: &GameBoard,
+        is_king_checked: bool,
+        _perspective: Option<&PerspectiveManager>,
+    ) -> Vec<Coord> {
+        // Default implementation ignores perspective
+        Self::authorized_positions(coordinates, color, game_board, is_king_checked)
+    }
 
     fn protected_positions(
         coordinates: &Coord,

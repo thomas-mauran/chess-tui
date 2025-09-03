@@ -32,11 +32,12 @@ mod tests {
         let mut right_positions = vec![Coord::new(3, 4)];
         right_positions.sort();
 
-        let mut positions = Pawn::authorized_positions(
+        let mut positions = Pawn::authorized_positions_with_perspective(
             &Coord::new(4, 4),
             PieceColor::White,
             &game.game_board,
             false,
+            None,
         );
         positions.sort();
         assert_eq!(right_positions, positions);
@@ -68,11 +69,12 @@ mod tests {
         let mut right_positions = vec![Coord::new(5, 4), Coord::new(4, 4)];
         right_positions.sort();
 
-        let mut positions = Pawn::authorized_positions(
+        let mut positions = Pawn::authorized_positions_with_perspective(
             &Coord::new(6, 4),
             PieceColor::White,
             &game.game_board,
             false,
+            None,
         );
         positions.sort();
         assert_eq!(right_positions, positions);
@@ -110,19 +112,15 @@ mod tests {
         ];
         let mut game = Game::default();
         game.game_board.board = custom_board;
-        let mut right_positions = vec![
-            Coord::new(5, 3),
-            Coord::new(4, 3),
-            Coord::new(5, 4),
-            Coord::new(5, 2),
-        ];
+        let mut right_positions = vec![Coord::new(5, 3), Coord::new(5, 4), Coord::new(5, 2)];
         right_positions.sort();
 
-        let mut positions = Pawn::authorized_positions(
+        let mut positions = Pawn::authorized_positions_with_perspective(
             &Coord::new(6, 3),
             PieceColor::Black,
             &game.game_board,
             false,
+            None,
         );
         positions.sort();
         assert_eq!(right_positions, positions);
@@ -163,11 +161,12 @@ mod tests {
         let mut right_positions = vec![Coord::new(5, 4), Coord::new(5, 2)];
         right_positions.sort();
 
-        let mut positions = Pawn::authorized_positions(
+        let mut positions = Pawn::authorized_positions_with_perspective(
             &Coord::new(6, 3),
             PieceColor::Black,
             &game.game_board,
             false,
+            None,
         );
         positions.sort();
         assert_eq!(right_positions, positions);
@@ -209,11 +208,12 @@ mod tests {
         let mut right_positions_first_pawn = vec![Coord::new(1, 2), Coord::new(1, 3)];
         right_positions_first_pawn.sort();
 
-        let mut positions = Pawn::authorized_positions(
+        let mut positions = Pawn::authorized_positions_with_perspective(
             &Coord::new(2, 2),
             PieceColor::White,
             &game.game_board,
             false,
+            None,
         );
         positions.sort();
         assert_eq!(right_positions_first_pawn, positions);
@@ -222,11 +222,12 @@ mod tests {
         let mut right_positions_second_pawn: Vec<Coord> = vec![];
         right_positions_second_pawn.sort();
 
-        let mut positions = Pawn::authorized_positions(
+        let mut positions = Pawn::authorized_positions_with_perspective(
             &Coord::new(2, 3),
             PieceColor::White,
             &game.game_board,
             false,
+            None,
         );
         positions.sort();
         assert_eq!(right_positions_second_pawn, positions);
@@ -235,11 +236,12 @@ mod tests {
         let mut right_positions_third_pawn: Vec<Coord> = vec![Coord::new(1, 3), Coord::new(1, 4)];
         right_positions_third_pawn.sort();
 
-        let mut positions = Pawn::authorized_positions(
+        let mut positions = Pawn::authorized_positions_with_perspective(
             &Coord::new(2, 4),
             PieceColor::White,
             &game.game_board,
             false,
+            None,
         );
         positions.sort();
         assert_eq!(right_positions_third_pawn, positions);
@@ -279,11 +281,12 @@ mod tests {
         let mut right_positions = vec![Coord::new(2, 2), Coord::new(2, 3)];
         right_positions.sort();
 
-        let mut positions = Pawn::authorized_positions(
+        let mut positions = Pawn::authorized_positions_with_perspective(
             &Coord::new(3, 2),
             PieceColor::White,
             &game.game_board,
             false,
+            None,
         );
         positions.sort();
         assert_eq!(right_positions, positions);
@@ -348,11 +351,12 @@ mod tests {
         let mut right_positions = vec![Coord::new(2, 2), Coord::new(2, 3)];
         right_positions.sort();
 
-        let mut positions = Pawn::authorized_positions(
+        let mut positions = Pawn::authorized_positions_with_perspective(
             &Coord::new(3, 2),
             PieceColor::Black,
             &game.game_board,
             false,
+            None,
         );
         positions.sort();
         assert_eq!(right_positions, positions);
@@ -422,14 +426,15 @@ mod tests {
         })]
         .to_vec();
 
-        let mut right_positions = vec![Coord::new(5, 1), Coord::new(4, 1)];
+        let mut right_positions = vec![Coord::new(5, 1)];
         right_positions.sort();
 
-        let mut positions = Pawn::authorized_positions(
+        let mut positions = Pawn::authorized_positions_with_perspective(
             &Coord::new(6, 1),
             PieceColor::Black,
             &game.game_board,
             false,
+            None,
         );
         positions.sort();
         assert_eq!(right_positions, positions);
@@ -476,11 +481,12 @@ mod tests {
         let mut right_positions = vec![Coord::new(2, 2)];
         right_positions.sort();
 
-        let mut positions = Pawn::authorized_positions(
+        let mut positions = Pawn::authorized_positions_with_perspective(
             &Coord::new(3, 3),
             PieceColor::Black,
             &game.game_board,
             is_king_checked,
+            None,
         );
         positions.sort();
 
@@ -528,11 +534,12 @@ mod tests {
         let mut right_positions: Vec<Coord> = vec![];
         right_positions.sort();
 
-        let mut positions = Pawn::authorized_positions(
+        let mut positions = Pawn::authorized_positions_with_perspective(
             &Coord::new(2, 4),
             PieceColor::Black,
             &game.game_board,
             is_king_checked,
+            None,
         );
         positions.sort();
 
@@ -589,11 +596,12 @@ mod tests {
         let mut right_positions: Vec<Coord> = vec![];
         right_positions.sort();
 
-        let mut positions = Pawn::authorized_positions(
+        let mut positions = Pawn::authorized_positions_with_perspective(
             &Coord::new(1, 5),
             PieceColor::Black,
             &game.game_board,
             is_king_checked,
+            None,
         );
         positions.sort();
 

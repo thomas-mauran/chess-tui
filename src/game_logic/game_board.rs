@@ -2,6 +2,7 @@ use super::{
     board::{init_board, Board},
     coord::Coord,
     game::Game,
+    perspective::PerspectiveManager,
 };
 use crate::{
     pieces::{pawn::Pawn, PieceColor, PieceMove, PieceType},
@@ -153,6 +154,16 @@ impl GameBoard {
         player_turn: PieceColor,
         coordinates: Coord,
     ) -> Vec<Coord> {
+        self.get_authorized_positions_with_perspective(player_turn, coordinates, None)
+    }
+
+    // Method to get the authorized positions for a piece with perspective information
+    pub fn get_authorized_positions_with_perspective(
+        &self,
+        player_turn: PieceColor,
+        coordinates: Coord,
+        perspective: Option<&PerspectiveManager>,
+    ) -> Vec<Coord> {
         if let (Some(piece_type), Some(piece_color)) = (
             self.get_piece_type(&coordinates),
             self.get_piece_color(&coordinates),
@@ -162,11 +173,12 @@ impl GameBoard {
                 return vec![];
             }
 
-            piece_type.authorized_positions(
+            piece_type.authorized_positions_with_perspective(
                 &coordinates,
                 piece_color,
                 self,
                 self.is_getting_checked(self.board, player_turn),
+                perspective,
             )
         } else {
             vec![]
@@ -225,8 +237,10 @@ impl GameBoard {
             if let Some(piece_type_to) =
                 self.get_piece_type(&Coord::new(last_move.to.row, last_move.to.col))
             {
-                let last_row = 0;
-                if last_move.to.row == last_row && piece_type_to == PieceType::Pawn {
+                // Check if pawn reached the promotion rows (row 0 for white, row 7 for black)
+                if piece_type_to == PieceType::Pawn
+                    && (last_move.to.row == 0 || last_move.to.row == 7)
+                {
                     return true;
                 }
             }
@@ -315,6 +329,46 @@ impl GameBoard {
                             piece_color,
                             self,
                         ));
+                    }
+                }
+            }
+        }
+        check_cells
+    }
+
+    /// We get all the cells that are getting put in 'check' with perspective awareness
+    pub fn get_all_protected_cells_with_perspective(
+        &self,
+        player_turn: PieceColor,
+        perspective: Option<&crate::game_logic::perspective::PerspectiveManager>,
+    ) -> Vec<Coord> {
+        let mut check_cells: Vec<Coord> = vec![];
+        for i in 0..8u8 {
+            for j in 0..8u8 {
+                if self.get_piece_color(&Coord::new(i, j)) == Some(player_turn) {
+                    continue;
+                }
+                // get the current cell piece color and type protecting positions
+                if let Some(piece_color) = self.get_piece_color(&Coord::new(i, j)) {
+                    if let Some(piece_type) = self.get_piece_type(&Coord::new(i, j)) {
+                        // Use perspective-aware protected positions if available
+                        if let Some(_perspective_manager) = perspective {
+                            // For now, we'll use the regular protected positions
+                            // In the future, we might need perspective-aware protected positions for each piece type
+                            check_cells.extend(PieceType::protected_positions(
+                                &Coord::new(i, j),
+                                piece_type,
+                                piece_color,
+                                self,
+                            ));
+                        } else {
+                            check_cells.extend(PieceType::protected_positions(
+                                &Coord::new(i, j),
+                                piece_type,
+                                piece_color,
+                                self,
+                            ));
+                        }
                     }
                 }
             }
