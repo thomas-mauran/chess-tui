@@ -48,28 +48,47 @@ pub fn render_engine_path_error_popup(frame: &mut Frame) {
 // This renders a popup for a promotion
 pub fn render_end_popup(frame: &mut Frame, sentence: &str, is_multiplayer: bool) {
     let block = Block::default()
-        .title("Game ended")
+        .title("Game Over")
+        .title_alignment(Alignment::Center)
         .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .padding(Padding::horizontal(1))
-        .border_style(Style::default().fg(WHITE));
-    let area = centered_rect(40, 40, frame.area());
+        .border_type(BorderType::Double)
+        .padding(Padding::horizontal(2))
+        .border_style(Style::default().fg(Color::Yellow))
+        .style(Style::default().bg(Color::DarkGray));
+    let area = centered_rect(50, 50, frame.area());
 
+    // Create styled text with better formatting
     let text = vec![
-        Line::from(sentence).alignment(Alignment::Center),
         Line::from(""),
+        Line::from(""),
+        Line::from(sentence).alignment(Alignment::Center).style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
+        Line::from(""),
+        Line::from(""),
+        Line::from("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            .style(Style::default().fg(Color::Gray)),
+        Line::from(""),
+        Line::from("Press `H` to hide this screen")
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(Color::LightBlue)),
         Line::from(""),
         Line::from(if is_multiplayer {
             "Press `B` to go back to the menu"
         } else {
             "Press `R` to restart a new game"
         })
-        .alignment(Alignment::Center),
+        .alignment(Alignment::Center)
+        .style(Style::default().fg(Color::LightGreen)),
+        Line::from(""),
+        Line::from(""),
     ];
 
     let paragraph = Paragraph::new(text)
         .block(block.clone())
-        .alignment(Alignment::Left)
+        .alignment(Alignment::Center)
         .wrap(Wrap { trim: true });
 
     frame.render_widget(Clear, area); //this clears out the background

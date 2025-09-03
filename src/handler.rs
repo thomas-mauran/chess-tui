@@ -102,6 +102,26 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
             }
             _ => fallback_key_handler(app, key_event),
         },
+        Popups::EndScreen => match key_event.code {
+            KeyCode::Char('h' | 'H') => {
+                app.current_popup = None;
+            }
+            KeyCode::Char('r' | 'R') => {
+                app.restart();
+                app.current_popup = None;
+            }
+            KeyCode::Char('b' | 'B') => {
+                let display_mode = app.game.ui.display_mode;
+                app.selected_color = None;
+                app.game.bot = None;
+                app.go_to_home();
+                app.game.game_board.reset();
+                app.game.ui.reset();
+                app.game.ui.display_mode = display_mode;
+                app.current_popup = None;
+            }
+            _ => fallback_key_handler(app, key_event),
+        },
     };
 }
 
@@ -156,7 +176,14 @@ fn chess_inputs(app: &mut App, key_event: KeyEvent) {
         KeyCode::Left | KeyCode::Char('h') => match app.game.game_state {
             GameState::Promotion => app.game.ui.cursor_left_promotion(),
             GameState::Playing => app.go_left_in_game(),
-            _ => (),
+            GameState::Checkmate | GameState::Draw => {
+                // Toggle the end screen popup
+                if app.current_popup == Some(Popups::EndScreen) {
+                    app.current_popup = None;
+                } else {
+                    app.show_end_screen();
+                }
+            }
         },
         KeyCode::Char(' ') | KeyCode::Enter => app.game.handle_cell_click(),
         KeyCode::Char('?') => app.toggle_help_popup(),

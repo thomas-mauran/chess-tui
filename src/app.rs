@@ -71,6 +71,10 @@ impl App {
             self.current_popup = Some(Popups::Help);
         }
     }
+
+    pub fn show_end_screen(&mut self) {
+        self.current_popup = Some(Popups::EndScreen);
+    }
     pub fn toggle_credit_popup(&mut self) {
         if self.current_page == Pages::Home {
             self.current_page = Pages::Credit;
@@ -203,11 +207,12 @@ impl App {
             None => &empty,
         };
 
-        // if the selected Color is Black, we need to switch the Game
         if let Some(color) = self.selected_color {
-            if color == PieceColor::Black {
-                self.game.bot = Some(Bot::new(path, true, self.bot_depth));
+            let is_bot_starting = color == PieceColor::Black;
+            self.game.bot = Some(Bot::new(path, is_bot_starting, self.bot_depth));
 
+            // If the bot is starting (player is black), execute the bot's first move
+            if is_bot_starting {
                 self.game.execute_bot_move();
                 self.game.player_turn = PieceColor::Black;
             }
