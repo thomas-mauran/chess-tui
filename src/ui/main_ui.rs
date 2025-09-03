@@ -281,9 +281,7 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
         }
     }
 
-    if app.game.game_state == GameState::Draw {
-        if app.current_popup == Some(Popups::EndScreen) {
-            render_end_popup(frame, "That's a draw", app.game.opponent.is_some());
-        }
+    if app.game.game_state == GameState::Draw && app.current_popup == Some(Popups::EndScreen) {
+        render_end_popup(frame, "That's a draw", app.game.opponent.is_some());
     }
 }
