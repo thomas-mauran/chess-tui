@@ -1,6 +1,7 @@
 use crate::{
     board::{Board, Coord, GameBoard},
     constants::{DisplayMode, UNDEFINED_POSITION},
+    direction::Direction,
     pieces::{PieceColor, PieceMove, PieceType},
 };
 use ratatui::{
@@ -250,4 +251,162 @@ pub fn get_cell_paragraph<'a>(
 
 pub fn invert_position(coord: &Coord) -> Coord {
     Coord::new(7 - coord.row, 7 - coord.col)
+}
+
+/// Returns the nearest position in the given direction.
+///
+/// If `direction` is `None`, all positions are considered.
+/// If several positions are equally nearest, the one with the smallest index is returned.
+/// If no position is found in the given direction, returns undefined.
+///
+/// # Arguments
+///
+/// * `coord` - The coordinate of the piece
+/// * `positions` - The positions of the pieces
+/// * `direction` - The direction to look for the nearest position
+pub fn find_nearest_position(
+    coord: &Coord,
+    positions: &[Coord],
+    direction: Option<Direction>,
+) -> Coord {
+    // The positions in the given direction
+    let positions_in_direction: Vec<&Coord> = if let Some(direction) = direction {
+        match direction {
+            Direction::Up => positions.iter().filter(|pos| pos.row < coord.row).collect(),
+            Direction::Down => positions.iter().filter(|pos| pos.row > coord.row).collect(),
+            Direction::Left => positions.iter().filter(|pos| pos.col < coord.col).collect(),
+            Direction::Right => positions.iter().filter(|pos| pos.col > coord.col).collect(),
+        }
+    } else {
+        // If `direction` is `None`, no filtering is done
+        positions.iter().collect()
+    };
+
+    if positions_in_direction.is_empty() {
+        // If no position is found in the given direction, returns undefined
+        return Coord::undefined();
+    }
+
+    // Find the nearest position
+    let nearest_position = positions_in_direction
+        .iter()
+        // Manhattan distance
+        .min_by_key(|pos| pos.row.abs_diff(coord.row) + pos.col.abs_diff(coord.col))
+        .cloned()
+        .unwrap();
+
+    *nearest_position
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_find_nearest_position() {
+        struct TestCase {
+            name: &'static str,
+            coord: Coord,
+            positions: Vec<Coord>,
+            direction: Option<Direction>,
+            expected: Coord,
+        }
+        let test_cases = vec![
+            TestCase {
+                name: "Up",
+                coord: Coord::new(4, 4),
+                positions: vec![
+                    Coord::new(3, 4),
+                    Coord::new(5, 4),
+                    Coord::new(4, 3),
+                    Coord::new(4, 5),
+                ],
+                direction: Some(Direction::Up),
+                expected: Coord::new(3, 4),
+            },
+            TestCase {
+                name: "Down",
+                coord: Coord::new(4, 4),
+                positions: vec![
+                    Coord::new(3, 4),
+                    Coord::new(5, 4),
+                    Coord::new(4, 3),
+                    Coord::new(4, 5),
+                ],
+                direction: Some(Direction::Down),
+                expected: Coord::new(5, 4),
+            },
+            TestCase {
+                name: "Left",
+                coord: Coord::new(4, 4),
+                positions: vec![
+                    Coord::new(3, 4),
+                    Coord::new(5, 4),
+                    Coord::new(4, 3),
+                    Coord::new(4, 5),
+                ],
+                direction: Some(Direction::Left),
+                expected: Coord::new(4, 3),
+            },
+            TestCase {
+                name: "Right",
+                coord: Coord::new(4, 4),
+                positions: vec![
+                    Coord::new(3, 4),
+                    Coord::new(5, 4),
+                    Coord::new(4, 3),
+                    Coord::new(4, 5),
+                ],
+                direction: Some(Direction::Right),
+                expected: Coord::new(4, 5),
+            },
+            TestCase {
+                name: "Empty",
+                coord: Coord::new(0, 0),
+                positions: vec![],
+                direction: Some(Direction::Up),
+                expected: Coord::undefined(),
+            },
+            TestCase {
+                name: "Long distance",
+                coord: Coord::new(4, 4),
+                positions: vec![
+                    Coord::new(0, 0),
+                    Coord::new(7, 7),
+                    Coord::new(4, 0),
+                    Coord::new(0, 55),
+                ],
+                direction: Some(Direction::Up),
+                expected: Coord::new(0, 0),
+            },
+            TestCase {
+                name: "Nothing in direction",
+                coord: Coord::new(4, 4),
+                positions: vec![Coord::new(0, 5), Coord::new(7, 7), Coord::new(4, 4)],
+                direction: Some(Direction::Left),
+                expected: Coord::undefined(),
+            },
+            TestCase {
+                name: "All directions",
+                coord: Coord::new(4, 4),
+                positions: vec![
+                    Coord::new(3, 4),
+                    Coord::new(5, 4),
+                    Coord::new(4, 3),
+                    Coord::new(4, 5),
+                ],
+                direction: None,
+                expected: Coord::new(3, 4),
+            },
+        ];
+        for test_case in test_cases {
+            let nearest_position =
+                find_nearest_position(&test_case.coord, &test_case.positions, test_case.direction);
+            assert_eq!(
+                nearest_position, test_case.expected,
+                "Test case: {}",
+                test_case.name
+            );
+        }
+    }
 }

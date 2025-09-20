@@ -1,14 +1,15 @@
 use crate::{
     constants::{DisplayMode, BLACK, UNDEFINED_POSITION, WHITE},
+    direction::Direction,
     pieces::{PieceColor, PieceMove, PieceType},
     utils::{
         col_to_letter, convert_notation_into_position, convert_position_into_notation,
-        did_piece_already_move, get_cell_paragraph, get_int_from_char, get_king_coordinates,
-        get_piece_color, get_piece_type, invert_position, is_getting_checked,
+        did_piece_already_move, find_nearest_position, get_cell_paragraph, get_int_from_char,
+        get_king_coordinates, get_piece_color, get_piece_type, invert_position, is_getting_checked,
     },
 };
 use ratatui::{
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    layout::{self, Alignment, Constraint, Layout, Rect},
     style::{Color, Modifier, Style, Stylize},
     text::{Line, Span},
     widgets::{Block, BorderType, Borders, Padding, Paragraph},
@@ -327,7 +328,7 @@ impl Board {
     pub fn cursor_up(&mut self) {
         if !self.is_checkmate && !self.is_draw && !self.is_promotion {
             if self.is_cell_selected() {
-                self.move_selected_piece_cursor(false, -1);
+                self.move_selected_piece_cursor(Some(Direction::Up));
             } else if self.cursor_coordinates.row > 0 {
                 self.cursor_coordinates.row -= 1;
             }
@@ -336,7 +337,7 @@ impl Board {
     pub fn cursor_down(&mut self) {
         if !self.is_checkmate && !self.is_draw && !self.is_promotion {
             if self.is_cell_selected() {
-                self.move_selected_piece_cursor(false, 1);
+                self.move_selected_piece_cursor(Some(Direction::Down));
             } else if self.cursor_coordinates.row < 7 {
                 self.cursor_coordinates.row += 1;
             }
@@ -352,7 +353,7 @@ impl Board {
             };
         } else if !self.is_checkmate && !self.is_draw {
             if self.is_cell_selected() {
-                self.move_selected_piece_cursor(false, -1);
+                self.move_selected_piece_cursor(Some(Direction::Left));
             } else if self.cursor_coordinates.col > 0 {
                 self.cursor_coordinates.col -= 1;
             }
@@ -364,7 +365,7 @@ impl Board {
             self.promotion_cursor = (self.promotion_cursor + 1) % 4;
         } else if !self.is_checkmate && !self.is_draw {
             if self.is_cell_selected() {
-                self.move_selected_piece_cursor(false, 1);
+                self.move_selected_piece_cursor(Some(Direction::Right));
             } else if self.cursor_coordinates.col < 7 {
                 self.cursor_coordinates.col += 1;
             }
@@ -383,33 +384,18 @@ impl Board {
     /* Method to move the selected piece cursor
        We make sure that the cursor is in the authorized positions
     */
-    fn move_selected_piece_cursor(&mut self, first_time_moving: bool, direction: i8) {
+    fn move_selected_piece_cursor(&mut self, direction: Option<Direction>) {
         let piece_color = get_piece_color(self.board, &self.selected_coordinates);
         let piece_type = get_piece_type(self.board, &self.selected_coordinates);
 
-        let mut authorized_positions =
+        let authorized_positions =
             self.get_authorized_positions(piece_type, piece_color, self.selected_coordinates);
 
-        if authorized_positions.is_empty() {
-            self.cursor_coordinates = Coord::undefined();
-        } else {
-            self.selected_piece_cursor = if self.selected_piece_cursor == 0 && first_time_moving {
-                0
-            } else {
-                let new_cursor =
-                    (self.selected_piece_cursor + direction) % authorized_positions.len() as i8;
-                if new_cursor == -1 {
-                    authorized_positions.len() as i8 - 1
-                } else {
-                    new_cursor
-                }
-            };
+        let new_cursor_coordinates =
+            find_nearest_position(&self.cursor_coordinates, &authorized_positions, direction);
 
-            authorized_positions.sort();
-
-            if let Some(position) = authorized_positions.get(self.selected_piece_cursor as usize) {
-                self.cursor_coordinates = *position;
-            }
+        if new_cursor_coordinates != Coord::undefined() {
+            self.cursor_coordinates = new_cursor_coordinates;
         }
     }
 
@@ -482,7 +468,7 @@ impl Board {
                     if piece_color == self.player_turn {
                         self.selected_coordinates = self.cursor_coordinates;
                         self.old_cursor_position = self.cursor_coordinates;
-                        self.move_selected_piece_cursor(true, 1);
+                        self.move_selected_piece_cursor(None);
                     }
                 }
             }
@@ -940,7 +926,7 @@ impl Board {
         self.height = height;
         // We have 8 vertical lines
         let columns = Layout::default()
-            .direction(Direction::Vertical)
+            .direction(layout::Direction::Vertical)
             .constraints(
                 [
                     // spread the excess border
@@ -962,7 +948,7 @@ impl Board {
         // For each line we set 8 layout
         for i in 0..8u8 {
             let lines = Layout::default()
-                .direction(Direction::Horizontal)
+                .direction(layout::Direction::Horizontal)
                 .constraints(
                     [
                         Constraint::Length(border_width),
@@ -1147,7 +1133,7 @@ impl Board {
         let height = area.height;
 
         let right_panel_layout = Layout::default()
-            .direction(Direction::Vertical)
+            .direction(layout::Direction::Vertical)
             .constraints([Constraint::Length(height - 1), Constraint::Length(1)].as_ref())
             .split(area);
 
@@ -1180,7 +1166,7 @@ impl Board {
         let height = area.height;
 
         let right_panel_layout = Layout::default()
-            .direction(Direction::Vertical)
+            .direction(layout::Direction::Vertical)
             .constraints([Constraint::Length(height - 1), Constraint::Length(1)].as_ref())
             .split(area);
         frame.render_widget(white_block.clone(), right_panel_layout[0]);
@@ -1220,7 +1206,7 @@ impl Board {
         let height = area.height;
 
         let right_panel_layout = Layout::default()
-            .direction(Direction::Vertical)
+            .direction(layout::Direction::Vertical)
             .constraints([Constraint::Length(height - 1), Constraint::Length(1)].as_ref())
             .split(area);
 

@@ -27,3 +27,6 @@ pub mod utils;
 
 // popups render methods
 pub mod popups;
+
+// Direction enum
+pub mod direction;
