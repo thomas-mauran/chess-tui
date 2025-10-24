@@ -205,6 +205,9 @@ impl App {
             if color == Color::Black {
                 self.game.bot = Some(Bot::new(path, true));
 
+                // Flip the board once so Black player sees from their perspective
+                self.game.game_board.flip_the_board();
+
                 self.game.execute_bot_move();
                 self.game.player_turn = Color::Black;
             }

@@ -455,11 +455,11 @@ impl UI {
                 // Draw the cell magenta if the king is getting checked
                 else if game
                     .game_board
-                    .is_getting_checked(game.game_board.board, game.player_turn)
+                    .is_getting_checked(game.player_turn)
                     && Coord::new(i, j)
                         == game
                             .game_board
-                            .get_king_coordinates(game.game_board.board, game.player_turn)
+                            .get_king_coordinates(game.player_turn)
                 {
                     render_cell(frame, square, Color::Magenta, Some(Modifier::SLOW_BLINK));
                 }

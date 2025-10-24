@@ -243,11 +243,10 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
     ); // Mutable borrow now allowed
 
     //top box for white material
-    app.game.ui.black_material_render(
-        board_block.inner(right_box_layout[0]),
-        frame,
-        &app.game.game_board.black_taken_pieces,
-    );
+    let black_taken = app.game.game_board.black_taken_pieces();
+    app.game
+        .ui
+        .black_material_render(board_block.inner(right_box_layout[0]), frame, &black_taken);
 
     // We make the inside of the board
     app.game
@@ -255,11 +254,10 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
         .history_render(board_block.inner(right_box_layout[1]), frame, &app.game);
 
     //bottom box for black matetrial
-    app.game.ui.white_material_render(
-        board_block.inner(right_box_layout[2]),
-        frame,
-        &app.game.game_board.white_taken_pieces,
-    );
+    let white_taken = app.game.game_board.white_taken_pieces();
+    app.game
+        .ui
+        .white_material_render(board_block.inner(right_box_layout[2]), frame, &white_taken);
 
     if app.game.game_state == GameState::Promotion {
         render_promotion_popup(frame, app);

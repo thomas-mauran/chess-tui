@@ -3,7 +3,7 @@ use crate::{
     pieces::{PieceMove, PieceType},
     utils::get_int_from_char,
 };
-use shakmaty::Color;
+use shakmaty::{Color, Position};
 
 #[derive(Clone, Debug, PartialEq, Eq, Copy)]
 pub enum GameState {
@@ -143,8 +143,9 @@ impl Game {
                 self.game_state = GameState::Draw;
             }
 
-            if (self.bot.is_none() || (self.bot.as_ref().is_some_and(|bot| bot.is_bot_starting)))
-                && (self.opponent.is_none())
+            // Only flip the board in single-player mode (no bot, no opponent)
+            if self.bot.is_none()
+                && self.opponent.is_none()
                 && (!self.game_board.is_latest_move_promotion()
                     || self.game_board.is_draw(self.player_turn)
                     || self.game_board.is_checkmate(self.player_turn))
@@ -252,31 +253,67 @@ impl Game {
         let to_y = get_int_from_char(bot_move.chars().nth(2));
         let to_x = get_int_from_char(bot_move.chars().nth(3));
 
-        let mut promotion_piece: Option<PieceType> = None;
-        if bot_move.chars().count() == 5 {
-            promotion_piece = match bot_move.chars().nth(4) {
+        let promotion_piece: Option<PieceType> = if bot_move.chars().count() == 5 {
+            match bot_move.chars().nth(4) {
                 Some('q') => Some(PieceType::Queen),
                 Some('r') => Some(PieceType::Rook),
                 Some('b') => Some(PieceType::Bishop),
                 Some('n') => Some(PieceType::Knight),
                 _ => None,
+            }
+        } else {
+            None
+        };
+
+        let from = Coord::new(from_y, from_x);
+        let to = Coord::new(to_y, to_x);
+
+        // Get piece type before executing move
+        // We need to query using standard coordinates since execute_standard_move expects them
+        let piece_type_from = {
+            let from_square = from.to_square();
+            if let Some(square) = from_square {
+                let chess = self.game_board.position_history.last().unwrap();
+                chess
+                    .board()
+                    .piece_at(square)
+                    .map(|p| PieceType::from_role(p.role))
+            } else {
+                None
+            }
+        };
+
+        // Execute move with promotion if needed (using standard coordinates from UCI)
+        if !self
+            .game_board
+            .execute_standard_move(from, to, promotion_piece)
+        {
+            return;
+        }
+
+        // Store in history (convert to visual coordinates if board is flipped)
+        if let Some(piece_type) = piece_type_from {
+            let (visual_from, visual_to) = if self.game_board.is_flipped {
+                (
+                    Coord::new(7 - from.row, 7 - from.col),
+                    Coord::new(7 - to.row, 7 - to.col),
+                )
+            } else {
+                (from, to)
             };
-        }
 
-        self.execute_move(&Coord::new(from_y, from_x), &Coord::new(to_y, to_x));
-
-        if promotion_piece.is_some() {
-            self.game_board.board[to_y as usize][to_x as usize] =
-                Some((promotion_piece.unwrap(), self.player_turn));
-        }
-        if is_bot_starting {
-            self.game_board.flip_the_board();
+            self.game_board.move_history.push(PieceMove {
+                piece_type,
+                piece_color: self.player_turn,
+                from: visual_from,
+                to: visual_to,
+            });
         }
     }
 
     // Method to promote a pawn
     pub fn promote_piece(&mut self) {
-        if let Some(last_move) = self.game_board.move_history.last() {
+        if let Some(last_move) = self.game_board.move_history.last().cloned() {
             let new_piece = match self.ui.promotion_cursor {
                 0 => PieceType::Queen,
                 1 => PieceType::Rook,
@@ -285,21 +322,26 @@ impl Game {
                 _ => unreachable!("Promotion cursor out of boundaries"),
             };
 
-            let current_piece_color = self
-                .game_board
-                .get_piece_color(&Coord::new(last_move.to.row, last_move.to.col));
-            if let Some(piece_color) = current_piece_color {
-                // we replace the piece by the new piece type
-                self.game_board.board[last_move.to.row as usize][last_move.to.col as usize] =
-                    Some((new_piece, piece_color));
-            }
+            // Remove the last move and position from history
+            self.game_board.move_history.pop();
+            self.game_board.position_history.pop();
 
-            // We replace the piece type in the move history
-            let latest_move = self.game_board.move_history.last_mut().unwrap();
-            latest_move.piece_type = new_piece;
-            self.game_board.board_history.pop();
-            self.game_board.board_history.push(self.game_board.board);
+            // Re-execute the move with the correct promotion
+            if self.game_board.execute_shakmaty_move_with_promotion(
+                last_move.from,
+                last_move.to,
+                Some(new_piece),
+            ) {
+                // Update move history with correct piece type
+                self.game_board.move_history.push(PieceMove {
+                    piece_type: new_piece,
+                    piece_color: last_move.piece_color,
+                    from: last_move.from,
+                    to: last_move.to,
+                });
+            }
         }
+
         self.game_state = GameState::Playing;
         self.ui.promotion_cursor = 0;
         if !self.game_board.is_draw(self.player_turn)
@@ -326,62 +368,14 @@ impl Game {
             return;
         };
 
+        // Execute the move using shakmaty (this updates both position_history and the board)
+        if !self.game_board.execute_shakmaty_move(*from, *to) {
+            return; // Invalid move
+        }
+
         // We increment the consecutive_non_pawn_or_capture if the piece type is a pawn or if there is no capture
         self.game_board
             .increment_consecutive_non_pawn_or_capture(piece_type_from, piece_type_to);
-
-        // We check if the move is a capture and add the piece to the taken pieces
-        self.game_board
-            .add_piece_to_taken_pieces(from, to, self.player_turn);
-
-        // We check for en passant as the latest move
-        if self.game_board.is_latest_move_en_passant(from, to) {
-            // we kill the pawn
-            let row_index = to.row as i32 + 1;
-            self.game_board.board[row_index as usize][to.col as usize] = None;
-        }
-
-        // We check for castling as the latest move
-        if self.game_board.is_latest_move_castling(*from, *to) {
-            // we set the king 2 cells on where it came from
-            let from_x: i32 = from.col as i32;
-            let mut new_to = to;
-            let to_x: i32 = to.col as i32;
-
-            let distance = from_x - to_x;
-            // We set the direction of the rook > 0 meaning he went on the left else on the right
-            let direction_x = if distance > 0 { -1 } else { 1 };
-
-            let col_king = from_x + direction_x * 2;
-
-            // We put move the king 2 cells
-            self.game_board.board[to.row as usize][col_king as usize] = self.game_board.board[from];
-
-            // We put the rook 3 cells from it's position if it's a big castling else 2 cells
-            // If it is playing against a bot we will receive 4 -> 6  and 4 -> 2 for to_x instead of 4 -> 7 and 4 -> 0
-            if self.bot.is_some() && to_x == 6 && to.row == 0 {
-                new_to = &Coord { row: 0, col: 7 };
-            }
-            if self.bot.is_some() && to_x == 2 && to.row == 0 {
-                new_to = &Coord { row: 0, col: 0 };
-            }
-
-            let col_rook = if distance > 0 {
-                col_king + 1
-            } else {
-                col_king - 1
-            };
-
-            self.game_board.board[new_to.row as usize][col_rook as usize] =
-                Some((PieceType::Rook, self.player_turn));
-
-            // We remove the latest rook
-            self.game_board.board[new_to] = None;
-        } else {
-            self.game_board.board[to] = self.game_board.board[from];
-        }
-
-        self.game_board.board[from] = None;
 
         // We store it in the history
         self.game_board.move_history.push(PieceMove {
@@ -390,8 +384,6 @@ impl Game {
             from: *from,
             to: *to,
         });
-        // We store the current position of the board
-        self.game_board.board_history.push(self.game_board.board);
     }
 
     pub fn execute_opponent_move(&mut self) {
@@ -408,26 +400,53 @@ impl Game {
         let to_y = get_int_from_char(opponent_move.chars().nth(2));
         let to_x = get_int_from_char(opponent_move.chars().nth(3));
 
-        let mut promotion_piece: Option<PieceType> = None;
-        if opponent_move.chars().count() == 5 {
-            promotion_piece = match opponent_move.chars().nth(4) {
+        let promotion_piece: Option<PieceType> = if opponent_move.chars().count() == 5 {
+            match opponent_move.chars().nth(4) {
                 Some('q') => Some(PieceType::Queen),
                 Some('r') => Some(PieceType::Rook),
                 Some('b') => Some(PieceType::Bishop),
                 Some('n') => Some(PieceType::Knight),
                 _ => None,
-            };
+            }
+        } else {
+            None
+        };
+
+        let from = Coord::new(from_y, from_x);
+        let to = Coord::new(to_y, to_x);
+
+        // Get piece type before executing move
+        // For opponent moves, we need to account for board flip to get the piece type correctly
+        let visual_from = if self.game_board.is_flipped {
+            Coord::new(7 - from.row, 7 - from.col)
+        } else {
+            from
+        };
+        let piece_type_from = self.game_board.get_piece_type(&visual_from);
+
+        // Execute move with promotion if needed (using standard coordinates)
+        if !self
+            .game_board
+            .execute_standard_move(from, to, promotion_piece)
+        {
+            self.game_board.flip_the_board();
+            return;
         }
 
-        let from = &Coord::new(from_y, from_x);
-        let to = &Coord::new(to_y, to_x);
-
-        self.execute_move(from, to);
-
-        if promotion_piece.is_some() {
-            self.game_board.board[to_y as usize][to_x as usize] =
-                Some((promotion_piece.unwrap(), self.player_turn));
+        // Store in history (use visual coordinates for history)
+        if let Some(piece_type) = piece_type_from {
+            self.game_board.move_history.push(PieceMove {
+                piece_type,
+                piece_color: self.player_turn,
+                from: visual_from,
+                to: if self.game_board.is_flipped {
+                    Coord::new(7 - to.row, 7 - to.col)
+                } else {
+                    to
+                },
+            });
         }
+
         self.game_board.flip_the_board();
     }
 

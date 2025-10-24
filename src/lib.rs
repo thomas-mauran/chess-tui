@@ -23,3 +23,6 @@ pub mod utils;
 
 // Logging
 pub mod logging;
+
+// Chess pieces
+pub mod pieces;
