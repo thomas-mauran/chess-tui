@@ -52,7 +52,7 @@ impl Pages {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Popups {
     ColorSelection,
     MultiplayerSelection,
@@ -60,4 +60,5 @@ pub enum Popups {
     WaitingForOpponentToJoin,
     EnginePathError,
     Help,
+    EndScreen,
 }

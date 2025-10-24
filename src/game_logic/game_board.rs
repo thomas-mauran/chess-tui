@@ -84,6 +84,7 @@ impl GameBoard {
             }
             _ => {
                 self.consecutive_non_pawn_or_capture += 1;
+
             }
         }
     }

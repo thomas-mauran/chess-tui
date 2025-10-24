@@ -41,6 +41,8 @@ pub struct App {
     /// path of the chess engine
     pub chess_engine_path: Option<String>,
     pub log_level: LevelFilter,
+    /// Bot thinking depth for chess engine
+    pub bot_depth: u8,
 }
 
 impl Default for App {
@@ -56,6 +58,7 @@ impl Default for App {
             menu_cursor: 0,
             chess_engine_path: None,
             log_level: LevelFilter::Off,
+            bot_depth: 10,
         }
     }
 }
@@ -67,6 +70,10 @@ impl App {
         } else {
             self.current_popup = Some(Popups::Help);
         }
+    }
+
+    pub fn show_end_screen(&mut self) {
+        self.current_popup = Some(Popups::EndScreen);
     }
     pub fn toggle_credit_popup(&mut self) {
         if self.current_page == Pages::Home {
@@ -200,7 +207,6 @@ impl App {
             None => &empty,
         };
 
-        // if the selected Color is Black, we need to switch the Game
         if let Some(color) = self.selected_color {
             if color == Color::Black {
                 self.game.bot = Some(Bot::new(path, true));
@@ -284,6 +290,10 @@ impl App {
                 "log_level".to_string(),
                 Value::String(self.log_level.to_string().to_string()),
             );
+            table.insert(
+                "bot_depth".to_string(),
+                Value::Integer(self.bot_depth as i64),
+            );
         }
 
         let mut file = File::create(config_path.clone()).unwrap();
@@ -298,5 +308,38 @@ impl App {
         self.host_ip = None;
         self.menu_cursor = 0;
         self.chess_engine_path = None;
+        self.bot_depth = 10;
+    }
+
+    pub fn go_left_in_game(&mut self) {
+        let authorized_positions = self
+            .game
+            .game_board
+            .get_authorized_positions(self.game.player_turn, self.game.ui.selected_coordinates);
+        self.game.ui.cursor_left(authorized_positions);
+    }
+
+    pub fn go_right_in_game(&mut self) {
+        let authorized_positions = self
+            .game
+            .game_board
+            .get_authorized_positions(self.game.player_turn, self.game.ui.selected_coordinates);
+        self.game.ui.cursor_right(authorized_positions);
+    }
+
+    pub fn go_up_in_game(&mut self) {
+        let authorized_positions = self
+            .game
+            .game_board
+            .get_authorized_positions(self.game.player_turn, self.game.ui.selected_coordinates);
+        self.game.ui.cursor_up(authorized_positions);
+    }
+
+    pub fn go_down_in_game(&mut self) {
+        let authorized_positions = self
+            .game
+            .game_board
+            .get_authorized_positions(self.game.player_turn, self.game.ui.selected_coordinates);
+        self.game.ui.cursor_down(authorized_positions);
     }
 }

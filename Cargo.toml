@@ -1,11 +1,11 @@
 [package]
 name = "chess-tui"
-version = "1.6.1"
+version = "1.6.2"
 authors = ["Thomas Mauran"]
 license = "MIT"
 edition = "2021"
-description = "A rusty chess game in your terminal 🦀"
-keywords = ["tui", "graphics", "chess", "game", "board"]
+description = "Play chess from your terminal 🦀"
+keywords = ["chess", "tui", "graphics", "game", "board"]
 homepage = "https://github.com/thomas-mauran/chess-tui"
 repository = "https://github.com/thomas-mauran/chess-tui"
 
@@ -13,7 +13,7 @@ repository = "https://github.com/thomas-mauran/chess-tui"
 clap = { version = "4.4.11", features = ["derive"] }
 dirs = "5.0.1"
 ratatui = "0.28.1"
-uci = "0.2.1"
+ruci = { version = "2.1.0", features = ["engine-sync"] }
 toml = "0.5.8"
 log = "0.4.25"
 simplelog = "0.12.2"

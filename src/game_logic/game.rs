@@ -243,7 +243,7 @@ impl Game {
 
         // Retrieve the bot move from the bot
         let bot_move = if let Some(bot) = self.bot.as_mut() {
-            bot.get_bot_move(fen_position)
+            bot.get_move(&fen_position)
         } else {
             return;
         };
@@ -308,6 +308,7 @@ impl Game {
                 from: visual_from,
                 to: visual_to,
             });
+
         }
     }
 
