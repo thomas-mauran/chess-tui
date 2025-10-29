@@ -1,6 +1,5 @@
-use crate::pieces::PieceMove;
 use log;
-use shakmaty::Color;
+use shakmaty::{Color, Move};
 use std::{
     io::{Read, Write},
     net::TcpStream,
@@ -130,27 +129,24 @@ impl Opponent {
         }
     }
 
-    pub fn send_move_to_server(
-        &mut self,
-        move_to_send: &PieceMove,
-        promotion_type: Option<String>,
-    ) {
-        if let Some(game_stream) = self.stream.as_mut() {
-            let move_str = format!(
-                "{}{}{}{}{}",
-                move_to_send.from.row,
-                move_to_send.from.col,
-                move_to_send.to.row,
-                move_to_send.to.col,
-                match promotion_type {
-                    Some(promotion) => promotion,
-                    None => "".to_string(),
-                }
-            );
-            if let Err(e) = game_stream.write_all(move_str.as_bytes()) {
-                eprintln!("Failed to send move: {}", e);
-            }
-        }
+    // TODO: Fix the protocol to send the move
+    pub fn send_move_to_server(&mut self, move_to_send: &Move, promotion_type: Option<String>) {
+        // if let Some(game_stream) = self.stream.as_mut() {
+        //     let move_str = format!(
+        //         "{}{}{}{}{}",
+        //         move_to_send.from.row,
+        //         move_to_send.from.col,
+        //         move_to_send.to.row,
+        //         move_to_send.to.col,
+        //         match promotion_type {
+        //             Some(promotion) => promotion,
+        //             None => "".to_string(),
+        //         }
+        //     );
+        //     if let Err(e) = game_stream.write_all(move_str.as_bytes()) {
+        //         eprintln!("Failed to send move: {}", e);
+        //     }
+        // }
     }
 
     pub fn read_stream(&mut self) -> String {

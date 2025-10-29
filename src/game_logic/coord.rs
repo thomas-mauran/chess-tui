@@ -81,4 +81,3 @@ mod tests {
         assert_eq!(undef.to_square(), None);
     }
 }
-

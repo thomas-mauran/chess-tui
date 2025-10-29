@@ -288,6 +288,9 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
         if mouse_event.column < app.game.ui.top_x || mouse_event.row < app.game.ui.top_y {
             return Ok(());
         }
+        if app.game.ui.width == 0 || app.game.ui.height == 0 {
+            return Ok(());
+        }
         let x = (mouse_event.column - app.game.ui.top_x) / app.game.ui.width;
         let y = (mouse_event.row - app.game.ui.top_y) / app.game.ui.height;
         if x > 7 || y > 7 {
@@ -304,9 +307,11 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
         let piece_color = app
             .game
             .game_board
-            .get_piece_color(&app.game.ui.selected_coordinates);
+            .get_piece_color_at_square(&app.game.ui.selected_coordinates.to_square().unwrap())
+            .map(|c| c.into())
+            .unwrap_or(None);
 
-        if authorized_positions.contains(&coords)
+        if authorized_positions.contains(&coords.to_square().unwrap())
             && match piece_color {
                 Some(piece) => Some(piece) == piece_color,
                 None => false,

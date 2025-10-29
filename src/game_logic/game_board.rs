@@ -1,23 +1,9 @@
 use super::coord::Coord;
-use crate::pieces::{PieceMove, PieceType};
-use shakmaty::{Chess, Color, Piece, Position};
+use shakmaty::{Chess, Color, Move, Piece, Position, Role, Square};
 
 /// ## visual representation
 ///
 /// ### how it's stored:
-///
-/// . 0 1 2 3 4 5 6 7 .
-/// 0 ♖ ♘ ♗ ♕ ♔ ♗ ♘ ♖ 0
-/// 1 ♙ ♙ ♙ ♙ ♙ ♙ ♙ ♙ 1
-/// 2 . . . . . . . . 2
-/// 3 . . . . . . . . 3
-/// 4 . . . . . . . . 4
-/// 5 . . . . . . . . 5
-/// 6 ♟ ♟ ♟ ♟ ♟ ♟ ♟ ♟ 6
-/// 7 ♜ ♞ ♝ ♛ ♚ ♝ ♞ ♜ 7
-/// . 0 1 2 3 4 5 6 7 .
-///
-/// ### how it's rendered:
 ///
 /// . a b c d e f g h .
 /// 8 ♖ ♘ ♗ ♕ ♔ ♗ ♘ ♖ 8
@@ -34,7 +20,7 @@ use shakmaty::{Chess, Color, Piece, Position};
 #[derive(Debug, Clone)]
 pub struct GameBoard {
     // historic of the past Moves of the board
-    pub move_history: Vec<PieceMove>,
+    pub move_history: Vec<Move>,
     /// historic of the past gameboards states.
     /// The last position is the current position.
     pub position_history: Vec<Chess>,
@@ -60,13 +46,13 @@ impl Default for GameBoard {
 impl GameBoard {
     pub fn get_last_move_piece_type_as_string(&self) -> String {
         if let Some(last_move) = self.move_history.last() {
-            match last_move.piece_type {
-                PieceType::Pawn => "p".to_string(),
-                PieceType::Knight => "n".to_string(),
-                PieceType::Bishop => "b".to_string(),
-                PieceType::Rook => "r".to_string(),
-                PieceType::Queen => "q".to_string(),
-                PieceType::King => "k".to_string(),
+            match last_move.role() {
+                Role::Pawn => "p".to_string(),
+                Role::Knight => "n".to_string(),
+                Role::Bishop => "b".to_string(),
+                Role::Rook => "r".to_string(),
+                Role::Queen => "q".to_string(),
+                Role::King => "k".to_string(),
             }
         } else {
             String::new()
@@ -75,16 +61,15 @@ impl GameBoard {
 
     pub fn increment_consecutive_non_pawn_or_capture(
         &mut self,
-        role_from: PieceType,
-        role_to: Option<PieceType>,
+        role_from: Role,
+        role_to: Option<Role>,
     ) {
         match (role_from, role_to) {
-            (PieceType::Pawn, _) | (_, Some(_)) => {
+            (Role::Pawn, _) | (_, Some(_)) => {
                 self.consecutive_non_pawn_or_capture = 0;
             }
             _ => {
                 self.consecutive_non_pawn_or_capture += 1;
-
             }
         }
     }
@@ -125,67 +110,47 @@ impl GameBoard {
     }
 
     pub fn is_latest_move_promotion(&self) -> bool {
-        // Check if last move in our history was a pawn reaching the back rank
         if let Some(last_move) = self.move_history.last() {
-            last_move.piece_type == PieceType::Pawn
-                && (last_move.to.row == 0 || last_move.to.row == 7)
+            return last_move.is_promotion();
         } else {
             false
         }
     }
 
     /// Get piece type at a coordinate (handles flipped board)
-    pub fn get_piece_type(&self, coord: &Coord) -> Option<PieceType> {
-        if !coord.is_valid() {
-            return None;
-        }
-
-        let actual_coord = if self.is_flipped {
-            Coord::new(7 - coord.row, 7 - coord.col)
+    pub fn get_role_at_square(&self, square: &Square) -> Option<Role> {
+        let chess = self.position_history.last().unwrap();
+        let piece = chess.board().piece_at(*square);
+        if let Some(piece) = piece {
+            Some(piece.role)
         } else {
-            *coord
-        };
-
-        let square = actual_coord.to_square()?;
-        let chess = self.position_history.last()?;
-        chess
-            .board()
-            .piece_at(square)
-            .map(|p| PieceType::from_role(p.role))
+            None
+        }
     }
 
-    /// Get piece color at a coordinate (handles flipped board)
-    pub fn get_piece_color(&self, coord: &Coord) -> Option<Color> {
-        if !coord.is_valid() {
-            return None;
-        }
-
-        let actual_coord = if self.is_flipped {
-            Coord::new(7 - coord.row, 7 - coord.col)
+    pub fn get_piece_color_at_square(&mut self, square: &Square) -> Option<Color> {
+        let piece = self.position().board().piece_at(*square);
+        if let Some(piece) = piece {
+            Some(piece.color)
         } else {
-            *coord
-        };
-
-        let square = actual_coord.to_square()?;
-        let chess = self.position_history.last()?;
-        chess.board().piece_at(square).map(|p| p.color)
+            None
+        }
     }
 
     /// Get authorized positions for a piece at the given coordinate
-    pub fn get_authorized_positions(&self, player_turn: Color, coord: Coord) -> Vec<Coord> {
+    pub fn get_authorized_positions(&self, player_turn: Color, coord: Coord) -> Vec<Square> {
         if !coord.is_valid() {
             return vec![];
         }
 
         // If board is flipped, we need to convert the coordinate back to standard orientation
-        let actual_coord = if self.is_flipped {
-            Coord::new(7 - coord.row, 7 - coord.col)
-        } else {
-            coord
-        };
-
+        // let actual_coord = if self.is_flipped {
+        //     Coord::new(7 - coord.row, 7 - coord.col)
+        // } else {
+        //     coord
+        // };
         let chess = self.position_history.last().unwrap();
-        let from_square = match actual_coord.to_square() {
+        let from_square = match coord.to_square() {
             Some(s) => s,
             None => return vec![],
         };
@@ -200,21 +165,12 @@ impl GameBoard {
         }
 
         // Get all legal moves
-        let legal_moves = chess.legal_moves();
-        let mut positions = Vec::new();
-
-        for m in legal_moves {
-            if m.from() == Some(from_square) {
-                let mut target_coord = Coord::from_square(m.to());
-                // If board is flipped, flip the target coordinates back
-                if self.is_flipped {
-                    target_coord = Coord::new(7 - target_coord.row, 7 - target_coord.col);
-                }
-                positions.push(target_coord);
-            }
-        }
-
-        positions
+        chess
+            .legal_moves()
+            .iter()
+            .filter(|m| m.from() == Some(from_square))
+            .map(|m| m.to())
+            .collect()
     }
 
     /// Check if the king is in check
@@ -244,14 +200,9 @@ impl GameBoard {
     }
 
     /// Check if last move was castling
-    pub fn is_latest_move_castling(&self, from: Coord, to: Coord) -> bool {
-        if let Some(piece_type) = self.get_piece_type(&from) {
-            if piece_type == PieceType::King {
-                let distance = (from.col as i32 - to.col as i32).abs();
-                return distance >= 2;
-            }
-        }
-        false
+    pub fn is_latest_move_castling(&self) -> bool {
+        let chess = self.move_history.last().unwrap();
+        chess.is_castle()
     }
 
     /// Flip the board for alternating perspectives
@@ -270,26 +221,26 @@ impl GameBoard {
     }
 
     /// Get black taken pieces
-    pub fn black_taken_pieces(&self) -> Vec<PieceType> {
+    pub fn black_taken_pieces(&self) -> Vec<Role> {
         self.taken_pieces
             .iter()
             .filter(|p| p.color == Color::Black)
-            .map(|p| PieceType::from_role(p.role))
+            .map(|p| p.role)
             .collect()
     }
 
     /// Get white taken pieces
-    pub fn white_taken_pieces(&self) -> Vec<PieceType> {
+    pub fn white_taken_pieces(&self) -> Vec<Role> {
         self.taken_pieces
             .iter()
             .filter(|p| p.color == Color::White)
-            .map(|p| PieceType::from_role(p.role))
+            .map(|p| p.role)
             .collect()
     }
 
-    /// Execute a move on the shakmaty Chess position and sync the visual board
-    /// Optionally specify a promotion piece type
-    pub fn execute_shakmaty_move(&mut self, from: Coord, to: Coord) -> bool {
+    // Execute a move on the shakmaty Chess position and sync the visual board
+    // Optionally specify a promotion piece type
+    pub fn execute_shakmaty_move(&mut self, from: Square, to: Square) -> bool {
         self.execute_shakmaty_move_with_promotion(from, to, None)
     }
 
@@ -297,42 +248,36 @@ impl GameBoard {
     /// Used for bot and opponent moves which come from external sources in standard notation
     pub fn execute_standard_move(
         &mut self,
-        from: Coord,
-        to: Coord,
-        promotion: Option<PieceType>,
+        from: Square,
+        to: Square,
+        promotion: Option<Role>,
     ) -> bool {
-        let from_square = match from.to_square() {
-            Some(s) => s,
-            None => return false,
-        };
-
-        let to_square = match to.to_square() {
-            Some(s) => s,
-            None => return false,
-        };
-
         // Get current position
         let mut chess = self.position_history.last().unwrap().clone();
 
         // Check if there's a piece at the destination to track captures
-        if let Some(captured_piece) = chess.board().piece_at(to_square) {
+        if let Some(captured_piece) = chess.board().piece_at(to) {
             self.taken_pieces.push(captured_piece);
         }
+        println!("From {:?}, {:?}", from, to);
 
-        // Find the legal move that matches
-        let legal_moves = chess.legal_moves();
-        let matching_move = legal_moves.iter().find(|m| {
-            if m.from() == Some(from_square) && m.to() == to_square {
-                // If a promotion is specified, make sure it matches
+        // Find the legal move that matches (use shakmaty Move directly)
+        let binding = chess.legal_moves();
+        let matching_move: Option<&Move> = binding.iter().find(|m| {
+            // println!("{:?}", m);
+            println!("From {:?}, {:?}", from, to);
+
+            m.from() == Some(from) && m.to() == to && {
                 if let Some(promo_type) = promotion {
                     if let Some(promo_role) = m.promotion() {
-                        return promo_role == promo_type.to_role();
+                        promo_role == promo_type
+                    } else {
+                        // we specified a promotion but the move has none
+                        false
                     }
-                    return false;
+                } else {
+                    true
                 }
-                true
-            } else {
-                false
             }
         });
 
@@ -352,49 +297,28 @@ impl GameBoard {
     /// Execute a move with optional promotion
     pub fn execute_shakmaty_move_with_promotion(
         &mut self,
-        from: Coord,
-        to: Coord,
-        promotion: Option<PieceType>,
+        from: Square,
+        to: Square,
+        promotion: Option<Role>,
     ) -> bool {
         // Convert coordinates to squares, accounting for flip
-        let actual_from = if self.is_flipped {
-            Coord::new(7 - from.row, 7 - from.col)
-        } else {
-            from
-        };
-
-        let actual_to = if self.is_flipped {
-            Coord::new(7 - to.row, 7 - to.col)
-        } else {
-            to
-        };
-
-        let from_square = match actual_from.to_square() {
-            Some(s) => s,
-            None => return false,
-        };
-
-        let to_square = match actual_to.to_square() {
-            Some(s) => s,
-            None => return false,
-        };
 
         // Get current position
         let mut chess = self.position_history.last().unwrap().clone();
 
         // Check if there's a piece at the destination to track captures
-        if let Some(captured_piece) = chess.board().piece_at(to_square) {
+        if let Some(captured_piece) = chess.board().piece_at(to) {
             self.taken_pieces.push(captured_piece);
         }
 
         // Find the legal move that matches
         let legal_moves = chess.legal_moves();
         let matching_move = legal_moves.iter().find(|m| {
-            if m.from() == Some(from_square) && m.to() == to_square {
+            if m.from() == Some(from) && m.to() == to {
                 // If a promotion is specified, make sure it matches
                 if let Some(promo_type) = promotion {
                     if let Some(promo_role) = m.promotion() {
-                        return promo_role == promo_type.to_role();
+                        return promo_role == promo_type;
                     }
                     // If we specified a promotion but move doesn't have one, skip
                     return false;

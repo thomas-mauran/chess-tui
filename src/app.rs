@@ -4,7 +4,7 @@ use toml::Value;
 
 use crate::{
     constants::{DisplayMode, Pages, Popups},
-    game_logic::{bot::Bot, game::Game, opponent::Opponent},
+    game_logic::{bot::Bot, coord::Coord, game::Game, opponent::Opponent},
     server::game_server::GameServer,
 };
 use shakmaty::Color;
@@ -206,11 +206,9 @@ impl App {
             Some(engine_path) => engine_path,
             None => &empty,
         };
-
+        self.game.bot = Some(Bot::new(path, true, self.bot_depth));
         if let Some(color) = self.selected_color {
             if color == Color::Black {
-                self.game.bot = Some(Bot::new(path, true));
-
                 // Flip the board once so Black player sees from their perspective
                 self.game.game_board.flip_the_board();
 
@@ -316,7 +314,12 @@ impl App {
             .game
             .game_board
             .get_authorized_positions(self.game.player_turn, self.game.ui.selected_coordinates);
-        self.game.ui.cursor_left(authorized_positions);
+        self.game.ui.cursor_left(
+            authorized_positions
+                .iter()
+                .map(|s| Coord::from_square(*s))
+                .collect(),
+        );
     }
 
     pub fn go_right_in_game(&mut self) {
@@ -324,7 +327,12 @@ impl App {
             .game
             .game_board
             .get_authorized_positions(self.game.player_turn, self.game.ui.selected_coordinates);
-        self.game.ui.cursor_right(authorized_positions);
+        self.game.ui.cursor_right(
+            authorized_positions
+                .iter()
+                .map(|s| Coord::from_square(*s))
+                .collect(),
+        );
     }
 
     pub fn go_up_in_game(&mut self) {
@@ -332,7 +340,12 @@ impl App {
             .game
             .game_board
             .get_authorized_positions(self.game.player_turn, self.game.ui.selected_coordinates);
-        self.game.ui.cursor_up(authorized_positions);
+        self.game.ui.cursor_up(
+            authorized_positions
+                .iter()
+                .map(|s| Coord::from_square(*s))
+                .collect(),
+        );
     }
 
     pub fn go_down_in_game(&mut self) {
@@ -340,6 +353,11 @@ impl App {
             .game
             .game_board
             .get_authorized_positions(self.game.player_turn, self.game.ui.selected_coordinates);
-        self.game.ui.cursor_down(authorized_positions);
+        self.game.ui.cursor_down(
+            authorized_positions
+                .iter()
+                .map(|s| Coord::from_square(*s))
+                .collect(),
+        );
     }
 }

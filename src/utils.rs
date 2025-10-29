@@ -1,11 +1,12 @@
 use crate::game_logic::coord::Coord;
 use crate::game_logic::game::Game;
-use crate::{constants::DisplayMode, pieces::PieceType};
+use crate::{constants::DisplayMode, pieces::role_to_utf_enum};
 use ratatui::{
     layout::{Alignment, Rect},
     style::{Color, Stylize},
     widgets::{Block, Padding, Paragraph},
 };
+use shakmaty::Role;
 
 pub fn color_to_ratatui_enum(piece_color: Option<shakmaty::Color>) -> Color {
     match piece_color {
@@ -16,7 +17,7 @@ pub fn color_to_ratatui_enum(piece_color: Option<shakmaty::Color>) -> Color {
 }
 
 pub fn get_cell_paragraph<'a>(
-    game: &'a Game,
+    game: &'a mut Game,
     cell_coordinates: &'a Coord,
     bounding_rect: Rect,
 ) -> Paragraph<'a> {
@@ -25,8 +26,16 @@ pub fn get_cell_paragraph<'a>(
     };
 
     // Get piece and color
-    let piece_color = game.game_board.get_piece_color(cell_coordinates);
-    let piece_type = game.game_board.get_piece_type(cell_coordinates);
+    let piece_color = game
+        .game_board
+        .get_piece_color_at_square(&cell_coordinates.to_square().unwrap())
+        .map(|c| c.into())
+        .unwrap_or(None);
+    let piece_type = game
+        .game_board
+        .get_role_at_square(&cell_coordinates.to_square().unwrap())
+        .map(|r| r.into())
+        .unwrap_or(None);
 
     let paragraph = match game.ui.display_mode {
         DisplayMode::DEFAULT => {
@@ -34,12 +43,12 @@ pub fn get_cell_paragraph<'a>(
 
             // Use custom multi-line designs for DEFAULT mode
             let piece_str = match piece_type {
-                Some(PieceType::King) => King::to_string(&game.ui.display_mode),
-                Some(PieceType::Queen) => Queen::to_string(&game.ui.display_mode),
-                Some(PieceType::Rook) => Rook::to_string(&game.ui.display_mode),
-                Some(PieceType::Bishop) => Bishop::to_string(&game.ui.display_mode),
-                Some(PieceType::Knight) => Knight::to_string(&game.ui.display_mode),
-                Some(PieceType::Pawn) => Pawn::to_string(&game.ui.display_mode),
+                Some(Role::King) => King::to_string(&game.ui.display_mode),
+                Some(Role::Queen) => Queen::to_string(&game.ui.display_mode),
+                Some(Role::Rook) => Rook::to_string(&game.ui.display_mode),
+                Some(Role::Bishop) => Bishop::to_string(&game.ui.display_mode),
+                Some(Role::Knight) => Knight::to_string(&game.ui.display_mode),
+                Some(Role::Pawn) => Pawn::to_string(&game.ui.display_mode),
                 None => " ",
             };
 
@@ -49,8 +58,7 @@ pub fn get_cell_paragraph<'a>(
                 .alignment(Alignment::Center)
         }
         DisplayMode::ASCII => {
-            let piece_enum =
-                PieceType::piece_type_to_string_enum(piece_type, &game.ui.display_mode);
+            let piece_enum = role_to_utf_enum(&piece_type.unwrap(), piece_color);
             // Determine piece letter case
             let paragraph = match piece_color {
                 // pieces belonging to the player on top will be lower case

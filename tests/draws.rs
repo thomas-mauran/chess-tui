@@ -3,7 +3,7 @@ mod tests {
     use chess_tui::game_logic::coord::Coord;
     use chess_tui::game_logic::game::Game;
     use chess_tui::game_logic::game_board::GameBoard;
-    use chess_tui::pieces::{PieceMove, PieceType};
+    use chess_tui::pieces::{PieceType};
     use shakmaty::Color;
 
     #[test]
@@ -162,49 +162,49 @@ mod tests {
         let game_board = GameBoard::new(
             custom_board,
             vec![
-                (PieceMove {
+                (Move {
                     piece_type: PieceType::King,
                     piece_color: Color::White,
                     from: Coord::new(0, 2),
                     to: Coord::new(0, 1),
                 }),
-                (PieceMove {
+                (Move {
                     piece_type: PieceType::King,
                     piece_color: Color::Black,
                     from: Coord::new(0, 6),
                     to: Coord::new(0, 5),
                 }),
-                (PieceMove {
+                (Move {
                     piece_type: PieceType::King,
                     piece_color: Color::White,
                     from: Coord::new(0, 1),
                     to: Coord::new(0, 2),
                 }),
-                (PieceMove {
+                (Move {
                     piece_type: PieceType::King,
                     piece_color: Color::Black,
                     from: Coord::new(0, 5),
                     to: Coord::new(0, 6),
                 }),
-                (PieceMove {
+                (Move {
                     piece_type: PieceType::King,
                     piece_color: Color::White,
                     from: Coord::new(0, 2),
                     to: Coord::new(0, 1),
                 }),
-                (PieceMove {
+                (Move {
                     piece_type: PieceType::King,
                     piece_color: Color::Black,
                     from: Coord::new(0, 6),
                     to: Coord::new(0, 5),
                 }),
-                (PieceMove {
+                (Move {
                     piece_type: PieceType::King,
                     piece_color: Color::White,
                     from: Coord::new(0, 1),
                     to: Coord::new(0, 2),
                 }),
-                (PieceMove {
+                (Move {
                     piece_type: PieceType::King,
                     piece_color: Color::Black,
                     from: Coord::new(0, 5),

@@ -3,8 +3,8 @@ mod tests {
     use chess_tui::game_logic::coord::Coord;
     use chess_tui::game_logic::game::Game;
     use chess_tui::game_logic::game_board::GameBoard;
-    use chess_tui::pieces::{PieceMove, PieceType};
-    use shakmaty::Color;
+    use chess_tui::pieces::{PieceType};
+    use shakmaty::{Color, Move};
 
     #[test]
     fn is_promote_true() {
@@ -48,7 +48,7 @@ mod tests {
         let game_board = GameBoard::new(
             custom_board,
             vec![
-                (PieceMove {
+                (Move {
                     piece_type: PieceType::Pawn,
                     piece_color: Color::White,
                     from: Coord::new(1, 4),
@@ -113,7 +113,7 @@ mod tests {
         let game_board = GameBoard::new(
             custom_board,
             vec![
-                (PieceMove {
+                (Move {
                     piece_type: PieceType::Pawn,
                     piece_color: Color::White,
                     from: Coord::new(7, 3),
@@ -226,7 +226,7 @@ mod tests {
         let game_board = GameBoard::new(
             custom_board,
             vec![
-                (PieceMove {
+                (Move {
                     piece_type: PieceType::Pawn,
                     piece_color: Color::Black,
                     from: Coord::new(1, 4),

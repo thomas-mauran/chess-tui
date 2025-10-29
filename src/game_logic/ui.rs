@@ -1,7 +1,7 @@
 use super::{coord::Coord, game::Game};
 use crate::{
     constants::{DisplayMode, BLACK, UNDEFINED_POSITION, WHITE},
-    pieces::PieceType,
+    pieces::role_to_utf_enum,
     ui::{main_ui::render_cell, prompt::Prompt},
     utils::{convert_position_into_notation, get_cell_paragraph, invert_position},
 };
@@ -12,6 +12,7 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Padding, Paragraph},
     Frame,
 };
+use shakmaty::{Role, Square};
 
 #[derive(Clone)]
 pub struct UI {
@@ -183,42 +184,28 @@ impl UI {
         let mut lines: Vec<Line> = vec![];
 
         for i in (0..game.game_board.move_history.len()).step_by(2) {
-            let piece_type_from = game.game_board.move_history[i].piece_type;
+            let role_from = game.game_board.move_history[i].role();
 
-            let utf_icon_white =
-                PieceType::piece_to_utf_enum(&piece_type_from, Some(shakmaty::Color::White));
-            let move_white = convert_position_into_notation(&format!(
-                "{}{}{}{}",
-                game.game_board.move_history[i].from.row,
-                game.game_board.move_history[i].from.col,
-                game.game_board.move_history[i].to.row,
-                game.game_board.move_history[i].to.col
-            ));
+            let utf_icon_white = role_to_utf_enum(&role_from, Some(shakmaty::Color::White));
+            let move_white = &format!(
+                "{}{}",
+                game.game_board.move_history[i].from().unwrap(),
+                game.game_board.move_history[i].to(),
+            );
 
             let mut utf_icon_black = "   ";
             let mut move_black: String = "   ".to_string();
 
             // If there is something for black
             if i + 1 < game.game_board.move_history.len() {
-                let piece_type_to = game.game_board.move_history[i + 1].piece_type;
-                let black_move = &game.game_board.move_history[i + 1];
+                let role_to = game.game_board.move_history[i + 1].role();
 
-                // Invert black moves if not playing against bot
-                let (from, to) = if game.bot.is_none() {
-                    (
-                        invert_position(&black_move.from),
-                        invert_position(&black_move.to),
-                    )
-                } else {
-                    (black_move.from, black_move.to)
-                };
-
-                move_black = convert_position_into_notation(&format!(
-                    "{}{}{}{}",
-                    from.row, from.col, to.row, to.col
-                ));
-                utf_icon_black =
-                    PieceType::piece_to_utf_enum(&piece_type_to, Some(shakmaty::Color::Black));
+                move_black = format!(
+                    "{}{}",
+                    game.game_board.move_history[i + 1].from().unwrap(),
+                    game.game_board.move_history[i + 1].to(),
+                );
+                utf_icon_black = role_to_utf_enum(&role_to, Some(shakmaty::Color::Black));
             }
 
             lines.push(Line::from(vec![
@@ -252,7 +239,7 @@ impl UI {
         &self,
         area: Rect,
         frame: &mut Frame,
-        white_taken_pieces: &[PieceType],
+        white_taken_pieces: &[Role],
     ) {
         let white_block = Block::default()
             .title("White material")
@@ -263,7 +250,7 @@ impl UI {
         let mut pieces: String = String::new();
 
         for piece in white_taken_pieces {
-            let utf_icon_white = PieceType::piece_to_utf_enum(piece, Some(shakmaty::Color::Black));
+            let utf_icon_white = role_to_utf_enum(piece, Some(shakmaty::Color::Black));
 
             pieces.push_str(&format!("{utf_icon_white} "));
         }
@@ -296,7 +283,7 @@ impl UI {
         &self,
         area: Rect,
         frame: &mut Frame,
-        black_taken_pieces: &Vec<PieceType>,
+        black_taken_pieces: &[Role],
     ) {
         let black_block = Block::default()
             .title("Black material")
@@ -307,7 +294,7 @@ impl UI {
         let mut pieces: String = String::new();
 
         for piece in black_taken_pieces {
-            let utf_icon_black = PieceType::piece_to_utf_enum(piece, Some(shakmaty::Color::White));
+            let utf_icon_black = role_to_utf_enum(piece, Some(shakmaty::Color::White));
 
             pieces.push_str(&format!("{utf_icon_black} "));
         }
@@ -331,7 +318,7 @@ impl UI {
     }
 
     /// Method to render the board
-    pub fn board_render(&mut self, area: Rect, frame: &mut Frame<'_>, game: &Game) {
+    pub fn board_render(&mut self, area: Rect, frame: &mut Frame<'_>, game: &mut Game) {
         let width = area.width / 8;
         let height = area.height / 8;
         let border_height = area.height / 2 - (4 * height);
@@ -387,27 +374,28 @@ impl UI {
                 // Color of the cell to draw the board
                 let cell_color: Color = if (i + j) % 2 == 0 { WHITE } else { BLACK };
 
+                // TODO Check that
                 let last_move;
-                let mut last_move_from = Coord::undefined();
-                let mut last_move_to = Coord::undefined();
+                let mut last_move_from: Option<Square> = None;
+                let mut last_move_to: Option<Square> = None;
                 if !game.game_board.move_history.is_empty() {
                     last_move = game.game_board.move_history.last();
                     if game.bot.is_some()
                         && !game.bot.as_ref().is_some_and(|bot| bot.is_bot_starting)
                     {
-                        last_move_from = last_move.map(|m| m.from).unwrap();
-                        last_move_to = last_move.map(|m| m.to).unwrap();
+                        last_move_from = last_move.map(|m| m.from()).unwrap();
+                        last_move_to = last_move.map(|m| m.to());
                     } else {
-                        last_move_from = invert_position(&last_move.map(|m| m.from).unwrap());
-                        last_move_to = invert_position(&last_move.map(|m| m.to).unwrap());
+                        last_move_from = last_move.map(|m| m.from()).unwrap();
+                        last_move_to = last_move.map(|m| m.to());
                     }
 
                     // If the opponent is the same as the last move player, we don't want to show his last move
                     if game.opponent.is_some()
                         && game.opponent.as_ref().unwrap().color == game.player_turn
                     {
-                        last_move_from = Coord::undefined();
-                        last_move_to = Coord::undefined();
+                        last_move_from = None;
+                        last_move_to = None;
                     }
                 }
 
@@ -417,8 +405,10 @@ impl UI {
                 };
                 // Draw the available moves for the selected piece
                 if self.is_cell_selected() {
-                    let selected_piece_color: Option<shakmaty::Color> =
-                        game.game_board.get_piece_color(&self.selected_coordinates);
+                    let selected_piece_color: Option<shakmaty::Color> = game
+                        .game_board
+                        .get_piece_color_at_square(&self.selected_coordinates.to_square().unwrap())
+                        .map(|c| c.into());
                     // only draw available moves if it is the right players turn
                     if match selected_piece_color {
                         Some(color) => color == game.player_turn,
@@ -426,7 +416,10 @@ impl UI {
                     } {
                         positions = game
                             .game_board
-                            .get_authorized_positions(game.player_turn, self.selected_coordinates);
+                            .get_authorized_positions(game.player_turn, self.selected_coordinates)
+                            .iter()
+                            .map(|s| Coord::from_square(*s))
+                            .collect();
 
                         // Draw grey if the color is in the authorized positions
                         for coords in positions.clone() {
@@ -453,21 +446,16 @@ impl UI {
                     render_cell(frame, square, Color::LightBlue, None);
                 }
                 // Draw the cell magenta if the king is getting checked
-                else if game
-                    .game_board
-                    .is_getting_checked(game.player_turn)
-                    && Coord::new(i, j)
-                        == game
-                            .game_board
-                            .get_king_coordinates(game.player_turn)
+                else if game.game_board.is_getting_checked(game.player_turn)
+                    && Coord::new(i, j) == game.game_board.get_king_coordinates(game.player_turn)
                 {
                     render_cell(frame, square, Color::Magenta, Some(Modifier::SLOW_BLINK));
                 }
                 // Draw the cell green if this is the selected cell or if the cell is part of the last move
                 else if (i == self.selected_coordinates.row && j == self.selected_coordinates.col)
-                    || (last_move_from == Coord::new(i, j) // If the last move from
-                        || (last_move_to == Coord::new(i, j) // If last move to
-                            && !is_cell_in_positions(&positions, i, j)))
+                    || (last_move_from == Coord::new(i, j).to_square()) // If the last move from
+                        || (last_move_to == Coord::new(i, j).to_square()) // If last move to
+                            && !is_cell_in_positions(&positions, i, j)
                 // and not in the authorized positions (grey instead of green)
                 {
                     render_cell(frame, square, Color::LightGreen, None);
