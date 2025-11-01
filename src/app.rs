@@ -202,11 +202,12 @@ impl App {
 
     pub fn bot_setup(&mut self) {
         let empty = "".to_string();
+        let is_bot_starting = self.selected_color.unwrap() == shakmaty::Color::Black;
         let path = match self.chess_engine_path.as_ref() {
             Some(engine_path) => engine_path,
             None => &empty,
         };
-        self.game.bot = Some(Bot::new(path, true, self.bot_depth));
+        self.game.bot = Some(Bot::new(path, is_bot_starting, self.bot_depth));
         if let Some(color) = self.selected_color {
             if color == Color::Black {
                 // Flip the board once so Black player sees from their perspective

@@ -3,7 +3,7 @@ use crate::{
     constants::{DisplayMode, BLACK, UNDEFINED_POSITION, WHITE},
     pieces::role_to_utf_enum,
     ui::{main_ui::render_cell, prompt::Prompt},
-    utils::{convert_position_into_notation, get_cell_paragraph, invert_position},
+    utils::get_cell_paragraph,
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -479,7 +479,6 @@ impl UI {
                 // Get piece and color
                 let coord = Coord::new(i, j);
                 let paragraph = get_cell_paragraph(game, &coord, square);
-
                 frame.render_widget(paragraph, square);
             }
         }

@@ -1,5 +1,5 @@
 use super::coord::Coord;
-use shakmaty::{Chess, Color, Move, Piece, Position, Role, Square};
+use shakmaty::{Board, Chess, Color, Move, Piece, Position, Role, Square};
 
 /// ## visual representation
 ///
@@ -128,6 +128,19 @@ impl GameBoard {
         }
     }
 
+    pub fn get_current_board(&mut self) -> Board {
+        let mut board = self.position_history.last().unwrap().board().clone();
+        if self.is_flipped {
+            board.mirror();
+        }
+        return board;
+    }
+
+    pub fn is_square_occupied(&self, square: &Square) -> bool {
+        let chess = self.position_history.last().unwrap();
+        chess.board().piece_at(*square).is_some()
+    }
+
     pub fn get_piece_color_at_square(&mut self, square: &Square) -> Option<Color> {
         let piece = self.position().board().piece_at(*square);
         if let Some(piece) = piece {
@@ -194,9 +207,9 @@ impl GameBoard {
     }
 
     /// Check if game is checkmate
-    pub fn is_checkmate(&self, player_turn: Color) -> bool {
+    pub fn is_checkmate(&self) -> bool {
         let chess = self.position_history.last().unwrap();
-        chess.is_checkmate() && chess.turn() == player_turn
+        chess.is_checkmate()
     }
 
     /// Check if last move was castling
@@ -207,7 +220,6 @@ impl GameBoard {
 
     /// Flip the board for alternating perspectives
     pub fn flip_the_board(&mut self) {
-        // Just toggle the flipped flag - shakmaty board stays in standard orientation
         self.is_flipped = !self.is_flipped;
     }
 

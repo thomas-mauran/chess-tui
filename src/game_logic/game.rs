@@ -106,7 +106,7 @@ impl Game {
     }
 
     fn update_game_state(&mut self) {
-        if self.game_board.is_checkmate(self.player_turn) {
+        if self.game_board.is_checkmate() {
             self.game_state = GameState::Checkmate;
         } else if self.game_board.is_draw(self.player_turn) {
             self.game_state = GameState::Draw;
@@ -148,7 +148,7 @@ impl Game {
                 && self.opponent.is_none()
                 && (!self.game_board.is_latest_move_promotion()
                     || self.game_board.is_draw(self.player_turn)
-                    || self.game_board.is_checkmate(self.player_turn))
+                    || self.game_board.is_checkmate())
             {
                 self.game_board.flip_the_board();
             }
@@ -161,7 +161,7 @@ impl Game {
                 }
 
                 if !(self.game_state == GameState::Promotion) {
-                    if self.game_board.is_checkmate(self.player_turn) {
+                    if self.game_board.is_checkmate() {
                         self.game_state = GameState::Checkmate;
                     }
 
@@ -181,7 +181,7 @@ impl Game {
                 if self.game_board.is_latest_move_promotion() {
                     self.game_state = GameState::Promotion;
                 } else {
-                    if self.game_board.is_checkmate(self.player_turn) {
+                    if self.game_board.is_checkmate() {
                         self.game_state = GameState::Checkmate;
                     }
 
@@ -270,63 +270,24 @@ impl Game {
             return;
         };
 
-        // CHECK WHAT THE BOT SENDS US
-        // let from_y = get_int_from_char(bot_move.chars().next());
-        // let from_x = get_int_from_char(bot_move.chars().nth(1));
-        // let to_y = get_int_from_char(bot_move.chars().nth(2));
-        // let to_x = get_int_from_char(bot_move.chars().nth(3));
+        // Convert UCI move to a shakmaty Move using the current position
+        let current_position = self.game_board.position_history.last().unwrap().clone();
+        let bot_actual_move: Move = bot_move
+            .to_move(&current_position)
+            .expect("Engine returned illegal UCI move for current position");
 
-        let promotion_piece: Option<Role> = if bot_move.chars().count() == 5 {
-            match bot_move.chars().nth(4) {
-                Some('q') => Some(Role::Queen),
-                Some('r') => Some(Role::Rook),
-                Some('b') => Some(Role::Bishop),
-                Some('n') => Some(Role::Knight),
-                _ => None,
-            }
-        } else {
-            None
-        };
+        // Store in history (convert to visual coordinates if board is flipped)
+        self.game_board.move_history.push(Move::Normal {
+            role: bot_actual_move.role(),
+            from: bot_actual_move.from().unwrap(),
+            capture: bot_actual_move.capture(),
+            to: bot_actual_move.to(),
+            promotion: bot_actual_move.promotion(),
+        });
 
-        // Get piece type before executing move
-        // We need to query using standard coordinates since execute_standard_move expects them
-        // let piece_type_from = {
-        //     let from_square = from.to_square();
-        //     if let Some(square) = from_square {
-        //         let chess = self.game_board.position_history.last().unwrap();
-        //         chess.board().piece_at(square).map(|p| p.role)
-        //     } else {
-        //         None
-        //     }
-        // };
-
-        // Execute move with promotion if needed (using standard coordinates from UCI)
-        // if !self
-        //     .game_board
-        //     .execute_standard_move(from, to, promotion_piece)
-        // {
-        //     return;
-        // }
-
-        // // Store in history (convert to visual coordinates if board is flipped)
-        // if let Some(piece_type) = piece_type_from {
-        //     let (visual_from, visual_to) = if self.game_board.is_flipped {
-        //         (
-        //             Coord::new(7 - from.row, 7 - from.col),
-        //             Coord::new(7 - to.row, 7 - to.col),
-        //         )
-        //     } else {
-        //         (from, to)
-        //     };
-
-        //     self.game_board.move_history.push(Move::Normal {
-        //         role: piece_type,
-        //         from: visual_from,
-        //         capture: None,
-        //         to: visual_to,
-        //         promotion: None,
-        //     });
-        // }
+        self.game_board
+            .position_history
+            .push(current_position.play(&bot_actual_move).unwrap().clone());
     }
 
     // Method to promote a pawn
@@ -364,7 +325,7 @@ impl Game {
         self.game_state = GameState::Playing;
         self.ui.promotion_cursor = 0;
         if !self.game_board.is_draw(self.player_turn)
-            && !self.game_board.is_checkmate(self.player_turn)
+            && !self.game_board.is_checkmate()
             && self.opponent.is_none()
             && self.bot.is_none()
         {

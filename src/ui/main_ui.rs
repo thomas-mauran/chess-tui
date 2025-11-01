@@ -9,7 +9,7 @@ use ratatui::{
 
 use crate::{
     constants::Popups,
-    game_logic::{bot::Bot, game::GameState},
+    game_logic::game::GameState,
     ui::popups::{
         render_color_selection_popup, render_credit_popup, render_end_popup,
         render_engine_path_error_popup, render_help_popup, render_promotion_popup,
@@ -60,8 +60,6 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
         } else if app.selected_color.is_none() {
             app.current_popup = Some(Popups::ColorSelection);
         } else if app.game.bot.is_none() {
-            let engine_path = app.chess_engine_path.clone().unwrap();
-            let is_bot_starting = app.selected_color.unwrap() == shakmaty::Color::Black;
             app.bot_setup();
         } else {
             render_game_ui(frame, app, main_area);
@@ -263,7 +261,15 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
         render_promotion_popup(frame, app);
     }
 
+    // If the game ended (checkmate or draw) and there's no active popup yet,
+    // open the EndScreen popup so it appears immediately instead of waiting for
+    // another user interaction.
     if app.game.game_state == GameState::Checkmate {
+        // To avoid showing the end screen if there is no popup (we clicked on h)
+        if app.current_popup.is_none() {
+            return;
+        }
+
         let victorious_player = app.game.player_turn.other();
 
         let string_color = match victorious_player {
@@ -280,7 +286,13 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
         }
     }
 
-    if app.game.game_state == GameState::Draw && app.current_popup == Some(Popups::EndScreen) {
-        render_end_popup(frame, "That's a draw", app.game.opponent.is_some());
+    if app.game.game_state == GameState::Draw {
+        if app.current_popup.is_none() {
+            app.current_popup = Some(Popups::EndScreen);
+        }
+
+        if app.current_popup == Some(Popups::EndScreen) {
+            render_end_popup(frame, "That's a draw", app.game.opponent.is_some());
+        }
     }
 }

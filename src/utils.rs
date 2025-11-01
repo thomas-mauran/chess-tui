@@ -6,7 +6,7 @@ use ratatui::{
     style::{Color, Stylize},
     widgets::{Block, Padding, Paragraph},
 };
-use shakmaty::Role;
+use shakmaty::{Move, Role, Square};
 
 pub fn color_to_ratatui_enum(piece_color: Option<shakmaty::Color>) -> Color {
     match piece_color {
@@ -96,33 +96,6 @@ pub fn get_int_from_char(c: Option<char>) -> u8 {
     }
 }
 
-/// Convert UCI notation (e.g., "e2e4") to position format ("4644")
-pub fn convert_notation_into_position(notation: &str) -> String {
-    let chars: Vec<char> = notation.chars().collect();
-    if chars.len() < 4 {
-        return String::new();
-    }
-
-    let from_file = get_int_from_char(Some(chars[0]));
-    let from_rank = get_int_from_char(Some(chars[1]));
-    let to_file = get_int_from_char(Some(chars[2]));
-    let to_rank = get_int_from_char(Some(chars[3]));
-
-    // Convert from chess notation (a1-h8) to our internal format (0-7, 0-7)
-    // Row is inverted: rank 1 = row 7, rank 8 = row 0
-    let from_row = 7 - from_rank;
-    let to_row = 7 - to_rank;
-
-    let mut result = format!("{}{}{}{}", from_row, from_file, to_row, to_file);
-
-    // If there's a promotion piece, append it
-    if chars.len() >= 5 {
-        result.push(chars[4]);
-    }
-
-    result
-}
-
 /// Convert position format ("4644") to UCI notation (e.g., "e4e4")
 pub fn convert_position_into_notation(position: &str) -> String {
     let chars: Vec<char> = position.chars().collect();
@@ -150,9 +123,4 @@ pub fn convert_position_into_notation(position: &str) -> String {
         files[to_col as usize],
         ranks[to_rank as usize]
     )
-}
-
-/// Invert a position (for flipping the board perspective)
-pub fn invert_position(coord: &Coord) -> Coord {
-    Coord::new(7 - coord.row, 7 - coord.col)
 }

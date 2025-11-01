@@ -136,7 +136,7 @@ fn main() -> AppResult<()> {
                 bot.bot_will_move = false;
             }
             // need to be centralised
-            if app.game.game_board.is_checkmate(app.game.player_turn) {
+            if app.game.game_board.is_checkmate() {
                 app.game.game_state = GameState::Checkmate;
                 app.show_end_screen();
             } else if app.game.game_board.is_draw(app.game.player_turn) {
@@ -169,7 +169,7 @@ fn main() -> AppResult<()> {
         {
             tui.draw(&mut app)?;
 
-            if !app.game.game_board.is_checkmate(app.game.player_turn)
+            if !app.game.game_board.is_checkmate()
                 && !app.game.game_board.is_draw(app.game.player_turn)
             {
                 app.game.execute_opponent_move();
@@ -177,7 +177,7 @@ fn main() -> AppResult<()> {
             }
 
             // need to be centralised
-            if app.game.game_board.is_checkmate(app.game.player_turn) {
+            if app.game.game_board.is_checkmate() {
                 app.game.game_state = GameState::Checkmate;
                 app.show_end_screen();
             } else if app.game.game_board.is_draw(app.game.player_turn) {

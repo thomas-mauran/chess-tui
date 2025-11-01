@@ -8,6 +8,7 @@ use crate::{
 use ratatui::crossterm::event::{
     KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
 };
+use shakmaty::{Piece, Role};
 
 /// Handles the key events and updates the state of [`App`].
 pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
@@ -291,36 +292,58 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
         if app.game.ui.width == 0 || app.game.ui.height == 0 {
             return Ok(());
         }
+
+        // Calculate the cell coordinates
         let x = (mouse_event.column - app.game.ui.top_x) / app.game.ui.width;
         let y = (mouse_event.row - app.game.ui.top_y) / app.game.ui.height;
         if x > 7 || y > 7 {
             return Ok(());
         }
+
         app.game.ui.mouse_used = true;
         let coords: Coord = Coord::new(y as u8, x as u8);
 
-        let authorized_positions = app
-            .game
-            .game_board
-            .get_authorized_positions(app.game.player_turn, app.game.ui.selected_coordinates);
-
+        // Get the piece color of the clicked square
         let piece_color = app
             .game
             .game_board
-            .get_piece_color_at_square(&app.game.ui.selected_coordinates.to_square().unwrap())
-            .map(|c| c.into())
-            .unwrap_or(None);
+            .get_piece_color_at_square(&coords.to_square().unwrap());
 
-        if authorized_positions.contains(&coords.to_square().unwrap())
-            && match piece_color {
-                Some(piece) => Some(piece) == piece_color,
-                None => false,
+        // We clicked on a cell with nothing and we have no piece selected -> do nothing
+        if piece_color == None {
+            if app.game.ui.selected_coordinates == Coord::undefined() {
+                return Ok(());
+            } else {
+                // We clicked on a cell with nothing having a piece selected -> check if this is a position in the authorized positions for the previously selected piece and if so handle cell click
+                // Get the authorized positions for the clicked square
+                let authorized_positions = app.game.game_board.get_authorized_positions(
+                    app.game.player_turn,
+                    app.game.ui.selected_coordinates,
+                );
+
+                if authorized_positions.contains(&coords.to_square().unwrap()) {
+                    app.game.ui.cursor_coordinates = coords;
+                    app.game.handle_cell_click();
+                }
             }
-        {
-            app.game.ui.cursor_coordinates = coords;
-            app.game.handle_cell_click();
-        } else {
+        }
+
+        // We clicked on a cell with a piece of the same color as the player turn -> select that piece instead of the old one
+        if piece_color == Some(app.game.player_turn) {
             app.game.ui.selected_coordinates = coords;
+        } else {
+            // We clicked on a cell with a piece of the opposite color as the player turn -> check if this is a position in the authorized positions for the previously selected piece and if so handle cell click
+            let authorized_positions = app
+                .game
+                .game_board
+                .get_authorized_positions(app.game.player_turn, app.game.ui.selected_coordinates);
+
+            if authorized_positions.contains(&coords.to_square().unwrap()) {
+                app.game.ui.cursor_coordinates = coords;
+                app.game.handle_cell_click();
+            } else {
+                app.game.ui.selected_coordinates = Coord::undefined();
+            }
         }
     }
     Ok(())

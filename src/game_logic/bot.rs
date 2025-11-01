@@ -1,6 +1,7 @@
-use crate::utils::convert_notation_into_position;
-use ruci::{Engine, Go};
+use ruci::{Engine, Go, NormalBestMove};
 use shakmaty::fen::Fen;
+use shakmaty::uci::UciMove;
+use shakmaty::{Move, Role};
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::io::BufReader;
@@ -43,7 +44,7 @@ impl Bot {
         }
     }
 
-    pub fn get_move(&self, fen: &str) -> String {
+    pub fn get_move(&self, fen: &str) -> UciMove {
         let mut engine = self.engine.borrow_mut();
 
         engine
@@ -65,6 +66,6 @@ impl Bot {
             .take_normal()
             .unwrap();
 
-        convert_notation_into_position(&best_move.r#move.to_string())
+        return best_move.r#move;
     }
 }
