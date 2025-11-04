@@ -1,7 +1,6 @@
-use ruci::{Engine, Go, NormalBestMove};
+use ruci::{Engine, Go};
 use shakmaty::fen::Fen;
 use shakmaty::uci::UciMove;
-use shakmaty::{Move, Role};
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::io::BufReader;

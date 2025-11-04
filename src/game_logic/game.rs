@@ -1,4 +1,5 @@
 use super::{bot::Bot, coord::Coord, game_board::GameBoard, opponent::Opponent, ui::UI};
+use crate::utils::flip_square_if_needed;
 use shakmaty::{Color, Move, Position, Role, Square};
 
 #[derive(Clone, Debug, PartialEq, Eq, Copy)]
@@ -127,15 +128,26 @@ impl Game {
         }
     }
     pub fn already_selected_cell_action(&mut self) {
+        if (self.ui.selected_square.is_none()) {
+            return;
+        }
+
         // We already selected a piece so we apply the move
         if self.ui.cursor_coordinates.is_valid() {
-            let selected_coords_usize = &self.ui.selected_coordinates.clone();
-            let cursor_coords_usize = &self.ui.cursor_coordinates.clone();
-
-            self.execute_move(
-                selected_coords_usize.to_square().unwrap(),
-                cursor_coords_usize.to_square().unwrap(),
+            let selected_coords_usize = &flip_square_if_needed(
+                self.ui.selected_square.unwrap(),
+                self.game_board.is_flipped,
             );
+
+            println!("selected_coords_usize: {:?}", selected_coords_usize);
+            println!("is_flipped: {:?}", self.game_board.is_flipped);
+
+            let actual_cursor_coords = flip_square_if_needed(
+                self.ui.cursor_coordinates.to_square().unwrap(),
+                self.game_board.is_flipped,
+            );
+
+            self.execute_move(*selected_coords_usize, actual_cursor_coords);
             self.ui.unselect_cell();
             self.switch_player_turn();
 
@@ -204,15 +216,17 @@ impl Game {
     }
 
     pub fn select_cell(&mut self) {
+        let square = self
+            .ui
+            .cursor_coordinates
+            .to_square()
+            .map(|s| Coord::from_square(s).to_square().unwrap())
+            .unwrap();
+        let actual_square = flip_square_if_needed(square, self.game_board.is_flipped);
+
         // Check if there is a piece on the cell or if the cells is the right color
-        if self
-            .game_board
-            .get_role_at_square(&self.ui.cursor_coordinates.to_square().unwrap())
-            .is_none()
-            || self
-                .game_board
-                .get_piece_color_at_square(&self.ui.cursor_coordinates.to_square().unwrap())
-                != Some(self.player_turn)
+        if self.game_board.get_role_at_square(&actual_square).is_none()
+            || self.game_board.get_piece_color_at_square(&actual_square) != Some(self.player_turn)
         {
             return;
         }
@@ -220,26 +234,36 @@ impl Game {
         // Check if the piece on the cell can move before selecting it
         let authorized_positions = self
             .game_board
-            .get_authorized_positions(self.player_turn, self.ui.cursor_coordinates);
+            .get_authorized_positions(self.player_turn, &actual_square);
+
+        // println!("coordinates: {:?}", coordinates);
+        // println!("authorized_positions: {:?}", authorized_positions);
+        // println!(
+        //     "board: {:?}",
+        //     self.game_board.position_history.last().unwrap().board()
+        // );
 
         if authorized_positions.is_empty() {
             return;
         }
-        if let Some(piece_color) = self
-            .game_board
-            .get_piece_color_at_square(&self.ui.cursor_coordinates.to_square().unwrap())
-        {
+        if let Some(piece_color) = self.game_board.get_piece_color_at_square(&actual_square) {
             let authorized_positions = self
                 .game_board
-                .get_authorized_positions(self.player_turn, self.ui.cursor_coordinates);
+                .get_authorized_positions(self.player_turn, &actual_square);
 
             if piece_color == self.player_turn {
-                self.ui.selected_coordinates = self.ui.cursor_coordinates;
+                self.ui.selected_square = Some(square);
                 self.ui.old_cursor_position = self.ui.cursor_coordinates;
+
+                let authorized_positions_flipped: Vec<Square> = authorized_positions
+                    .iter()
+                    .map(|s| flip_square_if_needed(*s, self.game_board.is_flipped))
+                    .collect();
+
                 self.ui.move_selected_piece_cursor(
                     true,
                     1,
-                    authorized_positions
+                    authorized_positions_flipped
                         .iter()
                         .map(|s| Coord::from_square(*s))
                         .collect(),
@@ -287,7 +311,7 @@ impl Game {
 
         self.game_board
             .position_history
-            .push(current_position.play(&bot_actual_move).unwrap().clone());
+            .push(current_position.play(&bot_actual_move).unwrap());
     }
 
     // Method to promote a pawn

@@ -21,6 +21,13 @@ impl Coord {
         self.row < 8 && self.col < 8
     }
 
+    pub fn reverse(&self) -> Self {
+        Self {
+            row: 7 - self.row,
+            col: 7 - self.col,
+        }
+    }
+
     /// Convert to shakmaty Square
     /// Our board representation: row 0 is rank 8, row 7 is rank 1
     pub fn to_square(&self) -> Option<Square> {

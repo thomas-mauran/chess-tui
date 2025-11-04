@@ -6,8 +6,9 @@ use crate::{
     constants::{DisplayMode, Pages, Popups},
     game_logic::{bot::Bot, coord::Coord, game::Game, opponent::Opponent},
     server::game_server::GameServer,
+    utils::flip_square_if_needed,
 };
-use shakmaty::Color;
+use shakmaty::{Color, Position, Square};
 use std::{
     error,
     fs::{self, File},
@@ -311,12 +312,24 @@ impl App {
     }
 
     pub fn go_left_in_game(&mut self) {
-        let authorized_positions = self
-            .game
-            .game_board
-            .get_authorized_positions(self.game.player_turn, self.game.ui.selected_coordinates);
+        let mut authorized_positions = vec![];
+        if (self.game.ui.selected_square.is_some()) {
+            authorized_positions = self.game.game_board.get_authorized_positions(
+                self.game.player_turn,
+                &flip_square_if_needed(
+                    self.game.ui.selected_square.unwrap(),
+                    self.game.game_board.is_flipped,
+                ),
+            );
+        }
+
+        let authorized_positions_flipped: Vec<Square> = authorized_positions
+            .iter()
+            .map(|s| flip_square_if_needed(*s, self.game.game_board.is_flipped))
+            .collect();
+
         self.game.ui.cursor_left(
-            authorized_positions
+            authorized_positions_flipped
                 .iter()
                 .map(|s| Coord::from_square(*s))
                 .collect(),
@@ -324,12 +337,24 @@ impl App {
     }
 
     pub fn go_right_in_game(&mut self) {
-        let authorized_positions = self
-            .game
-            .game_board
-            .get_authorized_positions(self.game.player_turn, self.game.ui.selected_coordinates);
+        let mut authorized_positions = vec![];
+        if (self.game.ui.selected_square.is_some()) {
+            authorized_positions = self.game.game_board.get_authorized_positions(
+                self.game.player_turn,
+                &flip_square_if_needed(
+                    self.game.ui.selected_square.unwrap(),
+                    self.game.game_board.is_flipped,
+                ),
+            );
+        }
+
+        let authorized_positions_flipped: Vec<Square> = authorized_positions
+            .iter()
+            .map(|s| flip_square_if_needed(*s, self.game.game_board.is_flipped))
+            .collect();
+
         self.game.ui.cursor_right(
-            authorized_positions
+            authorized_positions_flipped
                 .iter()
                 .map(|s| Coord::from_square(*s))
                 .collect(),
@@ -337,12 +362,24 @@ impl App {
     }
 
     pub fn go_up_in_game(&mut self) {
-        let authorized_positions = self
-            .game
-            .game_board
-            .get_authorized_positions(self.game.player_turn, self.game.ui.selected_coordinates);
+        let mut authorized_positions = vec![];
+        if (self.game.ui.selected_square.is_some()) {
+            authorized_positions = self.game.game_board.get_authorized_positions(
+                self.game.player_turn,
+                &flip_square_if_needed(
+                    self.game.ui.selected_square.unwrap(),
+                    self.game.game_board.is_flipped,
+                ),
+            );
+        }
+
+        let authorized_positions_flipped: Vec<Square> = authorized_positions
+            .iter()
+            .map(|s| flip_square_if_needed(*s, self.game.game_board.is_flipped))
+            .collect();
+
         self.game.ui.cursor_up(
-            authorized_positions
+            authorized_positions_flipped
                 .iter()
                 .map(|s| Coord::from_square(*s))
                 .collect(),
@@ -350,12 +387,24 @@ impl App {
     }
 
     pub fn go_down_in_game(&mut self) {
-        let authorized_positions = self
-            .game
-            .game_board
-            .get_authorized_positions(self.game.player_turn, self.game.ui.selected_coordinates);
+        let mut authorized_positions = vec![];
+        if (self.game.ui.selected_square.is_some()) {
+            authorized_positions = self.game.game_board.get_authorized_positions(
+                self.game.player_turn,
+                &flip_square_if_needed(
+                    self.game.ui.selected_square.unwrap(),
+                    self.game.game_board.is_flipped,
+                ),
+            );
+        }
+
+        let authorized_positions_flipped: Vec<Square> = authorized_positions
+            .iter()
+            .map(|s| flip_square_if_needed(*s, self.game.game_board.is_flipped))
+            .collect();
+
         self.game.ui.cursor_down(
-            authorized_positions
+            authorized_positions_flipped
                 .iter()
                 .map(|s| Coord::from_square(*s))
                 .collect(),

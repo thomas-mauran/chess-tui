@@ -1,6 +1,7 @@
 use crate::constants::Popups;
 use crate::game_logic::coord::Coord;
 use crate::game_logic::game::GameState;
+use crate::utils::{flip_square_if_needed, get_coord_from_square};
 use crate::{
     app::{App, AppResult},
     constants::Pages,
@@ -8,7 +9,7 @@ use crate::{
 use ratatui::crossterm::event::{
     KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
 };
-use shakmaty::{Piece, Role};
+use shakmaty::{Piece, Position, Role};
 
 /// Handles the key events and updates the state of [`App`].
 pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
@@ -19,9 +20,10 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
 
     if app.game.ui.mouse_used {
         app.game.ui.mouse_used = false;
-        if app.game.ui.selected_coordinates != Coord::undefined() {
-            app.game.ui.cursor_coordinates = app.game.ui.selected_coordinates;
-            app.game.ui.selected_coordinates = Coord::undefined();
+        if app.game.ui.selected_square.is_some() {
+            app.game.ui.cursor_coordinates =
+                get_coord_from_square(app.game.ui.selected_square, app.game.game_board.is_flipped);
+            app.game.ui.selected_square = None;
         } else {
             app.game.ui.cursor_coordinates.col = 4;
             app.game.ui.cursor_coordinates.row = 4;
@@ -263,17 +265,17 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
     if app.current_page == Pages::Home || app.current_page == Pages::Credit {
         return Ok(());
     }
+    // If the left mouse button is clicked
     if mouse_event.kind == MouseEventKind::Down(MouseButton::Left) {
+        // If the game is in a checkmate or draw state, do nothing
         if app.game.game_state == GameState::Checkmate || app.game.game_state == GameState::Draw {
             return Ok(());
         }
-
+        // If a popup is active, do nothing
         if app.current_popup.is_some() {
             return Ok(());
         }
-
-        // If there is a promotion to be done the top_x, top_y, width and height
-        // values are updated accordingly
+        // If there is a promotion to be done the top_x, top_y, width and height values are updated accordingly
         if app.game.game_state == GameState::Promotion {
             let x = (mouse_event.column - app.game.ui.top_x) / app.game.ui.width;
             let y = (mouse_event.row - app.game.ui.top_y) / app.game.ui.height;
@@ -286,9 +288,11 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
                 app.game.handle_multiplayer_promotion();
             }
         }
+        // If the click is outside the board, do nothing
         if mouse_event.column < app.game.ui.top_x || mouse_event.row < app.game.ui.top_y {
             return Ok(());
         }
+        // If the width or height is 0, do nothing
         if app.game.ui.width == 0 || app.game.ui.height == 0 {
             return Ok(());
         }
@@ -300,6 +304,7 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
             return Ok(());
         }
 
+        // Set the mouse_used flag to true to indicate that the mouse was used
         app.game.ui.mouse_used = true;
         let coords: Coord = Coord::new(y as u8, x as u8);
 
@@ -307,42 +312,61 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
         let piece_color = app
             .game
             .game_board
-            .get_piece_color_at_square(&coords.to_square().unwrap());
+            .get_piece_color_at_square(&flip_square_if_needed(
+                coords.to_square().unwrap(),
+                app.game.game_board.is_flipped,
+            ));
 
-        // We clicked on a cell with nothing and we have no piece selected -> do nothing
+        // If the clicked cell is empty
         if piece_color == None {
-            if app.game.ui.selected_coordinates == Coord::undefined() {
+            // And we previously didn't select a piece -> do nothing
+            if app.game.ui.selected_square.is_none() {
                 return Ok(());
             } else {
-                // We clicked on a cell with nothing having a piece selected -> check if this is a position in the authorized positions for the previously selected piece and if so handle cell click
+                // And we previously selected a piece -> check if this is a position in the authorized positions for the previously selected piece and if so handle cell click
                 // Get the authorized positions for the clicked square
                 let authorized_positions = app.game.game_board.get_authorized_positions(
                     app.game.player_turn,
-                    app.game.ui.selected_coordinates,
+                    &flip_square_if_needed(
+                        app.game.ui.selected_square.unwrap(),
+                        app.game.game_board.is_flipped,
+                    ),
                 );
 
-                if authorized_positions.contains(&coords.to_square().unwrap()) {
+                // If the clicked square is in the authorized positions, set the cursor coordinates and handle the cell click
+                if authorized_positions.contains(&flip_square_if_needed(
+                    coords.to_square().unwrap(),
+                    app.game.game_board.is_flipped,
+                )) {
                     app.game.ui.cursor_coordinates = coords;
                     app.game.handle_cell_click();
                 }
             }
         }
-
         // We clicked on a cell with a piece of the same color as the player turn -> select that piece instead of the old one
         if piece_color == Some(app.game.player_turn) {
-            app.game.ui.selected_coordinates = coords;
+            app.game.ui.selected_square = Some(coords.to_square().unwrap());
         } else {
-            // We clicked on a cell with a piece of the opposite color as the player turn -> check if this is a position in the authorized positions for the previously selected piece and if so handle cell click
-            let authorized_positions = app
-                .game
-                .game_board
-                .get_authorized_positions(app.game.player_turn, app.game.ui.selected_coordinates);
-
-            if authorized_positions.contains(&coords.to_square().unwrap()) {
-                app.game.ui.cursor_coordinates = coords;
-                app.game.handle_cell_click();
+            // We clicked on a cell with a piece of the opposite color as the player turn
+            if app.game.ui.selected_square.is_some() {
+                // And we previously selected a piece -> check if this is a position in the authorized positions for the previously selected piece and if so handle cell click
+                let authorized_positions = app.game.game_board.get_authorized_positions(
+                    app.game.player_turn,
+                    &flip_square_if_needed(
+                        app.game.ui.selected_square.unwrap(),
+                        app.game.game_board.is_flipped,
+                    ),
+                );
+                // If the clicked square is in the authorized positions, select the piece and handle the cell click
+                if authorized_positions.contains(&flip_square_if_needed(
+                    coords.to_square().unwrap(),
+                    app.game.game_board.is_flipped,
+                )) {
+                    app.game.ui.cursor_coordinates = coords;
+                    app.game.handle_cell_click();
+                }
             } else {
-                app.game.ui.selected_coordinates = Coord::undefined();
+                return Ok(());
             }
         }
     }

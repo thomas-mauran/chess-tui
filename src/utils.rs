@@ -6,7 +6,7 @@ use ratatui::{
     style::{Color, Stylize},
     widgets::{Block, Padding, Paragraph},
 };
-use shakmaty::{Move, Role, Square};
+use shakmaty::{board, Board, Position, Role, Square};
 
 pub fn color_to_ratatui_enum(piece_color: Option<shakmaty::Color>) -> Color {
     match piece_color {
@@ -16,26 +16,66 @@ pub fn color_to_ratatui_enum(piece_color: Option<shakmaty::Color>) -> Color {
     }
 }
 
+pub fn flip_square_if_needed(square: Square, is_flipped: bool) -> Square {
+    if is_flipped {
+        Coord::from_square(square)
+            .reverse()
+            .to_square()
+            .unwrap_or(square)
+    } else {
+        square
+    }
+}
+
+pub fn get_square_from_coord(coord: Coord, is_flipped: bool) -> Option<Square> {
+    if is_flipped {
+        coord.reverse().to_square()
+    } else {
+        coord.to_square()
+    }
+}
+
+pub fn get_coord_from_square(square: Option<Square>, is_flipped: bool) -> Coord {
+    if square.is_none() {
+        return Coord::undefined();
+    }
+
+    let s = square.unwrap();
+    if is_flipped {
+        Coord::from_square(s).reverse()
+    } else {
+        Coord::from_square(s)
+    }
+}
+
 pub fn get_cell_paragraph<'a>(
     game: &'a mut Game,
     cell_coordinates: &'a Coord,
     bounding_rect: Rect,
+    is_flipped: bool,
 ) -> Paragraph<'a> {
+    let mut board = game
+        .game_board
+        .position_history
+        .last()
+        .unwrap()
+        .board()
+        .clone();
+    if is_flipped {
+        board.flip_vertical();
+        board.flip_horizontal();
+    }
+
     use crate::pieces::{
         bishop::Bishop, king::King, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook,
     };
 
-    // Get piece and color
-    let piece_color = game
-        .game_board
-        .get_piece_color_at_square(&cell_coordinates.to_square().unwrap())
-        .map(|c| c.into())
-        .unwrap_or(None);
-    let piece_type = game
-        .game_board
-        .get_role_at_square(&cell_coordinates.to_square().unwrap())
-        .map(|r| r.into())
-        .unwrap_or(None);
+    let square = cell_coordinates.to_square().unwrap();
+
+    let piece = board.piece_at(square);
+
+    let piece_color = piece.map(|p| p.color).map(|c| c.into()).unwrap_or(None);
+    let piece_type = piece.map(|p| p.role).map(|r| r.into()).unwrap_or(None);
 
     let paragraph = match game.ui.display_mode {
         DisplayMode::DEFAULT => {
@@ -94,6 +134,12 @@ pub fn get_int_from_char(c: Option<char>) -> u8 {
         Some('h') | Some('7') => 7,
         _ => 0,
     }
+}
+
+pub fn get_opposite_square(square: Option<Square>) -> Option<Square> {
+    square
+        .map(|s| Coord::from_square(s).reverse().to_square())
+        .flatten()
 }
 
 /// Convert position format ("4644") to UCI notation (e.g., "e4e4")

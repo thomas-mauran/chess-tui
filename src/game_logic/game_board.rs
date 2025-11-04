@@ -1,4 +1,5 @@
 use super::coord::Coord;
+use crate::utils::flip_square_if_needed;
 use shakmaty::{Board, Chess, Color, Move, Piece, Position, Role, Square};
 
 /// ## visual representation
@@ -119,8 +120,12 @@ impl GameBoard {
 
     /// Get piece type at a coordinate (handles flipped board)
     pub fn get_role_at_square(&self, square: &Square) -> Option<Role> {
-        let chess = self.position_history.last().unwrap();
-        let piece = chess.board().piece_at(*square);
+        let piece = self
+            .position_history
+            .last()
+            .unwrap()
+            .board()
+            .piece_at(*square);
         if let Some(piece) = piece {
             Some(piece.role)
         } else {
@@ -128,21 +133,23 @@ impl GameBoard {
         }
     }
 
-    pub fn get_current_board(&mut self) -> Board {
-        let mut board = self.position_history.last().unwrap().board().clone();
-        if self.is_flipped {
-            board.mirror();
-        }
-        return board;
+    pub fn get_current_chess(&self) -> Chess {
+        let chess = self.position_history.last().unwrap().clone();
+        return chess;
     }
 
     pub fn is_square_occupied(&self, square: &Square) -> bool {
-        let chess = self.position_history.last().unwrap();
-        chess.board().piece_at(*square).is_some()
+        let board = self.position_history.last().unwrap().board().clone();
+        board.piece_at(*square).is_some()
     }
 
     pub fn get_piece_color_at_square(&mut self, square: &Square) -> Option<Color> {
-        let piece = self.position().board().piece_at(*square);
+        let piece = self
+            .position_history
+            .last()
+            .unwrap()
+            .board()
+            .piece_at(*square);
         if let Some(piece) = piece {
             Some(piece.color)
         } else {
@@ -151,25 +158,11 @@ impl GameBoard {
     }
 
     /// Get authorized positions for a piece at the given coordinate
-    pub fn get_authorized_positions(&self, player_turn: Color, coord: Coord) -> Vec<Square> {
-        if !coord.is_valid() {
-            return vec![];
-        }
-
-        // If board is flipped, we need to convert the coordinate back to standard orientation
-        // let actual_coord = if self.is_flipped {
-        //     Coord::new(7 - coord.row, 7 - coord.col)
-        // } else {
-        //     coord
-        // };
-        let chess = self.position_history.last().unwrap();
-        let from_square = match coord.to_square() {
-            Some(s) => s,
-            None => return vec![],
-        };
+    pub fn get_authorized_positions(&self, player_turn: Color, square: &Square) -> Vec<Square> {
+        let board = self.position_history.last().unwrap().board().clone();
 
         // Check if there's a piece at this position and it's the right color
-        if let Some(piece) = chess.board().piece_at(from_square) {
+        if let Some(piece) = board.piece_at(*square) {
             if piece.color != player_turn {
                 return vec![];
             }
@@ -178,10 +171,10 @@ impl GameBoard {
         }
 
         // Get all legal moves
-        chess
+        self.get_current_chess()
             .legal_moves()
             .iter()
-            .filter(|m| m.from() == Some(from_square))
+            .filter(|m| m.from() == Some(square.clone()))
             .map(|m| m.to())
             .collect()
     }
@@ -208,7 +201,7 @@ impl GameBoard {
 
     /// Check if game is checkmate
     pub fn is_checkmate(&self) -> bool {
-        let chess = self.position_history.last().unwrap();
+        let chess = self.get_current_chess();
         chess.is_checkmate()
     }
 
@@ -225,10 +218,10 @@ impl GameBoard {
 
     /// Get FEN position for UCI engine
     pub fn fen_position(&self, _is_bot_starting: bool, _player_turn: Color) -> String {
-        let chess = self.position_history.last().unwrap();
+        let chess = self.get_current_chess();
         // Use FEN display from shakmaty
         use shakmaty::fen::Fen;
-        let fen = Fen::from_position(chess.clone(), shakmaty::EnPassantMode::Legal);
+        let fen = Fen::from_position(chess, shakmaty::EnPassantMode::Legal);
         fen.to_string()
     }
 
@@ -265,19 +258,16 @@ impl GameBoard {
         promotion: Option<Role>,
     ) -> bool {
         // Get current position
-        let mut chess = self.position_history.last().unwrap().clone();
+        let mut chess = self.get_current_chess();
 
         // Check if there's a piece at the destination to track captures
         if let Some(captured_piece) = chess.board().piece_at(to) {
             self.taken_pieces.push(captured_piece);
         }
-        println!("From {:?}, {:?}", from, to);
-
         // Find the legal move that matches (use shakmaty Move directly)
         let binding = chess.legal_moves();
         let matching_move: Option<&Move> = binding.iter().find(|m| {
             // println!("{:?}", m);
-            println!("From {:?}, {:?}", from, to);
 
             m.from() == Some(from) && m.to() == to && {
                 if let Some(promo_type) = promotion {
@@ -316,10 +306,10 @@ impl GameBoard {
         // Convert coordinates to squares, accounting for flip
 
         // Get current position
-        let mut chess = self.position_history.last().unwrap().clone();
+        let mut chess = self.get_current_chess();
 
         // Check if there's a piece at the destination to track captures
-        if let Some(captured_piece) = chess.board().piece_at(to) {
+        if let Some(captured_piece) = self.position_history.last().unwrap().board().piece_at(to) {
             self.taken_pieces.push(captured_piece);
         }
 

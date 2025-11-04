@@ -3,7 +3,10 @@ use crate::{
     constants::{DisplayMode, BLACK, UNDEFINED_POSITION, WHITE},
     pieces::role_to_utf_enum,
     ui::{main_ui::render_cell, prompt::Prompt},
-    utils::get_cell_paragraph,
+    utils::{
+        flip_square_if_needed, get_cell_paragraph, get_coord_from_square, get_opposite_square,
+        get_square_from_coord,
+    },
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -12,14 +15,14 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Padding, Paragraph},
     Frame,
 };
-use shakmaty::{Role, Square};
+use shakmaty::{Position, Role, Square};
 
 #[derive(Clone)]
 pub struct UI {
     /// The cursor position
     pub cursor_coordinates: Coord,
-    /// The selected cell
-    pub selected_coordinates: Coord,
+    /// The selected square
+    pub selected_square: Option<Square>,
     /// The selected piece cursor when we already selected a piece
     pub selected_piece_cursor: i8,
     /// The cursor for The promotion popup
@@ -44,7 +47,7 @@ impl Default for UI {
     fn default() -> Self {
         UI {
             cursor_coordinates: Coord::new(4, 4),
-            selected_coordinates: Coord::undefined(),
+            selected_square: None,
             selected_piece_cursor: 0,
             promotion_cursor: 0,
             old_cursor_position: Coord::undefined(),
@@ -62,7 +65,7 @@ impl Default for UI {
 impl UI {
     pub fn reset(&mut self) {
         self.cursor_coordinates = Coord::new(4, 4);
-        self.selected_coordinates = Coord::undefined();
+        self.selected_square = None;
         self.selected_piece_cursor = 0;
         self.promotion_cursor = 0;
         self.old_cursor_position = Coord::undefined();
@@ -75,8 +78,7 @@ impl UI {
 
     /// Check if a cell has been selected
     pub fn is_cell_selected(&self) -> bool {
-        self.selected_coordinates.row != UNDEFINED_POSITION
-            && self.selected_coordinates.col != UNDEFINED_POSITION
+        self.selected_square.is_some()
     }
 
     /* Method to move the selected piece cursor
@@ -165,7 +167,7 @@ impl UI {
     /// Method to unselect a cell
     pub fn unselect_cell(&mut self) {
         if self.is_cell_selected() {
-            self.selected_coordinates = Coord::undefined();
+            self.selected_square = None;
             self.selected_piece_cursor = 0;
             self.cursor_coordinates = self.old_cursor_position;
         }
@@ -319,6 +321,28 @@ impl UI {
 
     /// Method to render the board
     pub fn board_render(&mut self, area: Rect, frame: &mut Frame<'_>, game: &mut Game) {
+        let mut board = game
+            .game_board
+            .position_history
+            .last()
+            .unwrap()
+            .board()
+            .clone();
+
+        // if the board is flipped, we need to flip the board
+        if game.game_board.is_flipped {
+            board.flip_vertical();
+            board.flip_horizontal();
+        }
+
+        let mut actual_square = self.selected_square;
+        if self.selected_square.is_some() {
+            actual_square = Some(flip_square_if_needed(
+                self.selected_square.unwrap(),
+                game.game_board.is_flipped,
+            ));
+        }
+
         let width = area.width / 8;
         let height = area.height / 8;
         let border_height = area.height / 2 - (4 * height);
@@ -378,6 +402,7 @@ impl UI {
                 let last_move;
                 let mut last_move_from: Option<Square> = None;
                 let mut last_move_to: Option<Square> = None;
+                // If the history is not empty, we get the last move
                 if !game.game_board.move_history.is_empty() {
                     last_move = game.game_board.move_history.last();
                     if game.bot.is_some()
@@ -399,30 +424,38 @@ impl UI {
                     }
                 }
 
-                let mut positions: Vec<Coord> = vec![];
+                let mut authorized_positions: Vec<Coord> = vec![];
                 let is_cell_in_positions = |positions: &Vec<Coord>, i: u8, j: u8| {
                     positions.iter().any(|&coord| coord == Coord::new(i, j))
                 };
+
                 // Draw the available moves for the selected piece
                 if self.is_cell_selected() {
-                    let selected_piece_color: Option<shakmaty::Color> = game
+                    let selected_piece_color = game
                         .game_board
-                        .get_piece_color_at_square(&self.selected_coordinates.to_square().unwrap())
-                        .map(|c| c.into());
+                        .get_piece_color_at_square(&actual_square.unwrap())
+                        .unwrap();
                     // only draw available moves if it is the right players turn
                     if match selected_piece_color {
-                        Some(color) => color == game.player_turn,
-                        None => false,
+                        shakmaty::Color::White => game.player_turn == shakmaty::Color::White,
+                        shakmaty::Color::Black => game.player_turn == shakmaty::Color::Black,
                     } {
-                        positions = game
+                        authorized_positions = game
                             .game_board
-                            .get_authorized_positions(game.player_turn, self.selected_coordinates)
+                            .get_authorized_positions(game.player_turn, &actual_square.unwrap())
                             .iter()
                             .map(|s| Coord::from_square(*s))
                             .collect();
 
+                        // println!("authorized_positions: {:?}", authorized_positions);
+
+                        if (game.game_board.is_flipped) {
+                            authorized_positions =
+                                authorized_positions.iter().map(|s| s.reverse()).collect();
+                        }
+
                         // Draw grey if the color is in the authorized positions
-                        for coords in positions.clone() {
+                        for coords in authorized_positions.clone() {
                             if i == coords.row && j == coords.col {
                                 // cell_color = Color::Rgb(100, 100, 100);
                             }
@@ -446,20 +479,24 @@ impl UI {
                     render_cell(frame, square, Color::LightBlue, None);
                 }
                 // Draw the cell magenta if the king is getting checked
-                else if game.game_board.is_getting_checked(game.player_turn)
+                else if game.game_board.is_getting_checked(game.player_turn) // TODO test with board flipped
                     && Coord::new(i, j) == game.game_board.get_king_coordinates(game.player_turn)
                 {
                     render_cell(frame, square, Color::Magenta, Some(Modifier::SLOW_BLINK));
                 }
                 // Draw the cell green if this is the selected cell or if the cell is part of the last move
-                else if (i == self.selected_coordinates.row && j == self.selected_coordinates.col)
-                    || (last_move_from == Coord::new(i, j).to_square()) // If the last move from
-                        || (last_move_to == Coord::new(i, j).to_square()) // If last move to
-                            && !is_cell_in_positions(&positions, i, j)
+                else if (i
+                    == get_coord_from_square(actual_square, game.game_board.is_flipped).row
+                    && j == get_coord_from_square(actual_square, game.game_board.is_flipped).col)
+                    || (last_move_from
+                        == get_square_from_coord(Coord::new(i, j), game.game_board.is_flipped))
+                    || (last_move_to
+                        == get_square_from_coord(Coord::new(i, j), game.game_board.is_flipped))
+                        && !is_cell_in_positions(&authorized_positions, i, j)
                 // and not in the authorized positions (grey instead of green)
                 {
                     render_cell(frame, square, Color::LightGreen, None);
-                } else if is_cell_in_positions(&positions, i, j) {
+                } else if is_cell_in_positions(&authorized_positions, i, j) {
                     render_cell(frame, square, Color::Rgb(100, 100, 100), None);
                 }
                 // else as a last resort we draw the cell with the default color either white or black
@@ -478,7 +515,8 @@ impl UI {
 
                 // Get piece and color
                 let coord = Coord::new(i, j);
-                let paragraph = get_cell_paragraph(game, &coord, square);
+                let paragraph =
+                    get_cell_paragraph(game, &coord, square, game.game_board.is_flipped);
                 frame.render_widget(paragraph, square);
             }
         }
