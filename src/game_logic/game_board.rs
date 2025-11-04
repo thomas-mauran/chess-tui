@@ -1,6 +1,6 @@
 use super::coord::Coord;
 use crate::utils::flip_square_if_needed;
-use shakmaty::{Board, Chess, Color, Move, Piece, Position, Role, Square};
+use shakmaty::{Board, Chess, Color, Move, Piece, Position, Rank, Role, Square};
 
 /// ## visual representation
 ///
@@ -110,9 +110,20 @@ impl GameBoard {
             || self.position().is_insufficient_material()
     }
 
+    // We check manually if the last move was a pawn to one of the promotion squares
     pub fn is_latest_move_promotion(&self) -> bool {
         if let Some(last_move) = self.move_history.last() {
-            return last_move.is_promotion();
+            // we check manually if the last move was a pawn to one of the promotion squares
+            if last_move.role() == Role::Pawn {
+                let rank = last_move.to().rank();
+                if rank == Rank::First || rank == Rank::Eighth {
+                    return true;
+                } else {
+                    return false;
+                }
+            } else {
+                false
+            }
         } else {
             false
         }

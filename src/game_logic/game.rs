@@ -93,6 +93,7 @@ impl Game {
     pub fn handle_cell_click(&mut self) {
         // If we are doing a promotion the cursor is used for the popup
         if self.game_state == GameState::Promotion {
+            println!("promotion");
             self.handle_promotion();
         } else if !(self.game_state == GameState::Checkmate)
             && !(self.game_state == GameState::Draw)
@@ -138,9 +139,6 @@ impl Game {
                 self.ui.selected_square.unwrap(),
                 self.game_board.is_flipped,
             );
-
-            println!("selected_coords_usize: {:?}", selected_coords_usize);
-            println!("is_flipped: {:?}", self.game_board.is_flipped);
 
             let actual_cursor_coords = flip_square_if_needed(
                 self.ui.cursor_coordinates.to_square().unwrap(),
