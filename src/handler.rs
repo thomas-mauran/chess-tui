@@ -39,6 +39,67 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
 
 fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
     match popup {
+        Popups::EnterPGNPath => match key_event.code {
+            KeyCode::Enter => {
+                use std::fs::OpenOptions;
+                use std::io::Write;
+                
+                let debug_log = |msg: &str| {
+                    if let Ok(mut file) = OpenOptions::new()
+                        .create(true)
+                        .append(true)
+                        .open("dbg.txt")
+                    {
+                        let _ = writeln!(file, "{}", msg);
+                    }
+                };
+                
+                debug_log("DEBUG: Enter pressed in PGN popup");
+                app.game.ui.prompt.submit_message();
+                let file_path = app.game.ui.prompt.message.clone();
+                debug_log(&format!("DEBUG: File path entered: '{}'", file_path));
+                
+                if !file_path.is_empty() {
+                    app.pgn_file_path = Some(file_path.clone());
+                    app.current_popup = None;
+                    debug_log(&format!("DEBUG: Attempting to load PGN file: {}", file_path));
+                    
+                    // Try to load the PGN file
+                    match app.load_pgn_file() {
+                        Ok(()) => {
+                            debug_log("DEBUG: Successfully loaded PGN file");
+                            log::info!("Successfully loaded PGN file");
+                            // Clear the prompt for next time
+                            app.game.ui.prompt.input.clear();
+                            app.game.ui.prompt.message.clear();
+                            app.game.ui.prompt.reset_cursor();
+                        }
+                        Err(e) => {
+                            debug_log(&format!("DEBUG: Failed to load PGN file: {}", e));
+                            log::error!("Failed to load PGN file: {}", e);
+                            // Show an error somehow - for now just log and clear
+                            app.pgn_file_path = None;
+                            // Don't reset the board - just stay as is
+                        }
+                    }
+                } else {
+                    debug_log("DEBUG: Empty file path, ignoring");
+                }
+            }
+            KeyCode::Char(to_insert) => app.game.ui.prompt.enter_char(to_insert),
+            KeyCode::Backspace => app.game.ui.prompt.delete_char(),
+            KeyCode::Left => app.game.ui.prompt.move_cursor_left(),
+            KeyCode::Right => app.game.ui.prompt.move_cursor_right(),
+            KeyCode::Esc => {
+                app.current_popup = None;
+                app.pgn_file_path = None;
+                // Clear the prompt
+                app.game.ui.prompt.input.clear();
+                app.game.ui.prompt.message.clear();
+                app.game.ui.prompt.reset_cursor();
+            }
+            _ => fallback_key_handler(app, key_event),
+        },
         Popups::EnterHostIP => match key_event.code {
             KeyCode::Enter => {
                 app.game.ui.prompt.submit_message();
@@ -148,6 +209,13 @@ fn handle_home_page_events(app: &mut App, key_event: KeyEvent) {
 fn handle_solo_page_events(app: &mut App, key_event: KeyEvent) {
     match key_event.code {
         KeyCode::Char('r') => app.restart(),
+        KeyCode::Char('p') => {
+            // Open PGN file load popup
+            app.current_popup = Some(Popups::EnterPGNPath);
+            app.game.ui.prompt.input.clear();
+            app.game.ui.prompt.message.clear();
+            app.game.ui.prompt.reset_cursor();
+        }
         KeyCode::Char('b') => {
             let display_mode = app.game.ui.display_mode;
             app.selected_color = None;

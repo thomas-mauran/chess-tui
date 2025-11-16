@@ -45,7 +45,7 @@ impl Prompt {
 
     pub fn enter_char(&mut self, new_char: char) {
         let index = self.byte_index();
-        if index < 40 {
+        if index < 200 {  // Increased limit for file paths
             self.input.insert(index, new_char);
             self.move_cursor_right();
         }

@@ -17,7 +17,7 @@ use crate::{
 };
 
 use super::popups::{
-    render_enter_multiplayer_ip, render_multiplayer_selection_popup, render_wait_for_other_player,
+    render_enter_multiplayer_ip, render_enter_pgn_path, render_multiplayer_selection_popup, render_wait_for_other_player,
 };
 use crate::{
     app::App,
@@ -85,6 +85,9 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
         }
         Some(Popups::EnterHostIP) => {
             render_enter_multiplayer_ip(frame, &app.game.ui.prompt);
+        }
+        Some(Popups::EnterPGNPath) => {
+            render_enter_pgn_path(frame, &app.game.ui.prompt);
         }
         Some(Popups::WaitingForOpponentToJoin) => {
             render_wait_for_other_player(frame, app.get_host_ip());
