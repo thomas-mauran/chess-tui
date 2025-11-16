@@ -7,6 +7,7 @@ use crate::{
     pieces::{pawn::Pawn, PieceColor, PieceMove, PieceType},
     utils::col_to_letter,
 };
+use schachmatt::{Fen, Position, Piece, PieceType as SMPieceType, PlayerColor, Field, CastlingRights};
 
 /// ## visual representation
 ///
@@ -532,4 +533,55 @@ impl GameBoard {
 
         result
     }
+
+    pub fn move_history_to_pgn_content(&self) -> String {
+        let mut pgn_content = String::new();
+        pgn_content.push_str("[Event \"\"");
+        pgn_content.push_str("[Site \"\"]");
+        pgn_content.push_str("[Date \"\"]");
+        pgn_content.push_str("[Round \"\"]");
+        pgn_content.push_str("[White \"\"]");
+        pgn_content.push_str("[Black \"\"]");
+        pgn_content.push_str("[Result \"\"]");
+        pgn_content.push_str("\n\n");
+        for move_entry in &self.move_history {
+            let mut board_setup: [[Option<Piece>; 8]; 8] = [[None; 8]; 8];
+            for i in 0..8 {
+                let mut column_setup: [Option<Piece>; 8] = [None; 8];
+                for j in 0..8 {
+                    let sm_piece_type = match self.board[i][j].unwrap().0 {
+                        PieceType::Pawn => SMPieceType::Pawn,
+                        PieceType::Knight => SMPieceType::Knight,
+                        PieceType::Bishop => SMPieceType::Bishop,
+                        PieceType::Rook => SMPieceType::Rook,
+                        PieceType::Queen => SMPieceType::Queen,
+                        PieceType::King => SMPieceType::King,
+                    };
+                    let sm_player_color = match self.board[i][j].unwrap().1 {
+                        PieceColor::White => PlayerColor::White,
+                        PieceColor::Black => PlayerColor::Black,
+                    };
+                    column_setup[j] = Some(Piece::new(sm_piece_type, sm_player_color));
+                }
+                board_setup[i] = column_setup;
+            }
+            let player_color = match move_entry.piece_color {
+                PieceColor::White => PlayerColor::White,
+                PieceColor::Black => PlayerColor::Black,
+            };
+            let position = Position::new(
+                board_setup,
+                player_color,
+                CastlingRights::new(false, false), // TODO: White Castling rights
+                CastlingRights::new(false, false), // TODO: Black Castling rights
+                None, // TODO: En-passant
+                0, // TODO: Halfmove clock
+                0, // TODO: Fullmove clocks
+            );
+            pgn_content.push_str(&Fen::export(&position));
+        }
+
+        pgn_content
+    }
+
 }
