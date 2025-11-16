@@ -19,6 +19,7 @@ log = "0.4.25"
 simplelog = "0.12.2"
 chrono = "0.4.39"
 shakmaty = { version = "0.27.3", default-features = false }
+schachmatt = "0.3.0"
 
 [features]
 chess-tui = []
