@@ -145,10 +145,15 @@ impl App {
             // Create a separate thread that checks in background if the game can start
             let stream_clone = self.game.opponent.clone().unwrap().stream.as_ref().unwrap().try_clone().unwrap();
             std::thread::spawn(move || {
-                wait_for_game_start(&stream_clone);
-                let _ = start_tx.send(());  // signals start_rx
+                    match wait_for_game_start(&stream_clone) {
+                        Ok(()) => {
+                                let _ = start_tx.send(());   // signals start_rx
+                        },
+                        Err(e) => log::warn!("Failed to start hosted game: {}", e)
+                    };
             });
-            // TODO: close the opened socket when the player exits after waiting for an opponent to join
+            // TODO: There still are some bugs: After the player exits before an opponent joins,
+            // if he selects Normal game or Multiplayer in the Main Menu, it won't work anymore.
         }
 
         if !self.hosting.unwrap() {

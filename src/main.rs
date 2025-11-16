@@ -5,7 +5,6 @@ use chess_tui::app::{App, AppResult};
 use chess_tui::constants::{home_dir, DisplayMode};
 use chess_tui::event::{Event, EventHandler};
 use chess_tui::game_logic::game::GameState;
-// use chess_tui::game_logic::opponent::wait_for_game_start;
 use chess_tui::handler::{handle_key_events, handle_mouse_events};
 use chess_tui::logging;
 use chess_tui::ui::tui::Tui;
@@ -145,21 +144,6 @@ fn main() -> AppResult<()> {
             }
             tui.draw(&mut app)?;
         }
-
-        // Problem: This blocks the main thread (loop) as it waits for wait_for_game_start() to end, so the input won't be processed until then
-        // Solution: We create a separate thread that runs wait_for_game_start() in background
-        // if app.game.opponent.is_some()
-        //     && app
-        //         .game
-        //         .opponent
-        //         .as_ref()
-        //         .is_some_and(|opponent| !opponent.game_started)
-        // {
-        //     let opponent = app.game.opponent.as_mut().unwrap();
-        //     wait_for_game_start(opponent.stream.as_ref().unwrap());
-        //     opponent.game_started = true;
-        //     app.current_popup = None;
-        // }
 
         // If it's the opponent turn, wait for the opponent to move
         if app.game.opponent.is_some()
