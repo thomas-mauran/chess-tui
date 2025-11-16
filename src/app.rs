@@ -7,6 +7,7 @@ use crate::{
     game_logic::{bot::Bot, game::Game, opponent::Opponent},
     pieces::PieceColor,
     server::game_server::GameServer,
+    game_logic::opponent::wait_for_game_start,
 };
 use std::{
     error,
@@ -43,6 +44,10 @@ pub struct App {
     pub log_level: LevelFilter,
     /// Bot thinking depth for chess engine
     pub bot_depth: u8,
+    
+    /// If player is hosting
+    /// Gets a signal when the opponent has joined and the game can start
+    pub game_start_rx: Option<std::sync::mpsc::Receiver<()>>,
 }
 
 impl Default for App {
@@ -59,6 +64,8 @@ impl Default for App {
             chess_engine_path: None,
             log_level: LevelFilter::Off,
             bot_depth: 10,
+            
+            game_start_rx: None,
         }
     }
 }
@@ -129,6 +136,21 @@ impl App {
         log::info!("Creating opponent with color: {:?}", other_player_color);
         self.game.opponent = Some(Opponent::new(addr_with_port, other_player_color));
 
+        if self.hosting.unwrap() {
+            log::info!("Starting background thread to monitor if the opponent is ready");
+            
+            let (start_tx, start_rx) = std::sync::mpsc::channel();
+            self.game_start_rx = Some(start_rx);
+
+            // Create a separate thread that checks in background if the game can start
+            let stream_clone = self.game.opponent.clone().unwrap().stream.as_ref().unwrap().try_clone().unwrap();
+            std::thread::spawn(move || {
+                wait_for_game_start(&stream_clone);
+                let _ = start_tx.send(());  // signals start_rx
+            });
+            // TODO: close the opened socket when the player exits after waiting for an opponent to join
+        }
+
         if !self.hosting.unwrap() {
             log::info!("Setting up client (non-host) player");
             self.selected_color = Some(self.game.opponent.as_mut().unwrap().color.opposite());
@@ -154,7 +176,16 @@ impl App {
     }
 
     /// Handles the tick event of the terminal.
-    pub fn tick(&self) {}
+    pub fn tick(&mut self) {
+        if let Some(start_rx) = &self.game_start_rx {
+            if let Ok(()) = start_rx.try_recv() {
+                if let Some(opponent) = &mut self.game.opponent {
+                    opponent.game_started = true;
+                    self.current_popup = None;
+                }
+            }
+        }
+    }
 
     /// Set running to false to quit the application.
     pub fn quit(&mut self) {

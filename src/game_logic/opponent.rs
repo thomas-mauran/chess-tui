@@ -197,11 +197,12 @@ pub fn get_color_from_stream(mut stream: &TcpStream) -> PieceColor {
 
 pub fn wait_for_game_start(mut stream: &TcpStream) {
     let mut buffer = [0; 5];
+    // BUG SOURCE: this function blocked the main thread as it waits until it reads something = until the opponent connects to the hosted game
     let bytes_read = stream.read(&mut buffer).unwrap(); // Number of bytes read
     let response = String::from_utf8_lossy(&buffer[..bytes_read]).to_string();
 
     match response.as_str() {
         "s" => (),
-        _ => panic!("Failed to get color from stream"),
-    }
+        _   => panic!("Failed to get color from stream")
+    };
 }
