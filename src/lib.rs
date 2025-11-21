@@ -25,4 +25,8 @@ pub mod utils;
 pub mod logging;
 
 // Chess pieces
+// Chess pieces
 pub mod pieces;
+
+// Configuration
+pub mod config;

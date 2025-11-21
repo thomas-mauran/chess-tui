@@ -441,7 +441,7 @@ pub fn render_multiplayer_selection_popup(frame: &mut Frame, app: &App) {
 
 // MULTIPLAYER POPUPS
 // This renders a popup indicating we are waiting for the other player
-pub fn render_wait_for_other_player(frame: &mut Frame, ip: IpAddr) {
+pub fn render_wait_for_other_player(frame: &mut Frame, ip: Option<IpAddr>) {
     let block = Block::default()
         .title("Waiting ...")
         .borders(Borders::ALL)
@@ -450,11 +450,15 @@ pub fn render_wait_for_other_player(frame: &mut Frame, ip: IpAddr) {
         .border_style(Style::default().fg(WHITE));
     let area = centered_rect(40, 40, frame.area());
 
+    let ip_str = ip
+        .map(|i| i.to_string())
+        .unwrap_or_else(|| "Unknown".to_string());
+
     let text = vec![
         Line::from(""),
         Line::from(""),
         Line::from("Waiting for other player").alignment(Alignment::Center),
-        Line::from(format!("Host IP address and port: {}:2308", ip)).alignment(Alignment::Center),
+        Line::from(format!("Host IP address and port: {}:2308", ip_str)).alignment(Alignment::Center),
     ];
 
     let paragraph = Paragraph::new(text)

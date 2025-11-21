@@ -38,7 +38,7 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
             app.current_popup = Some(Popups::MultiplayerSelection);
         } else if app.selected_color.is_none() && app.hosting.unwrap() {
             app.current_popup = Some(Popups::ColorSelection);
-        } else if app.game.opponent.is_none() {
+        } else if app.game.logic.opponent.is_none() {
             if app.host_ip.is_none() {
                 if app.hosting.is_some() && app.hosting.unwrap() {
                     app.setup_game_server(app.selected_color.unwrap());
@@ -49,7 +49,7 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
             } else {
                 app.create_opponent();
             }
-        } else if app.game.opponent.as_mut().unwrap().game_started {
+        } else if app.game.logic.opponent.as_mut().unwrap().game_started {
             render_game_ui(frame, app, main_area);
         }
     }
@@ -59,7 +59,7 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
             render_engine_path_error_popup(frame);
         } else if app.selected_color.is_none() {
             app.current_popup = Some(Popups::ColorSelection);
-        } else if app.game.bot.is_none() {
+        } else if app.game.logic.bot.is_none() {
             app.bot_setup();
         } else {
             render_game_ui(frame, app, main_area);
@@ -233,15 +233,16 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
     // We render the board_block in the center layout made above
     frame.render_widget(board_block.clone(), main_layout_vertical[1]);
 
-    let mut game_clone = app.game.clone();
-    app.game.ui.board_render(
+    // Split borrows to avoid borrow checker issue
+    let (ui, logic) = (&mut app.game.ui, &app.game.logic);
+    ui.board_render(
         board_block.inner(main_layout_vertical[1]),
         frame,
-        &mut game_clone,
-    ); // Mutable borrow now allowed
+        logic,
+    );
 
     //top box for white material
-    let black_taken = app.game.game_board.black_taken_pieces();
+    let black_taken = app.game.logic.game_board.black_taken_pieces();
     app.game
         .ui
         .black_material_render(board_block.inner(right_box_layout[0]), frame, &black_taken);
@@ -252,20 +253,20 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
         .history_render(board_block.inner(right_box_layout[1]), frame, &app.game);
 
     //bottom box for black matetrial
-    let white_taken = app.game.game_board.white_taken_pieces();
+    let white_taken = app.game.logic.game_board.white_taken_pieces();
     app.game
         .ui
         .white_material_render(board_block.inner(right_box_layout[2]), frame, &white_taken);
 
-    if app.game.game_state == GameState::Promotion {
+    if app.game.logic.game_state == GameState::Promotion {
         render_promotion_popup(frame, app);
     }
 
     // If the game ended (checkmate or draw) and there's no active popup yet,
     // open the EndScreen popup so it appears immediately instead of waiting for
     // another user interaction.
-    if app.game.game_state == GameState::Checkmate {
-        let victorious_player = app.game.player_turn.other();
+    if app.game.logic.game_state == GameState::Checkmate {
+        let victorious_player = app.game.logic.player_turn.other();
 
         let string_color = match victorious_player {
             shakmaty::Color::White => "White",
@@ -276,14 +277,14 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
             render_end_popup(
                 frame,
                 &format!("{string_color} Won !!!"),
-                app.game.opponent.is_some(),
+                app.game.logic.opponent.is_some(),
             );
         }
     }
 
-    if app.game.game_state == GameState::Draw {
+    if app.game.logic.game_state == GameState::Draw {
         if app.current_popup == Some(Popups::EndScreen) {
-            render_end_popup(frame, "That's a draw", app.game.opponent.is_some());
+            render_end_popup(frame, "That's a draw", app.game.logic.opponent.is_some());
         }
     }
 }

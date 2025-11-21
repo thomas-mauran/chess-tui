@@ -87,6 +87,11 @@ impl GameBoard {
         self.position_history.last_mut().unwrap()
     }
 
+    /// Gets a read-only reference to the last position in the history.
+    pub fn position_ref(&self) -> &Chess {
+        self.position_history.last().unwrap()
+    }
+
     // Check if the game is a draw by repetition
     pub fn is_draw_by_repetition(&self) -> bool {
         let mut position_counts = std::collections::HashMap::new();
@@ -102,11 +107,11 @@ impl GameBoard {
     }
 
     // Check if the game is a draw
-    pub fn is_draw(&mut self, _player_turn: Color) -> bool {
-        self.position().is_stalemate()
+    pub fn is_draw(&self, _player_turn: Color) -> bool {
+        self.position_ref().is_stalemate()
             || self.consecutive_non_pawn_or_capture == 50
             || self.is_draw_by_repetition()
-            || self.position().is_insufficient_material()
+            || self.position_ref().is_insufficient_material()
     }
 
     // We check manually if the last move was a pawn to one of the promotion squares
@@ -153,18 +158,9 @@ impl GameBoard {
         board.piece_at(*square).is_some()
     }
 
-    pub fn get_piece_color_at_square(&mut self, square: &Square) -> Option<Color> {
-        let piece = self
-            .position_history
-            .last()
-            .unwrap()
-            .board()
-            .piece_at(*square);
-        if let Some(piece) = piece {
-            Some(piece.color)
-        } else {
-            None
-        }
+    pub fn get_piece_color_at_square(&self, square: &Square) -> Option<Color> {
+        let piece = self.position_ref().board().piece_at(*square);
+        piece.map(|p| p.color)
     }
 
     /// Get authorized positions for a piece at the given coordinate
@@ -253,10 +249,51 @@ impl GameBoard {
             .collect()
     }
 
+    /// Execute a move on the board
+    /// Returns the executed Move if successful, None if illegal
+    pub fn execute_move(
+        &mut self,
+        from: Square,
+        to: Square,
+        promotion: Option<Role>,
+    ) -> Option<Move> {
+        let mut chess = self.get_current_chess();
+
+        // Track captures before executing move
+        if let Some(captured_piece) = chess.board().piece_at(to) {
+            self.taken_pieces.push(captured_piece);
+        }
+
+        // Find matching legal move
+        let legal_moves = chess.legal_moves();
+        let matching_move = legal_moves.iter().find(|m| {
+            m.from() == Some(from) && m.to() == to && {
+                match (promotion, m.promotion()) {
+                    (Some(promo), Some(move_promo)) => promo == move_promo,
+                    (None, None) => true,
+                    (None, Some(_)) => true, // Allow promotion moves without specifying
+                    (Some(_), None) => false, // Reject if we expect promotion but move has none
+                }
+            }
+        });
+
+        if let Some(shakmaty_move) = matching_move {
+            // Execute move
+            chess = chess.play(shakmaty_move).unwrap();
+            
+            // Update history
+            self.position_history.push(chess);
+            
+            Some(shakmaty_move.clone())
+        } else {
+            None
+        }
+    }
+
     // Execute a move on the shakmaty Chess position and sync the visual board
     // Optionally specify a promotion piece type
     pub fn execute_shakmaty_move(&mut self, from: Square, to: Square) -> bool {
-        self.execute_shakmaty_move_with_promotion(from, to, None)
+        self.execute_move(from, to, None).is_some()
     }
 
     /// Execute a move from standard (non-flipped) coordinates
@@ -267,43 +304,7 @@ impl GameBoard {
         to: Square,
         promotion: Option<Role>,
     ) -> Option<Move> {
-        // Get current position
-        let mut chess = self.get_current_chess();
-
-        // Check if there's a piece at the destination to track captures
-        if let Some(captured_piece) = chess.board().piece_at(to) {
-            self.taken_pieces.push(captured_piece);
-        }
-        // Find the legal move that matches (use shakmaty Move directly)
-        let binding = chess.legal_moves();
-        let matching_move: Option<&Move> = binding.iter().find(|m| {
-            // println!("{:?}", m);
-
-            m.from() == Some(from) && m.to() == to && {
-                if let Some(promo_type) = promotion {
-                    if let Some(promo_role) = m.promotion() {
-                        promo_role == promo_type
-                    } else {
-                        // we specified a promotion but the move has none
-                        false
-                    }
-                } else {
-                    true
-                }
-            }
-        });
-
-        if let Some(shakmaty_move) = matching_move {
-            // Execute the move in shakmaty
-            chess = chess.play(shakmaty_move).unwrap();
-
-            // Update position history
-            self.position_history.push(chess);
-
-            Some(shakmaty_move.clone())
-        } else {
-            None
-        }
+        self.execute_move(from, to, promotion)
     }
 
     /// Execute a move with optional promotion
@@ -313,44 +314,6 @@ impl GameBoard {
         to: Square,
         promotion: Option<Role>,
     ) -> bool {
-        // Convert coordinates to squares, accounting for flip
-
-        // Get current position
-        let mut chess = self.get_current_chess();
-
-        // Check if there's a piece at the destination to track captures
-        if let Some(captured_piece) = self.position_history.last().unwrap().board().piece_at(to) {
-            self.taken_pieces.push(captured_piece);
-        }
-
-        // Find the legal move that matches
-        let legal_moves = chess.legal_moves();
-        let matching_move = legal_moves.iter().find(|m| {
-            if m.from() == Some(from) && m.to() == to {
-                // If a promotion is specified, make sure it matches
-                if let Some(promo_type) = promotion {
-                    if let Some(promo_role) = m.promotion() {
-                        return promo_role == promo_type;
-                    }
-                    // If we specified a promotion but move doesn't have one, skip
-                    return false;
-                }
-                true
-            } else {
-                false
-            }
-        });
-
-        if let Some(shakmaty_move) = matching_move {
-            // Execute the move in shakmaty
-            chess = chess.play(shakmaty_move).unwrap();
-
-            // Update position history
-            self.position_history.push(chess);
-
-            true
-        } else {
-            false
-        }
+        self.execute_move(from, to, promotion).is_some()
     }
 }

@@ -21,7 +21,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         app.game.ui.mouse_used = false;
         if app.game.ui.selected_square.is_some() {
             app.game.ui.cursor_coordinates =
-                get_coord_from_square(app.game.ui.selected_square, app.game.game_board.is_flipped);
+                get_coord_from_square(app.game.ui.selected_square, app.game.logic.game_board.is_flipped);
             app.game.ui.selected_square = None;
         } else {
             app.game.ui.cursor_coordinates.col = 4;
@@ -115,9 +115,9 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
             KeyCode::Char('b' | 'B') => {
                 let display_mode = app.game.ui.display_mode;
                 app.selected_color = None;
-                app.game.bot = None;
+                app.game.logic.bot = None;
                 app.go_to_home();
-                app.game.game_board.reset();
+                app.game.logic.game_board.reset();
                 app.game.ui.reset();
                 app.game.ui.display_mode = display_mode;
                 app.current_popup = None;
@@ -153,9 +153,9 @@ fn handle_solo_page_events(app: &mut App, key_event: KeyEvent) {
         KeyCode::Char('b') => {
             let display_mode = app.game.ui.display_mode;
             app.selected_color = None;
-            app.game.bot = None;
+            app.game.logic.bot = None;
             app.go_to_home();
-            app.game.game_board.reset();
+            app.game.logic.game_board.reset();
             app.game.ui.reset();
             app.game.ui.display_mode = display_mode;
         }
@@ -164,18 +164,18 @@ fn handle_solo_page_events(app: &mut App, key_event: KeyEvent) {
 }
 
 fn chess_inputs(app: &mut App, key_event: KeyEvent) {
-    let is_playing = app.game.game_state == GameState::Playing;
+    let is_playing = app.game.logic.game_state == GameState::Playing;
 
     match key_event.code {
         KeyCode::Up | KeyCode::Char('k') if is_playing => app.go_up_in_game(),
         KeyCode::Down | KeyCode::Char('j') if is_playing => app.go_down_in_game(),
 
-        KeyCode::Right | KeyCode::Char('l') => match app.game.game_state {
+        KeyCode::Right | KeyCode::Char('l') => match app.game.logic.game_state {
             GameState::Promotion => app.game.ui.cursor_right_promotion(),
             GameState::Playing => app.go_right_in_game(),
             _ => (),
         },
-        KeyCode::Left | KeyCode::Char('h') => match app.game.game_state {
+        KeyCode::Left | KeyCode::Char('h') => match app.game.logic.game_state {
             GameState::Promotion => app.game.ui.cursor_left_promotion(),
             GameState::Playing => app.go_left_in_game(),
             GameState::Checkmate | GameState::Draw => {
@@ -190,14 +190,14 @@ fn chess_inputs(app: &mut App, key_event: KeyEvent) {
         KeyCode::Char(' ') | KeyCode::Enter => {
             app.game.handle_cell_click();
             // Check for checkmate or draw after the move and show end screen
-            if app.game.game_board.is_checkmate() {
-                app.game.game_state = GameState::Checkmate;
+            if app.game.logic.game_board.is_checkmate() {
+                app.game.logic.game_state = GameState::Checkmate;
                 app.show_end_screen();
-            } else if app.game.game_board.is_draw(app.game.player_turn) {
-                app.game.game_state = GameState::Draw;
+            } else if app.game.logic.game_board.is_draw(app.game.logic.player_turn) {
+                app.game.logic.game_state = GameState::Draw;
                 app.show_end_screen();
-            } else if app.game.game_state == GameState::Checkmate
-                || app.game.game_state == GameState::Draw
+            } else if app.game.logic.game_state == GameState::Checkmate
+                || app.game.logic.game_state == GameState::Draw
             {
                 // Game state already set, just show the screen
                 app.show_end_screen();
@@ -214,17 +214,17 @@ fn handle_multiplayer_page_events(app: &mut App, key_event: KeyEvent) {
         KeyCode::Char('b') => {
             let display_mode = app.game.ui.display_mode;
             app.selected_color = None;
-            app.game.bot = None;
+            app.game.logic.bot = None;
 
-            if let Some(opponent) = app.game.opponent.as_mut() {
+            if let Some(opponent) = app.game.logic.opponent.as_mut() {
                 opponent.send_end_game_to_server();
-                app.game.opponent = None;
+                app.game.logic.opponent = None;
                 app.hosting = None;
                 app.host_ip = None;
             }
 
             app.go_to_home();
-            app.game.game_board.reset();
+            app.game.logic.game_board.reset();
             app.game.ui.reset();
             app.game.ui.display_mode = display_mode;
         }
@@ -240,17 +240,17 @@ fn handle_bot_page_events(app: &mut App, key_event: KeyEvent) {
         KeyCode::Char('b') => {
             let display_mode = app.game.ui.display_mode;
             app.selected_color = None;
-            app.game.bot = None;
+            app.game.logic.bot = None;
 
-            if let Some(opponent) = app.game.opponent.as_mut() {
+            if let Some(opponent) = app.game.logic.opponent.as_mut() {
                 opponent.send_end_game_to_server();
-                app.game.opponent = None;
+                app.game.logic.opponent = None;
                 app.hosting = None;
                 app.host_ip = None;
             }
 
             app.go_to_home();
-            app.game.game_board.reset();
+            app.game.logic.game_board.reset();
             app.game.ui.reset();
             app.game.ui.display_mode = display_mode;
         }
@@ -282,7 +282,7 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
     // If the left mouse button is clicked
     if mouse_event.kind == MouseEventKind::Down(MouseButton::Left) {
         // If the game is in a checkmate or draw state, do nothing
-        if app.game.game_state == GameState::Checkmate || app.game.game_state == GameState::Draw {
+        if app.game.logic.game_state == GameState::Checkmate || app.game.logic.game_state == GameState::Draw {
             return Ok(());
         }
         // If a popup is active, do nothing
@@ -290,16 +290,16 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
             return Ok(());
         }
         // If there is a promotion to be done the top_x, top_y, width and height values are updated accordingly
-        if app.game.game_state == GameState::Promotion {
+        if app.game.logic.game_state == GameState::Promotion {
             let x = (mouse_event.column - app.game.ui.top_x) / app.game.ui.width;
             let y = (mouse_event.row - app.game.ui.top_y) / app.game.ui.height;
             if x > 3 || y > 0 {
                 return Ok(());
             }
             app.game.ui.promotion_cursor = x as i8;
-            app.game.promote_piece();
-            if app.game.opponent.is_some() {
-                app.game.handle_multiplayer_promotion();
+            app.game.handle_promotion();
+            if app.game.logic.opponent.is_some() {
+                app.game.logic.handle_multiplayer_promotion();
             }
         }
         // If the click is outside the board, do nothing
@@ -325,10 +325,11 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
         // Get the piece color of the clicked square
         let piece_color = app
             .game
+            .logic
             .game_board
             .get_piece_color_at_square(&flip_square_if_needed(
                 coords.to_square().unwrap(),
-                app.game.game_board.is_flipped,
+                app.game.logic.game_board.is_flipped,
             ));
 
         // If the clicked cell is empty
@@ -339,24 +340,24 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
             } else {
                 // And we previously selected a piece -> check if this is a position in the authorized positions for the previously selected piece and if so handle cell click
                 // Get the authorized positions for the clicked square
-                let authorized_positions = app.game.game_board.get_authorized_positions(
-                    app.game.player_turn,
+                let authorized_positions = app.game.logic.game_board.get_authorized_positions(
+                    app.game.logic.player_turn,
                     &flip_square_if_needed(
                         app.game.ui.selected_square.unwrap(),
-                        app.game.game_board.is_flipped,
+                        app.game.logic.game_board.is_flipped,
                     ),
                 );
 
                 // If the clicked square is in the authorized positions, set the cursor coordinates and handle the cell click
                 if authorized_positions.contains(&flip_square_if_needed(
                     coords.to_square().unwrap(),
-                    app.game.game_board.is_flipped,
+                    app.game.logic.game_board.is_flipped,
                 )) {
                     app.game.ui.cursor_coordinates = coords;
                     app.game.handle_cell_click();
                     // Check for checkmate or draw after the move and show end screen
-                    if app.game.game_state == GameState::Checkmate
-                        || app.game.game_state == GameState::Draw
+                    if app.game.logic.game_state == GameState::Checkmate
+                        || app.game.logic.game_state == GameState::Draw
                     {
                         app.show_end_screen();
                     }
@@ -364,29 +365,29 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
             }
         }
         // We clicked on a cell with a piece of the same color as the player turn -> select that piece instead of the old one
-        if piece_color == Some(app.game.player_turn) {
+        if piece_color == Some(app.game.logic.player_turn) {
             app.game.ui.selected_square = Some(coords.to_square().unwrap());
         } else {
             // We clicked on a cell with a piece of the opposite color as the player turn
             if app.game.ui.selected_square.is_some() {
                 // And we previously selected a piece -> check if this is a position in the authorized positions for the previously selected piece and if so handle cell click
-                let authorized_positions = app.game.game_board.get_authorized_positions(
-                    app.game.player_turn,
+                let authorized_positions = app.game.logic.game_board.get_authorized_positions(
+                    app.game.logic.player_turn,
                     &flip_square_if_needed(
                         app.game.ui.selected_square.unwrap(),
-                        app.game.game_board.is_flipped,
+                        app.game.logic.game_board.is_flipped,
                     ),
                 );
                 // If the clicked square is in the authorized positions, select the piece and handle the cell click
                 if authorized_positions.contains(&flip_square_if_needed(
                     coords.to_square().unwrap(),
-                    app.game.game_board.is_flipped,
+                    app.game.logic.game_board.is_flipped,
                 )) {
                     app.game.ui.cursor_coordinates = coords;
                     app.game.handle_cell_click();
                     // Check for checkmate or draw after the move and show end screen
-                    if app.game.game_state == GameState::Checkmate
-                        || app.game.game_state == GameState::Draw
+                    if app.game.logic.game_state == GameState::Checkmate
+                        || app.game.logic.game_state == GameState::Draw
                     {
                         app.show_end_screen();
                     }

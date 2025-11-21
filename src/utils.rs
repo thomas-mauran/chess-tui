@@ -49,33 +49,21 @@ pub fn get_coord_from_square(square: Option<Square>, is_flipped: bool) -> Coord 
 }
 
 pub fn get_cell_paragraph<'a>(
-    game: &'a mut Game,
-    cell_coordinates: &'a Coord,
-    bounding_rect: Rect,
+    game: &'a Game,
+    coord: &Coord,
+    square: Rect,
     is_flipped: bool,
 ) -> Paragraph<'a> {
-    let mut board = game
-        .game_board
-        .position_history
-        .last()
-        .unwrap()
-        .board()
-        .clone();
-    if is_flipped {
-        board.flip_vertical();
-        board.flip_horizontal();
-    }
-
     use crate::pieces::{
         bishop::Bishop, king::King, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook,
     };
 
-    let square = cell_coordinates.to_square().unwrap();
-
-    let piece = board.piece_at(square);
-
-    let piece_color = piece.map(|p| p.color).map(|c| c.into()).unwrap_or(None);
-    let piece_type = piece.map(|p| p.role).map(|r| r.into()).unwrap_or(None);
+    let square_index = get_square_from_coord(*coord, is_flipped).unwrap();
+    let piece_color = game
+        .logic
+        .game_board
+        .get_piece_color_at_square(&square_index);
+    let piece_type = game.logic.game_board.get_role_at_square(&square_index);
 
     let paragraph = match game.ui.display_mode {
         DisplayMode::DEFAULT => {
@@ -98,22 +86,25 @@ pub fn get_cell_paragraph<'a>(
                 .alignment(Alignment::Center)
         }
         DisplayMode::ASCII => {
-            let piece_enum = role_to_utf_enum(&piece_type.unwrap(), piece_color);
-            // Determine piece letter case
-            let paragraph = match piece_color {
-                // pieces belonging to the player on top will be lower case
-                Some(shakmaty::Color::Black) => Paragraph::new(piece_enum.to_lowercase()),
-                // pieces belonging to the player on bottom will be upper case
-                Some(shakmaty::Color::White) => {
-                    Paragraph::new(piece_enum.to_uppercase().underlined())
+            let paragraph = if let Some(role) = piece_type {
+                let piece_enum = role_to_utf_enum(&role, piece_color);
+                // Determine piece letter case
+                match piece_color {
+                    // pieces belonging to the player on top will be lower case
+                    Some(shakmaty::Color::Black) => Paragraph::new(piece_enum.to_lowercase()),
+                    // pieces belonging to the player on bottom will be upper case
+                    Some(shakmaty::Color::White) => {
+                        Paragraph::new(piece_enum.to_uppercase().underlined())
+                    }
+                    // Pass through original value
+                    None => Paragraph::new(piece_enum),
                 }
-                // Pass through original value
-                None => Paragraph::new(piece_enum),
+            } else {
+                Paragraph::new(" ")
             };
 
-            // Place the pieces on the board
             paragraph
-                .block(Block::new().padding(Padding::vertical(bounding_rect.height / 2)))
+                .block(Block::new().padding(Padding::vertical(square.height / 2)))
                 .alignment(Alignment::Center)
         }
     };
