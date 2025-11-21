@@ -8,7 +8,7 @@ use crate::{
     server::game_server::GameServer,
     utils::flip_square_if_needed,
 };
-use shakmaty::{Color, Position, Square};
+use shakmaty::{Color, Square};
 use std::{
     error,
     fs::{self, File},
@@ -242,6 +242,8 @@ impl App {
                 .as_ref()
                 .is_some_and(|bot| bot.is_bot_starting)
         {
+            // Flip the board once so Black player sees from their perspective
+            self.game.game_board.flip_the_board();
             self.game.execute_bot_move();
             self.game.player_turn = Color::Black;
         }
@@ -313,7 +315,7 @@ impl App {
 
     pub fn go_left_in_game(&mut self) {
         let mut authorized_positions = vec![];
-        if (self.game.ui.selected_square.is_some()) {
+        if self.game.ui.selected_square.is_some() {
             authorized_positions = self.game.game_board.get_authorized_positions(
                 self.game.player_turn,
                 &flip_square_if_needed(
@@ -338,7 +340,7 @@ impl App {
 
     pub fn go_right_in_game(&mut self) {
         let mut authorized_positions = vec![];
-        if (self.game.ui.selected_square.is_some()) {
+        if self.game.ui.selected_square.is_some() {
             authorized_positions = self.game.game_board.get_authorized_positions(
                 self.game.player_turn,
                 &flip_square_if_needed(
@@ -363,7 +365,7 @@ impl App {
 
     pub fn go_up_in_game(&mut self) {
         let mut authorized_positions = vec![];
-        if (self.game.ui.selected_square.is_some()) {
+        if self.game.ui.selected_square.is_some() {
             authorized_positions = self.game.game_board.get_authorized_positions(
                 self.game.player_turn,
                 &flip_square_if_needed(
@@ -388,7 +390,7 @@ impl App {
 
     pub fn go_down_in_game(&mut self) {
         let mut authorized_positions = vec![];
-        if (self.game.ui.selected_square.is_some()) {
+        if self.game.ui.selected_square.is_some() {
             authorized_positions = self.game.game_board.get_authorized_positions(
                 self.game.player_turn,
                 &flip_square_if_needed(

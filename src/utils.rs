@@ -6,7 +6,7 @@ use ratatui::{
     style::{Color, Stylize},
     widgets::{Block, Padding, Paragraph},
 };
-use shakmaty::{board, Board, Position, Role, Square};
+use shakmaty::{Position, Role, Square};
 
 pub fn color_to_ratatui_enum(piece_color: Option<shakmaty::Color>) -> Color {
     match piece_color {

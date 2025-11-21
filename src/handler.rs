@@ -9,7 +9,6 @@ use crate::{
 use ratatui::crossterm::event::{
     KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
 };
-use shakmaty::{Piece, Position, Role};
 
 /// Handles the key events and updates the state of [`App`].
 pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
@@ -188,7 +187,22 @@ fn chess_inputs(app: &mut App, key_event: KeyEvent) {
                 }
             }
         },
-        KeyCode::Char(' ') | KeyCode::Enter => app.game.handle_cell_click(),
+        KeyCode::Char(' ') | KeyCode::Enter => {
+            app.game.handle_cell_click();
+            // Check for checkmate or draw after the move and show end screen
+            if app.game.game_board.is_checkmate() {
+                app.game.game_state = GameState::Checkmate;
+                app.show_end_screen();
+            } else if app.game.game_board.is_draw(app.game.player_turn) {
+                app.game.game_state = GameState::Draw;
+                app.show_end_screen();
+            } else if app.game.game_state == GameState::Checkmate
+                || app.game.game_state == GameState::Draw
+            {
+                // Game state already set, just show the screen
+                app.show_end_screen();
+            }
+        }
         KeyCode::Char('?') => app.toggle_help_popup(),
         KeyCode::Esc => app.game.ui.unselect_cell(),
         _ => fallback_key_handler(app, key_event),
@@ -340,6 +354,12 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
                 )) {
                     app.game.ui.cursor_coordinates = coords;
                     app.game.handle_cell_click();
+                    // Check for checkmate or draw after the move and show end screen
+                    if app.game.game_state == GameState::Checkmate
+                        || app.game.game_state == GameState::Draw
+                    {
+                        app.show_end_screen();
+                    }
                 }
             }
         }
@@ -364,6 +384,12 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
                 )) {
                     app.game.ui.cursor_coordinates = coords;
                     app.game.handle_cell_click();
+                    // Check for checkmate or draw after the move and show end screen
+                    if app.game.game_state == GameState::Checkmate
+                        || app.game.game_state == GameState::Draw
+                    {
+                        app.show_end_screen();
+                    }
                 }
             } else {
                 return Ok(());

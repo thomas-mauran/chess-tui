@@ -172,8 +172,9 @@ fn main() -> AppResult<()> {
             if !app.game.game_board.is_checkmate()
                 && !app.game.game_board.is_draw(app.game.player_turn)
             {
-                app.game.execute_opponent_move();
-                app.game.switch_player_turn();
+                if app.game.execute_opponent_move() {
+                    app.game.switch_player_turn();
+                }
             }
 
             // need to be centralised

@@ -93,7 +93,6 @@ impl Game {
     pub fn handle_cell_click(&mut self) {
         // If we are doing a promotion the cursor is used for the popup
         if self.game_state == GameState::Promotion {
-            println!("promotion");
             self.handle_promotion();
         } else if !(self.game_state == GameState::Checkmate)
             && !(self.game_state == GameState::Draw)
@@ -129,7 +128,7 @@ impl Game {
         }
     }
     pub fn already_selected_cell_action(&mut self) {
-        if (self.ui.selected_square.is_none()) {
+        if self.ui.selected_square.is_none() {
             return;
         }
 
@@ -191,6 +190,7 @@ impl Game {
                 if self.game_board.is_latest_move_promotion() {
                     self.game_state = GameState::Promotion;
                 } else {
+                    println!("game_board: {:?}", self.game_board.is_checkmate());
                     if self.game_board.is_checkmate() {
                         self.game_state = GameState::Checkmate;
                     }
@@ -204,10 +204,13 @@ impl Game {
                             opponent.opponent_will_move = true;
                         }
                     }
-                    self.opponent
-                        .as_mut()
-                        .unwrap()
-                        .send_move_to_server(self.game_board.move_history.last().unwrap(), None);
+                    // check for the promotion piece
+                    let last_move_promotion =
+                        self.game_board.move_history.last().unwrap().promotion();
+                    self.opponent.as_mut().unwrap().send_move_to_server(
+                        self.game_board.move_history.last().unwrap(),
+                        last_move_promotion,
+                    );
                 }
             }
         }
@@ -233,13 +236,6 @@ impl Game {
         let authorized_positions = self
             .game_board
             .get_authorized_positions(self.player_turn, &actual_square);
-
-        // println!("coordinates: {:?}", coordinates);
-        // println!("authorized_positions: {:?}", authorized_positions);
-        // println!(
-        //     "board: {:?}",
-        //     self.game_board.position_history.last().unwrap().board()
-        // );
 
         if authorized_positions.is_empty() {
             return;
@@ -356,7 +352,6 @@ impl Game {
     }
 
     /// Move a piece from a cell to another
-    // TODO: Split this in multiple methods
     pub fn execute_move(&mut self, from: Square, to: Square) {
         // Check if moving a piece
         if self.game_board.get_role_at_square(&from).is_none() {
@@ -383,78 +378,83 @@ impl Game {
         });
     }
 
-    // TODO: fix the communication protocol
-    pub fn execute_opponent_move(&mut self) {
-        // let opponent_move = self.opponent.as_mut().unwrap().read_stream();
-        // self.game_board.flip_the_board();
-        // self.opponent.as_mut().unwrap().opponent_will_move = false;
+    pub fn execute_opponent_move(&mut self) -> bool {
+        let opponent_move = self.opponent.as_mut().unwrap().read_stream();
 
-        // if opponent_move.is_empty() {
-        //     return;
-        // }
+        if opponent_move.is_empty() {
+            return false;
+        }
 
-        // let from_y = get_int_from_char(opponent_move.chars().next());
-        // let from_x = get_int_from_char(opponent_move.chars().nth(1));
-        // let to_y = get_int_from_char(opponent_move.chars().nth(2));
-        // let to_x = get_int_from_char(opponent_move.chars().nth(3));
+        // We received a move, so we can stop waiting
+        self.opponent.as_mut().unwrap().opponent_will_move = false;
 
-        // let promotion_piece: Option<PieceType> = if opponent_move.chars().count() == 5 {
-        //     match opponent_move.chars().nth(4) {
-        //         Some('q') => Some(PieceType::Queen),
-        //         Some('r') => Some(PieceType::Rook),
-        //         Some('b') => Some(PieceType::Bishop),
-        //         Some('n') => Some(PieceType::Knight),
-        //         _ => None,
-        //     }
-        // } else {
-        //     None
-        // };
+        let mut chars = opponent_move.chars();
+        let from_file_char = chars.next();
+        let from_rank_char = chars.next();
+        let to_file_char = chars.next();
+        let to_x_char = chars.next();
 
-        // let from = Coord::new(from_y, from_x);
-        // let to = Coord::new(to_y, to_x);
+        let promotion_piece: Option<Role> = if opponent_move.chars().count() == 5 {
+            match opponent_move.chars().nth(4) {
+                Some('q') => Some(Role::Queen),
+                Some('r') => Some(Role::Rook),
+                Some('b') => Some(Role::Bishop),
+                Some('n') => Some(Role::Knight),
+                _ => None,
+            }
+        } else {
+            None
+        };
 
-        // // Get piece type before executing move
-        // // For opponent moves, we need to account for board flip to get the piece type correctly
-        // let visual_from = if self.game_board.is_flipped {
-        //     Coord::new(7 - from.row, 7 - from.col)
-        // } else {
-        //     from
-        // };
-        // let piece_type_from = self.game_board.get_piece_type(&from);
+        // The move is in standard chess notation (e.g., "e2e4")
+        // Files are letters (a-h), ranks are digits (1-8)
+        let from_str = format!(
+            "{}{}",
+            from_file_char.unwrap_or('a'),
+            from_rank_char.unwrap_or('1')
+        );
+        let to_str = format!(
+            "{}{}",
+            to_file_char.unwrap_or('a'),
+            to_x_char.unwrap_or('1')
+        );
 
-        // // Execute move with promotion if needed (using standard coordinates)
-        // if !self
-        //     .game_board
-        //     .execute_standard_move(from, to, promotion_piece)
-        // {
-        //     self.game_board.flip_the_board();
-        //     return;
-        // }
+        let from = Square::from_ascii(from_str.as_bytes()).unwrap();
+        let to = Square::from_ascii(to_str.as_bytes()).unwrap();
 
-        // // Store in history (use visual coordinates for history)
-        // if let Some(piece_type) = piece_type_from {
-        //     self.game_board.move_history.push(Move::Normal {
-        //         role: piece_type,
-        //         from: visual_from,
-        //         to: if self.game_board.is_flipped {
-        //             Coord::new(7 - to.row, 7 - to.col)
-        //         } else {
-        //             to
-        //         },
-        //     });
-        // }
+        let piece_type_from = self.game_board.get_role_at_square(&from);
 
-        // self.game_board.flip_the_board();
+        // Execute move with promotion if needed (using standard coordinates)
+        let executed_move = self
+            .game_board
+            .execute_standard_move(from, to, promotion_piece);
+
+        if executed_move.is_none() {
+            return false;
+        }
+
+        // Store in history (use visual coordinates for history)
+        if let Some(piece_type) = piece_type_from {
+            let move_to_store = executed_move.unwrap();
+            self.game_board.move_history.push(Move::Normal {
+                role: piece_type,
+                from: from,
+                capture: move_to_store.capture(),
+                to: to,
+                promotion: move_to_store.promotion(),
+            });
+        }
+        true
     }
 
     pub fn handle_multiplayer_promotion(&mut self) {
         let opponent = self.opponent.as_mut().unwrap();
 
-        let last_move_promotion_type = self.game_board.get_last_move_piece_type_as_string();
+        let last_move_promotion_type = self.game_board.move_history.last().unwrap().promotion();
 
         opponent.send_move_to_server(
             self.game_board.move_history.last().unwrap(),
-            Some(last_move_promotion_type),
+            last_move_promotion_type,
         );
         opponent.opponent_will_move = true;
     }

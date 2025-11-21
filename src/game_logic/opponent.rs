@@ -1,5 +1,5 @@
 use log;
-use shakmaty::{Color, Move};
+use shakmaty::{Color, Move, Role, Square};
 use std::{
     io::{Read, Write},
     net::TcpStream,
@@ -130,23 +130,39 @@ impl Opponent {
     }
 
     // TODO: Fix the protocol to send the move
-    pub fn send_move_to_server(&mut self, move_to_send: &Move, promotion_type: Option<String>) {
-        // if let Some(game_stream) = self.stream.as_mut() {
-        //     let move_str = format!(
-        //         "{}{}{}{}{}",
-        //         move_to_send.from.row,
-        //         move_to_send.from.col,
-        //         move_to_send.to.row,
-        //         move_to_send.to.col,
-        //         match promotion_type {
-        //             Some(promotion) => promotion,
-        //             None => "".to_string(),
-        //         }
-        //     );
-        //     if let Err(e) = game_stream.write_all(move_str.as_bytes()) {
-        //         eprintln!("Failed to send move: {}", e);
-        //     }
-        // }
+    pub fn send_move_to_server(&mut self, move_to_send: &Move, promotion_type: Option<Role>) {
+        let from = self.convert_position_to_string(move_to_send.from());
+        let to = self.convert_position_to_string(Some(move_to_send.to()));
+
+        if let Some(game_stream) = self.stream.as_mut() {
+            let move_str = format!(
+                "{}{}{}",
+                from,
+                to,
+                match promotion_type {
+                    Some(promotion) => match promotion {
+                        Role::Queen => "q",
+                        Role::Rook => "r",
+                        Role::Bishop => "b",
+                        Role::Knight => "n",
+                        _ => "",
+                    },
+                    None => "",
+                }
+            );
+            if let Err(e) = game_stream.write_all(move_str.as_bytes()) {
+                eprintln!("Failed to send move: {}", e);
+            }
+        }
+    }
+    // 192.168.1.28:2308
+
+    pub fn convert_position_to_string(&self, position: Option<Square>) -> String {
+        if position.is_none() {
+            return "".to_string();
+        }
+
+        return position.unwrap().to_string();
     }
 
     pub fn read_stream(&mut self) -> String {

@@ -1,10 +1,10 @@
 use super::{coord::Coord, game::Game};
 use crate::{
-    constants::{DisplayMode, BLACK, UNDEFINED_POSITION, WHITE},
+    constants::{DisplayMode, BLACK, WHITE},
     pieces::role_to_utf_enum,
     ui::{main_ui::render_cell, prompt::Prompt},
     utils::{
-        flip_square_if_needed, get_cell_paragraph, get_coord_from_square, get_opposite_square,
+        flip_square_if_needed, get_cell_paragraph, get_coord_from_square,
         get_square_from_coord,
     },
 };
@@ -449,7 +449,7 @@ impl UI {
 
                         // println!("authorized_positions: {:?}", authorized_positions);
 
-                        if (game.game_board.is_flipped) {
+                        if game.game_board.is_flipped {
                             authorized_positions =
                                 authorized_positions.iter().map(|s| s.reverse()).collect();
                         }

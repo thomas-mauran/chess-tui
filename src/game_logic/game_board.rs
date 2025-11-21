@@ -1,6 +1,5 @@
 use super::coord::Coord;
-use crate::utils::flip_square_if_needed;
-use shakmaty::{Board, Chess, Color, Move, Piece, Position, Rank, Role, Square};
+use shakmaty::{Chess, Color, Move, Piece, Position, Rank, Role, Square};
 
 /// ## visual representation
 ///
@@ -267,7 +266,7 @@ impl GameBoard {
         from: Square,
         to: Square,
         promotion: Option<Role>,
-    ) -> bool {
+    ) -> Option<Move> {
         // Get current position
         let mut chess = self.get_current_chess();
 
@@ -301,9 +300,9 @@ impl GameBoard {
             // Update position history
             self.position_history.push(chess);
 
-            true
+            Some(shakmaty_move.clone())
         } else {
-            false
+            None
         }
     }
 

@@ -265,11 +265,6 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
     // open the EndScreen popup so it appears immediately instead of waiting for
     // another user interaction.
     if app.game.game_state == GameState::Checkmate {
-        // To avoid showing the end screen if there is no popup (we clicked on h)
-        if app.current_popup.is_none() {
-            return;
-        }
-
         let victorious_player = app.game.player_turn.other();
 
         let string_color = match victorious_player {
@@ -287,10 +282,6 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
     }
 
     if app.game.game_state == GameState::Draw {
-        if app.current_popup.is_none() {
-            app.current_popup = Some(Popups::EndScreen);
-        }
-
         if app.current_popup == Some(Popups::EndScreen) {
             render_end_popup(frame, "That's a draw", app.game.opponent.is_some());
         }
