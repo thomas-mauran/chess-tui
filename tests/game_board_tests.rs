@@ -118,7 +118,7 @@ mod tests {
 
         // Now bishop should have moves
         let bishop_moves = game_board.get_authorized_positions(Color::White, &Square::F1);
-        assert!(bishop_moves.len() > 0);
+        assert!(!bishop_moves.is_empty());
         assert!(bishop_moves.contains(&Square::E2)); // Bishop can move to e2
         assert!(bishop_moves.contains(&Square::D3));
         assert!(bishop_moves.contains(&Square::C4));
@@ -580,7 +580,7 @@ mod tests {
         // Verify king has legal moves to escape (king can capture the bishop)
         let king_moves = game_board.get_authorized_positions(Color::Black, &Square::E8);
         assert!(
-            king_moves.len() > 0,
+            !king_moves.is_empty(),
             "King should have legal moves to escape check. Legal moves: {:?}",
             king_moves
         );

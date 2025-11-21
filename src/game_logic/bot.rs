@@ -65,6 +65,6 @@ impl Bot {
             .take_normal()
             .unwrap();
 
-        return best_move.r#move;
+        best_move.r#move
     }
 }

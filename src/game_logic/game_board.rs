@@ -1,5 +1,5 @@
 use super::coord::Coord;
-use shakmaty::{Chess, Color, Move, Piece, Position, Rank, Role, Square};
+use shakmaty::{san::San, Chess, Color, Move, Piece, Position, Rank, Role, Square};
 
 /// ## visual representation
 ///
@@ -59,6 +59,21 @@ impl GameBoard {
         }
     }
 
+    /// Convert a move to Standard Algebraic Notation (e.g., "e4", "Nf3", "O-O", "Qxd5+")
+    pub fn move_to_san(&self, move_index: usize) -> String {
+        if move_index >= self.move_history.len() || move_index >= self.position_history.len() {
+            return String::new();
+        }
+        
+        // Get the position before this move was made
+        let position = &self.position_history[move_index];
+        let chess_move = &self.move_history[move_index];
+        
+        // Convert to SAN using shakmaty
+        let san = San::from_move(position, chess_move);
+        san.to_string()
+    }
+
     pub fn increment_consecutive_non_pawn_or_capture(
         &mut self,
         role_from: Role,
@@ -92,6 +107,16 @@ impl GameBoard {
         self.position_history.last().unwrap()
     }
 
+    /// Gets a read-only reference to the current position, or None if history is empty
+    pub fn current_position(&self) -> Option<&Chess> {
+        self.position_history.last()
+    }
+
+    /// Gets a mutable reference to the current position, or None if history is empty
+    pub fn current_position_mut(&mut self) -> Option<&mut Chess> {
+        self.position_history.last_mut()
+    }
+
     // Check if the game is a draw by repetition
     pub fn is_draw_by_repetition(&self) -> bool {
         let mut position_counts = std::collections::HashMap::new();
@@ -120,11 +145,7 @@ impl GameBoard {
             // we check manually if the last move was a pawn to one of the promotion squares
             if last_move.role() == Role::Pawn {
                 let rank = last_move.to().rank();
-                if rank == Rank::First || rank == Rank::Eighth {
-                    return true;
-                } else {
-                    return false;
-                }
+                rank == Rank::First || rank == Rank::Eighth
             } else {
                 false
             }
@@ -141,16 +162,12 @@ impl GameBoard {
             .unwrap()
             .board()
             .piece_at(*square);
-        if let Some(piece) = piece {
-            Some(piece.role)
-        } else {
-            None
-        }
+        piece.map(|piece| piece.role)
     }
 
     pub fn get_current_chess(&self) -> Chess {
         let chess = self.position_history.last().unwrap().clone();
-        return chess;
+        chess
     }
 
     pub fn is_square_occupied(&self, square: &Square) -> bool {
@@ -180,7 +197,7 @@ impl GameBoard {
         self.get_current_chess()
             .legal_moves()
             .iter()
-            .filter(|m| m.from() == Some(square.clone()))
+            .filter(|m| m.from() == Some(*square))
             .map(|m| m.to())
             .collect()
     }

@@ -4,7 +4,7 @@ use crate::{
     pieces::role_to_utf_enum,
     ui::{main_ui::render_cell, prompt::Prompt},
     utils::{
-        flip_square_if_needed, get_cell_paragraph, get_coord_from_square,
+        flip_square_if_needed, get_coord_from_square,
         get_square_from_coord,
     },
 };
@@ -243,11 +243,7 @@ impl UI {
             let role_from = game.logic.game_board.move_history[i].role();
 
             let utf_icon_white = role_to_utf_enum(&role_from, Some(shakmaty::Color::White));
-            let move_white = &format!(
-                "{}{}",
-                game.logic.game_board.move_history[i].from().unwrap(),
-                game.logic.game_board.move_history[i].to(),
-            );
+            let move_white = game.logic.game_board.move_to_san(i);
 
             let mut utf_icon_black = "   ";
             let mut move_black: String = "   ".to_string();
@@ -256,21 +252,16 @@ impl UI {
             if i + 1 < game.logic.game_board.move_history.len() {
                 let role_to = game.logic.game_board.move_history[i + 1].role();
 
-                move_black = format!(
-                    "{}{}",
-                    game.logic.game_board.move_history[i + 1].from().unwrap(),
-                    game.logic.game_board.move_history[i + 1].to(),
-                );
+                move_black = game.logic.game_board.move_to_san(i + 1);
                 utf_icon_black = role_to_utf_enum(&role_to, Some(shakmaty::Color::Black));
             }
 
             lines.push(Line::from(vec![
-                Span::raw(format!("{}.  ", i / 2 + 1)), // line number
+                Span::raw(format!("{}. ", i / 2 + 1)), // line number
                 Span::styled(format!("{utf_icon_white} "), Style::default().fg(WHITE)), // white symbol
-                Span::raw(move_white.to_string()), // white move
-                Span::raw("     "),                // separator
+                Span::raw(format!("{:<8}", move_white)), // white move (left-aligned, 8 chars)
                 Span::styled(format!("{utf_icon_black} "), Style::default().fg(WHITE)), // black symbol
-                Span::raw(move_black.to_string()), // black move
+                Span::raw(move_black), // black move
             ]));
         }
 

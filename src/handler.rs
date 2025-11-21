@@ -323,17 +323,22 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
         let coords: Coord = Coord::new(y as u8, x as u8);
 
         // Get the piece color of the clicked square
+        let square = match coords.try_to_square() {
+            Some(s) => s,
+            None => return Ok(()), // Invalid coordinates, ignore click
+        };
+        
         let piece_color = app
             .game
             .logic
             .game_board
             .get_piece_color_at_square(&flip_square_if_needed(
-                coords.to_square().unwrap(),
+                square,
                 app.game.logic.game_board.is_flipped,
             ));
 
         // If the clicked cell is empty
-        if piece_color == None {
+        if piece_color.is_none() {
             // And we previously didn't select a piece -> do nothing
             if app.game.ui.selected_square.is_none() {
                 return Ok(());
@@ -350,7 +355,7 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
 
                 // If the clicked square is in the authorized positions, set the cursor coordinates and handle the cell click
                 if authorized_positions.contains(&flip_square_if_needed(
-                    coords.to_square().unwrap(),
+                    square,
                     app.game.logic.game_board.is_flipped,
                 )) {
                     app.game.ui.cursor_coordinates = coords;
@@ -366,7 +371,7 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
         }
         // We clicked on a cell with a piece of the same color as the player turn -> select that piece instead of the old one
         if piece_color == Some(app.game.logic.player_turn) {
-            app.game.ui.selected_square = Some(coords.to_square().unwrap());
+            app.game.ui.selected_square = Some(square);
         } else {
             // We clicked on a cell with a piece of the opposite color as the player turn
             if app.game.ui.selected_square.is_some() {
@@ -380,7 +385,7 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
                 );
                 // If the clicked square is in the authorized positions, select the piece and handle the cell click
                 if authorized_positions.contains(&flip_square_if_needed(
-                    coords.to_square().unwrap(),
+                    square,
                     app.game.logic.game_board.is_flipped,
                 )) {
                     app.game.ui.cursor_coordinates = coords;

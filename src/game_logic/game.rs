@@ -54,6 +54,7 @@ impl Default for GameLogic {
     }
 }
 
+#[derive(Default)]
 pub struct Game {
     pub logic: GameLogic,
     /// The struct to handle UI related stuff
@@ -69,14 +70,6 @@ impl Clone for Game {
     }
 }
 
-impl Default for Game {
-    fn default() -> Self {
-        Self {
-            logic: GameLogic::default(),
-            ui: UI::default(),
-        }
-    }
-}
 
 impl Game {
     // SETTERS
@@ -414,9 +407,9 @@ impl GameLogic {
         // We store it in the history
         self.game_board.move_history.push(Move::Normal {
             role: role_from.unwrap(),
-            from: from,
+            from,
             capture: None, // TODO FIX THAT
-            to: to,
+            to,
             promotion: None, // TODO FIX THAT
         });
     }
@@ -497,9 +490,9 @@ impl GameLogic {
             let move_to_store = executed_move.unwrap();
             self.game_board.move_history.push(Move::Normal {
                 role: piece_type,
-                from: from,
+                from,
                 capture: move_to_store.capture(),
-                to: to,
+                to,
                 promotion: move_to_store.promotion(),
             });
         }

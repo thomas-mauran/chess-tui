@@ -6,7 +6,7 @@ use ratatui::{
     style::{Color, Stylize},
     widgets::{Block, Padding, Paragraph},
 };
-use shakmaty::{Position, Role, Square};
+use shakmaty::{Role, Square};
 
 pub fn color_to_ratatui_enum(piece_color: Option<shakmaty::Color>) -> Color {
     match piece_color {
@@ -129,8 +129,7 @@ pub fn get_int_from_char(c: Option<char>) -> u8 {
 
 pub fn get_opposite_square(square: Option<Square>) -> Option<Square> {
     square
-        .map(|s| Coord::from_square(s).reverse().to_square())
-        .flatten()
+        .and_then(|s| Coord::from_square(s).reverse().to_square())
 }
 
 /// Convert position format ("4644") to UCI notation (e.g., "e4e4")

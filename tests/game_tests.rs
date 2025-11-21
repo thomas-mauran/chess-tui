@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use chess_tui::game_logic::game::{Game, GameState};
-    use chess_tui::game_logic::game_board::GameBoard;
+    
     use shakmaty::{Color, Square};
 
     #[test]

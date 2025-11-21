@@ -162,12 +162,8 @@ fn main() -> AppResult<()> {
         {
             tui.draw(&mut app)?;
 
-            if !app.game.logic.game_board.is_checkmate()
-                && !app.game.logic.game_board.is_draw(app.game.logic.player_turn)
-            {
-                if app.game.logic.execute_opponent_move() {
-                    app.game.switch_player_turn();
-                }
+            if !app.game.logic.game_board.is_checkmate() && !app.game.logic.game_board.is_draw(app.game.logic.player_turn) && app.game.logic.execute_opponent_move() {
+                app.game.switch_player_turn();
             }
 
             // need to be centralised
@@ -234,7 +230,8 @@ fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResu
         config.bot_depth = Some(args.depth);
     }
 
-    let toml_string = toml::to_string(&config).unwrap();
+    let toml_string = toml::to_string(&config)
+        .expect("Failed to serialize config to TOML. This is a bug, please report it.");
     let mut file = File::create(config_path)?;
     file.write_all(toml_string.as_bytes())?;
 
@@ -263,7 +260,7 @@ mod tests {
         assert!(result.is_ok());
         assert!(config_path.exists());
 
-        let content = fs::read_to_string(config_path).unwrap();
+        let content = fs::read_to_string(&config_path).unwrap();
         let config: Config = toml::from_str(&content).unwrap();
 
         assert_eq!(
@@ -274,7 +271,8 @@ mod tests {
             config.display_mode.unwrap(),
             "DEFAULT"
         );
-        let removed = fs::remove_dir_all(home_dir.join(".test"));
+        assert_eq!(config.bot_depth.unwrap(), 10);
+        let removed = fs::remove_file(config_path);
         assert!(removed.is_ok());
     }
 }
