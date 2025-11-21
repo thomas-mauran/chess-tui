@@ -1,22 +1,21 @@
 use crate::config::Config;
+use crate::constants::{DisplayMode, Pages, Popups};
+use crate::game_logic::bot::Bot;
+use crate::game_logic::coord::Coord;
+use crate::game_logic::game::Game;
+use crate::game_logic::opponent::Opponent;
+use crate::server::game_server::GameServer;
+use crate::utils::flip_square_if_needed;
 use dirs::home_dir;
 use log::LevelFilter;
-
-use crate::{
-    constants::{DisplayMode, Pages, Popups},
-    game_logic::{bot::Bot, coord::Coord, game::Game, opponent::Opponent},
-    server::game_server::GameServer,
-    utils::flip_square_if_needed,
-};
-use shakmaty::{Color, Square};
-use std::{
-    error,
-    fs::{self, File},
-    io::Write,
-    net::{IpAddr, UdpSocket},
-    thread::sleep,
-    time::Duration,
-};
+use shakmaty::{Color, Move, Square};
+use std::error;
+use std::fs::{self, File};
+use std::io::Write;
+use std::net::{IpAddr, UdpSocket};
+use std::sync::mpsc::{channel, Receiver};
+use std::thread::sleep;
+use std::time::Duration;
 
 /// Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
@@ -44,6 +43,8 @@ pub struct App {
     pub log_level: LevelFilter,
     /// Bot thinking depth for chess engine
     pub bot_depth: u8,
+    /// Bot thinking channel receiver
+    pub bot_move_receiver: Option<Receiver<Move>>,
 }
 
 impl Default for App {
@@ -60,6 +61,7 @@ impl Default for App {
             chess_engine_path: None,
             log_level: LevelFilter::Off,
             bot_depth: 10,
+            bot_move_receiver: None,
         }
     }
 }
@@ -166,6 +168,87 @@ impl App {
     /// Handles the tick event of the terminal.
     pub fn tick(&self) {}
 
+    /// Start bot thinking in a separate thread
+    pub fn start_bot_thinking(&mut self) {
+        // Don't start if already thinking
+        if self.bot_move_receiver.is_some() {
+            return;
+        }
+
+        let bot = match &self.game.logic.bot {
+            Some(b) => b,
+            None => return,
+        };
+
+        // Get current game state
+        let fen = self.game.logic.game_board.fen_position(
+            bot.is_bot_starting,
+            self.game.logic.player_turn,
+        );
+        let engine_path = self.chess_engine_path.clone().unwrap_or_default();
+        let depth = bot.depth;
+
+        // Create channel for communication
+        let (tx, rx) = channel();
+        self.bot_move_receiver = Some(rx);
+
+        // Spawn thread to compute bot move
+        std::thread::spawn(move || {
+            // Create bot instance in thread
+            let bot = Bot::new(&engine_path, false, depth);
+            let uci_move = bot.get_move(&fen);
+            
+            // Convert UCI move to shakmaty Move
+            let position: Option<shakmaty::Chess> = shakmaty::fen::Fen::from_ascii(fen.as_bytes())
+                .ok()
+                .and_then(|fen| fen.into_position(shakmaty::CastlingMode::Standard).ok());
+            
+            if let Some(pos) = position {
+                if let Ok(chess_move) = uci_move.to_move(&pos) {
+                    let _ = tx.send(chess_move);
+                }
+            }
+        });
+    }
+
+    /// Check if bot move is ready and apply it
+    pub fn check_bot_move(&mut self) -> bool {
+        if let Some(rx) = &self.bot_move_receiver {
+            if let Ok(bot_move) = rx.try_recv() {
+                // Apply the bot move
+                self.apply_bot_move(bot_move);
+                self.bot_move_receiver = None;
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Apply a bot move to the game
+    fn apply_bot_move(&mut self, bot_move: Move) {
+        use shakmaty::Position;
+        
+        let current_position = self.game.logic.game_board.position_history.last().unwrap().clone();
+        
+        // Store in history
+        self.game.logic.game_board.move_history.push(Move::Normal {
+            role: bot_move.role(),
+            from: bot_move.from().unwrap(),
+            capture: bot_move.capture(),
+            to: bot_move.to(),
+            promotion: bot_move.promotion(),
+        });
+
+        self.game.logic.game_board
+            .position_history
+            .push(current_position.play(&bot_move).unwrap());
+    }
+
+    /// Check if bot is currently thinking
+    pub fn is_bot_thinking(&self) -> bool {
+        self.bot_move_receiver.is_some()
+    }
+
     /// Set running to false to quit the application.
     pub fn quit(&mut self) {
         self.running = false;
@@ -223,7 +306,11 @@ impl App {
                 // Flip the board once so Black player sees from their perspective
                 self.game.logic.game_board.flip_the_board();
 
-                self.game.logic.execute_bot_move();
+                if self.game.logic.bot.is_some()
+                    && self.game.logic.player_turn != self.selected_color.unwrap()
+                {
+                    self.start_bot_thinking();
+                }
                 self.game.logic.player_turn = Color::Black;
             }
         }
@@ -254,7 +341,9 @@ impl App {
         {
             // Flip the board once so Black player sees from their perspective
             self.game.logic.game_board.flip_the_board();
-            self.game.logic.execute_bot_move();
+            if self.game.logic.bot.is_some() {
+                self.start_bot_thinking();
+            }
             self.game.logic.player_turn = Color::Black;
         }
     }

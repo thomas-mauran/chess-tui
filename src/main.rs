@@ -120,12 +120,22 @@ fn main() -> AppResult<()> {
             Event::Mouse(mouse_event) => handle_mouse_events(mouse_event, &mut app)?,
             Event::Resize(_, _) => {}
         }
-        if app.game.logic.bot.is_some() && app.game.logic.bot.as_ref().is_some_and(|bot| bot.bot_will_move) {
-            app.game.logic.execute_bot_move();
-            app.game.switch_player_turn();
+        
+        // Check if bot should start thinking
+        if app.game.logic.bot.is_some() 
+            && app.game.logic.bot.as_ref().is_some_and(|bot| bot.bot_will_move) 
+            && !app.is_bot_thinking()
+        {
+            app.start_bot_thinking();
             if let Some(bot) = app.game.logic.bot.as_mut() {
                 bot.bot_will_move = false;
             }
+        }
+
+        // Check if bot move is ready
+        if app.check_bot_move() {
+            app.game.switch_player_turn();
+            
             // need to be centralised
             if app.game.logic.game_board.is_checkmate() {
                 app.game.logic.game_state = GameState::Checkmate;
@@ -134,7 +144,6 @@ fn main() -> AppResult<()> {
                 app.game.logic.game_state = GameState::Draw;
                 app.show_end_screen();
             }
-            tui.draw(&mut app)?;
         }
 
         if app.game.logic.opponent.is_some()

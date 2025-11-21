@@ -26,8 +26,18 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: 'Code Architecture', 
-      items: ['Code Architecture/Intro', 'Code Architecture/Pieces', 'Code Architecture/Game'], 
+      label: 'Code Architecture',
+      items: [
+        'Code Architecture/Intro',
+        'Code Architecture/Game',
+        'Code Architecture/Pieces',
+        'Code Architecture/App',
+        'Code Architecture/GameLogic',
+        'Code Architecture/GameBoard',
+        'Code Architecture/UI',
+        'Code Architecture/Bot',
+        'Code Architecture/Opponent',
+      ],
     },
   ],
 };
