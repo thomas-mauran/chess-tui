@@ -20,8 +20,10 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
     if app.game.ui.mouse_used {
         app.game.ui.mouse_used = false;
         if app.game.ui.selected_square.is_some() {
-            app.game.ui.cursor_coordinates =
-                get_coord_from_square(app.game.ui.selected_square, app.game.logic.game_board.is_flipped);
+            app.game.ui.cursor_coordinates = get_coord_from_square(
+                app.game.ui.selected_square,
+                app.game.logic.game_board.is_flipped,
+            );
             app.game.ui.selected_square = None;
         } else {
             app.game.ui.cursor_coordinates.col = 4;
@@ -193,7 +195,12 @@ fn chess_inputs(app: &mut App, key_event: KeyEvent) {
             if app.game.logic.game_board.is_checkmate() {
                 app.game.logic.game_state = GameState::Checkmate;
                 app.show_end_screen();
-            } else if app.game.logic.game_board.is_draw(app.game.logic.player_turn) {
+            } else if app
+                .game
+                .logic
+                .game_board
+                .is_draw(app.game.logic.player_turn)
+            {
                 app.game.logic.game_state = GameState::Draw;
                 app.show_end_screen();
             } else if app.game.logic.game_state == GameState::Checkmate
@@ -282,7 +289,9 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
     // If the left mouse button is clicked
     if mouse_event.kind == MouseEventKind::Down(MouseButton::Left) {
         // If the game is in a checkmate or draw state, do nothing
-        if app.game.logic.game_state == GameState::Checkmate || app.game.logic.game_state == GameState::Draw {
+        if app.game.logic.game_state == GameState::Checkmate
+            || app.game.logic.game_state == GameState::Draw
+        {
             return Ok(());
         }
         // If a popup is active, do nothing
@@ -327,15 +336,15 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
             Some(s) => s,
             None => return Ok(()), // Invalid coordinates, ignore click
         };
-        
-        let piece_color = app
-            .game
-            .logic
-            .game_board
-            .get_piece_color_at_square(&flip_square_if_needed(
-                square,
-                app.game.logic.game_board.is_flipped,
-            ));
+
+        let piece_color =
+            app.game
+                .logic
+                .game_board
+                .get_piece_color_at_square(&flip_square_if_needed(
+                    square,
+                    app.game.logic.game_board.is_flipped,
+                ));
 
         // If the clicked cell is empty
         if piece_color.is_none() {

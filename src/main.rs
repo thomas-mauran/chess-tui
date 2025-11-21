@@ -2,6 +2,7 @@
 extern crate chess_tui;
 
 use chess_tui::app::{App, AppResult};
+use chess_tui::config::Config;
 use chess_tui::constants::{home_dir, DisplayMode};
 use chess_tui::event::{Event, EventHandler};
 use chess_tui::game_logic::game::GameState;
@@ -9,7 +10,6 @@ use chess_tui::game_logic::opponent::wait_for_game_start;
 use chess_tui::handler::{handle_key_events, handle_mouse_events};
 use chess_tui::logging;
 use chess_tui::ui::tui::Tui;
-use chess_tui::config::Config;
 use clap::Parser;
 use log::LevelFilter;
 use std::fs::{self, File};
@@ -67,9 +67,7 @@ fn main() -> AppResult<()> {
             }
             // Add log level handling
             if let Some(log_level) = config.log_level {
-                app.log_level = log_level
-                    .parse()
-                    .unwrap_or(LevelFilter::Off);
+                app.log_level = log_level.parse().unwrap_or(LevelFilter::Off);
             }
             // Add bot depth handling
             if let Some(bot_depth) = config.bot_depth {
@@ -120,10 +118,15 @@ fn main() -> AppResult<()> {
             Event::Mouse(mouse_event) => handle_mouse_events(mouse_event, &mut app)?,
             Event::Resize(_, _) => {}
         }
-        
+
         // Check if bot should start thinking
-        if app.game.logic.bot.is_some() 
-            && app.game.logic.bot.as_ref().is_some_and(|bot| bot.bot_will_move) 
+        if app.game.logic.bot.is_some()
+            && app
+                .game
+                .logic
+                .bot
+                .as_ref()
+                .is_some_and(|bot| bot.bot_will_move)
             && !app.is_bot_thinking()
         {
             app.start_bot_thinking();
@@ -135,12 +138,17 @@ fn main() -> AppResult<()> {
         // Check if bot move is ready
         if app.check_bot_move() {
             app.game.switch_player_turn();
-            
+
             // need to be centralised
             if app.game.logic.game_board.is_checkmate() {
                 app.game.logic.game_state = GameState::Checkmate;
                 app.show_end_screen();
-            } else if app.game.logic.game_board.is_draw(app.game.logic.player_turn) {
+            } else if app
+                .game
+                .logic
+                .game_board
+                .is_draw(app.game.logic.player_turn)
+            {
                 app.game.logic.game_state = GameState::Draw;
                 app.show_end_screen();
             }
@@ -171,7 +179,14 @@ fn main() -> AppResult<()> {
         {
             tui.draw(&mut app)?;
 
-            if !app.game.logic.game_board.is_checkmate() && !app.game.logic.game_board.is_draw(app.game.logic.player_turn) && app.game.logic.execute_opponent_move() {
+            if !app.game.logic.game_board.is_checkmate()
+                && !app
+                    .game
+                    .logic
+                    .game_board
+                    .is_draw(app.game.logic.player_turn)
+                && app.game.logic.execute_opponent_move()
+            {
                 app.game.switch_player_turn();
             }
 
@@ -179,7 +194,12 @@ fn main() -> AppResult<()> {
             if app.game.logic.game_board.is_checkmate() {
                 app.game.logic.game_state = GameState::Checkmate;
                 app.show_end_screen();
-            } else if app.game.logic.game_board.is_draw(app.game.logic.player_turn) {
+            } else if app
+                .game
+                .logic
+                .game_board
+                .is_draw(app.game.logic.player_turn)
+            {
                 app.game.logic.game_state = GameState::Draw;
                 app.show_end_screen();
             }
@@ -216,7 +236,9 @@ fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResu
     // We update the configuration with the engine_path and display_mode.
     // If these keys are already in the configuration, we leave them as they are.
     // If they're not, we add them with default values.
-    if config.engine_path.is_none() || (config.engine_path.is_some() && config.engine_path.as_ref().unwrap().is_empty()) {
+    if config.engine_path.is_none()
+        || (config.engine_path.is_some() && config.engine_path.as_ref().unwrap().is_empty())
+    {
         if args.engine_path.is_empty() {
             config.engine_path = Some(String::new());
         } else {
@@ -252,7 +274,6 @@ mod tests {
     use super::*;
     use std::fs;
 
-
     #[test]
     fn test_config_create() {
         let args = Args {
@@ -272,14 +293,8 @@ mod tests {
         let content = fs::read_to_string(&config_path).unwrap();
         let config: Config = toml::from_str(&content).unwrap();
 
-        assert_eq!(
-            config.engine_path.unwrap(),
-            "test_engine_path"
-        );
-        assert_eq!(
-            config.display_mode.unwrap(),
-            "DEFAULT"
-        );
+        assert_eq!(config.engine_path.unwrap(), "test_engine_path");
+        assert_eq!(config.display_mode.unwrap(), "DEFAULT");
         assert_eq!(config.bot_depth.unwrap(), 10);
         let removed = fs::remove_file(config_path);
         assert!(removed.is_ok());

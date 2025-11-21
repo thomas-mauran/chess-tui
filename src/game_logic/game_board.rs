@@ -64,11 +64,11 @@ impl GameBoard {
         if move_index >= self.move_history.len() || move_index >= self.position_history.len() {
             return String::new();
         }
-        
+
         // Get the position before this move was made
         let position = &self.position_history[move_index];
         let chess_move = &self.move_history[move_index];
-        
+
         // Convert to SAN using shakmaty
         let san = San::from_move(position, chess_move);
         san.to_string()
@@ -297,10 +297,10 @@ impl GameBoard {
         if let Some(shakmaty_move) = matching_move {
             // Execute move
             chess = chess.play(shakmaty_move).unwrap();
-            
+
             // Update history
             self.position_history.push(chess);
-            
+
             Some(shakmaty_move.clone())
         } else {
             None

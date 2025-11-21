@@ -458,7 +458,8 @@ pub fn render_wait_for_other_player(frame: &mut Frame, ip: Option<IpAddr>) {
         Line::from(""),
         Line::from(""),
         Line::from("Waiting for other player").alignment(Alignment::Center),
-        Line::from(format!("Host IP address and port: {}:2308", ip_str)).alignment(Alignment::Center),
+        Line::from(format!("Host IP address and port: {}:2308", ip_str))
+            .alignment(Alignment::Center),
     ];
 
     let paragraph = Paragraph::new(text)

@@ -128,8 +128,7 @@ pub fn get_int_from_char(c: Option<char>) -> u8 {
 }
 
 pub fn get_opposite_square(square: Option<Square>) -> Option<Square> {
-    square
-        .and_then(|s| Coord::from_square(s).reverse().to_square())
+    square.and_then(|s| Coord::from_square(s).reverse().to_square())
 }
 
 /// Convert position format ("4644") to UCI notation (e.g., "e4e4")

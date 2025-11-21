@@ -235,11 +235,7 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
 
     // Split borrows to avoid borrow checker issue
     let (ui, logic) = (&mut app.game.ui, &app.game.logic);
-    ui.board_render(
-        board_block.inner(main_layout_vertical[1]),
-        frame,
-        logic,
-    );
+    ui.board_render(board_block.inner(main_layout_vertical[1]), frame, logic);
 
     //top box for white material
     let black_taken = app.game.logic.game_board.black_taken_pieces();
@@ -282,7 +278,8 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
         }
     }
 
-    if app.game.logic.game_state == GameState::Draw && app.current_popup == Some(Popups::EndScreen) {
+    if app.game.logic.game_state == GameState::Draw && app.current_popup == Some(Popups::EndScreen)
+    {
         render_end_popup(frame, "That's a draw", app.game.logic.opponent.is_some());
     }
 }

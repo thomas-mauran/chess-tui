@@ -1,12 +1,12 @@
-use super::{coord::Coord, game::{Game, GameLogic}};
+use super::{
+    coord::Coord,
+    game::{Game, GameLogic},
+};
 use crate::{
     constants::{DisplayMode, BLACK, WHITE},
     pieces::role_to_utf_enum,
     ui::{main_ui::render_cell, prompt::Prompt},
-    utils::{
-        flip_square_if_needed, get_coord_from_square,
-        get_square_from_coord,
-    },
+    utils::{flip_square_if_needed, get_coord_from_square, get_square_from_coord},
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -182,8 +182,8 @@ impl UI {
     ) -> Paragraph<'a> {
         use crate::{
             pieces::{
-                bishop::Bishop, king::King, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook,
-                role_to_utf_enum,
+                bishop::Bishop, king::King, knight::Knight, pawn::Pawn, queen::Queen,
+                role_to_utf_enum, rook::Rook,
             },
             utils::color_to_ratatui_enum,
         };
@@ -451,10 +451,7 @@ impl UI {
                 if !logic.game_board.move_history.is_empty() {
                     last_move = logic.game_board.move_history.last();
                     if logic.bot.is_some()
-                        && !logic
-                            .bot
-                            .as_ref()
-                            .is_some_and(|bot| bot.is_bot_starting)
+                        && !logic.bot.as_ref().is_some_and(|bot| bot.is_bot_starting)
                     {
                         last_move_from = last_move.map(|m| m.from()).unwrap();
                         last_move_to = last_move.map(|m| m.to());
@@ -490,10 +487,7 @@ impl UI {
                     } {
                         authorized_positions = logic
                             .game_board
-                            .get_authorized_positions(
-                                logic.player_turn,
-                                &actual_square.unwrap(),
-                            )
+                            .get_authorized_positions(logic.player_turn, &actual_square.unwrap())
                             .iter()
                             .map(|s| Coord::from_square(*s))
                             .collect();
@@ -541,18 +535,11 @@ impl UI {
                 // Draw the cell green if this is the selected cell or if the cell is part of the last move
                 else if (i
                     == get_coord_from_square(actual_square, logic.game_board.is_flipped).row
-                    && j == get_coord_from_square(actual_square, logic.game_board.is_flipped)
-                        .col)
+                    && j == get_coord_from_square(actual_square, logic.game_board.is_flipped).col)
                     || (last_move_from
-                        == get_square_from_coord(
-                            Coord::new(i, j),
-                            logic.game_board.is_flipped,
-                        ))
+                        == get_square_from_coord(Coord::new(i, j), logic.game_board.is_flipped))
                     || (last_move_to
-                        == get_square_from_coord(
-                            Coord::new(i, j),
-                            logic.game_board.is_flipped,
-                        ))
+                        == get_square_from_coord(Coord::new(i, j), logic.game_board.is_flipped))
                         && !is_cell_in_positions(&authorized_positions, i, j)
                 // and not in the authorized positions (grey instead of green)
                 {
@@ -576,15 +563,12 @@ impl UI {
 
                 // Get piece and color
                 let coord = Coord::new(i, j);
-                let square_index = get_square_from_coord(coord, logic.game_board.is_flipped).unwrap();
+                let square_index =
+                    get_square_from_coord(coord, logic.game_board.is_flipped).unwrap();
                 let piece_color = logic.game_board.get_piece_color_at_square(&square_index);
                 let piece_type = logic.game_board.get_role_at_square(&square_index);
-                
-                let paragraph = self.render_piece_paragraph(
-                    piece_type,
-                    piece_color,
-                    square,
-                );
+
+                let paragraph = self.render_piece_paragraph(piece_type, piece_color, square);
                 frame.render_widget(paragraph, square);
             }
         }

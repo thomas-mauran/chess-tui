@@ -70,7 +70,6 @@ impl Clone for Game {
     }
 }
 
-
 impl Game {
     // SETTERS
     pub fn new(game_board: GameBoard, player_turn: Color) -> Self {
@@ -117,7 +116,8 @@ impl Game {
     }
 
     pub fn handle_promotion(&mut self) {
-        self.logic.promote_piece(self.ui.promotion_cursor.try_into().unwrap());
+        self.logic
+            .promote_piece(self.ui.promotion_cursor.try_into().unwrap());
         self.ui.promotion_cursor = 0;
 
         if self.logic.opponent.is_some() {
@@ -237,7 +237,10 @@ impl Game {
             .game_board
             .get_role_at_square(&actual_square)
             .is_none()
-            || self.logic.game_board.get_piece_color_at_square(&actual_square)
+            || self
+                .logic
+                .game_board
+                .get_piece_color_at_square(&actual_square)
                 != Some(self.logic.player_turn)
         {
             return;

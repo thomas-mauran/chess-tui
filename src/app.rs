@@ -181,10 +181,11 @@ impl App {
         };
 
         // Get current game state
-        let fen = self.game.logic.game_board.fen_position(
-            bot.is_bot_starting,
-            self.game.logic.player_turn,
-        );
+        let fen = self
+            .game
+            .logic
+            .game_board
+            .fen_position(bot.is_bot_starting, self.game.logic.player_turn);
         let engine_path = self.chess_engine_path.clone().unwrap_or_default();
         let depth = bot.depth;
 
@@ -197,12 +198,12 @@ impl App {
             // Create bot instance in thread
             let bot = Bot::new(&engine_path, false, depth);
             let uci_move = bot.get_move(&fen);
-            
+
             // Convert UCI move to shakmaty Move
             let position: Option<shakmaty::Chess> = shakmaty::fen::Fen::from_ascii(fen.as_bytes())
                 .ok()
                 .and_then(|fen| fen.into_position(shakmaty::CastlingMode::Standard).ok());
-            
+
             if let Some(pos) = position {
                 if let Ok(chess_move) = uci_move.to_move(&pos) {
                     let _ = tx.send(chess_move);
@@ -227,9 +228,16 @@ impl App {
     /// Apply a bot move to the game
     fn apply_bot_move(&mut self, bot_move: Move) {
         use shakmaty::Position;
-        
-        let current_position = self.game.logic.game_board.position_history.last().unwrap().clone();
-        
+
+        let current_position = self
+            .game
+            .logic
+            .game_board
+            .position_history
+            .last()
+            .unwrap()
+            .clone();
+
         // Store in history
         self.game.logic.game_board.move_history.push(Move::Normal {
             role: bot_move.role(),
@@ -239,7 +247,9 @@ impl App {
             promotion: bot_move.promotion(),
         });
 
-        self.game.logic.game_board
+        self.game
+            .logic
+            .game_board
             .position_history
             .push(current_position.play(&bot_move).unwrap());
     }

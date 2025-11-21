@@ -158,12 +158,10 @@ impl Opponent {
     // 192.168.1.28:2308
 
     fn convert_position_to_string(&self, position: Option<Square>) -> String {
-        position
-            .map(|p| p.to_string())
-            .unwrap_or_else(|| {
-                log::warn!("Attempted to convert None position to string");
-                String::new()
-            })
+        position.map(|p| p.to_string()).unwrap_or_else(|| {
+            log::warn!("Attempted to convert None position to string");
+            String::new()
+        })
     }
 
     pub fn read_stream(&mut self) -> String {
