@@ -203,7 +203,7 @@ fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResu
     // We update the configuration with the engine_path and display_mode.
     // If these keys are already in the configuration, we leave them as they are.
     // If they're not, we add them with default values.
-    if config.engine_path.as_ref().map_or(true, |s| s.is_empty()) {
+    if config.engine_path.as_ref().is_none_or(|s| s.is_empty()) {
         if args.engine_path.is_empty() {
             config.engine_path = Some(String::new());
         } else {

@@ -70,7 +70,7 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
         if app
             .chess_engine_path
             .as_ref()
-            .map_or(true, |path| path.is_empty())
+            .is_none_or(|path| path.is_empty())
         {
             render_engine_path_error_popup(frame);
         } else if app.selected_color.is_none() {

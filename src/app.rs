@@ -119,9 +119,7 @@ impl App {
         }
 
         let addr_with_port = self
-            .host_ip
-            .as_ref()
-            .map(|s| s.as_str())
+            .host_ip.as_deref()
             .unwrap_or(&format!("127.0.0.1:{}", NETWORK_PORT))
             .to_string();
         log::info!("Attempting to connect to: {}", addr_with_port);
