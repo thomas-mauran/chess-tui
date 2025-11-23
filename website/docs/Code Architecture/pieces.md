@@ -4,160 +4,124 @@ title: Pieces
 sidebar_position: 2
 ---
 
-## Project architecture
+## Pieces Architecture
 
-Let's begin by looking at the pieces in the game.
-## Class diagram
+The pieces module in chess-tui is responsible for **rendering and display** of chess pieces. The actual chess logic (move validation, legal moves, game rules) is handled by the [`shakmaty`](https://docs.rs/shakmaty/) library.
 
-### Pieces
+## Architecture Overview
 
 ```mermaid
 classDiagram
 
-class PieceType{
-    +authorized_positions()
-    +protected_positions()
-    +piece_to_utf_enum()
-    +piece_to_fen_enum()
-    +piece_type_to_string_enum()
-    +partial_cmp()
-    +cmp()
+class Role {
+    <<enumeration from shakmaty>>
+    King
+    Queen
+    Rook
+    Bishop
+    Knight
+    Pawn
 }
 
-class PieceColor {
-    <<enumeration>>
-    Black
+class Color {
+    <<enumeration from shakmaty>>
     White
-    +opposite() PieceColor
+    Black
 }
 
-class Pawn {
-    +authorized_positions()
-    +protected_positions()
-    +to_string()
-    +piece_move()
+class DisplayMode {
+    <<enumeration>>
+    DEFAULT
+    ASCII
 }
 
-class Rook {
-    +authorized_positions()
-    +protected_positions()
-    +to_string()
-    +piece_move()
+class PiecesModule {
+    +role_to_utf_enum(role: Role, color: Option~Color~) str
+    +role_to_string_enum(role: Option~Role~, display_mode: DisplayMode) str
 }
 
-class Knight {
-    +authorized_positions()
-    +protected_positions()
-    +to_string()
-    +piece_move()
+class PieceDisplayStructs {
+    <<note>>
+    Pawn, Rook, Knight, Bishop, Queen, King
+    Each with to_string(display_mode) method
 }
 
-class Bishop {
-    +authorized_positions()
-    +protected_positions()
-    +to_string()
-    +piece_move()
-}
-
-class Queen {
-    +authorized_positions()
-    +protected_positions()
-    +to_string()
-    +piece_move()
-}
-
-class King {
-    +authorized_positions()
-    +protected_positions()
-    +to_string()
-    +piece_move()
-}
-
-class Coord {
-    <<data structure>>
-    +row: u8
-    +col: u8
-}
-
-
-class PieceMove {
-    +piece_type: PieceType
-    +piece_color: PieceColor
-    +from: Coord
-    +to: Coord
-}
-
-class Movable {
-    <<interface>>
-    +piece_move()
-}
-
-
-class Position {
-    <<interface>>
-    +authorized_positions()
-    +protected_positions()
-}
-
-PieceType <|-- Pawn
-PieceType <|-- Rook
-PieceType <|-- Bishop
-PieceType <|-- Knight
-PieceType <|-- King
-PieceType <|-- Queen
-
-PieceMove --> PieceType
-PieceMove --> PieceColor
-PieceMove --> Coord
-
-PieceType ..|> Movable
-PieceType ..|> Position
-
-Pawn --> Coord
-Rook --> Coord
-Knight --> Coord
-Bishop --> Coord
-Queen --> Coord
-King --> Coord
-
-Movable <|.. Pawn
-Movable <|.. Rook
-Movable <|.. Knight
-Movable <|.. Bishop
-Movable <|.. Queen
-Movable <|.. King
-
-Position <|.. Pawn
-Position <|.. Rook
-Position <|.. Knight
-Position <|.. Bishop
-Position <|.. Queen
-Position <|.. King
+Role <|.. PiecesModule : "uses"
+Color <|.. PiecesModule : "uses"
+DisplayMode <|.. PiecesModule : "uses"
+DisplayMode <|.. PieceDisplayStructs : "uses"
 ```
 
-This schema can be a little bit overwhelming but let's break it apart.
+## Key Components
 
-#### PieceType
+### Piece Representation
 
-This class is basically the parent class of all the pieces. It contains the methods that are common to all the pieces. Such as authorized positions, protected positions, etc.
+Chess pieces are represented using types from the **shakmaty** library:
+- **`shakmaty::Role`** - Enum representing piece types (King, Queen, Rook, Bishop, Knight, Pawn)
+- **`shakmaty::Color`** - Enum representing piece colors (White, Black)
 
-#### PieceColor
+The actual chess logic (legal moves, check detection, etc.) is handled by shakmaty's `Position` and `Chess` types in the `GameBoard` struct.
 
-This is an enum that contains the two colors of the pieces. Black and White.
+### Piece Display Structs
 
-#### Pawn, Rook, Knight, Bishop, Queen, King
+Each piece type has a simple struct with a `to_string()` method for rendering:
 
-These are the classes that represent the pieces. They all inherit from PieceType and implement the methods that are specific to their type.
+- **`Pawn`** - Renders pawn pieces
+- **`Rook`** - Renders rook pieces  
+- **`Knight`** - Renders knight pieces
+- **`Bishop`** - Renders bishop pieces
+- **`Queen`** - Renders queen pieces
+- **`King`** - Renders king pieces
 
-#### Movable and Position
+Each struct implements:
+```rust
+pub fn to_string(display_mode: &DisplayMode) -> &'static str
+```
 
-These are rust traits that are implemented by the pieces. Movable is a trait that represents a piece that can move (piece_move method). Position is a trait that shows the authorized and protected positions of a piece.
+This method returns different visual representations based on the display mode:
+- **DEFAULT mode**: Multi-line Unicode art using box-drawing characters
+- **ASCII mode**: Single character representation (P, R, N, B, Q, K)
 
-#### Coord
+### Utility Functions
 
-This is a data structure that represents a position on the board. It contains a row and a column.
+The `pieces` module provides utility functions for converting between shakmaty types and display strings:
 
-#### PieceMove
+#### `role_to_utf_enum(role: &Role, color: Option<Color>) -> &'static str`
 
-This is a data structure that represents a move of a piece. It contains the type of the piece, the color of the piece, the starting position, and the ending position. This is mainly used in the board structure that we will see later.
+Converts a shakmaty `Role` and optional `Color` to a UTF-8 chess piece symbol:
+- White pieces: ♔ ♕ ♖ ♗ ♘ ♙
+- Black pieces: ♚ ♛ ♜ ♝ ♞ ♟
 
+Used for rendering pieces in the move history and captured pieces displays.
+
+#### `role_to_string_enum(role: Option<Role>, display_mode: &DisplayMode) -> &'static str`
+
+Converts a shakmaty `Role` to a string representation based on display mode:
+- **DEFAULT**: Returns UTF-8 chess symbols (♚ ♛ ♜ ♝ ♞ ♟)
+- **ASCII**: Returns single letters (K Q R B N P)
+
+## Integration with Game Logic
+
+The pieces module is **purely for display purposes**. All chess logic is handled by:
+
+1. **`GameBoard`** - Uses `shakmaty::Chess` for position management
+2. **`shakmaty::Position`** - Provides legal moves, check detection, etc.
+3. **`shakmaty::Move`** - Represents moves in the game
+
+When rendering the board, the UI layer:
+1. Gets piece information from `GameBoard.get_role_at_square()` and `get_piece_color_at_square()`
+2. Uses the pieces module utilities to convert to display strings
+3. Renders using the appropriate display mode
+
+## Example Usage
+
+```rust
+use shakmaty::{Role, Color};
+use crate::pieces::{role_to_utf_enum, King};
+
+// Get UTF symbol for a white king
+let symbol = role_to_utf_enum(&Role::King, Some(Color::White)); // "♔"
+
+// Get display string for king in ASCII mode
+let ascii = King::to_string(&DisplayMode::ASCII); // "K"
+```

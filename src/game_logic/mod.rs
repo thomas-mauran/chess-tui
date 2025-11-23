@@ -1,4 +1,3 @@
-pub mod board;
 pub mod bot;
 pub mod coord;
 pub mod game;

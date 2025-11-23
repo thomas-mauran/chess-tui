@@ -1,8 +1,6 @@
 use super::{bot::Bot, coord::Coord, game_board::GameBoard, opponent::Opponent, ui::UI};
-use crate::{
-    pieces::{PieceColor, PieceMove, PieceType},
-    utils::get_int_from_char,
-};
+use crate::utils::flip_square_if_needed;
+use shakmaty::{Color, Move, Position, Role, Square};
 
 #[derive(Clone, Debug, PartialEq, Eq, Copy)]
 pub enum GameState {
@@ -12,22 +10,7 @@ pub enum GameState {
     Promotion,
 }
 
-pub struct Game {
-    /// The GameBoard storing data about the board related stuff
-    pub game_board: GameBoard,
-    /// The struct to handle UI related stuff
-    pub ui: UI,
-    /// The struct to handle Bot related stuff
-    pub bot: Option<Bot>,
-    /// The other player when playing in multiplayer
-    pub opponent: Option<Opponent>,
-    /// Which player is it to play
-    pub player_turn: PieceColor,
-    /// The current state of the game (Playing, Draw, Checkmate. Promotion)
-    pub game_state: GameState,
-}
-
-impl Clone for Game {
+impl Clone for GameLogic {
     fn clone(&self) -> Self {
         let opponent_clone = self.opponent.as_ref().map(|p| Opponent {
             stream: p.stream.as_ref().and_then(|s| s.try_clone().ok()),
@@ -36,9 +19,8 @@ impl Clone for Game {
             game_started: p.game_started,
         });
 
-        Game {
+        GameLogic {
             game_board: self.game_board.clone(),
-            ui: self.ui.clone(),
             bot: self.bot.clone(),
             opponent: opponent_clone,
             player_turn: self.player_turn,
@@ -47,57 +29,82 @@ impl Clone for Game {
     }
 }
 
-impl Default for Game {
+pub struct GameLogic {
+    /// The GameBoard storing data about the board related stuff
+    pub game_board: GameBoard,
+    /// The struct to handle Bot related stuff
+    pub bot: Option<Bot>,
+    /// The other player when playing in multiplayer
+    pub opponent: Option<Opponent>,
+    /// Which player is it to play
+    pub player_turn: Color,
+    /// The current state of the game (Playing, Draw, Checkmate. Promotion)
+    pub game_state: GameState,
+}
+
+impl Default for GameLogic {
     fn default() -> Self {
         Self {
             game_board: GameBoard::default(),
-            ui: UI::default(),
             bot: None,
             opponent: None,
-            player_turn: PieceColor::White,
+            player_turn: Color::White,
             game_state: GameState::Playing,
+        }
+    }
+}
+
+#[derive(Default)]
+pub struct Game {
+    pub logic: GameLogic,
+    /// The struct to handle UI related stuff
+    pub ui: UI,
+}
+
+impl Clone for Game {
+    fn clone(&self) -> Self {
+        Game {
+            logic: self.logic.clone(),
+            ui: self.ui.clone(),
         }
     }
 }
 
 impl Game {
     // SETTERS
-    pub fn new(game_board: GameBoard, player_turn: PieceColor) -> Self {
+    pub fn new(game_board: GameBoard, player_turn: Color) -> Self {
         Self {
-            game_board,
+            logic: GameLogic {
+                game_board,
+                player_turn,
+                ..Default::default()
+            },
             ui: UI::default(),
-            bot: None,
-            opponent: None,
-            player_turn,
-            game_state: GameState::Playing,
         }
     }
 
     /// Allows you to pass a specific GameBoard
     pub fn set_board(&mut self, game_board: GameBoard) {
-        self.game_board = game_board;
+        self.logic.game_board = game_board;
     }
 
     /// Allows you to set the player turn
-    pub fn set_player_turn(&mut self, player_turn: PieceColor) {
-        self.player_turn = player_turn;
+    pub fn set_player_turn(&mut self, player_turn: Color) {
+        self.logic.player_turn = player_turn;
     }
 
     /// Switch the player turn
     pub fn switch_player_turn(&mut self) {
-        match self.player_turn {
-            PieceColor::White => self.player_turn = PieceColor::Black,
-            PieceColor::Black => self.player_turn = PieceColor::White,
-        }
+        self.logic.switch_player_turn();
     }
 
     // Methods to select a cell on the board
     pub fn handle_cell_click(&mut self) {
         // If we are doing a promotion the cursor is used for the popup
-        if self.game_state == GameState::Promotion {
+        if self.logic.game_state == GameState::Promotion {
             self.handle_promotion();
-        } else if !(self.game_state == GameState::Checkmate)
-            && !(self.game_state == GameState::Draw)
+        } else if !(self.logic.game_state == GameState::Checkmate)
+            && !(self.logic.game_state == GameState::Draw)
         {
             if self.ui.is_cell_selected() {
                 self.already_selected_cell_action();
@@ -105,122 +112,191 @@ impl Game {
                 self.select_cell()
             }
         }
-        self.update_game_state();
+        self.logic.update_game_state();
     }
 
-    fn update_game_state(&mut self) {
-        if self.game_board.is_checkmate(self.player_turn) {
+    pub fn handle_promotion(&mut self) {
+        // Validate promotion cursor is in valid range (0-3)
+        if self.ui.promotion_cursor >= 0 && self.ui.promotion_cursor <= 3 {
+            if let Ok(promotion_cursor_u8) = self.ui.promotion_cursor.try_into() {
+                self.logic.promote_piece(promotion_cursor_u8);
+            } else {
+                log::error!(
+                    "Failed to convert promotion cursor {} to u8",
+                    self.ui.promotion_cursor
+                );
+            }
+        } else {
+            log::error!(
+                "Promotion cursor {} is out of valid range (0-3)",
+                self.ui.promotion_cursor
+            );
+        }
+        self.ui.promotion_cursor = 0;
+
+        if self.logic.opponent.is_some() {
+            self.logic.handle_multiplayer_promotion();
+        }
+
+        if self.logic.bot.is_some() {
+            self.logic.execute_bot_move();
+        }
+    }
+    /// Handle bot-specific logic after a move
+    fn handle_after_move_bot_logic(&mut self) {
+        if self.logic.bot.is_some() {
+            self.logic.update_game_state();
+
+            // Trigger bot move if game is still in progress
+            if self.logic.game_state != GameState::Promotion
+                && self.logic.game_state != GameState::Checkmate
+            {
+                if let Some(bot) = self.logic.bot.as_mut() {
+                    bot.bot_will_move = true;
+                }
+            }
+        }
+    }
+
+    /// Handle opponent-specific logic after a move
+    fn handle_after_move_opponent_logic(&mut self) {
+        if self.logic.opponent.is_some() {
+            if self.logic.game_board.is_latest_move_promotion() {
+                self.logic.game_state = GameState::Promotion;
+            } else {
+                self.logic.update_game_state();
+
+                // Signal opponent to move and send move if game is still in progress
+                if let Some(opponent) = self.logic.opponent.as_mut() {
+                    if self.logic.game_state != GameState::Checkmate {
+                        opponent.opponent_will_move = true;
+                    }
+
+                    // Send move to opponent
+                    if let Some(last_move) = self.logic.game_board.move_history.last() {
+                        opponent.send_move_to_server(last_move, last_move.promotion());
+                    } else {
+                        log::error!("Cannot send move to opponent: move history is empty");
+                    }
+                }
+            }
+        }
+    }
+
+    /// Handle board flipping logic after a move (only in single-player mode)
+    fn handle_after_move_board_flip(&mut self) {
+        // Only flip the board in single-player mode (no bot, no opponent)
+        if self.logic.bot.is_none()
+            && self.logic.opponent.is_none()
+            && (!self.logic.game_board.is_latest_move_promotion()
+                || self.logic.game_board.is_draw()
+                || self.logic.game_board.is_checkmate())
+        {
+            self.logic.game_board.flip_the_board();
+        }
+    }
+
+    pub fn already_selected_cell_action(&mut self) {
+        let selected_square = match self.ui.selected_square {
+            Some(sq) => sq,
+            None => return,
+        };
+
+        // We already selected a piece so we apply the move
+        let cursor_square = match self.ui.cursor_coordinates.to_square() {
+            Some(sq) => sq,
+            None => return,
+        };
+
+        let selected_coords_usize =
+            &flip_square_if_needed(selected_square, self.logic.game_board.is_flipped);
+
+        let actual_cursor_coords =
+            flip_square_if_needed(cursor_square, self.logic.game_board.is_flipped);
+
+        // Execute the move
+        self.logic
+            .execute_move(*selected_coords_usize, actual_cursor_coords);
+        self.ui.unselect_cell();
+        self.logic.switch_player_turn();
+
+        // Handle post-move logic based on game mode
+        self.handle_after_move_board_flip();
+        self.handle_after_move_bot_logic();
+        self.handle_after_move_opponent_logic();
+    }
+
+    pub fn select_cell(&mut self) {
+        let square = match self.ui.cursor_coordinates.to_square() {
+            Some(s) => match Coord::from_square(s).to_square() {
+                Some(sq) => sq,
+                None => return,
+            },
+            None => return,
+        };
+        let actual_square = flip_square_if_needed(square, self.logic.game_board.is_flipped);
+
+        // Check if there is a piece on the cell or if the cells is the right color
+        if self
+            .logic
+            .game_board
+            .get_role_at_square(&actual_square)
+            .is_none()
+            || self
+                .logic
+                .game_board
+                .get_piece_color_at_square(&actual_square)
+                != Some(self.logic.player_turn)
+        {
+            return;
+        }
+
+        // Check if the piece on the cell can move before selecting it
+        let authorized_positions = self
+            .logic
+            .game_board
+            .get_authorized_positions(self.logic.player_turn, &actual_square);
+
+        if authorized_positions.is_empty() {
+            return;
+        }
+
+        // We already verified the piece color matches player_turn above, so we can proceed
+        self.ui.selected_square = Some(square);
+        self.ui.old_cursor_position = self.ui.cursor_coordinates;
+
+        let authorized_positions_flipped: Vec<Square> = authorized_positions
+            .iter()
+            .map(|s| flip_square_if_needed(*s, self.logic.game_board.is_flipped))
+            .collect();
+
+        self.ui.move_selected_piece_cursor(
+            true,
+            1,
+            authorized_positions_flipped
+                .iter()
+                .map(|s| Coord::from_square(*s))
+                .collect(),
+        );
+    }
+}
+
+impl GameLogic {
+    pub fn update_game_state(&mut self) {
+        if self.game_board.is_checkmate() {
             self.game_state = GameState::Checkmate;
-        } else if self.game_board.is_draw(self.player_turn) {
+        } else if self.game_board.is_draw() {
             self.game_state = GameState::Draw;
         } else if self.game_board.is_latest_move_promotion() {
             self.game_state = GameState::Promotion;
         }
     }
 
-    pub fn handle_promotion(&mut self) {
-        self.promote_piece();
-
-        if self.opponent.is_some() {
-            self.handle_multiplayer_promotion();
-        }
-
-        if self.bot.is_some() {
-            self.execute_bot_move();
-        }
-    }
-    pub fn already_selected_cell_action(&mut self) {
-        // We already selected a piece so we apply the move
-        if self.ui.cursor_coordinates.is_valid() {
-            let selected_coords_usize = &self.ui.selected_coordinates.clone();
-            let cursor_coords_usize = &self.ui.cursor_coordinates.clone();
-            self.execute_move(selected_coords_usize, cursor_coords_usize);
-            self.ui.unselect_cell();
-            self.switch_player_turn();
-
-            if self.game_board.is_draw(self.player_turn) {
-                self.game_state = GameState::Draw;
-            }
-
-            if (self.bot.is_none() || (self.bot.as_ref().is_some_and(|bot| bot.is_bot_starting)))
-                && (self.opponent.is_none())
-                && (!self.game_board.is_latest_move_promotion()
-                    || self.game_board.is_draw(self.player_turn)
-                    || self.game_board.is_checkmate(self.player_turn))
-            {
-                self.game_board.flip_the_board();
-            }
-
-            // If we play against a bot we will play his move and switch the player turn again
-            if self.bot.is_some() {
-                // do this in background
-                if self.game_board.is_latest_move_promotion() {
-                    self.game_state = GameState::Promotion;
-                }
-
-                if !(self.game_state == GameState::Promotion) {
-                    if self.game_board.is_checkmate(self.player_turn) {
-                        self.game_state = GameState::Checkmate;
-                    }
-
-                    if self.game_board.is_draw(self.player_turn) {
-                        self.game_state = GameState::Draw;
-                    }
-
-                    if !(self.game_state == GameState::Checkmate) {
-                        if let Some(bot) = self.bot.as_mut() {
-                            bot.bot_will_move = true;
-                        }
-                    }
-                }
-            }
-            // If we play against a player we will wait for his move
-            if self.opponent.is_some() {
-                if self.game_board.is_latest_move_promotion() {
-                    self.game_state = GameState::Promotion;
-                } else {
-                    if self.game_board.is_checkmate(self.player_turn) {
-                        self.game_state = GameState::Checkmate;
-                    }
-
-                    if self.game_board.is_draw(self.player_turn) {
-                        self.game_state = GameState::Draw;
-                    }
-
-                    if !(self.game_state == GameState::Checkmate) {
-                        if let Some(opponent) = self.opponent.as_mut() {
-                            opponent.opponent_will_move = true;
-                        }
-                    }
-                    self.opponent
-                        .as_mut()
-                        .unwrap()
-                        .send_move_to_server(self.game_board.move_history.last().unwrap(), None);
-                }
-            }
-        }
-    }
-
-    pub fn select_cell(&mut self) {
-        // Check if the piece on the cell can move before selecting it
-        let authorized_positions = self
-            .game_board
-            .get_authorized_positions(self.player_turn, self.ui.cursor_coordinates);
-
-        if authorized_positions.is_empty() {
-            return;
-        }
-        if let Some(piece_color) = self.game_board.get_piece_color(&self.ui.cursor_coordinates) {
-            let authorized_positions = self
-                .game_board
-                .get_authorized_positions(self.player_turn, self.ui.cursor_coordinates);
-
-            if piece_color == self.player_turn {
-                self.ui.selected_coordinates = self.ui.cursor_coordinates;
-                self.ui.old_cursor_position = self.ui.cursor_coordinates;
-                self.ui
-                    .move_selected_piece_cursor(true, 1, authorized_positions);
-            }
+    /// Switch the player turn
+    pub fn switch_player_turn(&mut self) {
+        match self.player_turn {
+            Color::White => self.player_turn = Color::Black,
+            Color::Black => self.player_turn = Color::White,
         }
     }
 
@@ -228,81 +304,85 @@ impl Game {
        We use the UCI protocol to communicate with the chess engine
     */
     pub fn execute_bot_move(&mut self) {
-        // Safely extract bot out of self to reduce overlapping borrows
-        let is_bot_starting = if let Some(bot) = self.bot.as_ref() {
-            bot.is_bot_starting
-        } else {
-            return;
+        // Check if bot exists
+        let bot = match self.bot.as_mut() {
+            Some(b) => b,
+            None => return,
         };
 
-        let fen_position = self
-            .game_board
-            .fen_position(is_bot_starting, self.player_turn);
+        let fen_position = self.game_board.fen_position();
 
         // Retrieve the bot move from the bot
-        let bot_move = if let Some(bot) = self.bot.as_mut() {
-            bot.get_move(&fen_position)
-        } else {
-            return;
+        let bot_move = bot.get_move(&fen_position);
+
+        // Convert UCI move to a shakmaty Move using the current position
+        let current_position = self.game_board.position_ref().clone();
+        let bot_actual_move = match bot_move.to_move(&current_position) {
+            Ok(m) => m,
+            Err(e) => {
+                log::error!("Engine returned illegal UCI move: {}", e);
+                return;
+            }
         };
 
-        let from_y = get_int_from_char(bot_move.chars().next());
-        let from_x = get_int_from_char(bot_move.chars().nth(1));
-        let to_y = get_int_from_char(bot_move.chars().nth(2));
-        let to_x = get_int_from_char(bot_move.chars().nth(3));
+        // Execute the move and update position
+        let new_position = match current_position.play(&bot_actual_move) {
+            Ok(pos) => pos,
+            Err(e) => {
+                log::error!("Failed to execute bot move: {}", e);
+                return;
+            }
+        };
 
-        let mut promotion_piece: Option<PieceType> = None;
-        if bot_move.chars().count() == 5 {
-            promotion_piece = match bot_move.chars().nth(4) {
-                Some('q') => Some(PieceType::Queen),
-                Some('r') => Some(PieceType::Rook),
-                Some('b') => Some(PieceType::Bishop),
-                Some('n') => Some(PieceType::Knight),
-                _ => None,
-            };
-        }
-
-        self.execute_move(&Coord::new(from_y, from_x), &Coord::new(to_y, to_x));
-
-        if let Some(promotion_piece_type) = promotion_piece {
-            self.game_board.board[to_y as usize][to_x as usize] =
-                Some((promotion_piece_type, self.player_turn));
-        }
-        if is_bot_starting {
-            self.game_board.flip_the_board();
-        }
+        // Store move and position in history
+        self.game_board.move_history.push(bot_actual_move);
+        self.game_board.position_history.push(new_position);
     }
 
     // Method to promote a pawn
-    pub fn promote_piece(&mut self) {
-        if let Some(last_move) = self.game_board.move_history.last() {
-            let new_piece = match self.ui.promotion_cursor {
-                0 => PieceType::Queen,
-                1 => PieceType::Rook,
-                2 => PieceType::Bishop,
-                3 => PieceType::Knight,
+    pub fn promote_piece(&mut self, promotion_cursor: u8) {
+        if let Some(last_move) = self.game_board.move_history.last().cloned() {
+            let new_piece = match promotion_cursor {
+                0 => Role::Queen,
+                1 => Role::Rook,
+                2 => Role::Bishop,
+                3 => Role::Knight,
                 _ => unreachable!("Promotion cursor out of boundaries"),
             };
 
-            let current_piece_color = self
-                .game_board
-                .get_piece_color(&Coord::new(last_move.to.row, last_move.to.col));
-            if let Some(piece_color) = current_piece_color {
-                // we replace the piece by the new piece type
-                self.game_board.board[last_move.to.row as usize][last_move.to.col as usize] =
-                    Some((new_piece, piece_color));
-            }
+            // Promotion moves are always pawn moves, so they should have a from square
+            let from_square = match last_move.from() {
+                Some(sq) => sq,
+                None => {
+                    log::error!("Promotion move has no from square (unexpected castling?)");
+                    return;
+                }
+            };
 
-            // We replace the piece type in the move history
-            let latest_move = self.game_board.move_history.last_mut().unwrap();
-            latest_move.piece_type = new_piece;
-            self.game_board.board_history.pop();
-            self.game_board.board_history.push(self.game_board.board);
+            // Remove the last move and position from history
+            self.game_board.move_history.pop();
+            self.game_board.position_history.pop();
+
+            // Re-execute the move with the correct promotion
+            if self.game_board.execute_shakmaty_move_with_promotion(
+                from_square,
+                last_move.to(),
+                Some(new_piece),
+            ) {
+                // Update move history with correct piece type
+                self.game_board.move_history.push(Move::Normal {
+                    role: Role::Pawn,
+                    from: from_square,
+                    capture: last_move.capture(),
+                    to: last_move.to(),
+                    promotion: Some(new_piece),
+                });
+            }
         }
+
         self.game_state = GameState::Playing;
-        self.ui.promotion_cursor = 0;
-        if !self.game_board.is_draw(self.player_turn)
-            && !self.game_board.is_checkmate(self.player_turn)
+        if !self.game_board.is_draw()
+            && !self.game_board.is_checkmate()
             && self.opponent.is_none()
             && self.bot.is_none()
         {
@@ -311,134 +391,144 @@ impl Game {
     }
 
     /// Move a piece from a cell to another
-    // TODO: Split this in multiple methods
-    pub fn execute_move(&mut self, from: &Coord, to: &Coord) {
-        if !from.is_valid() || !to.is_valid() {
-            return;
-        }
-
-        let piece_type_from = self.game_board.get_piece_type(from);
-        let piece_type_to = self.game_board.get_piece_type(to);
-
-        // Check if moving a piece
-        let Some(piece_type_from) = piece_type_from else {
-            return;
+    pub fn execute_move(&mut self, from: Square, to: Square) {
+        // Check if moving a piece and get the piece type
+        let role_from = match self.game_board.get_role_at_square(&from) {
+            Some(role) => role,
+            None => return,
         };
 
-        // We increment the consecutive_non_pawn_or_capture if the piece type is a pawn or if there is no capture
-        self.game_board
-            .increment_consecutive_non_pawn_or_capture(piece_type_from, piece_type_to);
+        let role_to = self.game_board.get_role_at_square(&to);
 
-        // We check if the move is a capture and add the piece to the taken pieces
-        self.game_board
-            .add_piece_to_taken_pieces(from, to, self.player_turn);
+        if let Some(executed_move) = self.game_board.execute_shakmaty_move(from, to) {
+            // We increment the consecutive_non_pawn_or_capture if the piece type is a pawn or if there is no capture
+            self.game_board
+                .increment_consecutive_non_pawn_or_capture(role_from, role_to);
 
-        // We check for en passant as the latest move
-        if self.game_board.is_latest_move_en_passant(from, to) {
-            // we kill the pawn
-            let row_index = to.row as i32 + 1;
-            self.game_board.board[row_index as usize][to.col as usize] = None;
+            // We store it in the history
+            self.game_board.move_history.push(executed_move);
         }
-
-        // We check for castling as the latest move
-        if self.game_board.is_latest_move_castling(*from, *to) {
-            // we set the king 2 cells on where it came from
-            let from_x: i32 = from.col as i32;
-            let mut new_to = to;
-            let to_x: i32 = to.col as i32;
-
-            let distance = from_x - to_x;
-            // We set the direction of the rook > 0 meaning he went on the left else on the right
-            let direction_x = if distance > 0 { -1 } else { 1 };
-
-            let col_king = from_x + direction_x * 2;
-
-            // We put move the king 2 cells
-            self.game_board.board[to.row as usize][col_king as usize] = self.game_board.board[from];
-
-            // We put the rook 3 cells from it's position if it's a big castling else 2 cells
-            // If it is playing against a bot we will receive 4 -> 6  and 4 -> 2 for to_x instead of 4 -> 7 and 4 -> 0
-            if self.bot.is_some() && to_x == 6 && to.row == 0 {
-                new_to = &Coord { row: 0, col: 7 };
-            }
-            if self.bot.is_some() && to_x == 2 && to.row == 0 {
-                new_to = &Coord { row: 0, col: 0 };
-            }
-
-            let col_rook = if distance > 0 {
-                col_king + 1
-            } else {
-                col_king - 1
-            };
-
-            self.game_board.board[new_to.row as usize][col_rook as usize] =
-                Some((PieceType::Rook, self.player_turn));
-
-            // We remove the latest rook
-            self.game_board.board[new_to] = None;
-        } else {
-            self.game_board.board[to] = self.game_board.board[from];
-        }
-
-        self.game_board.board[from] = None;
-
-        // We store it in the history
-        self.game_board.move_history.push(PieceMove {
-            piece_type: piece_type_from,
-            piece_color: self.player_turn,
-            from: *from,
-            to: *to,
-        });
-        // We store the current position of the board
-        self.game_board.board_history.push(self.game_board.board);
     }
 
-    pub fn execute_opponent_move(&mut self) {
-        let opponent_move = self.opponent.as_mut().unwrap().read_stream();
-        self.game_board.flip_the_board();
-        self.opponent.as_mut().unwrap().opponent_will_move = false;
+    /// Parse a move string in chess notation (e.g., "e2e4" or "e7e8q")
+    /// Returns (from_square, to_square, promotion_piece) or None if invalid
+    fn parse_opponent_move_string(move_str: &str) -> Option<(Square, Square, Option<Role>)> {
+        if move_str.len() < 4 {
+            return None;
+        }
+
+        let mut chars = move_str.chars();
+        let from_file_char = chars.next();
+        let from_rank_char = chars.next();
+        let to_file_char = chars.next();
+        let to_rank_char = chars.next();
+
+        // Parse promotion piece if present (5th character)
+        let promotion_piece: Option<Role> = if move_str.chars().count() == 5 {
+            match move_str.chars().nth(4) {
+                Some('q') => Some(Role::Queen),
+                Some('r') => Some(Role::Rook),
+                Some('b') => Some(Role::Bishop),
+                Some('n') => Some(Role::Knight),
+                _ => None,
+            }
+        } else {
+            None
+        };
+
+        // The move is in standard chess notation (e.g., "e2e4")
+        // Files are letters (a-h), ranks are digits (1-8)
+        let from_str = format!(
+            "{}{}",
+            from_file_char.unwrap_or('a'),
+            from_rank_char.unwrap_or('1')
+        );
+        let to_str = format!(
+            "{}{}",
+            to_file_char.unwrap_or('a'),
+            to_rank_char.unwrap_or('1')
+        );
+
+        let from = Square::from_ascii(from_str.as_bytes()).ok()?;
+        let to = Square::from_ascii(to_str.as_bytes()).ok()?;
+
+        Some((from, to, promotion_piece))
+    }
+
+    pub fn execute_opponent_move(&mut self) -> bool {
+        let opponent = if let Some(opp) = self.opponent.as_mut() {
+            opp
+        } else {
+            return false;
+        };
+
+        // Read move from stream
+        let opponent_move = match opponent.read_stream() {
+            Ok(m) => m,
+            Err(e) => {
+                log::error!("Error reading opponent move: {}", e);
+                return false;
+            }
+        };
 
         if opponent_move.is_empty() {
-            return;
+            return false;
         }
 
-        let from_y = get_int_from_char(opponent_move.chars().next());
-        let from_x = get_int_from_char(opponent_move.chars().nth(1));
-        let to_y = get_int_from_char(opponent_move.chars().nth(2));
-        let to_x = get_int_from_char(opponent_move.chars().nth(3));
+        // We received a move, so we can stop waiting
+        opponent.opponent_will_move = false;
 
-        let mut promotion_piece: Option<PieceType> = None;
-        if opponent_move.chars().count() == 5 {
-            promotion_piece = match opponent_move.chars().nth(4) {
-                Some('q') => Some(PieceType::Queen),
-                Some('r') => Some(PieceType::Rook),
-                Some('b') => Some(PieceType::Bishop),
-                Some('n') => Some(PieceType::Knight),
-                _ => None,
-            };
+        // Parse move string
+        let (from, to, promotion_piece) = match Self::parse_opponent_move_string(&opponent_move) {
+            Some(parsed) => parsed,
+            None => {
+                log::error!("Failed to parse opponent move: {}", opponent_move);
+                return false;
+            }
+        };
+
+        let piece_type_from = self.game_board.get_role_at_square(&from);
+
+        // Execute move with promotion if needed (using standard coordinates)
+        let executed_move = self
+            .game_board
+            .execute_standard_move(from, to, promotion_piece);
+
+        // Store in history (use visual coordinates for history)
+        if let Some(move_to_store) = executed_move {
+            if let Some(piece_type) = piece_type_from {
+                self.game_board.move_history.push(Move::Normal {
+                    role: piece_type,
+                    from,
+                    capture: move_to_store.capture(),
+                    to,
+                    promotion: move_to_store.promotion(),
+                });
+            }
+            true
+        } else {
+            false
         }
-
-        let from = &Coord::new(from_y, from_x);
-        let to = &Coord::new(to_y, to_x);
-
-        self.execute_move(from, to);
-
-        if let Some(promotion_piece_type) = promotion_piece {
-            self.game_board.board[to_y as usize][to_x as usize] =
-                Some((promotion_piece_type, self.player_turn));
-        }
-        self.game_board.flip_the_board();
     }
 
     pub fn handle_multiplayer_promotion(&mut self) {
-        let opponent = self.opponent.as_mut().unwrap();
+        let opponent = match self.opponent.as_mut() {
+            Some(opp) => opp,
+            None => {
+                log::error!("handle_multiplayer_promotion called but no opponent exists");
+                return;
+            }
+        };
 
-        let last_move_promotion_type = self.game_board.get_last_move_piece_type_as_string();
+        let last_move = match self.game_board.move_history.last() {
+            Some(m) => m,
+            None => {
+                log::error!("handle_multiplayer_promotion called but move history is empty");
+                return;
+            }
+        };
 
-        opponent.send_move_to_server(
-            self.game_board.move_history.last().unwrap(),
-            Some(last_move_promotion_type),
-        );
+        opponent.send_move_to_server(last_move, last_move.promotion());
         opponent.opponent_will_move = true;
     }
 }

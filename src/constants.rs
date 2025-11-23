@@ -7,6 +7,12 @@ pub const UNDEFINED_POSITION: u8 = u8::MAX;
 pub const WHITE: Color = Color::Rgb(160, 160, 160);
 pub const BLACK: Color = Color::Rgb(128, 95, 69);
 
+// Network constants
+pub const NETWORK_PORT: u16 = 2308;
+pub const NETWORK_BUFFER_SIZE: usize = 5;
+pub const SLEEP_DURATION_SHORT_MS: u64 = 50;
+pub const SLEEP_DURATION_LONG_MS: u64 = 100;
+
 pub const TITLE: &str = r"
  ██████╗██╗  ██╗███████╗███████╗███████╗   ████████╗██╗   ██╗██╗
 ██╔════╝██║  ██║██╔════╝██╔════╝██╔════╝   ╚══██╔══╝██║   ██║██║
@@ -62,4 +68,5 @@ pub enum Popups {
     Help,
     EndScreen,
     EnterPGNPath,
+    Error,
 }
