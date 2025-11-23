@@ -182,8 +182,7 @@ impl UI {
     ) -> Paragraph<'a> {
         use crate::{
             pieces::{
-                bishop::Bishop, king::King, knight::Knight, pawn::Pawn, queen::Queen,
-                role_to_utf_enum, rook::Rook,
+                bishop::Bishop, king::King, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook,
             },
             utils::color_to_ratatui_enum,
         };
@@ -208,13 +207,22 @@ impl UI {
             }
             DisplayMode::ASCII => {
                 let paragraph = if let Some(role) = piece_type {
-                    let piece_enum = role_to_utf_enum(&role, piece_color);
+                    // Use custom piece to_string methods for ASCII mode
+                    let piece_str = match role {
+                        Role::King => King::to_string(&self.display_mode),
+                        Role::Queen => Queen::to_string(&self.display_mode),
+                        Role::Rook => Rook::to_string(&self.display_mode),
+                        Role::Bishop => Bishop::to_string(&self.display_mode),
+                        Role::Knight => Knight::to_string(&self.display_mode),
+                        Role::Pawn => Pawn::to_string(&self.display_mode),
+                    };
+
                     match piece_color {
-                        Some(shakmaty::Color::Black) => Paragraph::new(piece_enum.to_lowercase()),
+                        Some(shakmaty::Color::Black) => Paragraph::new(piece_str.to_lowercase()),
                         Some(shakmaty::Color::White) => {
-                            Paragraph::new(piece_enum.to_uppercase().underlined())
+                            Paragraph::new(piece_str.to_uppercase().underlined())
                         }
-                        None => Paragraph::new(piece_enum),
+                        None => Paragraph::new(piece_str),
                     }
                 } else {
                     Paragraph::new(" ")

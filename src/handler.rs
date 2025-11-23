@@ -1,6 +1,6 @@
 use crate::constants::Popups;
 use crate::game_logic::coord::Coord;
-use crate::game_logic::game::GameState;
+use crate::game_logic::game::{Game, GameState};
 use crate::utils::{flip_square_if_needed, get_coord_from_square};
 use crate::{
     app::{App, AppResult},
@@ -116,12 +116,22 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
             }
             KeyCode::Char('b' | 'B') => {
                 let display_mode = app.game.ui.display_mode;
+                // Completely reset all state when going back to menu
                 app.selected_color = None;
                 app.game.logic.bot = None;
-                app.go_to_home();
-                app.game.logic.game_board.reset();
-                app.game.ui.reset();
+                app.bot_move_receiver = None; // Reset bot move receiver
+
+                if let Some(opponent) = app.game.logic.opponent.as_mut() {
+                    opponent.send_end_game_to_server();
+                    app.game.logic.opponent = None;
+                    app.hosting = None;
+                    app.host_ip = None;
+                }
+
+                // Reset game completely
+                app.game = Game::default();
                 app.game.ui.display_mode = display_mode;
+                app.current_page = Pages::Home;
                 app.current_popup = None;
             }
             _ => fallback_key_handler(app, key_event),
@@ -154,12 +164,16 @@ fn handle_solo_page_events(app: &mut App, key_event: KeyEvent) {
         KeyCode::Char('r') => app.restart(),
         KeyCode::Char('b') => {
             let display_mode = app.game.ui.display_mode;
+            // Completely reset all state when going back to menu
             app.selected_color = None;
             app.game.logic.bot = None;
-            app.go_to_home();
-            app.game.logic.game_board.reset();
-            app.game.ui.reset();
+            app.bot_move_receiver = None; // Reset bot move receiver
+
+            // Reset game completely
+            app.game = Game::default();
             app.game.ui.display_mode = display_mode;
+            app.current_page = Pages::Home;
+            app.current_popup = None;
         }
         _ => chess_inputs(app, key_event),
     }
@@ -220,8 +234,10 @@ fn handle_multiplayer_page_events(app: &mut App, key_event: KeyEvent) {
     match key_event.code {
         KeyCode::Char('b') => {
             let display_mode = app.game.ui.display_mode;
+            // Completely reset all state when going back to menu
             app.selected_color = None;
             app.game.logic.bot = None;
+            app.bot_move_receiver = None; // Reset bot move receiver
 
             if let Some(opponent) = app.game.logic.opponent.as_mut() {
                 opponent.send_end_game_to_server();
@@ -230,10 +246,11 @@ fn handle_multiplayer_page_events(app: &mut App, key_event: KeyEvent) {
                 app.host_ip = None;
             }
 
-            app.go_to_home();
-            app.game.logic.game_board.reset();
-            app.game.ui.reset();
+            // Reset game completely
+            app.game = Game::default();
             app.game.ui.display_mode = display_mode;
+            app.current_page = Pages::Home;
+            app.current_popup = None;
         }
 
         _ => chess_inputs(app, key_event),
@@ -246,8 +263,10 @@ fn handle_bot_page_events(app: &mut App, key_event: KeyEvent) {
         KeyCode::Char('r') => app.restart(),
         KeyCode::Char('b') => {
             let display_mode = app.game.ui.display_mode;
+            // Completely reset all state when going back to menu
             app.selected_color = None;
             app.game.logic.bot = None;
+            app.bot_move_receiver = None; // Reset bot move receiver
 
             if let Some(opponent) = app.game.logic.opponent.as_mut() {
                 opponent.send_end_game_to_server();
@@ -256,10 +275,11 @@ fn handle_bot_page_events(app: &mut App, key_event: KeyEvent) {
                 app.host_ip = None;
             }
 
-            app.go_to_home();
-            app.game.logic.game_board.reset();
-            app.game.ui.reset();
+            // Reset game completely
+            app.game = Game::default();
             app.game.ui.display_mode = display_mode;
+            app.current_page = Pages::Home;
+            app.current_popup = None;
         }
         _ => chess_inputs(app, key_event),
     }

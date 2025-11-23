@@ -321,7 +321,8 @@ impl App {
                 {
                     self.start_bot_thinking();
                 }
-                self.game.logic.player_turn = Color::Black;
+                // Don't set player_turn to Black here - the bot (White) moves first,
+                // so player_turn should remain White until after the bot's first move
             }
         }
     }
@@ -354,7 +355,8 @@ impl App {
             if self.game.logic.bot.is_some() {
                 self.start_bot_thinking();
             }
-            self.game.logic.player_turn = Color::Black;
+            // Don't set player_turn to Black here - the bot (White) moves first,
+            // so player_turn should remain White until after the bot's first move
         }
     }
 
