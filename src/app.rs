@@ -449,7 +449,7 @@ impl App {
         authorized_positions
             .iter()
             .map(|s| flip_square_if_needed(*s, self.game.logic.game_board.is_flipped))
-            .map(|s| Coord::from_square(s))
+            .map(Coord::from_square)
             .collect()
     }
 
