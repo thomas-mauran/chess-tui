@@ -41,14 +41,19 @@ pub struct GameLogic {
 - **`execute_bot_move()`** - Executes a bot move
   - Gets FEN position from game board
   - Retrieves move from bot via UCI protocol
-  - Converts UCI move to shakmaty Move
-  - Applies move to board
+  - Converts UCI move to shakmaty Move (with error handling)
+  - Applies move to board (with error handling)
+  - Handles errors gracefully without panicking
 
 - **`execute_opponent_move() -> bool`** - Executes opponent move from network
   - Reads move string from TCP stream
-  - Parses chess notation (e.g., "e2e4")
+  - Uses `parse_opponent_move_string()` helper to parse chess notation (e.g., "e2e4")
   - Handles promotion piece selection
-  - Returns true if move was successfully executed
+  - Returns true if move was successfully executed, false on error
+
+- **`parse_opponent_move_string(move_str: &str) -> Option<(Square, Square, Option<Role>)>`** (private helper)
+  - Parses move string in chess notation (e.g., "e2e4" or "e7e8q")
+  - Returns (from_square, to_square, promotion_piece) or None if invalid
 
 ### Promotion
 
@@ -66,6 +71,13 @@ pub struct GameLogic {
   - Checks for checkmate
   - Checks for draw conditions
   - Checks for promotion requirement
+
+### Helper Methods (Internal)
+
+- **`update_game_state_after_move()`** - Updates game state after a move (checkmate, draw, promotion)
+- **`handle_after_move_bot_logic()`** - Handles bot-specific logic after a move
+- **`handle_after_move_opponent_logic()`** - Handles opponent-specific logic after a move
+- **`handle_after_move_board_flip()`** - Handles board flipping logic after a move (only in single-player mode)
 
 ## Integration with Game
 

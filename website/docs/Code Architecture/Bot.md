@@ -32,10 +32,9 @@ pub struct Bot {
 ### Initialization
 
 - **`new(engine_path: &str, is_bot_starting: bool, depth: u8) -> Bot`**
-  - Spawns chess engine subprocess
-  - Initializes UCI engine communication
-  - Sets thinking depth
-  - **Note**: Currently reuses the same process
+  - Creates a new Bot instance with configuration
+  - Sets thinking depth and engine path
+  - Does not spawn process until `get_move()` is called
 
 ### Move Computation
 

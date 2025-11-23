@@ -59,12 +59,11 @@ class App {
         +Option~Opponent~ opponent
         +Color player_turn
         +GameState game_state
-        +bool hosting
 
         +new() GameLogic
         +execute_bot_move()
         +execute_opponent_move() bool
-        +promote_piece(role: Role)
+        +promote_piece(promotion_cursor: u8)
         +switch_player_turn()
         +update_game_state()
     }
@@ -77,9 +76,8 @@ class App {
         +bool is_flipped
         
         +new() GameBoard
-        +current_position() Option~Chess~
-        +current_position_mut() Option~Chess~
         +position_ref() Chess
+        +current_position() Option~Chess~
         +move_to_san(index: usize) String
         +execute_move(from: Square, to: Square, promotion: Option~Role~) Option~Move~
         +get_authorized_positions(player_turn: Color, square: Square) Vec~Square~
@@ -90,10 +88,9 @@ class App {
         +reset()
         +flip_the_board()
         +is_checkmate() bool
-        +is_draw(turn: Color) bool
+        +is_draw() bool
         +is_draw_by_repetition() bool
-        +fen_position(is_bot_starting: bool, player_turn: Color) String
-        +get_piece_color_at_square(square: Square) Option~Color~
+        +fen_position() String
     }
 
 
@@ -128,8 +125,7 @@ class App {
     }
 
     class Bot {
-        +Rc~RefCell~Child~~ process
-        +Rc~RefCell~Engine~~ engine
+        +String engine_path
         +bool bot_will_move
         +bool is_bot_starting
         +u8 depth

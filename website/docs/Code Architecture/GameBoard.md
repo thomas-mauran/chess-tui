@@ -33,10 +33,8 @@ pub struct GameBoard {
 
 ### Position Access
 
-- **`current_position() -> Option<&Chess>`** - Safe access to current position
-- **`current_position_mut() -> Option<&mut Chess>`** - Mutable access to current position
-- **`position_ref() -> &Chess`** - Direct reference (panics if empty)
-- **`position() -> &mut Chess`** - Mutable reference (panics if empty)
+- **`position_ref() -> &Chess`** - Gets a read-only reference to the last position in the history (panics if empty)
+- **`current_position() -> Option<&Chess>`** - Safe access to current position, returns None if history is empty
 
 ### Move Execution
 
@@ -64,7 +62,6 @@ pub struct GameBoard {
   - Examples: "e4", "Nf3", "O-O", "Qxd5+"
 
 - **`is_latest_move_promotion() -> bool`** - Checks if last move was a promotion
-- **`is_latest_move_castling() -> bool`** - Checks if last move was castling
 
 ### Piece Information
 
@@ -82,7 +79,7 @@ pub struct GameBoard {
 ### Game End Detection
 
 - **`is_checkmate() -> bool`** - Checks if current position is checkmate
-- **`is_draw(player_turn: Color) -> bool`** - Checks for draw conditions:
+- **`is_draw() -> bool`** - Checks for draw conditions:
   - Stalemate
   - 50-move rule (`consecutive_non_pawn_or_capture == 50`)
   - Threefold repetition (`is_draw_by_repetition()`)
@@ -102,9 +99,10 @@ pub struct GameBoard {
 
 ### FEN Position
 
-- **`fen_position(is_bot_starting: bool, player_turn: Color) -> String`**
+- **`fen_position() -> String`**
   - Generates FEN string for UCI engine communication
   - Uses shakmaty's FEN encoding
+  - Automatically uses current board position
 
 ### Utility
 
