@@ -34,4 +34,3 @@ fn test_load_skin() {
     assert_eq!(skin.board_black_color, Color::Blue);
     assert_eq!(skin.piece_white_color, Color::Green);
 }
-
