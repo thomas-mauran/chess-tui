@@ -3,7 +3,6 @@ use shakmaty::{Color, Move, Role, Square};
 use std::{
     io::{Read, Write},
     net::TcpStream,
-    panic,
 };
 
 pub struct Opponent {
@@ -50,7 +49,7 @@ impl Opponent {
         }
     }
 
-    pub fn new(addr: String, color: Option<Color>) -> Opponent {
+    pub fn new(addr: String, color: Option<Color>) -> Result<Opponent, String> {
         log::info!(
             "Creating new opponent with addr: {} and color: {:?}",
             addr,
@@ -81,7 +80,7 @@ impl Opponent {
                 }
                 None => {
                     log::info!("Getting color from stream");
-                    get_color_from_stream(&stream)
+                    get_color_from_stream(&stream)?
                 }
             };
 
@@ -95,29 +94,28 @@ impl Opponent {
                 opponent_will_move
             );
 
-            Opponent {
+            Ok(Opponent {
                 stream: Some(stream),
                 opponent_will_move,
                 color,
                 game_started: false,
-            }
+            })
         } else {
             log::error!("Failed to connect after 5 attempts to {}", addr);
-            panic!(
+            Err(format!(
                 "Failed to connect to the server after 5 attempts to the following address {}",
                 addr
-            );
+            ))
         }
     }
 
-    pub fn start_stream(&mut self, addr: &str) {
+    pub fn start_stream(&mut self, addr: &str) -> Result<(), String> {
         match TcpStream::connect(addr) {
             Ok(stream) => {
                 self.stream = Some(stream);
+                Ok(())
             }
-            Err(e) => {
-                panic!("Failed to connect: {}", e);
-            }
+            Err(e) => Err(format!("Failed to connect: {}", e)),
         }
     }
 
@@ -164,56 +162,62 @@ impl Opponent {
         })
     }
 
-    pub fn read_stream(&mut self) -> String {
+    pub fn read_stream(&mut self) -> Result<String, String> {
         if let Some(game_stream) = self.stream.as_mut() {
             let mut buffer = vec![0; 5];
             match game_stream.read(&mut buffer) {
                 Ok(bytes_read) => {
                     if bytes_read == 0 {
-                        return String::new();
+                        return Ok(String::new());
                     }
                     let response = String::from_utf8_lossy(&buffer[..bytes_read]);
                     if response.trim() == "ended" || response.trim() == "" {
                         log::error!("Game ended by the other opponent");
-                        panic!("Game ended by the other opponent");
+                        return Err("Game ended by the other opponent".to_string());
                     }
-                    response.to_string()
+                    Ok(response.to_string())
                 }
                 Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                     // This is expected for non-blocking sockets
                     log::debug!("Socket not ready, would block");
-                    String::new()
+                    Ok(String::new())
                 }
                 Err(e) => {
                     log::error!("Failed to read from stream: {}", e);
-                    String::new()
+                    Ok(String::new())
                 }
             }
         } else {
-            String::new()
+            Ok(String::new())
         }
     }
 }
 
-pub fn get_color_from_stream(mut stream: &TcpStream) -> Color {
+pub fn get_color_from_stream(mut stream: &TcpStream) -> Result<Color, String> {
     let mut buffer = [0; 5];
-    let bytes_read = stream.read(&mut buffer).unwrap(); // Number of bytes read
-    let color = String::from_utf8_lossy(&buffer[..bytes_read]).to_string();
-
-    match color.as_str() {
-        "w" => Color::White,
-        "b" => Color::Black,
-        _ => panic!("Failed to get color from stream"),
+    match stream.read(&mut buffer) {
+        Ok(bytes_read) => {
+            let color = String::from_utf8_lossy(&buffer[..bytes_read]).to_string();
+            match color.as_str() {
+                "w" => Ok(Color::White),
+                "b" => Ok(Color::Black),
+                _ => Err("Failed to get color from stream".to_string()),
+            }
+        }
+        Err(e) => Err(format!("Failed to read color from stream: {}", e)),
     }
 }
 
-pub fn wait_for_game_start(mut stream: &TcpStream) {
+pub fn wait_for_game_start(mut stream: &TcpStream) -> Result<(), String> {
     let mut buffer = [0; 5];
-    let bytes_read = stream.read(&mut buffer).unwrap(); // Number of bytes read
-    let response = String::from_utf8_lossy(&buffer[..bytes_read]).to_string();
-
-    match response.as_str() {
-        "s" => (),
-        _ => panic!("Failed to get color from stream"),
+    match stream.read(&mut buffer) {
+        Ok(bytes_read) => {
+            let response = String::from_utf8_lossy(&buffer[..bytes_read]).to_string();
+            match response.as_str() {
+                "s" => Ok(()),
+                _ => Err("Failed to get start signal from stream".to_string()),
+            }
+        }
+        Err(e) => Err(format!("Failed to read start signal from stream: {}", e)),
     }
 }

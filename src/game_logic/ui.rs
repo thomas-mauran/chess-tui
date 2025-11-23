@@ -373,6 +373,54 @@ impl UI {
     }
 
     /// Method to render the board
+    fn get_last_move_squares(&self, logic: &GameLogic) -> (Option<Square>, Option<Square>) {
+        if logic.game_board.move_history.is_empty() {
+            return (None, None);
+        }
+
+        let last_move = logic.game_board.move_history.last();
+        let last_move_from = last_move.map(|m| m.from()).unwrap();
+        let last_move_to = last_move.map(|m| m.to());
+
+        // If the opponent is the same as the last move player, we don't want to show his last move
+        if logic.opponent.is_some() && logic.opponent.as_ref().unwrap().color == logic.player_turn {
+            return (None, None);
+        }
+
+        (last_move_from, last_move_to)
+    }
+
+    fn get_authorized_positions_for_render(
+        &self,
+        logic: &GameLogic,
+        actual_square: Option<Square>,
+    ) -> Vec<Coord> {
+        if !self.is_cell_selected() || actual_square.is_none() {
+            return vec![];
+        }
+
+        let selected_piece_color = logic
+            .game_board
+            .get_piece_color_at_square(&actual_square.unwrap());
+
+        if let Some(color) = selected_piece_color {
+            if color == logic.player_turn {
+                let mut authorized_positions: Vec<Coord> = logic
+                    .game_board
+                    .get_authorized_positions(logic.player_turn, &actual_square.unwrap())
+                    .iter()
+                    .map(|s| Coord::from_square(*s))
+                    .collect();
+
+                if logic.game_board.is_flipped {
+                    authorized_positions =
+                        authorized_positions.iter().map(|s| s.reverse()).collect();
+                }
+                return authorized_positions;
+            }
+        }
+        vec![]
+    }
     pub fn board_render(&mut self, area: Rect, frame: &mut Frame<'_>, logic: &GameLogic) {
         let mut board = logic
             .game_board
@@ -451,70 +499,14 @@ impl UI {
                 // Color of the cell to draw the board
                 let cell_color: Color = if (i + j) % 2 == 0 { WHITE } else { BLACK };
 
-                // TODO Check that
-                let last_move;
-                let mut last_move_from: Option<Square> = None;
-                let mut last_move_to: Option<Square> = None;
-                // If the history is not empty, we get the last move
-                if !logic.game_board.move_history.is_empty() {
-                    last_move = logic.game_board.move_history.last();
-                    if logic.bot.is_some()
-                        && !logic.bot.as_ref().is_some_and(|bot| bot.is_bot_starting)
-                    {
-                        last_move_from = last_move.map(|m| m.from()).unwrap();
-                        last_move_to = last_move.map(|m| m.to());
-                    } else {
-                        last_move_from = last_move.map(|m| m.from()).unwrap();
-                        last_move_to = last_move.map(|m| m.to());
-                    }
+                let (last_move_from, last_move_to) = self.get_last_move_squares(logic);
 
-                    // If the opponent is the same as the last move player, we don't want to show his last move
-                    if logic.opponent.is_some()
-                        && logic.opponent.as_ref().unwrap().color == logic.player_turn
-                    {
-                        last_move_from = None;
-                        last_move_to = None;
-                    }
-                }
+                let authorized_positions =
+                    self.get_authorized_positions_for_render(logic, actual_square);
 
-                let mut authorized_positions: Vec<Coord> = vec![];
                 let is_cell_in_positions = |positions: &Vec<Coord>, i: u8, j: u8| {
                     positions.iter().any(|&coord| coord == Coord::new(i, j))
                 };
-
-                // Draw the available moves for the selected piece
-                if self.is_cell_selected() {
-                    let selected_piece_color = logic
-                        .game_board
-                        .get_piece_color_at_square(&actual_square.unwrap())
-                        .unwrap();
-                    // only draw available moves if it is the right players turn
-                    if match selected_piece_color {
-                        shakmaty::Color::White => logic.player_turn == shakmaty::Color::White,
-                        shakmaty::Color::Black => logic.player_turn == shakmaty::Color::Black,
-                    } {
-                        authorized_positions = logic
-                            .game_board
-                            .get_authorized_positions(logic.player_turn, &actual_square.unwrap())
-                            .iter()
-                            .map(|s| Coord::from_square(*s))
-                            .collect();
-
-                        // println!("authorized_positions: {:?}", authorized_positions);
-
-                        if logic.game_board.is_flipped {
-                            authorized_positions =
-                                authorized_positions.iter().map(|s| s.reverse()).collect();
-                        }
-
-                        // Draw grey if the color is in the authorized positions
-                        for coords in authorized_positions.clone() {
-                            if i == coords.row && j == coords.col {
-                                // cell_color = Color::Rgb(100, 100, 100);
-                            }
-                        }
-                    }
-                }
 
                 let square = lines[j as usize + 1];
                 // Here we have all the possibilities for a cell:

@@ -45,6 +45,34 @@ pub fn render_engine_path_error_popup(frame: &mut Frame) {
     frame.render_widget(paragraph, area);
 }
 
+// This renders a generic error popup with a custom message
+pub fn render_error_popup(frame: &mut Frame, error_message: &str) {
+    let block = Block::default()
+        .title("Error")
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .padding(Padding::horizontal(1))
+        .border_style(Style::default().fg(Color::Red));
+    let area = centered_rect(50, 30, frame.area());
+
+    let text = vec![
+        Line::from(""),
+        Line::from(error_message).alignment(Alignment::Center),
+        Line::from(""),
+        Line::from(""),
+        Line::from("Press `Esc` or `Enter` to close.").alignment(Alignment::Center),
+    ];
+
+    let paragraph = Paragraph::new(text)
+        .block(block.clone())
+        .alignment(Alignment::Left)
+        .wrap(Wrap { trim: true });
+
+    frame.render_widget(Clear, area); //this clears out the background
+    frame.render_widget(block, area);
+    frame.render_widget(paragraph, area);
+}
+
 // This renders a popup for a promotion
 pub fn render_end_popup(frame: &mut Frame, sentence: &str, is_multiplayer: bool) {
     let block = Block::default()

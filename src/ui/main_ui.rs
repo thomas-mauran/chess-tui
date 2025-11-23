@@ -12,7 +12,8 @@ use crate::{
     game_logic::game::GameState,
     ui::popups::{
         render_color_selection_popup, render_credit_popup, render_end_popup,
-        render_engine_path_error_popup, render_help_popup, render_promotion_popup,
+        render_engine_path_error_popup, render_error_popup, render_help_popup,
+        render_promotion_popup,
     },
 };
 
@@ -34,23 +35,26 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
     }
     // Multiplayer game
     else if app.current_page == Pages::Multiplayer {
-        if app.hosting.is_none() {
-            app.current_popup = Some(Popups::MultiplayerSelection);
-        } else if app.selected_color.is_none() && app.hosting.unwrap() {
-            app.current_popup = Some(Popups::ColorSelection);
-        } else if app.game.logic.opponent.is_none() {
-            if app.host_ip.is_none() {
-                if app.hosting.is_some() && app.hosting.unwrap() {
-                    app.setup_game_server(app.selected_color.unwrap());
-                    app.host_ip = Some("127.0.0.1".to_string());
+        // Don't override Error popup
+        if app.current_popup != Some(Popups::Error) {
+            if app.hosting.is_none() {
+                app.current_popup = Some(Popups::MultiplayerSelection);
+            } else if app.selected_color.is_none() && app.hosting.unwrap() {
+                app.current_popup = Some(Popups::ColorSelection);
+            } else if app.game.logic.opponent.is_none() {
+                if app.host_ip.is_none() {
+                    if app.hosting.is_some() && app.hosting.unwrap() {
+                        app.setup_game_server(app.selected_color.unwrap());
+                        app.host_ip = Some("127.0.0.1".to_string());
+                    } else {
+                        app.current_popup = Some(Popups::EnterHostIP);
+                    }
                 } else {
-                    app.current_popup = Some(Popups::EnterHostIP);
+                    app.create_opponent();
                 }
-            } else {
-                app.create_opponent();
+            } else if app.game.logic.opponent.as_mut().unwrap().game_started {
+                render_game_ui(frame, app, main_area);
             }
-        } else if app.game.logic.opponent.as_mut().unwrap().game_started {
-            render_game_ui(frame, app, main_area);
         }
     }
     // Play against bot
@@ -90,6 +94,11 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
         }
         Some(Popups::Help) => {
             render_help_popup(frame);
+        }
+        Some(Popups::Error) => {
+            if let Some(ref error_msg) = app.error_message {
+                render_error_popup(frame, error_msg);
+            }
         }
         _ => {}
     }

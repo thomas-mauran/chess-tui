@@ -309,8 +309,8 @@ impl GameBoard {
 
     // Execute a move on the shakmaty Chess position and sync the visual board
     // Optionally specify a promotion piece type
-    pub fn execute_shakmaty_move(&mut self, from: Square, to: Square) -> bool {
-        self.execute_move(from, to, None).is_some()
+    pub fn execute_shakmaty_move(&mut self, from: Square, to: Square) -> Option<Move> {
+        self.execute_move(from, to, None)
     }
 
     /// Execute a move from standard (non-flipped) coordinates

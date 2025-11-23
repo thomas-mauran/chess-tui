@@ -3,12 +3,13 @@ use crate::constants::{DisplayMode, Pages, Popups};
 use crate::game_logic::bot::Bot;
 use crate::game_logic::coord::Coord;
 use crate::game_logic::game::Game;
+use crate::game_logic::game::GameState;
 use crate::game_logic::opponent::Opponent;
 use crate::server::game_server::GameServer;
 use crate::utils::flip_square_if_needed;
 use dirs::home_dir;
 use log::LevelFilter;
-use shakmaty::{Color, Move, Square};
+use shakmaty::{Color, Move};
 use std::error;
 use std::fs::{self, File};
 use std::io::Write;
@@ -45,6 +46,8 @@ pub struct App {
     pub bot_depth: u8,
     /// Bot thinking channel receiver
     pub bot_move_receiver: Option<Receiver<Move>>,
+    /// Error message for Error popup
+    pub error_message: Option<String>,
 }
 
 impl Default for App {
@@ -62,6 +65,7 @@ impl Default for App {
             log_level: LevelFilter::Off,
             bot_depth: 10,
             bot_move_receiver: None,
+            error_message: None,
         }
     }
 }
@@ -139,12 +143,22 @@ impl App {
         }
 
         log::info!("Creating opponent with color: {:?}", other_player_color);
-        self.game.logic.opponent = Some(Opponent::new(addr_with_port, other_player_color));
-
-        if !self.hosting.unwrap_or(false) {
-            log::info!("Setting up client (non-host) player");
-            self.selected_color = Some(self.game.logic.opponent.as_mut().unwrap().color.other());
-            self.game.logic.opponent.as_mut().unwrap().game_started = true;
+        match Opponent::new(addr_with_port, other_player_color) {
+            Ok(mut opponent) => {
+                if !self.hosting.unwrap_or(false) {
+                    log::info!("Setting up client (non-host) player");
+                    self.selected_color = Some(opponent.color.other());
+                    opponent.game_started = true;
+                }
+                self.game.logic.opponent = Some(opponent);
+            }
+            Err(e) => {
+                log::error!("Failed to create opponent: {}", e);
+                self.host_ip = None;
+                self.error_message = Some(format!("Connection failed: {}", e));
+                self.current_popup = Some(Popups::Error);
+                return;
+            }
         }
 
         if self.selected_color.unwrap_or(Color::White) == Color::Black {
@@ -262,6 +276,15 @@ impl App {
     /// Set running to false to quit the application.
     pub fn quit(&mut self) {
         self.running = false;
+    }
+
+    pub fn check_game_end_status(&mut self) {
+        self.game.logic.update_game_state();
+        if self.game.logic.game_state == GameState::Checkmate
+            || self.game.logic.game_state == GameState::Draw
+        {
+            self.show_end_screen();
+        }
     }
 
     pub fn menu_cursor_up(&mut self, l: u8) {
@@ -415,7 +438,7 @@ impl App {
         self.bot_depth = 10;
     }
 
-    pub fn go_left_in_game(&mut self) {
+    fn get_authorized_positions_flipped(&self) -> Vec<Coord> {
         let mut authorized_positions = vec![];
         if self.game.ui.selected_square.is_some() {
             authorized_positions = self.game.logic.game_board.get_authorized_positions(
@@ -427,91 +450,30 @@ impl App {
             );
         }
 
-        let authorized_positions_flipped: Vec<Square> = authorized_positions
+        authorized_positions
             .iter()
             .map(|s| flip_square_if_needed(*s, self.game.logic.game_board.is_flipped))
-            .collect();
+            .map(|s| Coord::from_square(s))
+            .collect()
+    }
 
-        self.game.ui.cursor_left(
-            authorized_positions_flipped
-                .iter()
-                .map(|s| Coord::from_square(*s))
-                .collect(),
-        );
+    pub fn go_left_in_game(&mut self) {
+        let authorized_positions = self.get_authorized_positions_flipped();
+        self.game.ui.cursor_left(authorized_positions);
     }
 
     pub fn go_right_in_game(&mut self) {
-        let mut authorized_positions = vec![];
-        if self.game.ui.selected_square.is_some() {
-            authorized_positions = self.game.logic.game_board.get_authorized_positions(
-                self.game.logic.player_turn,
-                &flip_square_if_needed(
-                    self.game.ui.selected_square.unwrap(),
-                    self.game.logic.game_board.is_flipped,
-                ),
-            );
-        }
-
-        let authorized_positions_flipped: Vec<Square> = authorized_positions
-            .iter()
-            .map(|s| flip_square_if_needed(*s, self.game.logic.game_board.is_flipped))
-            .collect();
-
-        self.game.ui.cursor_right(
-            authorized_positions_flipped
-                .iter()
-                .map(|s| Coord::from_square(*s))
-                .collect(),
-        );
+        let authorized_positions = self.get_authorized_positions_flipped();
+        self.game.ui.cursor_right(authorized_positions);
     }
 
     pub fn go_up_in_game(&mut self) {
-        let mut authorized_positions = vec![];
-        if self.game.ui.selected_square.is_some() {
-            authorized_positions = self.game.logic.game_board.get_authorized_positions(
-                self.game.logic.player_turn,
-                &flip_square_if_needed(
-                    self.game.ui.selected_square.unwrap(),
-                    self.game.logic.game_board.is_flipped,
-                ),
-            );
-        }
-
-        let authorized_positions_flipped: Vec<Square> = authorized_positions
-            .iter()
-            .map(|s| flip_square_if_needed(*s, self.game.logic.game_board.is_flipped))
-            .collect();
-
-        self.game.ui.cursor_up(
-            authorized_positions_flipped
-                .iter()
-                .map(|s| Coord::from_square(*s))
-                .collect(),
-        );
+        let authorized_positions = self.get_authorized_positions_flipped();
+        self.game.ui.cursor_up(authorized_positions);
     }
 
     pub fn go_down_in_game(&mut self) {
-        let mut authorized_positions = vec![];
-        if self.game.ui.selected_square.is_some() {
-            authorized_positions = self.game.logic.game_board.get_authorized_positions(
-                self.game.logic.player_turn,
-                &flip_square_if_needed(
-                    self.game.ui.selected_square.unwrap(),
-                    self.game.logic.game_board.is_flipped,
-                ),
-            );
-        }
-
-        let authorized_positions_flipped: Vec<Square> = authorized_positions
-            .iter()
-            .map(|s| flip_square_if_needed(*s, self.game.logic.game_board.is_flipped))
-            .collect();
-
-        self.game.ui.cursor_down(
-            authorized_positions_flipped
-                .iter()
-                .map(|s| Coord::from_square(*s))
-                .collect(),
-        );
+        let authorized_positions = self.get_authorized_positions_flipped();
+        self.game.ui.cursor_down(authorized_positions);
     }
 }

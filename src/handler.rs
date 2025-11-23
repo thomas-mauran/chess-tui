@@ -136,6 +136,13 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
             }
             _ => fallback_key_handler(app, key_event),
         },
+        Popups::Error => match key_event.code {
+            KeyCode::Esc | KeyCode::Enter | KeyCode::Char(' ') => {
+                app.current_popup = None;
+                app.error_message = None;
+            }
+            _ => fallback_key_handler(app, key_event),
+        },
     };
 }
 

@@ -288,7 +288,7 @@ impl Game {
 }
 
 impl GameLogic {
-    fn update_game_state(&mut self) {
+    pub fn update_game_state(&mut self) {
         if self.game_board.is_checkmate() {
             self.game_state = GameState::Checkmate;
         } else if self.game_board.is_draw(self.player_turn) {
@@ -400,21 +400,14 @@ impl GameLogic {
         let role_from: Option<Role> = self.game_board.get_role_at_square(&from);
         let role_to: Option<Role> = self.game_board.get_role_at_square(&to);
 
-        if !self.game_board.execute_shakmaty_move(from, to) {
-            return;
-        }
-        // We increment the consecutive_non_pawn_or_capture if the piece type is a pawn or if there is no capture
-        self.game_board
-            .increment_consecutive_non_pawn_or_capture(role_from.unwrap(), role_to);
+        if let Some(executed_move) = self.game_board.execute_shakmaty_move(from, to) {
+            // We increment the consecutive_non_pawn_or_capture if the piece type is a pawn or if there is no capture
+            self.game_board
+                .increment_consecutive_non_pawn_or_capture(role_from.unwrap(), role_to);
 
-        // We store it in the history
-        self.game_board.move_history.push(Move::Normal {
-            role: role_from.unwrap(),
-            from,
-            capture: None, // TODO FIX THAT
-            to,
-            promotion: None, // TODO FIX THAT
-        });
+            // We store it in the history
+            self.game_board.move_history.push(executed_move);
+        }
     }
 
     pub fn execute_opponent_move(&mut self) -> bool {
@@ -424,7 +417,15 @@ impl GameLogic {
             return false;
         };
 
-        let opponent_move = opponent.read_stream();
+        let opponent_move = match opponent.read_stream() {
+            Ok(m) => m,
+            Err(e) => {
+                log::error!("Error reading opponent move: {}", e);
+                // Handle error (e.g., end game)
+                // For now, we just return false to stop waiting, but ideally we should set game state
+                return false;
+            }
+        };
 
         if opponent_move.is_empty() {
             return false;

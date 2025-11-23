@@ -5,7 +5,6 @@ use chess_tui::app::{App, AppResult};
 use chess_tui::config::Config;
 use chess_tui::constants::{home_dir, DisplayMode};
 use chess_tui::event::{Event, EventHandler};
-use chess_tui::game_logic::game::GameState;
 use chess_tui::game_logic::opponent::wait_for_game_start;
 use chess_tui::handler::{handle_key_events, handle_mouse_events};
 use chess_tui::logging;
@@ -140,18 +139,7 @@ fn main() -> AppResult<()> {
             app.game.switch_player_turn();
 
             // need to be centralised
-            if app.game.logic.game_board.is_checkmate() {
-                app.game.logic.game_state = GameState::Checkmate;
-                app.show_end_screen();
-            } else if app
-                .game
-                .logic
-                .game_board
-                .is_draw(app.game.logic.player_turn)
-            {
-                app.game.logic.game_state = GameState::Draw;
-                app.show_end_screen();
-            }
+            app.check_game_end_status();
         }
 
         if app.game.logic.opponent.is_some()
@@ -163,9 +151,13 @@ fn main() -> AppResult<()> {
                 .is_some_and(|opponent| !opponent.game_started)
         {
             let opponent = app.game.logic.opponent.as_mut().unwrap();
-            wait_for_game_start(opponent.stream.as_ref().unwrap());
-            opponent.game_started = true;
-            app.current_popup = None;
+            if let Err(e) = wait_for_game_start(opponent.stream.as_ref().unwrap()) {
+                log::error!("Error waiting for game start: {}", e);
+                // Handle error
+            } else {
+                opponent.game_started = true;
+                app.current_popup = None;
+            }
         }
 
         // If it's the opponent turn, wait for the opponent to move
@@ -191,18 +183,7 @@ fn main() -> AppResult<()> {
             }
 
             // need to be centralised
-            if app.game.logic.game_board.is_checkmate() {
-                app.game.logic.game_state = GameState::Checkmate;
-                app.show_end_screen();
-            } else if app
-                .game
-                .logic
-                .game_board
-                .is_draw(app.game.logic.player_turn)
-            {
-                app.game.logic.game_state = GameState::Draw;
-                app.show_end_screen();
-            }
+            app.check_game_end_status();
             tui.draw(&mut app)?;
         }
     }
