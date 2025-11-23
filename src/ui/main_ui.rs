@@ -204,9 +204,9 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
         .direction(Direction::Vertical)
         .constraints(
             [
-                Constraint::Ratio(1, 20),   // Top padding
-                Constraint::Ratio(18, 20),  // Board area (increased)
-                Constraint::Min(0),         // Bottom padding (minimal)
+                Constraint::Ratio(1, 20),  // Top padding
+                Constraint::Ratio(18, 20), // Board area (increased)
+                Constraint::Min(0),        // Bottom padding (minimal)
             ]
             .as_ref(),
         )
@@ -216,11 +216,11 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
         .direction(Direction::Horizontal)
         .constraints(
             [
-                Constraint::Ratio(1, 18),      // Left padding (reduced)
-                Constraint::Ratio(1, 18),      // Rank labels (1-8)
-                Constraint::Ratio(11, 18),     // Board (increased from 9 to 11)
-                Constraint::Ratio(1, 18),      // Right padding
-                Constraint::Ratio(4, 18),      // Sidebar (reduced from 5 to 4)
+                Constraint::Ratio(1, 18),  // Left padding (reduced)
+                Constraint::Ratio(1, 18),  // Rank labels (1-8)
+                Constraint::Ratio(11, 18), // Board (increased from 9 to 11)
+                Constraint::Ratio(1, 18),  // Right padding
+                Constraint::Ratio(4, 18),  // Sidebar (reduced from 5 to 4)
             ]
             .as_ref(),
         )
@@ -231,8 +231,8 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
         .direction(Direction::Vertical)
         .constraints(
             [
-                Constraint::Ratio(8, 9),  // Board
-                Constraint::Ratio(1, 9),  // File labels (A-H)
+                Constraint::Ratio(8, 9), // Board
+                Constraint::Ratio(1, 9), // File labels (A-H)
             ]
             .as_ref(),
         )
@@ -243,8 +243,8 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
         .direction(Direction::Vertical)
         .constraints(
             [
-                Constraint::Ratio(8, 9),  // Rank labels (aligned with board)
-                Constraint::Ratio(1, 9),  // Empty space (aligned with file labels)
+                Constraint::Ratio(8, 9), // Rank labels (aligned with board)
+                Constraint::Ratio(1, 9), // Empty space (aligned with file labels)
             ]
             .as_ref(),
         )
@@ -269,14 +269,14 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
 
     // Split borrows to avoid borrow checker issue
     let (ui, logic) = (&mut app.game.ui, &app.game.logic);
-    
+
     // Get the inner area of the board (accounting for any block padding)
     let board_inner = board_block.inner(board_with_labels[0]);
     ui.board_render(board_inner, frame, logic);
-    
+
     // Render rank labels (1-8) on the left - aligned with board's inner area
     ui.render_rank_labels(frame, rank_label_area[0], logic.game_board.is_flipped);
-    
+
     // Render file labels (A-H) below the board
     ui.render_file_labels(frame, board_with_labels[1], logic.game_board.is_flipped);
 
