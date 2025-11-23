@@ -8,6 +8,7 @@ use chess_tui::event::{Event, EventHandler};
 use chess_tui::game_logic::opponent::wait_for_game_start;
 use chess_tui::handler::{handle_key_events, handle_mouse_events};
 use chess_tui::logging;
+use chess_tui::skin::Skin;
 use chess_tui::ui::tui::Tui;
 use clap::Parser;
 use log::LevelFilter;
@@ -61,6 +62,7 @@ fn main() -> AppResult<()> {
             if let Some(display_mode) = config.display_mode {
                 app.game.ui.display_mode = match display_mode.as_str() {
                     "ASCII" => DisplayMode::ASCII,
+                    "CUSTOM" => DisplayMode::CUSTOM,
                     _ => DisplayMode::DEFAULT,
                 };
             }
@@ -72,9 +74,73 @@ fn main() -> AppResult<()> {
             if let Some(bot_depth) = config.bot_depth {
                 app.bot_depth = bot_depth;
             }
+            // Add selected skin name handling
+            if let Some(selected_skin_name) = config.selected_skin_name {
+                app.selected_skin_name = selected_skin_name;
+            }
         }
     } else {
         println!("Error reading the file or the file does not exist");
+    }
+
+    // Always start with Default and ASCII display modes at the beginning
+    app.available_skins.push(Skin::default_display_mode());
+    app.available_skins.push(Skin::ascii_display_mode());
+
+    // Load all available skins from skins.json
+    let skins_path = home_dir.join(".config/chess-tui/skins.json");
+
+    // Create skins.json if it doesn't exist
+    if !skins_path.exists() {
+        if let Err(e) = create_default_skins_file(&skins_path) {
+            eprintln!("Failed to create default skins.json: {}", e);
+        }
+    }
+
+    if skins_path.exists() {
+        match Skin::load_all_skins(&skins_path) {
+            Ok(skins) => {
+                // Filter out any "Default" or "ASCII" skins from JSON to avoid duplicates
+                let custom_skins: Vec<Skin> = skins
+                    .into_iter()
+                    .filter(|s| s.name != "Default" && s.name != "ASCII")
+                    .collect();
+                app.available_skins.extend(custom_skins);
+            }
+            Err(e) => {
+                eprintln!("Failed to load skins: {}", e);
+            }
+        }
+    }
+
+    // Apply selected skin
+    if let Some(skin) = Skin::get_skin_by_name(&app.available_skins, &app.selected_skin_name) {
+        app.loaded_skin = Some(skin.clone());
+        app.game.ui.skin = skin.clone();
+        // Set display mode based on skin name
+        match app.selected_skin_name.as_str() {
+            "Default" => app.game.ui.display_mode = DisplayMode::DEFAULT,
+            "ASCII" => app.game.ui.display_mode = DisplayMode::ASCII,
+            _ => {
+                // For custom skins, set to CUSTOM if not already set
+                if app.game.ui.display_mode == DisplayMode::DEFAULT {
+                    app.game.ui.display_mode = DisplayMode::CUSTOM;
+                }
+            }
+        }
+    } else {
+        // Fallback: use the first available skin if selected skin not found
+        if let Some(first_skin) = app.available_skins.first() {
+            app.selected_skin_name = first_skin.name.clone();
+            app.loaded_skin = Some(first_skin.clone());
+            app.game.ui.skin = first_skin.clone();
+            // Set display mode based on skin name
+            match app.selected_skin_name.as_str() {
+                "Default" => app.game.ui.display_mode = DisplayMode::DEFAULT,
+                "ASCII" => app.game.ui.display_mode = DisplayMode::ASCII,
+                _ => app.game.ui.display_mode = DisplayMode::CUSTOM,
+            }
+        }
     }
 
     // Command line arguments take precedence over configuration file
@@ -220,6 +286,9 @@ fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResu
     if config.bot_depth.is_none() {
         config.bot_depth = Some(10);
     }
+    if config.selected_skin_name.is_none() {
+        config.selected_skin_name = Some("Default".to_string());
+    }
 
     // Update bot_depth if provided via command line
     if args.depth != 10 {
@@ -230,6 +299,21 @@ fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResu
         .expect("Failed to serialize config to TOML. This is a bug, please report it.");
     let mut file = File::create(config_path)?;
     file.write_all(toml_string.as_bytes())?;
+
+    Ok(())
+}
+
+fn create_default_skins_file(skins_path: &Path) -> AppResult<()> {
+    // Ensure the directory exists
+    if let Some(parent) = skins_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+
+    // Default skins.json content (embedded at compile time)
+    const DEFAULT_SKINS: &str = include_str!("default_skins.json");
+
+    let mut file = File::create(skins_path)?;
+    file.write_all(DEFAULT_SKINS.as_bytes())?;
 
     Ok(())
 }

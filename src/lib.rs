@@ -29,3 +29,6 @@ pub mod pieces;
 
 // Configuration
 pub mod config;
+
+// Skin
+pub mod skin;

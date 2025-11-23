@@ -157,6 +157,15 @@ fn handle_home_page_events(app: &mut App, key_event: KeyEvent) {
     match key_event.code {
         KeyCode::Up | KeyCode::Char('k') => app.menu_cursor_up(Pages::variant_count() as u8),
         KeyCode::Down | KeyCode::Char('j') => app.menu_cursor_down(Pages::variant_count() as u8),
+        // If on skin selection menu item (index 3), use left/right to cycle skins
+        KeyCode::Left | KeyCode::Char('h') if app.menu_cursor == 3 => {
+            app.cycle_skin_backward();
+            app.update_config();
+        }
+        KeyCode::Right | KeyCode::Char('l') if app.menu_cursor == 3 => {
+            app.cycle_skin();
+            app.update_config();
+        }
         KeyCode::Char(' ') | KeyCode::Enter => app.menu_select(),
         KeyCode::Char('?') => app.toggle_help_popup(),
         _ => fallback_key_handler(app, key_event),
@@ -256,7 +265,8 @@ fn fallback_key_handler(app: &mut App, key_event: KeyEvent) {
     match key_event.code {
         KeyCode::Char('q') => app.quit(), // Quit application
         KeyCode::Char('c' | 'C') if key_event.modifiers == KeyModifiers::CONTROL => app.quit(), // Ctrl+C to quit
-        _ => (), // Ignore other keys
+        KeyCode::Char('s') => app.cycle_skin(), // Cycle through available skins
+        _ => (),                                // Ignore other keys
     }
 }
 

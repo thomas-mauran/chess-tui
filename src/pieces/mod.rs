@@ -35,7 +35,7 @@ pub fn role_to_utf_enum(role: &Role, color: Option<Color>) -> &'static str {
 /// Note: This is used for the board grid. For multi-line designs, see individual piece modules.
 pub fn role_to_string_enum(role: Option<Role>, display_mode: &DisplayMode) -> &'static str {
     match display_mode {
-        DisplayMode::DEFAULT => match role {
+        DisplayMode::DEFAULT | DisplayMode::CUSTOM => match role {
             // Custom single-character designs using Unicode box drawing and symbols
             Some(Role::King) => "♚",   // King with cross
             Some(Role::Queen) => "♛",  // Queen with multiple points

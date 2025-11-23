@@ -14,6 +14,7 @@ const sidebars: SidebarsConfig = {
       items: [
         'Configuration/configuration-intro',
         'Configuration/display',
+        'Configuration/skins',
         'Configuration/logging',
         'Configuration/engine',
         'Configuration/bot',
