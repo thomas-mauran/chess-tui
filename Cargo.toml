@@ -18,7 +18,8 @@ toml = "0.5.8"
 log = "0.4.25"
 simplelog = "0.12.2"
 chrono = "0.4.39"
-shakmaty = { version = "0.27.3", default-features = false }
+shakmaty = "0.27.3"
+serde = { version = "1.0", features = ["derive"] }
 
 [features]
 chess-tui = []

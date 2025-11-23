@@ -34,6 +34,7 @@ const config: Config = {
           sidebarPath: './sidebars.ts',
           editUrl:
             'https://github.com/thomas-mauran/chess-tui/',
+          sidebarCollapsible: true,
         },
         blog: {
           showReadingTime: true,

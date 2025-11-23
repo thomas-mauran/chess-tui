@@ -1,29 +1,9 @@
-use super::{
-    board::{init_board, Board},
-    coord::Coord,
-    game::Game,
-};
-use crate::{
-    pieces::{pawn::Pawn, PieceColor, PieceMove, PieceType},
-    utils::col_to_letter,
-};
+use super::coord::Coord;
+use shakmaty::{san::San, Chess, Color, Move, Piece, Position, Rank, Role, Square};
 
 /// ## visual representation
 ///
 /// ### how it's stored:
-///
-/// . 0 1 2 3 4 5 6 7 .
-/// 0 ♖ ♘ ♗ ♕ ♔ ♗ ♘ ♖ 0
-/// 1 ♙ ♙ ♙ ♙ ♙ ♙ ♙ ♙ 1
-/// 2 . . . . . . . . 2
-/// 3 . . . . . . . . 3
-/// 4 . . . . . . . . 4
-/// 5 . . . . . . . . 5
-/// 6 ♟ ♟ ♟ ♟ ♟ ♟ ♟ ♟ 6
-/// 7 ♜ ♞ ♝ ♛ ♚ ♝ ♞ ♜ 7
-/// . 0 1 2 3 4 5 6 7 .
-///
-/// ### how it's rendered:
 ///
 /// . a b c d e f g h .
 /// 8 ♖ ♘ ♗ ♕ ♔ ♗ ♘ ♖ 8
@@ -39,236 +19,83 @@ use crate::{
 ///
 #[derive(Debug, Clone)]
 pub struct GameBoard {
-    // the 8x8 board
-    pub board: Board,
     // historic of the past Moves of the board
-    pub move_history: Vec<PieceMove>,
-    // historic of the past gameboards states
-    pub board_history: Vec<Board>,
+    pub move_history: Vec<Move>,
+    /// historic of the past gameboards states.
+    /// The last position is the current position.
+    pub position_history: Vec<Chess>,
     // the number of consecutive non pawn or capture moves
-    consecutive_non_pawn_or_capture: i32,
-    // The white piece that got taken
-    pub white_taken_pieces: Vec<PieceType>,
-    // The black piece that got taken
-    pub black_taken_pieces: Vec<PieceType>,
+    pub consecutive_non_pawn_or_capture: i32,
+    pub taken_pieces: Vec<Piece>,
+    /// Track if the board is currently flipped (for coordinate conversion)
+    pub is_flipped: bool,
 }
 
 impl Default for GameBoard {
     fn default() -> Self {
         Self {
-            board: init_board(),
-            move_history: vec![],
-            board_history: vec![init_board()],
+            move_history: Vec::new(),
+            position_history: vec![Chess::default()],
             consecutive_non_pawn_or_capture: 0,
-            white_taken_pieces: vec![],
-            black_taken_pieces: vec![],
+            taken_pieces: Vec::new(),
+            is_flipped: false,
         }
     }
 }
 
 impl GameBoard {
-    pub fn new(board: Board, move_history: Vec<PieceMove>, board_history: Vec<Board>) -> Self {
-        Self {
-            board,
-            move_history,
-            board_history,
-            consecutive_non_pawn_or_capture: 0,
-            white_taken_pieces: vec![],
-            black_taken_pieces: vec![],
+    /// Convert a move to Standard Algebraic Notation (e.g., "e4", "Nf3", "O-O", "Qxd5+")
+    pub fn move_to_san(&self, move_index: usize) -> String {
+        if move_index >= self.move_history.len() || move_index >= self.position_history.len() {
+            return String::new();
         }
-    }
 
-    pub fn get_last_move_piece_type_as_string(&self) -> String {
-        if let Some(last_move) = self.move_history.last() {
-            match last_move.piece_type {
-                PieceType::Pawn => return String::from("p"),
-                PieceType::Rook => return String::from("r"),
-                PieceType::Knight => return String::from("n"),
-                PieceType::Bishop => return String::from("b"),
-                PieceType::Queen => return String::from("q"),
-                PieceType::King => return String::from("k"),
-            }
-        }
-        String::from("")
+        // Get the position before this move was made
+        let position = &self.position_history[move_index];
+        let chess_move = &self.move_history[move_index];
+
+        // Convert to SAN using shakmaty
+        let san = San::from_move(position, chess_move);
+        san.to_string()
     }
 
     pub fn increment_consecutive_non_pawn_or_capture(
         &mut self,
-        piece_type_from: PieceType,
-        piece_type_to: Option<PieceType>,
+        role_from: Role,
+        role_to: Option<Role>,
     ) {
-        match (piece_type_from, piece_type_to) {
-            (PieceType::Pawn, _) | (_, Some(_)) => {
-                self.set_consecutive_non_pawn_or_capture(0);
+        match (role_from, role_to) {
+            (Role::Pawn, _) | (_, Some(_)) => {
+                self.consecutive_non_pawn_or_capture = 0;
             }
             _ => {
-                let value = self.get_consecutive_non_pawn_or_capture() + 1;
-                self.set_consecutive_non_pawn_or_capture(value);
-            }
-        }
-    }
-
-    pub fn add_piece_to_taken_pieces(&mut self, from: &Coord, to: &Coord, player_turn: PieceColor) {
-        if self.is_latest_move_en_passant(from, to) {
-            self.push_to_taken_piece(PieceType::Pawn, player_turn.opposite());
-        }
-
-        let piece_type_to = self.get_piece_type(to);
-        let piece_color = self.get_piece_color(to);
-        // We check if there is a piece and we are not doing a castle
-        if let (Some(piece_type), Some(piece_color)) = (piece_type_to, piece_color) {
-            if piece_type != PieceType::Rook && piece_color != player_turn {
-                self.push_to_taken_piece(piece_type, piece_color)
-            }
-        }
-    }
-
-    pub fn push_to_taken_piece(&mut self, piece_type: PieceType, piece_color: PieceColor) {
-        match piece_color {
-            PieceColor::Black => {
-                self.white_taken_pieces.push(piece_type);
-                self.white_taken_pieces.sort();
-            }
-            PieceColor::White => {
-                self.black_taken_pieces.push(piece_type);
-                self.black_taken_pieces.sort();
+                self.consecutive_non_pawn_or_capture += 1;
             }
         }
     }
 
     pub fn reset(&mut self) {
-        self.board = init_board();
         self.move_history.clear();
-        self.board_history.clear();
-        self.board_history.push(init_board());
+        self.position_history.clear();
+        self.position_history.push(Chess::default());
         self.consecutive_non_pawn_or_capture = 0;
+        self.is_flipped = false;
     }
 
-    // Method to get the authorized positions for a piece
-    pub fn get_authorized_positions(
-        &self,
-        player_turn: PieceColor,
-        coordinates: Coord,
-    ) -> Vec<Coord> {
-        if let (Some(piece_type), Some(piece_color)) = (
-            self.get_piece_type(&coordinates),
-            self.get_piece_color(&coordinates),
-        ) {
-            // If the piece color is not the same as the player turn we return an empty vector it's not his turn
-            if player_turn != piece_color {
-                return vec![];
-            }
-
-            piece_type.authorized_positions(
-                &coordinates,
-                piece_color,
-                self,
-                self.is_getting_checked(self.board, player_turn),
-            )
-        } else {
-            vec![]
-        }
+    /// Gets a read-only reference to the last position in the history.
+    pub fn position_ref(&self) -> &Chess {
+        self.position_history.last().unwrap()
     }
 
-    // Method use to flip the board pieces (for the black player)
-    pub fn flip_the_board(&mut self) {
-        let mut flipped_board = [[None; 8]; 8]; // Create a new empty board of the same type
-
-        for (i, row) in self.board.iter().enumerate() {
-            for (j, &square) in row.iter().enumerate() {
-                // Place each square in the mirrored position
-                flipped_board[7 - i][7 - j] = square;
-            }
-        }
-        self.board = flipped_board;
+    /// Gets a read-only reference to the current position, or None if history is empty
+    pub fn current_position(&self) -> Option<&Chess> {
+        self.position_history.last()
     }
 
-    // Check if the latest move is en passant
-    pub fn is_latest_move_en_passant(&self, from: &Coord, to: &Coord) -> bool {
-        let piece_type_from = self.get_piece_type(from);
-        let piece_type_to = self.get_piece_type(to);
-
-        let from_y: i32 = from.row as i32;
-        let from_x: i32 = from.col as i32;
-        let to_y: i32 = to.row as i32;
-        let to_x: i32 = to.col as i32;
-        match (piece_type_from, piece_type_to) {
-            (Some(PieceType::Pawn), _) => {
-                // Check if it's a diagonal move, and the destination is an empty cell
-                from_y != to_y && from_x != to_x && self.board[to].is_none()
-            }
-            _ => false,
-        }
-    }
-
-    // Check if the latest move is castling
-    pub fn is_latest_move_castling(&self, from: Coord, to: Coord) -> bool {
-        let piece_type_from = self.get_piece_type(&from);
-        let piece_type_to = self.get_piece_type(&to);
-
-        let from_x: i32 = from.col as i32;
-        let to_x: i32 = to.col as i32;
-        let distance = (from_x - to_x).abs();
-
-        match (piece_type_from, piece_type_to) {
-            (Some(PieceType::King), _) => distance > 1,
-            _ => false,
-        }
-    }
-
-    // Check if the latest move is a promotion
-    pub fn is_latest_move_promotion(&self) -> bool {
-        if let Some(last_move) = self.move_history.last() {
-            if let Some(piece_type_to) =
-                self.get_piece_type(&Coord::new(last_move.to.row, last_move.to.col))
-            {
-                let last_row = 0;
-                if last_move.to.row == last_row && piece_type_to == PieceType::Pawn {
-                    return true;
-                }
-            }
-        }
-        false
-    }
-
-    // Method to get the number of authorized positions for the current player (used for the end condition)
-    pub fn number_of_authorized_positions(&self, player_turn: PieceColor) -> usize {
-        let mut possible_moves: Vec<Coord> = vec![];
-
-        for i in 0..8 {
-            for j in 0..8 {
-                let coord = Coord::new(i, j);
-                if let Some((_piece_type, piece_color)) = self.board[&coord] {
-                    if piece_color == player_turn {
-                        possible_moves.extend(self.get_authorized_positions(player_turn, coord));
-                    }
-                }
-            }
-        }
-        possible_moves.len()
-    }
-
-    // Check if the game is checkmate
-    pub fn is_checkmate(&self, player_turn: PieceColor) -> bool {
-        if !self.is_getting_checked(self.board, player_turn) {
-            return false;
-        }
-
-        self.number_of_authorized_positions(player_turn) == 0
-    }
-
-    // Check if the game is a draw
-    pub fn is_draw_by_repetition(&mut self) -> bool {
-        // A new game has started
-        if self.move_history.is_empty() {
-            self.board_history.clear();
-            self.board_history.push(self.board);
-            return false;
-        }
-
-        // Index mapping
+    // Check if the game is a draw by repetition
+    pub fn is_draw_by_repetition(&self) -> bool {
         let mut position_counts = std::collections::HashMap::new();
-        for board in self.board_history.iter() {
+        for board in self.position_history.iter() {
             let count = position_counts.entry(board).or_insert(0);
             *count += 1;
 
@@ -276,260 +103,200 @@ impl GameBoard {
                 return true;
             }
         }
-
         false
     }
 
     // Check if the game is a draw
-    pub fn is_draw(&mut self, player_turn: PieceColor) -> bool {
-        self.number_of_authorized_positions(player_turn) == 0
+    pub fn is_draw(&self) -> bool {
+        let chess = self.position_ref();
+        chess.is_stalemate()
             || self.consecutive_non_pawn_or_capture == 50
             || self.is_draw_by_repetition()
+            || chess.is_insufficient_material()
     }
 
-    pub fn set_consecutive_non_pawn_or_capture(&mut self, value: i32) {
-        self.consecutive_non_pawn_or_capture = value;
+    // We check manually if the last move was a pawn to one of the promotion squares
+    pub fn is_latest_move_promotion(&self) -> bool {
+        self.move_history
+            .last()
+            .map(|last_move| {
+                last_move.role() == Role::Pawn
+                    && (last_move.to().rank() == Rank::First
+                        || last_move.to().rank() == Rank::Eighth)
+            })
+            .unwrap_or(false)
     }
 
-    pub fn get_consecutive_non_pawn_or_capture(&self) -> i32 {
-        self.consecutive_non_pawn_or_capture
+    /// Get piece type at a coordinate (handles flipped board)
+    pub fn get_role_at_square(&self, square: &Square) -> Option<Role> {
+        self.position_ref()
+            .board()
+            .piece_at(*square)
+            .map(|p| p.role)
     }
 
-    /// We get all the cells that are getting put in 'check'
-    pub fn get_all_protected_cells(&self, player_turn: PieceColor) -> Vec<Coord> {
-        let mut check_cells: Vec<Coord> = vec![];
-        for i in 0..8u8 {
-            for j in 0..8u8 {
-                if self.get_piece_color(&Coord::new(i, j)) == Some(player_turn) {
-                    continue;
-                }
-                // get the current cell piece color and type protecting positions
-                if let Some(piece_color) = self.get_piece_color(&Coord::new(i, j)) {
-                    if let Some(piece_type) = self.get_piece_type(&Coord::new(i, j)) {
-                        check_cells.extend(PieceType::protected_positions(
-                            &Coord::new(i, j),
-                            piece_type,
-                            piece_color,
-                            self,
-                        ));
-                    }
-                }
+    pub fn is_square_occupied(&self, square: &Square) -> bool {
+        self.position_ref().board().piece_at(*square).is_some()
+    }
+
+    pub fn get_piece_color_at_square(&self, square: &Square) -> Option<Color> {
+        let piece = self.position_ref().board().piece_at(*square);
+        piece.map(|p| p.color)
+    }
+
+    /// Get authorized positions for a piece at the given coordinate
+    pub fn get_authorized_positions(&self, player_turn: Color, square: &Square) -> Vec<Square> {
+        // Check if there's a piece at this position and it's the right color
+        if let Some(piece) = self.position_ref().board().piece_at(*square) {
+            if piece.color != player_turn {
+                return vec![];
             }
-        }
-        check_cells
-    }
-
-    /// Method returning the coordinates of the king of a certain color
-    pub fn get_king_coordinates(&self, board: Board, player_turn: PieceColor) -> Coord {
-        for i in 0..8u8 {
-            for j in 0..8u8 {
-                if let Some((piece_type, piece_color)) = board[i as usize][j as usize] {
-                    if piece_type == PieceType::King && piece_color == player_turn {
-                        return Coord::new(i, j);
-                    }
-                }
-            }
-        }
-        Coord::undefined()
-    }
-
-    /// Is getting checked
-    /// Here we keep the board as one of the parameters because for the king position we need to simulate the board if he moves
-    /// to make sure he will not be checked after the move
-    pub fn is_getting_checked(&self, board: Board, player_turn: PieceColor) -> bool {
-        let coordinates = self.get_king_coordinates(board, player_turn);
-
-        let fake_game_board = GameBoard {
-            board,
-            move_history: self.move_history.clone(),
-            board_history: self.board_history.clone(),
-            consecutive_non_pawn_or_capture: self.consecutive_non_pawn_or_capture,
-            white_taken_pieces: self.white_taken_pieces.clone(),
-            black_taken_pieces: self.black_taken_pieces.clone(),
-        };
-
-        let checked_cells = fake_game_board.get_all_protected_cells(player_turn);
-
-        checked_cells.contains(&coordinates)
-    }
-
-    /// Check if a piece already moved on the board
-    pub fn did_piece_already_move(
-        &self,
-        original_piece: (Option<PieceType>, Option<PieceColor>, Coord),
-    ) -> bool {
-        for entry in &self.move_history {
-            if Some(entry.piece_type) == original_piece.0
-                && Some(entry.piece_color) == original_piece.1
-                && entry.from == original_piece.2
-            {
-                return true;
-            }
-        }
-        false
-    }
-
-    // Get all the positions where the king can't go because it's checked
-    pub fn impossible_positions_king_checked(
-        &self,
-        original_coordinates: &Coord,
-        positions: Vec<Coord>,
-        color: PieceColor,
-    ) -> Vec<Coord> {
-        let mut cleaned_position: Vec<Coord> = vec![];
-        for position in positions {
-            let game = GameBoard::new(self.board, self.move_history.to_vec(), vec![]);
-
-            // We create a new board
-            let mut new_board = Game::new(game, color);
-
-            // We simulate the move
-
-            Game::execute_move(&mut new_board, original_coordinates, &position);
-
-            // We check if the board is still checked with this move meaning it didn't resolve the problem
-            if !self.is_getting_checked(new_board.game_board.board, new_board.player_turn) {
-                cleaned_position.push(position);
-            };
-        }
-        cleaned_position
-    }
-
-    // Return the color of the piece at a certain position
-    pub fn get_piece_color(&self, coordinates: &Coord) -> Option<PieceColor> {
-        if !coordinates.is_valid() {
-            return None;
-        }
-        self.board[coordinates].map(|(_, piece_color)| piece_color)
-    }
-
-    pub fn get_piece_type(&self, coordinates: &Coord) -> Option<PieceType> {
-        if !coordinates.is_valid() {
-            return None;
-        }
-        self.board[coordinates].map(|(piece_type, _)| piece_type)
-    }
-
-    // Convert the history and game status to a FEN string
-    pub fn fen_position(&mut self, is_bot_starting: bool, _player_turn: PieceColor) -> String {
-        let mut result = String::new();
-        let bot_color = if is_bot_starting {
-            PieceColor::White
         } else {
-            PieceColor::Black
-        };
-
-        let king_col = if bot_color == PieceColor::White { 4 } else { 3 };
-
-        // We loop through the board and convert it to a FEN string
-        for i in 0..8u8 {
-            for j in 0..8u8 {
-                // We get the piece type and color
-                let (piece_type, piece_color) = (
-                    self.get_piece_type(&Coord::new(i, j)),
-                    self.get_piece_color(&Coord::new(i, j)),
-                );
-                let letter = PieceType::piece_to_fen_enum(piece_type, piece_color);
-                // Pattern match directly on the result of piece_to_fen_enum
-                match letter {
-                    "" => {
-                        // Check if the string is not empty before using chars().last()
-                        if let Some(last_char) = result.chars().last() {
-                            if last_char.is_ascii_digit() {
-                                let incremented_char =
-                                    char::from_digit(last_char.to_digit(10).unwrap_or(0) + 1, 10)
-                                        .unwrap_or_default();
-                                // Remove the old number and add the new incremented one
-                                result.pop();
-                                result.push_str(incremented_char.to_string().as_str());
-                            } else {
-                                result.push('1');
-                            }
-                        } else {
-                            result.push('1');
-                        }
-                    }
-                    letter => {
-                        // If the result is not an empty string, push '1'
-                        result.push_str(letter);
-                    }
-                };
-            }
-            result.push('/');
+            return vec![];
         }
 
-        // we remove the last / and specify the player turn (black)
-        result.pop();
+        // Get all legal moves
+        self.position_ref()
+            .clone()
+            .legal_moves()
+            .iter()
+            .filter(|m| m.from() == Some(*square))
+            .map(|m| m.to())
+            .collect()
+    }
 
-        // We say it is blacks turn to play
-        result.push_str(if bot_color == PieceColor::Black {
-            " b"
-        } else {
-            " w"
+    /// Check if the king is in check
+    pub fn is_getting_checked(&self, player_turn: Color) -> bool {
+        let chess = self.position_ref();
+        chess.is_check() && chess.turn() == player_turn
+    }
+
+    /// Get the king's coordinates
+    pub fn get_king_coordinates(&self, color: Color) -> Coord {
+        let king_square = match self.position_ref().board().king_of(color) {
+            Some(sq) => sq,
+            None => {
+                log::error!("King not found for color {:?} (invalid board state)", color);
+                // Return undefined coordinate as fallback
+                return Coord::undefined();
+            }
+        };
+        let mut coord = Coord::from_square(king_square);
+
+        // If board is flipped, flip the coordinate for display
+        if self.is_flipped {
+            coord = Coord::new(7 - coord.row, 7 - coord.col);
+        }
+
+        coord
+    }
+
+    /// Check if game is checkmate
+    pub fn is_checkmate(&self) -> bool {
+        self.position_ref().clone().is_checkmate()
+    }
+
+    /// Flip the board for alternating perspectives
+    pub fn flip_the_board(&mut self) {
+        self.is_flipped = !self.is_flipped;
+    }
+
+    /// Get FEN position for UCI engine
+    pub fn fen_position(&self) -> String {
+        // Use FEN display from shakmaty
+        use shakmaty::fen::Fen;
+        let fen = Fen::from_position(self.position_ref().clone(), shakmaty::EnPassantMode::Legal);
+        fen.to_string()
+    }
+
+    /// Get black taken pieces
+    pub fn black_taken_pieces(&self) -> Vec<Role> {
+        self.taken_pieces
+            .iter()
+            .filter(|p| p.color == Color::Black)
+            .map(|p| p.role)
+            .collect()
+    }
+
+    /// Get white taken pieces
+    pub fn white_taken_pieces(&self) -> Vec<Role> {
+        self.taken_pieces
+            .iter()
+            .filter(|p| p.color == Color::White)
+            .map(|p| p.role)
+            .collect()
+    }
+
+    /// Execute a move on the board
+    /// Returns the executed Move if successful, None if illegal
+    pub fn execute_move(
+        &mut self,
+        from: Square,
+        to: Square,
+        promotion: Option<Role>,
+    ) -> Option<Move> {
+        let chess = self.position_ref().clone();
+
+        // Track captures before executing move
+        if let Some(captured_piece) = chess.board().piece_at(to) {
+            self.taken_pieces.push(captured_piece);
+        }
+
+        // Find matching legal move
+        let legal_moves = chess.legal_moves();
+        let matching_move = legal_moves.iter().find(|m| {
+            m.from() == Some(from) && m.to() == to && {
+                match (promotion, m.promotion()) {
+                    (Some(promo), Some(move_promo)) => promo == move_promo,
+                    (None, None) => true,
+                    (None, Some(_)) => true, // Allow promotion moves without specifying
+                    (Some(_), None) => false, // Reject if we expect promotion but move has none
+                }
+            }
         });
 
-        let mut possible_castles = vec![];
-        for turn in [PieceColor::White, PieceColor::Black] {
-            // We add the castles availabilities for black
-            if !self.did_piece_already_move((
-                Some(PieceType::King),
-                Some(turn),
-                Coord::new(7, king_col),
-            )) && !self.is_getting_checked(self.board, PieceColor::Black)
-            {
-                // king side black castle availability
-                if !self.did_piece_already_move((
-                    Some(PieceType::Rook),
-                    Some(turn),
-                    Coord::new(7, 7),
-                )) {
-                    possible_castles.push((turn, 'k'));
+        if let Some(shakmaty_move) = matching_move {
+            // Execute move
+            match chess.play(shakmaty_move) {
+                Ok(new_chess) => {
+                    // Update history
+                    self.position_history.push(new_chess);
+                    Some(shakmaty_move.clone())
                 }
-                // queen side black castle availability
-                if !self.did_piece_already_move((
-                    Some(PieceType::Rook),
-                    Some(turn),
-                    Coord::new(7, 0),
-                )) {
-                    possible_castles.push((turn, 'q'));
+                Err(e) => {
+                    log::error!("Failed to play move: {}", e);
+                    None
                 }
             }
-        }
-
-        if possible_castles.is_empty() {
-            result.push_str(" -");
         } else {
-            result.push(' ');
-            for (turn, c) in possible_castles {
-                let is_white = turn == PieceColor::White;
-                result.push(if is_white { c.to_ascii_uppercase() } else { c });
-            }
+            None
         }
+    }
 
-        // We check if the latest move is a pawn moving 2 cells, meaning the next move can be en passant
-        if Pawn::did_pawn_move_two_cells(self.move_history.last()) {
-            // Use an if-let pattern for better readability
-            if let Some(last_move) = self.move_history.last() {
-                let mut converted_move = String::new();
+    // Execute a move on the shakmaty Chess position and sync the visual board
+    // Optionally specify a promotion piece type
+    pub fn execute_shakmaty_move(&mut self, from: Square, to: Square) -> Option<Move> {
+        self.execute_move(from, to, None)
+    }
 
-                converted_move += &col_to_letter(last_move.from.col);
-                // FEN starts counting from 1 not 0
-                converted_move += &format!("{}", 8 - last_move.from.row + 1).to_string();
+    /// Execute a move from standard (non-flipped) coordinates
+    /// Used for bot and opponent moves which come from external sources in standard notation
+    pub fn execute_standard_move(
+        &mut self,
+        from: Square,
+        to: Square,
+        promotion: Option<Role>,
+    ) -> Option<Move> {
+        self.execute_move(from, to, promotion)
+    }
 
-                result.push(' ');
-                result.push_str(&converted_move);
-            }
-        } else {
-            result.push_str(" -");
-        }
-
-        result.push(' ');
-
-        result.push_str(&self.get_consecutive_non_pawn_or_capture().to_string());
-        result.push(' ');
-
-        result.push_str(&(1 + (self.move_history.len() / 2)).to_string());
-
-        result
+    /// Execute a move with optional promotion
+    pub fn execute_shakmaty_move_with_promotion(
+        &mut self,
+        from: Square,
+        to: Square,
+        promotion: Option<Role>,
+    ) -> bool {
+        self.execute_move(from, to, promotion).is_some()
     }
 }
