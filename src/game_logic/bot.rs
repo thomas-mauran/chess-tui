@@ -33,7 +33,8 @@ impl Bot {
             .spawn()
             .expect("Failed to spawn engine process");
 
-        let mut engine = Engine::from_process(&mut process, false).expect("Failed to initialize engine");
+        let mut engine =
+            Engine::from_process(&mut process, false).expect("Failed to initialize engine");
 
         engine
             .send(ruci::Position::Fen {
@@ -42,7 +43,7 @@ impl Bot {
             })
             .unwrap();
 
-        let best_move = engine
+        engine
             .go(
                 &Go {
                     depth: Some(self.depth as usize),
@@ -52,8 +53,7 @@ impl Bot {
             )
             .unwrap()
             .take_normal()
-            .unwrap();
-
-        best_move.r#move
+            .unwrap()
+            .r#move
     }
 }

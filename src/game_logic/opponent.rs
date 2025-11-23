@@ -1,3 +1,4 @@
+use crate::constants::NETWORK_BUFFER_SIZE;
 use log;
 use shakmaty::{Color, Move, Role, Square};
 use std::{
@@ -127,7 +128,6 @@ impl Opponent {
         }
     }
 
-    // TODO: Fix the protocol to send the move
     pub fn send_move_to_server(&mut self, move_to_send: &Move, promotion_type: Option<Role>) {
         let from = self.convert_position_to_string(move_to_send.from());
         let to = self.convert_position_to_string(Some(move_to_send.to()));
@@ -164,7 +164,7 @@ impl Opponent {
 
     pub fn read_stream(&mut self) -> Result<String, String> {
         if let Some(game_stream) = self.stream.as_mut() {
-            let mut buffer = vec![0; 5];
+            let mut buffer = vec![0; NETWORK_BUFFER_SIZE];
             match game_stream.read(&mut buffer) {
                 Ok(bytes_read) => {
                     if bytes_read == 0 {
@@ -194,7 +194,7 @@ impl Opponent {
 }
 
 pub fn get_color_from_stream(mut stream: &TcpStream) -> Result<Color, String> {
-    let mut buffer = [0; 5];
+    let mut buffer = [0; NETWORK_BUFFER_SIZE];
     match stream.read(&mut buffer) {
         Ok(bytes_read) => {
             let color = String::from_utf8_lossy(&buffer[..bytes_read]).to_string();
@@ -209,7 +209,7 @@ pub fn get_color_from_stream(mut stream: &TcpStream) -> Result<Color, String> {
 }
 
 pub fn wait_for_game_start(mut stream: &TcpStream) -> Result<(), String> {
-    let mut buffer = [0; 5];
+    let mut buffer = [0; NETWORK_BUFFER_SIZE];
     match stream.read(&mut buffer) {
         Ok(bytes_read) => {
             let response = String::from_utf8_lossy(&buffer[..bytes_read]).to_string();

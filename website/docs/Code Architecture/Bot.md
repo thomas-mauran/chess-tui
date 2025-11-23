@@ -20,8 +20,7 @@ The `Bot` manages:
 
 ```rust
 pub struct Bot {
-    process: Rc<RefCell<Child>>,                    // Engine subprocess
-    engine: Rc<RefCell<Engine<BufReader<ChildStdout>, ChildStdin>>>, // UCI engine
+    pub engine_path: String,                        // Path to chess engine executable
     pub bot_will_move: bool,                        // Flag to trigger bot move
     pub is_bot_starting: bool,                      // Whether bot plays first
     pub depth: u8,                                  // Thinking depth (1-255)
@@ -36,15 +35,17 @@ pub struct Bot {
   - Spawns chess engine subprocess
   - Initializes UCI engine communication
   - Sets thinking depth
-  - **Note**: Currently reuses the same process (marked as TODO/FIXME)
+  - **Note**: Currently reuses the same process
 
 ### Move Computation
 
 - **`get_move(fen: &str) -> UciMove`**
+  - Spawns a new engine process for each move
   - Sends FEN position to engine
   - Requests best move with configured depth
   - Returns UCI move (e.g., "e2e4")
   - Blocks until engine responds
+  - Process is terminated after move is received
 
 ## UCI Protocol
 
@@ -89,7 +90,12 @@ The engine path is configured via:
   - Lower depth = faster but weaker play
 - **Engine path**: Path to the chess engine executable
 
-## Limitations
+## Implementation Details
 
-⚠️ **Current Implementation Note**: The bot reuses the same engine process across moves. The code includes a TODO/FIXME noting that chess engines are not meant to be used this way. A future refactor may create new engine instances per move or properly manage engine state.
+The bot creates a new engine process for each move computation. This ensures:
+- Clean state for each move calculation
+- No process lifecycle management complexity
+- Proper resource cleanup after each move
+
+The engine process is spawned, used to compute a move, and then terminated. This approach is simpler than maintaining a persistent engine connection.
 

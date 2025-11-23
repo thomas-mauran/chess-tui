@@ -34,6 +34,7 @@ pub struct App {
     pub log_level: LevelFilter,                 // Logging level
     pub bot_depth: u8,                          // Bot thinking depth (1-255)
     pub bot_move_receiver: Option<Receiver<Move>>, // Channel receiver for bot moves
+    pub error_message: Option<String>,          // Error message for Error popup
 }
 ```
 

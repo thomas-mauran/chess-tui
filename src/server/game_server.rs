@@ -8,6 +8,9 @@ use std::{
     thread,
 };
 
+use crate::constants::{
+    NETWORK_BUFFER_SIZE, NETWORK_PORT, SLEEP_DURATION_LONG_MS, SLEEP_DURATION_SHORT_MS,
+};
 use log;
 
 #[derive(Debug)]
@@ -35,8 +38,9 @@ impl GameServer {
     }
 
     pub fn run(&self) {
-        log::info!("Starting game server on 0.0.0.0:2308");
-        let listener = TcpListener::bind("0.0.0.0:2308").expect("Failed to create listener");
+        log::info!("Starting game server on 0.0.0.0:{}", NETWORK_PORT);
+        let listener = TcpListener::bind(format!("0.0.0.0:{}", NETWORK_PORT))
+            .expect("Failed to create listener");
         listener
             .set_nonblocking(true)
             .expect("Failed to set listener to non-blocking");
@@ -49,7 +53,7 @@ impl GameServer {
         let stop_signal_clone = stop_signal.clone();
         thread::spawn(move || {
             while !stop_signal_clone.load(Ordering::SeqCst) {
-                thread::sleep(std::time::Duration::from_millis(100));
+                thread::sleep(std::time::Duration::from_millis(SLEEP_DURATION_LONG_MS));
             }
             let _ = shutdown_tx.send(());
         });
@@ -93,7 +97,7 @@ impl GameServer {
                     });
                 }
                 Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                    thread::sleep(std::time::Duration::from_millis(100));
+                    thread::sleep(std::time::Duration::from_millis(SLEEP_DURATION_LONG_MS));
                 }
                 Err(e) => {
                     log::error!("Failed to accept connection: {}", e);
@@ -118,7 +122,7 @@ fn handle_client(
     }
 
     loop {
-        let mut buffer = [0; 5];
+        let mut buffer = [0; NETWORK_BUFFER_SIZE];
         match stream.read(&mut buffer) {
             Ok(0) => {
                 log::info!("Client {} disconnected", addr);
@@ -141,7 +145,7 @@ fn handle_client(
             }
             Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                 // This is normal for non-blocking sockets
-                std::thread::sleep(std::time::Duration::from_millis(50));
+                std::thread::sleep(std::time::Duration::from_millis(SLEEP_DURATION_SHORT_MS));
                 continue;
             }
             Err(e) => {

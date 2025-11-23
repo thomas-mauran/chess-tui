@@ -264,16 +264,21 @@ impl UI {
                 utf_icon_black = role_to_utf_enum(&role_to, Some(shakmaty::Color::Black));
             }
 
+            // Format white move: icon + space + move notation (fixed total width of 10 chars)
+            let white_move_formatted =
+                format!("{:<10}", format!("{utf_icon_white} {}", move_white));
+            // Format black move: icon + space + move notation (fixed total width of 10 chars)
+            let black_move_formatted =
+                format!("{:<10}", format!("{utf_icon_black} {}", move_black));
+
             lines.push(Line::from(vec![
-                Span::raw(format!("{}. ", i / 2 + 1)), // line number
-                Span::styled(format!("{utf_icon_white} "), Style::default().fg(WHITE)), // white symbol
-                Span::raw(format!("{:<8}", move_white)), // white move (left-aligned, 8 chars)
-                Span::styled(format!("{utf_icon_black} "), Style::default().fg(WHITE)), // black symbol
-                Span::raw(move_black), // black move
+                Span::raw(format!("{:>3}. ", i / 2 + 1)), // line number (right-aligned, 3 chars + ". ")
+                Span::styled(white_move_formatted, Style::default().fg(WHITE)), // white icon + move (fixed width)
+                Span::styled(black_move_formatted, Style::default().fg(WHITE)), // black icon + move (fixed width)
             ]));
         }
 
-        let history_paragraph = Paragraph::new(lines).alignment(Alignment::Center);
+        let history_paragraph = Paragraph::new(lines).alignment(Alignment::Left);
 
         let height = area.height;
 
@@ -524,11 +529,8 @@ impl UI {
                     render_cell(frame, square, Color::LightBlue, None);
                 }
                 // Draw the cell magenta if the king is getting checked
-                else if logic.game_board.is_getting_checked(logic.player_turn) // TODO test with board flipped
-                    && Coord::new(i, j)
-                        == logic
-                            .game_board
-                            .get_king_coordinates(logic.player_turn)
+                else if logic.game_board.is_getting_checked(logic.player_turn)
+                    && Coord::new(i, j) == logic.game_board.get_king_coordinates(logic.player_turn)
                 {
                     render_cell(frame, square, Color::Magenta, Some(Modifier::SLOW_BLINK));
                 }
@@ -571,6 +573,64 @@ impl UI {
                 let paragraph = self.render_piece_paragraph(piece_type, piece_color, square);
                 frame.render_widget(paragraph, square);
             }
+        }
+    }
+
+    /// Render rank labels (1-8) on the left side of the board
+    pub fn render_rank_labels(&self, frame: &mut Frame, area: Rect, is_flipped: bool) {
+        let ranks = if is_flipped {
+            vec!["1", "2", "3", "4", "5", "6", "7", "8"]
+        } else {
+            vec!["8", "7", "6", "5", "4", "3", "2", "1"]
+        };
+
+        // Calculate the same border as the board uses
+        let height = area.height / 8;
+        let border_height = area.height / 2 - (4 * height);
+
+        let layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints(vec![
+                Constraint::Length(border_height), // Top border
+                Constraint::Length(height),
+                Constraint::Length(height),
+                Constraint::Length(height),
+                Constraint::Length(height),
+                Constraint::Length(height),
+                Constraint::Length(height),
+                Constraint::Length(height),
+                Constraint::Length(height),
+                Constraint::Length(border_height), // Bottom border
+            ])
+            .split(area);
+
+        // Render labels starting from index 1 (after top border)
+        for (i, rank) in ranks.iter().enumerate() {
+            let label = Paragraph::new(*rank)
+                .alignment(Alignment::Center)
+                .style(Style::default().fg(Color::Gray));
+            frame.render_widget(label, layout[i + 1]);
+        }
+    }
+
+    /// Render file labels (A-H) below the board
+    pub fn render_file_labels(&self, frame: &mut Frame, area: Rect, is_flipped: bool) {
+        let files = if is_flipped {
+            vec!["H", "G", "F", "E", "D", "C", "B", "A"]
+        } else {
+            vec!["A", "B", "C", "D", "E", "F", "G", "H"]
+        };
+
+        let layout = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints(vec![Constraint::Ratio(1, 8); 8])
+            .split(area);
+
+        for (i, file) in files.iter().enumerate() {
+            let label = Paragraph::new(*file)
+                .alignment(Alignment::Center)
+                .style(Style::default().fg(Color::Gray));
+            frame.render_widget(label, layout[i]);
         }
     }
 }

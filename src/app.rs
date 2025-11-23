@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::constants::{DisplayMode, Pages, Popups};
+use crate::constants::{DisplayMode, Pages, Popups, NETWORK_PORT, SLEEP_DURATION_LONG_MS};
 use crate::game_logic::bot::Bot;
 use crate::game_logic::coord::Coord;
 use crate::game_logic::game::Game;
@@ -101,7 +101,7 @@ impl App {
             game_server.run();
         });
 
-        sleep(Duration::from_millis(100));
+        sleep(Duration::from_millis(SLEEP_DURATION_LONG_MS));
     }
 
     pub fn create_opponent(&mut self) {
@@ -115,17 +115,17 @@ impl App {
             log::info!("Setting up host with color: {:?}", self.selected_color);
             self.current_popup = Some(Popups::WaitingForOpponentToJoin);
             if let Some(ip) = self.get_host_ip() {
-                self.host_ip = Some(format!("{}:2308", ip));
+                self.host_ip = Some(format!("{}:{}", ip, NETWORK_PORT));
             } else {
                 log::error!("Could not get local IP, defaulting to 127.0.0.1");
-                self.host_ip = Some("127.0.0.1:2308".to_string());
+                self.host_ip = Some(format!("127.0.0.1:{}", NETWORK_PORT));
             }
         }
 
         let addr = self
             .host_ip
             .as_ref()
-            .unwrap_or(&"127.0.0.1:2308".to_string())
+            .unwrap_or(&format!("127.0.0.1:{}", NETWORK_PORT))
             .to_string();
         let addr_with_port = addr.to_string();
         log::info!("Attempting to connect to: {}", addr_with_port);
@@ -195,11 +195,7 @@ impl App {
         };
 
         // Get current game state
-        let fen = self
-            .game
-            .logic
-            .game_board
-            .fen_position(bot.is_bot_starting, self.game.logic.player_turn);
+        let fen = self.game.logic.game_board.fen_position();
         let engine_path = self.chess_engine_path.clone().unwrap_or_default();
         let depth = bot.depth;
 

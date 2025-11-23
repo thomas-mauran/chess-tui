@@ -42,9 +42,6 @@ impl Coord {
 
     /// Safe conversion to Square with validation
     pub fn try_to_square(&self) -> Option<Square> {
-        if !self.is_valid() {
-            return None;
-        }
         self.to_square()
     }
 

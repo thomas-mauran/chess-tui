@@ -15,7 +15,7 @@ pub mod handler;
 // Game related structures
 pub mod game_logic;
 
-// Constats for the app
+// Constants for the app
 pub mod constants;
 
 // Utils methods for the board
@@ -24,7 +24,6 @@ pub mod utils;
 // Logging
 pub mod logging;
 
-// Chess pieces
 // Chess pieces
 pub mod pieces;
 

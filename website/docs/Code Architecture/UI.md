@@ -71,18 +71,34 @@ pub struct UI {
     - **Grey** - Available move destinations
     - **Magenta** - King in check (with blinking)
 
+#### Label Rendering
+
+- **`render_rank_labels(frame: &mut Frame, area: Rect, is_flipped: bool)`**
+  - Renders rank labels (1-8) on the left side of the board
+  - Order adjusts based on board flip state
+
+- **`render_file_labels(frame: &mut Frame, area: Rect, is_flipped: bool)`**
+  - Renders file labels (A-H) below the board
+  - Order adjusts based on board flip state
+
 #### History Rendering
 
 - **`history_render(area: Rect, frame: &mut Frame, game: &Game)`**
   - Displays move history in Standard Algebraic Notation
   - Shows move number, piece symbol, and move (e.g., "1. ♙ e4 ♟ e5")
   - Formats moves in pairs (white, black)
+  - Uses fixed-width formatting to ensure consistent column alignment:
+    - Line numbers: Right-aligned in 3 characters + ". " (5 chars total)
+    - White moves: Icon + space + move notation in 10 characters (left-aligned)
+    - Black moves: Icon + space + move notation in 10 characters (left-aligned)
+  - Maintains alignment regardless of move length or piece type
 
 #### Material Rendering
 
 - **`white_material_render(area: Rect, frame: &mut Frame, white_taken_pieces: &[Role])`**
   - Displays captured white pieces
   - Shows piece symbols for taken pieces
+  - Displays "Press ? for help" at the bottom
 
 - **`black_material_render(area: Rect, frame: &mut Frame, black_taken_pieces: &[Role])`**
   - Displays captured black pieces

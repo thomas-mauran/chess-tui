@@ -44,21 +44,6 @@ impl Default for GameBoard {
 }
 
 impl GameBoard {
-    pub fn get_last_move_piece_type_as_string(&self) -> String {
-        if let Some(last_move) = self.move_history.last() {
-            match last_move.role() {
-                Role::Pawn => "p".to_string(),
-                Role::Knight => "n".to_string(),
-                Role::Bishop => "b".to_string(),
-                Role::Rook => "r".to_string(),
-                Role::Queen => "q".to_string(),
-                Role::King => "k".to_string(),
-            }
-        } else {
-            String::new()
-        }
-    }
-
     /// Convert a move to Standard Algebraic Notation (e.g., "e4", "Nf3", "O-O", "Qxd5+")
     pub fn move_to_san(&self, move_index: usize) -> String {
         if move_index >= self.move_history.len() || move_index >= self.position_history.len() {
@@ -97,11 +82,6 @@ impl GameBoard {
         self.is_flipped = false;
     }
 
-    /// Gets the last position in the history.
-    pub fn position(&mut self) -> &mut Chess {
-        self.position_history.last_mut().unwrap()
-    }
-
     /// Gets a read-only reference to the last position in the history.
     pub fn position_ref(&self) -> &Chess {
         self.position_history.last().unwrap()
@@ -110,11 +90,6 @@ impl GameBoard {
     /// Gets a read-only reference to the current position, or None if history is empty
     pub fn current_position(&self) -> Option<&Chess> {
         self.position_history.last()
-    }
-
-    /// Gets a mutable reference to the current position, or None if history is empty
-    pub fn current_position_mut(&mut self) -> Option<&mut Chess> {
-        self.position_history.last_mut()
     }
 
     // Check if the game is a draw by repetition
@@ -132,47 +107,36 @@ impl GameBoard {
     }
 
     // Check if the game is a draw
-    pub fn is_draw(&self, _player_turn: Color) -> bool {
-        self.position_ref().is_stalemate()
+    pub fn is_draw(&self) -> bool {
+        let chess = self.position_ref();
+        chess.is_stalemate()
             || self.consecutive_non_pawn_or_capture == 50
             || self.is_draw_by_repetition()
-            || self.position_ref().is_insufficient_material()
+            || chess.is_insufficient_material()
     }
 
     // We check manually if the last move was a pawn to one of the promotion squares
     pub fn is_latest_move_promotion(&self) -> bool {
-        if let Some(last_move) = self.move_history.last() {
-            // we check manually if the last move was a pawn to one of the promotion squares
-            if last_move.role() == Role::Pawn {
-                let rank = last_move.to().rank();
-                rank == Rank::First || rank == Rank::Eighth
-            } else {
-                false
-            }
-        } else {
-            false
-        }
+        self.move_history
+            .last()
+            .map(|last_move| {
+                last_move.role() == Role::Pawn
+                    && (last_move.to().rank() == Rank::First
+                        || last_move.to().rank() == Rank::Eighth)
+            })
+            .unwrap_or(false)
     }
 
     /// Get piece type at a coordinate (handles flipped board)
     pub fn get_role_at_square(&self, square: &Square) -> Option<Role> {
-        let piece = self
-            .position_history
-            .last()
-            .unwrap()
+        self.position_ref()
             .board()
-            .piece_at(*square);
-        piece.map(|piece| piece.role)
-    }
-
-    pub fn get_current_chess(&self) -> Chess {
-        let chess = self.position_history.last().unwrap().clone();
-        chess
+            .piece_at(*square)
+            .map(|p| p.role)
     }
 
     pub fn is_square_occupied(&self, square: &Square) -> bool {
-        let board = self.position_history.last().unwrap().board().clone();
-        board.piece_at(*square).is_some()
+        self.position_ref().board().piece_at(*square).is_some()
     }
 
     pub fn get_piece_color_at_square(&self, square: &Square) -> Option<Color> {
@@ -182,10 +146,8 @@ impl GameBoard {
 
     /// Get authorized positions for a piece at the given coordinate
     pub fn get_authorized_positions(&self, player_turn: Color, square: &Square) -> Vec<Square> {
-        let board = self.position_history.last().unwrap().board().clone();
-
         // Check if there's a piece at this position and it's the right color
-        if let Some(piece) = board.piece_at(*square) {
+        if let Some(piece) = self.position_ref().board().piece_at(*square) {
             if piece.color != player_turn {
                 return vec![];
             }
@@ -194,7 +156,8 @@ impl GameBoard {
         }
 
         // Get all legal moves
-        self.get_current_chess()
+        self.position_ref()
+            .clone()
             .legal_moves()
             .iter()
             .filter(|m| m.from() == Some(*square))
@@ -204,14 +167,20 @@ impl GameBoard {
 
     /// Check if the king is in check
     pub fn is_getting_checked(&self, player_turn: Color) -> bool {
-        let chess = self.position_history.last().unwrap();
+        let chess = self.position_ref();
         chess.is_check() && chess.turn() == player_turn
     }
 
     /// Get the king's coordinates
     pub fn get_king_coordinates(&self, color: Color) -> Coord {
-        let chess = self.position_history.last().unwrap();
-        let king_square = chess.board().king_of(color).unwrap();
+        let king_square = match self.position_ref().board().king_of(color) {
+            Some(sq) => sq,
+            None => {
+                log::error!("King not found for color {:?} (invalid board state)", color);
+                // Return undefined coordinate as fallback
+                return Coord::undefined();
+            }
+        };
         let mut coord = Coord::from_square(king_square);
 
         // If board is flipped, flip the coordinate for display
@@ -224,14 +193,7 @@ impl GameBoard {
 
     /// Check if game is checkmate
     pub fn is_checkmate(&self) -> bool {
-        let chess = self.get_current_chess();
-        chess.is_checkmate()
-    }
-
-    /// Check if last move was castling
-    pub fn is_latest_move_castling(&self) -> bool {
-        let chess = self.move_history.last().unwrap();
-        chess.is_castle()
+        self.position_ref().clone().is_checkmate()
     }
 
     /// Flip the board for alternating perspectives
@@ -240,11 +202,10 @@ impl GameBoard {
     }
 
     /// Get FEN position for UCI engine
-    pub fn fen_position(&self, _is_bot_starting: bool, _player_turn: Color) -> String {
-        let chess = self.get_current_chess();
+    pub fn fen_position(&self) -> String {
         // Use FEN display from shakmaty
         use shakmaty::fen::Fen;
-        let fen = Fen::from_position(chess, shakmaty::EnPassantMode::Legal);
+        let fen = Fen::from_position(self.position_ref().clone(), shakmaty::EnPassantMode::Legal);
         fen.to_string()
     }
 
@@ -274,7 +235,7 @@ impl GameBoard {
         to: Square,
         promotion: Option<Role>,
     ) -> Option<Move> {
-        let mut chess = self.get_current_chess();
+        let chess = self.position_ref().clone();
 
         // Track captures before executing move
         if let Some(captured_piece) = chess.board().piece_at(to) {
@@ -296,12 +257,17 @@ impl GameBoard {
 
         if let Some(shakmaty_move) = matching_move {
             // Execute move
-            chess = chess.play(shakmaty_move).unwrap();
-
-            // Update history
-            self.position_history.push(chess);
-
-            Some(shakmaty_move.clone())
+            match chess.play(shakmaty_move) {
+                Ok(new_chess) => {
+                    // Update history
+                    self.position_history.push(new_chess);
+                    Some(shakmaty_move.clone())
+                }
+                Err(e) => {
+                    log::error!("Failed to play move: {}", e);
+                    None
+                }
+            }
         } else {
             None
         }

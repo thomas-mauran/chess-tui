@@ -2,7 +2,7 @@ use std::net::IpAddr;
 
 use crate::{
     app::App,
-    constants::WHITE,
+    constants::{NETWORK_PORT, WHITE},
     pieces::{bishop::Bishop, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook},
     ui::main_ui::centered_rect,
 };
@@ -231,7 +231,7 @@ pub fn render_credit_popup(frame: &mut Frame) {
 
     let credits_text = vec![
         Line::from(""),
-        Line::from("Hi 👋, I'm Thomas, a 22 years old French computer science student."),
+        Line::from("Hi 👋, I'm Thomas, a 23 years old French computer science student."),
         Line::from("Thank you for playing Chess-tui! This project started as a personal journey to improve my algorithmic skills and learn Rust."),
         Line::from(""),
         Line::from("The entire source code is available on GitHub at https://github.com/thomas-mauran/chess-tui"),
@@ -486,7 +486,7 @@ pub fn render_wait_for_other_player(frame: &mut Frame, ip: Option<IpAddr>) {
         Line::from(""),
         Line::from(""),
         Line::from("Waiting for other player").alignment(Alignment::Center),
-        Line::from(format!("Host IP address and port: {}:2308", ip_str))
+        Line::from(format!("Host IP address and port: {}:{}", ip_str, NETWORK_PORT))
             .alignment(Alignment::Center),
     ];
 
@@ -520,7 +520,7 @@ pub fn render_enter_multiplayer_ip(frame: &mut Frame, prompt: &Prompt) {
         Line::from(""),
         Line::from(""),
         Line::from(""),
-        Line::from("Example: 10.111.6.50:2308;"),
+        Line::from(format!("Example: 10.111.6.50:{};", NETWORK_PORT)),
         Line::from("Documentation: https://thomas-mauran.github.io/chess-tui/docs/Multiplayer/Online%20multiplayer/"),
         Line::from(""),
         Line::from(""),

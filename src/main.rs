@@ -172,11 +172,7 @@ fn main() -> AppResult<()> {
             tui.draw(&mut app)?;
 
             if !app.game.logic.game_board.is_checkmate()
-                && !app
-                    .game
-                    .logic
-                    .game_board
-                    .is_draw(app.game.logic.player_turn)
+                && !app.game.logic.game_board.is_draw()
                 && app.game.logic.execute_opponent_move()
             {
                 app.game.switch_player_turn();

@@ -1,12 +1,6 @@
-use crate::constants::DisplayMode;
 use crate::game_logic::coord::Coord;
-use crate::game_logic::game::Game;
-use ratatui::{
-    layout::{Alignment, Rect},
-    style::{Color, Stylize},
-    widgets::{Block, Padding, Paragraph},
-};
-use shakmaty::{Role, Square};
+use ratatui::style::Color;
+use shakmaty::Square;
 
 pub fn color_to_ratatui_enum(piece_color: Option<shakmaty::Color>) -> Color {
     match piece_color {
@@ -36,89 +30,15 @@ pub fn get_square_from_coord(coord: Coord, is_flipped: bool) -> Option<Square> {
 }
 
 pub fn get_coord_from_square(square: Option<Square>, is_flipped: bool) -> Coord {
-    if square.is_none() {
-        return Coord::undefined();
-    }
-
-    let s = square.unwrap();
-    if is_flipped {
-        Coord::from_square(s).reverse()
+    if let Some(s) = square {
+        if is_flipped {
+            Coord::from_square(s).reverse()
+        } else {
+            Coord::from_square(s)
+        }
     } else {
-        Coord::from_square(s)
+        Coord::undefined()
     }
-}
-
-pub fn get_cell_paragraph<'a>(
-    game: &'a Game,
-    coord: &Coord,
-    square: Rect,
-    is_flipped: bool,
-) -> Paragraph<'a> {
-    use crate::pieces::{
-        bishop::Bishop, king::King, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook,
-    };
-
-    let square_index = get_square_from_coord(*coord, is_flipped).unwrap();
-    let piece_color = game
-        .logic
-        .game_board
-        .get_piece_color_at_square(&square_index);
-    let piece_type = game.logic.game_board.get_role_at_square(&square_index);
-
-    let paragraph = match game.ui.display_mode {
-        DisplayMode::DEFAULT => {
-            let color_enum = color_to_ratatui_enum(piece_color);
-
-            // Use custom multi-line designs for DEFAULT mode
-            let piece_str = match piece_type {
-                Some(Role::King) => King::to_string(&game.ui.display_mode),
-                Some(Role::Queen) => Queen::to_string(&game.ui.display_mode),
-                Some(Role::Rook) => Rook::to_string(&game.ui.display_mode),
-                Some(Role::Bishop) => Bishop::to_string(&game.ui.display_mode),
-                Some(Role::Knight) => Knight::to_string(&game.ui.display_mode),
-                Some(Role::Pawn) => Pawn::to_string(&game.ui.display_mode),
-                None => " ",
-            };
-
-            // Place the pieces on the board
-            Paragraph::new(piece_str)
-                .fg(color_enum)
-                .alignment(Alignment::Center)
-        }
-        DisplayMode::ASCII => {
-            let paragraph = if let Some(role) = piece_type {
-                // Use custom piece to_string methods for ASCII mode
-                let piece_str = match role {
-                    Role::King => King::to_string(&game.ui.display_mode),
-                    Role::Queen => Queen::to_string(&game.ui.display_mode),
-                    Role::Rook => Rook::to_string(&game.ui.display_mode),
-                    Role::Bishop => Bishop::to_string(&game.ui.display_mode),
-                    Role::Knight => Knight::to_string(&game.ui.display_mode),
-                    Role::Pawn => Pawn::to_string(&game.ui.display_mode),
-                };
-
-                // Determine piece letter case
-                match piece_color {
-                    // pieces belonging to the player on top will be lower case
-                    Some(shakmaty::Color::Black) => Paragraph::new(piece_str.to_lowercase()),
-                    // pieces belonging to the player on bottom will be upper case
-                    Some(shakmaty::Color::White) => {
-                        Paragraph::new(piece_str.to_uppercase().underlined())
-                    }
-                    // Pass through original value
-                    None => Paragraph::new(piece_str),
-                }
-            } else {
-                Paragraph::new(" ")
-            };
-
-            paragraph
-                .block(Block::new().padding(Padding::vertical(square.height / 2)))
-                .alignment(Alignment::Center)
-        }
-    };
-
-    paragraph
 }
 
 /// Convert a character to an integer for parsing UCI moves

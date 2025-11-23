@@ -10,22 +10,31 @@ use ratatui::crossterm::event::{
     KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
 };
 
-/// Handles the key events and updates the state of [`App`].
+/// Handles keyboard input events and updates the application state accordingly.
+///
+/// This is the main entry point for all keyboard interactions. It filters out
+/// non-press events, handles mouse-to-keyboard transitions, and routes events
+/// to either popup handlers or page handlers based on the current application state.
 pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
+    // Only process key press events, ignore release and repeat events
+    // (crossterm on Windows sends Release and Repeat events as well)
     if key_event.kind != KeyEventKind::Press {
-        // crossterm on Windows sends Release and Repeat events as well, which we ignore.
         return Ok(());
     }
 
+    // Reset cursor position after mouse interaction when keyboard is used
+    // This ensures the cursor is in a valid position for keyboard navigation
     if app.game.ui.mouse_used {
         app.game.ui.mouse_used = false;
         if app.game.ui.selected_square.is_some() {
+            // If a piece was selected via mouse, move cursor to that square
             app.game.ui.cursor_coordinates = get_coord_from_square(
                 app.game.ui.selected_square,
                 app.game.logic.game_board.is_flipped,
             );
             app.game.ui.selected_square = None;
         } else {
+            // Otherwise, reset cursor to center of board (e4/e5)
             app.game.ui.cursor_coordinates.col = 4;
             app.game.ui.cursor_coordinates.row = 4;
         }
@@ -41,10 +50,16 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
     Ok(())
 }
 
+/// Handles keyboard input when a popup is active.
+///
+/// Popups take priority over page input, so all keyboard events are routed here
+/// when a popup is displayed. Each popup type has its own set of key bindings.
 fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
     match popup {
+        // Popup for entering the host IP address when joining a multiplayer game
         Popups::EnterHostIP => match key_event.code {
             KeyCode::Enter => {
+                // Submit the entered IP address and store it
                 app.game.ui.prompt.submit_message();
                 assert_eq!(app.current_page, Pages::Multiplayer);
                 if app.current_page == Pages::Multiplayer {
@@ -57,6 +72,7 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
             KeyCode::Left => app.game.ui.prompt.move_cursor_left(),
             KeyCode::Right => app.game.ui.prompt.move_cursor_right(),
             KeyCode::Esc => {
+                // Cancel IP entry and return to home menu, resetting multiplayer state
                 app.current_popup = None;
                 if app.current_page == Pages::Multiplayer {
                     app.hosting = None;
@@ -67,11 +83,13 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
             }
             _ => fallback_key_handler(app, key_event),
         },
+        // Help popup - shows game controls and key bindings
         Popups::Help => match key_event.code {
             KeyCode::Char('?') => app.toggle_help_popup(),
             KeyCode::Esc => app.toggle_help_popup(),
             _ => fallback_key_handler(app, key_event),
         },
+        // Color selection popup - choose white or black when playing against bot
         Popups::ColorSelection => match key_event.code {
             KeyCode::Esc => {
                 app.current_popup = None;
@@ -82,6 +100,7 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
             KeyCode::Char(' ') | KeyCode::Enter => app.color_selection(),
             _ => fallback_key_handler(app, key_event),
         },
+        // Multiplayer selection popup - choose to host or join a game
         Popups::MultiplayerSelection => match key_event.code {
             KeyCode::Esc => {
                 app.current_popup = None;
@@ -106,21 +125,27 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
             }
             _ => fallback_key_handler(app, key_event),
         },
+        // End screen popup - shown when game ends (checkmate or draw)
         Popups::EndScreen => match key_event.code {
             KeyCode::Char('h' | 'H') => {
+                // Hide the end screen (game state remains)
                 app.current_popup = None;
             }
             KeyCode::Char('r' | 'R') => {
-                app.restart();
-                app.current_popup = None;
+                // Restart the game (only for non-multiplayer games)
+                if app.game.logic.opponent.is_none() {
+                    app.restart();
+                    app.current_popup = None;
+                }
             }
             KeyCode::Char('b' | 'B') => {
+                // Go back to home menu - completely reset all game state
                 let display_mode = app.game.ui.display_mode;
-                // Completely reset all state when going back to menu
                 app.selected_color = None;
                 app.game.logic.bot = None;
-                app.bot_move_receiver = None; // Reset bot move receiver
+                app.bot_move_receiver = None;
 
+                // Clean up multiplayer connection if active
                 if let Some(opponent) = app.game.logic.opponent.as_mut() {
                     opponent.send_end_game_to_server();
                     app.game.logic.opponent = None;
@@ -128,7 +153,7 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
                     app.host_ip = None;
                 }
 
-                // Reset game completely
+                // Reset game completely but preserve display mode preference
                 app.game = Game::default();
                 app.game.ui.display_mode = display_mode;
                 app.current_page = Pages::Home;
@@ -136,6 +161,7 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
             }
             _ => fallback_key_handler(app, key_event),
         },
+        // Error popup - displays error messages
         Popups::Error => match key_event.code {
             KeyCode::Esc | KeyCode::Enter | KeyCode::Char(' ') => {
                 app.current_popup = None;
@@ -146,6 +172,7 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
     };
 }
 
+/// Routes keyboard input to the appropriate page handler based on current page.
 fn handle_page_input(app: &mut App, key_event: KeyEvent) {
     match &app.current_page {
         Pages::Home => handle_home_page_events(app, key_event),
@@ -156,6 +183,8 @@ fn handle_page_input(app: &mut App, key_event: KeyEvent) {
     }
 }
 
+/// Handles keyboard input on the home/menu page.
+/// Supports navigation through menu items and selection.
 fn handle_home_page_events(app: &mut App, key_event: KeyEvent) {
     match key_event.code {
         KeyCode::Up | KeyCode::Char('k') => app.menu_cursor_up(Pages::variant_count() as u8),
@@ -166,43 +195,49 @@ fn handle_home_page_events(app: &mut App, key_event: KeyEvent) {
     }
 }
 
+/// Handles keyboard input during solo (two-player) game mode.
 fn handle_solo_page_events(app: &mut App, key_event: KeyEvent) {
     match key_event.code {
-        KeyCode::Char('r') => app.restart(),
+        KeyCode::Char('r') => app.restart(), // Restart current game
         KeyCode::Char('b') => {
+            // Return to home menu - reset all game state
             let display_mode = app.game.ui.display_mode;
-            // Completely reset all state when going back to menu
             app.selected_color = None;
             app.game.logic.bot = None;
-            app.bot_move_receiver = None; // Reset bot move receiver
+            app.bot_move_receiver = None;
 
-            // Reset game completely
             app.game = Game::default();
             app.game.ui.display_mode = display_mode;
             app.current_page = Pages::Home;
             app.current_popup = None;
         }
-        _ => chess_inputs(app, key_event),
+        _ => chess_inputs(app, key_event), // Delegate chess-specific inputs
     }
 }
 
+/// Handles chess-specific keyboard inputs (cursor movement, piece selection, etc.).
+///
+/// This function processes inputs that are common across all game modes (solo, bot, multiplayer).
+/// The behavior varies based on the current game state (Playing, Promotion, Checkmate, Draw).
 fn chess_inputs(app: &mut App, key_event: KeyEvent) {
     let is_playing = app.game.logic.game_state == GameState::Playing;
 
     match key_event.code {
+        // Vertical cursor movement (only during active play)
         KeyCode::Up | KeyCode::Char('k') if is_playing => app.go_up_in_game(),
         KeyCode::Down | KeyCode::Char('j') if is_playing => app.go_down_in_game(),
 
+        // Horizontal cursor movement - behavior depends on game state
         KeyCode::Right | KeyCode::Char('l') => match app.game.logic.game_state {
-            GameState::Promotion => app.game.ui.cursor_right_promotion(),
-            GameState::Playing => app.go_right_in_game(),
+            GameState::Promotion => app.game.ui.cursor_right_promotion(), // Navigate promotion options
+            GameState::Playing => app.go_right_in_game(),                 // Move cursor on board
             _ => (),
         },
         KeyCode::Left | KeyCode::Char('h') => match app.game.logic.game_state {
-            GameState::Promotion => app.game.ui.cursor_left_promotion(),
-            GameState::Playing => app.go_left_in_game(),
+            GameState::Promotion => app.game.ui.cursor_left_promotion(), // Navigate promotion options
+            GameState::Playing => app.go_left_in_game(),                 // Move cursor on board
             GameState::Checkmate | GameState::Draw => {
-                // Toggle the end screen popup
+                // Toggle end screen visibility when game is over
                 if app.current_popup == Some(Popups::EndScreen) {
                     app.current_popup = None;
                 } else {
@@ -210,42 +245,41 @@ fn chess_inputs(app: &mut App, key_event: KeyEvent) {
                 }
             }
         },
+        // Select/move piece or confirm action
         KeyCode::Char(' ') | KeyCode::Enter => {
             app.game.handle_cell_click();
-            // Check for checkmate or draw after the move and show end screen
+            // Check game end conditions after move execution
             if app.game.logic.game_board.is_checkmate() {
                 app.game.logic.game_state = GameState::Checkmate;
                 app.show_end_screen();
-            } else if app
-                .game
-                .logic
-                .game_board
-                .is_draw(app.game.logic.player_turn)
-            {
+            } else if app.game.logic.game_board.is_draw() {
                 app.game.logic.game_state = GameState::Draw;
                 app.show_end_screen();
             } else if app.game.logic.game_state == GameState::Checkmate
                 || app.game.logic.game_state == GameState::Draw
             {
-                // Game state already set, just show the screen
+                // Game already ended, just show the screen
                 app.show_end_screen();
             }
         }
-        KeyCode::Char('?') => app.toggle_help_popup(),
-        KeyCode::Esc => app.game.ui.unselect_cell(),
+        KeyCode::Char('?') => app.toggle_help_popup(), // Toggle help popup
+        KeyCode::Esc => app.game.ui.unselect_cell(),   // Deselect piece
         _ => fallback_key_handler(app, key_event),
     }
 }
 
+/// Handles keyboard input during multiplayer game mode.
+/// Similar to solo mode but includes cleanup of network connections.
 fn handle_multiplayer_page_events(app: &mut App, key_event: KeyEvent) {
     match key_event.code {
         KeyCode::Char('b') => {
+            // Return to home menu - disconnect from opponent and reset state
             let display_mode = app.game.ui.display_mode;
-            // Completely reset all state when going back to menu
             app.selected_color = None;
             app.game.logic.bot = None;
-            app.bot_move_receiver = None; // Reset bot move receiver
+            app.bot_move_receiver = None;
 
+            // Clean up multiplayer connection
             if let Some(opponent) = app.game.logic.opponent.as_mut() {
                 opponent.send_end_game_to_server();
                 app.game.logic.opponent = None;
@@ -253,28 +287,29 @@ fn handle_multiplayer_page_events(app: &mut App, key_event: KeyEvent) {
                 app.host_ip = None;
             }
 
-            // Reset game completely
             app.game = Game::default();
             app.game.ui.display_mode = display_mode;
             app.current_page = Pages::Home;
             app.current_popup = None;
         }
 
-        _ => chess_inputs(app, key_event),
-        // Continue from here to add more commands for Multiplayer
+        _ => chess_inputs(app, key_event), // Delegate chess-specific inputs
     }
 }
 
+/// Handles keyboard input when playing against a bot.
+/// Includes restart functionality and bot state cleanup.
 fn handle_bot_page_events(app: &mut App, key_event: KeyEvent) {
     match key_event.code {
-        KeyCode::Char('r') => app.restart(),
+        KeyCode::Char('r') => app.restart(), // Restart current game
         KeyCode::Char('b') => {
+            // Return to home menu - clean up bot and reset state
             let display_mode = app.game.ui.display_mode;
-            // Completely reset all state when going back to menu
             app.selected_color = None;
             app.game.logic.bot = None;
-            app.bot_move_receiver = None; // Reset bot move receiver
+            app.bot_move_receiver = None;
 
+            // Clean up any multiplayer state (shouldn't happen in bot mode, but be safe)
             if let Some(opponent) = app.game.logic.opponent.as_mut() {
                 opponent.send_end_game_to_server();
                 app.game.logic.opponent = None;
@@ -282,16 +317,16 @@ fn handle_bot_page_events(app: &mut App, key_event: KeyEvent) {
                 app.host_ip = None;
             }
 
-            // Reset game completely
             app.game = Game::default();
             app.game.ui.display_mode = display_mode;
             app.current_page = Pages::Home;
             app.current_popup = None;
         }
-        _ => chess_inputs(app, key_event),
+        _ => chess_inputs(app, key_event), // Delegate chess-specific inputs
     }
 }
 
+/// Handles keyboard input on the credits page.
 fn handle_credit_page_events(app: &mut App, key_event: KeyEvent) {
     match key_event.code {
         KeyCode::Char(' ') | KeyCode::Esc | KeyCode::Enter => app.toggle_credit_popup(),
@@ -299,71 +334,82 @@ fn handle_credit_page_events(app: &mut App, key_event: KeyEvent) {
     }
 }
 
+/// Fallback handler for keys that aren't handled by specific page/popup handlers.
+/// Provides global shortcuts like quit that work from anywhere.
 fn fallback_key_handler(app: &mut App, key_event: KeyEvent) {
-    // Exit application on `q` or `Cntrl + C`
     match key_event.code {
-        KeyCode::Char('q') => app.quit(),
-        KeyCode::Char('c' | 'C') if key_event.modifiers == KeyModifiers::CONTROL => app.quit(),
-        _ => (),
+        KeyCode::Char('q') => app.quit(), // Quit application
+        KeyCode::Char('c' | 'C') if key_event.modifiers == KeyModifiers::CONTROL => app.quit(), // Ctrl+C to quit
+        _ => (), // Ignore other keys
     }
 }
 
+/// Handles mouse click events for piece selection and movement.
+///
+/// Mouse input is only active during game pages (Solo, Bot, Multiplayer).
+/// Handles both board clicks and promotion selection clicks.
 pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<()> {
-    // Mouse control only implemented for actual game
+    // Mouse control only implemented for game pages, not home or credits
     if app.current_page == Pages::Home || app.current_page == Pages::Credit {
         return Ok(());
     }
-    // If the left mouse button is clicked
+
+    // Only process left mouse button clicks
     if mouse_event.kind == MouseEventKind::Down(MouseButton::Left) {
-        // If the game is in a checkmate or draw state, do nothing
+        // Ignore clicks when game has ended
         if app.game.logic.game_state == GameState::Checkmate
             || app.game.logic.game_state == GameState::Draw
         {
             return Ok(());
         }
-        // If a popup is active, do nothing
+        // Ignore clicks when a popup is active
         if app.current_popup.is_some() {
             return Ok(());
         }
-        // If there is a promotion to be done the top_x, top_y, width and height values are updated accordingly
+
+        // Handle promotion piece selection via mouse
         if app.game.logic.game_state == GameState::Promotion {
+            // Calculate which promotion option was clicked (0-3 for Queen, Rook, Bishop, Knight)
             let x = (mouse_event.column - app.game.ui.top_x) / app.game.ui.width;
             let y = (mouse_event.row - app.game.ui.top_y) / app.game.ui.height;
             if x > 3 || y > 0 {
-                return Ok(());
+                return Ok(()); // Click outside promotion area
             }
             app.game.ui.promotion_cursor = x as i8;
             app.game.handle_promotion();
+            // Notify opponent in multiplayer games
             if app.game.logic.opponent.is_some() {
                 app.game.logic.handle_multiplayer_promotion();
             }
+            return Ok(());
         }
-        // If the click is outside the board, do nothing
+
+        // Validate click is within board boundaries
         if mouse_event.column < app.game.ui.top_x || mouse_event.row < app.game.ui.top_y {
             return Ok(());
         }
-        // If the width or height is 0, do nothing
         if app.game.ui.width == 0 || app.game.ui.height == 0 {
             return Ok(());
         }
 
-        // Calculate the cell coordinates
+        // Calculate which board square was clicked (0-7 for both x and y)
         let x = (mouse_event.column - app.game.ui.top_x) / app.game.ui.width;
         let y = (mouse_event.row - app.game.ui.top_y) / app.game.ui.height;
         if x > 7 || y > 7 {
-            return Ok(());
+            return Ok(()); // Click outside board
         }
 
-        // Set the mouse_used flag to true to indicate that the mouse was used
+        // Mark that mouse was used (affects keyboard cursor positioning)
         app.game.ui.mouse_used = true;
         let coords: Coord = Coord::new(y as u8, x as u8);
 
-        // Get the piece color of the clicked square
+        // Convert coordinates to board square, handling board flip if needed
         let square = match coords.try_to_square() {
             Some(s) => s,
             None => return Ok(()), // Invalid coordinates, ignore click
         };
 
+        // Get piece color at clicked square (accounting for board flip)
         let piece_color =
             app.game
                 .logic
@@ -373,14 +419,13 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
                     app.game.logic.game_board.is_flipped,
                 ));
 
-        // If the clicked cell is empty
+        // Handle click on empty square
         if piece_color.is_none() {
-            // And we previously didn't select a piece -> do nothing
+            // If no piece was previously selected, ignore the click
             if app.game.ui.selected_square.is_none() {
                 return Ok(());
             } else {
-                // And we previously selected a piece -> check if this is a position in the authorized positions for the previously selected piece and if so handle cell click
-                // Get the authorized positions for the clicked square
+                // Piece was selected - check if empty square is a valid move destination
                 let authorized_positions = app.game.logic.game_board.get_authorized_positions(
                     app.game.logic.player_turn,
                     &flip_square_if_needed(
@@ -389,14 +434,14 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
                     ),
                 );
 
-                // If the clicked square is in the authorized positions, set the cursor coordinates and handle the cell click
+                // If valid move, execute it
                 if authorized_positions.contains(&flip_square_if_needed(
                     square,
                     app.game.logic.game_board.is_flipped,
                 )) {
                     app.game.ui.cursor_coordinates = coords;
                     app.game.handle_cell_click();
-                    // Check for checkmate or draw after the move and show end screen
+                    // Check for game end conditions
                     if app.game.logic.game_state == GameState::Checkmate
                         || app.game.logic.game_state == GameState::Draw
                     {
@@ -405,13 +450,14 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
                 }
             }
         }
-        // We clicked on a cell with a piece of the same color as the player turn -> select that piece instead of the old one
-        if piece_color == Some(app.game.logic.player_turn) {
+        // Handle click on square with a piece
+        else if piece_color == Some(app.game.logic.player_turn) {
+            // Clicked on own piece - select it
             app.game.ui.selected_square = Some(square);
         } else {
-            // We clicked on a cell with a piece of the opposite color as the player turn
+            // Clicked on opponent's piece - try to capture if valid
             if app.game.ui.selected_square.is_some() {
-                // And we previously selected a piece -> check if this is a position in the authorized positions for the previously selected piece and if so handle cell click
+                // Check if capture is a valid move
                 let authorized_positions = app.game.logic.game_board.get_authorized_positions(
                     app.game.logic.player_turn,
                     &flip_square_if_needed(
@@ -419,14 +465,14 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
                         app.game.logic.game_board.is_flipped,
                     ),
                 );
-                // If the clicked square is in the authorized positions, select the piece and handle the cell click
+                // If valid capture, execute it
                 if authorized_positions.contains(&flip_square_if_needed(
                     square,
                     app.game.logic.game_board.is_flipped,
                 )) {
                     app.game.ui.cursor_coordinates = coords;
                     app.game.handle_cell_click();
-                    // Check for checkmate or draw after the move and show end screen
+                    // Check for game end conditions
                     if app.game.logic.game_state == GameState::Checkmate
                         || app.game.logic.game_state == GameState::Draw
                     {
@@ -434,6 +480,7 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
                     }
                 }
             } else {
+                // No piece selected and clicked opponent piece - ignore
                 return Ok(());
             }
         }
