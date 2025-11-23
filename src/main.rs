@@ -119,14 +119,13 @@ fn main() -> AppResult<()> {
         }
 
         // Check if bot should start thinking
-        if app.game.logic.bot.is_some()
+        if !app.is_bot_thinking()
             && app
                 .game
                 .logic
                 .bot
                 .as_ref()
                 .is_some_and(|bot| bot.bot_will_move)
-            && !app.is_bot_thinking()
         {
             app.start_bot_thinking();
             if let Some(bot) = app.game.logic.bot.as_mut() {
@@ -142,45 +141,36 @@ fn main() -> AppResult<()> {
             app.check_game_end_status();
         }
 
-        if app.game.logic.opponent.is_some()
-            && app
-                .game
-                .logic
-                .opponent
-                .as_ref()
-                .is_some_and(|opponent| !opponent.game_started)
-        {
-            let opponent = app.game.logic.opponent.as_mut().unwrap();
-            if let Err(e) = wait_for_game_start(opponent.stream.as_ref().unwrap()) {
-                log::error!("Error waiting for game start: {}", e);
-                // Handle error
-            } else {
-                opponent.game_started = true;
-                app.current_popup = None;
+        if let Some(opponent) = app.game.logic.opponent.as_mut() {
+            if !opponent.game_started {
+                if let Some(stream) = opponent.stream.as_ref() {
+                    if let Err(e) = wait_for_game_start(stream) {
+                        log::error!("Error waiting for game start: {}", e);
+                        // Handle error
+                    } else {
+                        opponent.game_started = true;
+                        app.current_popup = None;
+                    }
+                }
             }
         }
 
         // If it's the opponent turn, wait for the opponent to move
-        if app.game.logic.opponent.is_some()
-            && app
-                .game
-                .logic
-                .opponent
-                .as_ref()
-                .is_some_and(|opponent| opponent.opponent_will_move)
-        {
-            tui.draw(&mut app)?;
+        if let Some(opponent) = app.game.logic.opponent.as_mut() {
+            if opponent.opponent_will_move {
+                tui.draw(&mut app)?;
 
-            if !app.game.logic.game_board.is_checkmate()
-                && !app.game.logic.game_board.is_draw()
-                && app.game.logic.execute_opponent_move()
-            {
-                app.game.switch_player_turn();
+                if !app.game.logic.game_board.is_checkmate()
+                    && !app.game.logic.game_board.is_draw()
+                    && app.game.logic.execute_opponent_move()
+                {
+                    app.game.switch_player_turn();
+                }
+
+                // need to be centralised
+                app.check_game_end_status();
+                tui.draw(&mut app)?;
             }
-
-            // need to be centralised
-            app.check_game_end_status();
-            tui.draw(&mut app)?;
         }
     }
 
@@ -213,9 +203,7 @@ fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResu
     // We update the configuration with the engine_path and display_mode.
     // If these keys are already in the configuration, we leave them as they are.
     // If they're not, we add them with default values.
-    if config.engine_path.is_none()
-        || (config.engine_path.is_some() && config.engine_path.as_ref().unwrap().is_empty())
-    {
+    if config.engine_path.as_ref().map_or(true, |s| s.is_empty()) {
         if args.engine_path.is_empty() {
             config.engine_path = Some(String::new());
         } else {

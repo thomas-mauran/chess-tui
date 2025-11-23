@@ -1,6 +1,6 @@
 use crate::constants::Popups;
 use crate::game_logic::coord::Coord;
-use crate::game_logic::game::{Game, GameState};
+use crate::game_logic::game::GameState;
 use crate::utils::{flip_square_if_needed, get_coord_from_square};
 use crate::{
     app::{App, AppResult},
@@ -26,12 +26,10 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
     // This ensures the cursor is in a valid position for keyboard navigation
     if app.game.ui.mouse_used {
         app.game.ui.mouse_used = false;
-        if app.game.ui.selected_square.is_some() {
+        if let Some(selected_square) = app.game.ui.selected_square {
             // If a piece was selected via mouse, move cursor to that square
-            app.game.ui.cursor_coordinates = get_coord_from_square(
-                app.game.ui.selected_square,
-                app.game.logic.game_board.is_flipped,
-            );
+            app.game.ui.cursor_coordinates =
+                get_coord_from_square(Some(selected_square), app.game.logic.game_board.is_flipped);
             app.game.ui.selected_square = None;
         } else {
             // Otherwise, reset cursor to center of board (e4/e5)
@@ -61,7 +59,6 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
             KeyCode::Enter => {
                 // Submit the entered IP address and store it
                 app.game.ui.prompt.submit_message();
-                assert_eq!(app.current_page, Pages::Multiplayer);
                 if app.current_page == Pages::Multiplayer {
                     app.host_ip = Some(app.game.ui.prompt.message.clone());
                 }
@@ -91,10 +88,7 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
         },
         // Color selection popup - choose white or black when playing against bot
         Popups::ColorSelection => match key_event.code {
-            KeyCode::Esc => {
-                app.current_popup = None;
-                app.current_page = Pages::Home;
-            }
+            KeyCode::Esc => app.close_popup_and_go_home(),
             KeyCode::Right | KeyCode::Char('l') => app.menu_cursor_right(2),
             KeyCode::Left | KeyCode::Char('h') => app.menu_cursor_left(2),
             KeyCode::Char(' ') | KeyCode::Enter => app.color_selection(),
@@ -102,27 +96,18 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
         },
         // Multiplayer selection popup - choose to host or join a game
         Popups::MultiplayerSelection => match key_event.code {
-            KeyCode::Esc => {
-                app.current_popup = None;
-                app.current_page = Pages::Home;
-            }
+            KeyCode::Esc => app.close_popup_and_go_home(),
             KeyCode::Right | KeyCode::Char('l') => app.menu_cursor_right(2),
             KeyCode::Left | KeyCode::Char('h') => app.menu_cursor_left(2),
             KeyCode::Char(' ') | KeyCode::Enter => app.hosting_selection(),
             _ => fallback_key_handler(app, key_event),
         },
         Popups::EnginePathError => match key_event.code {
-            KeyCode::Esc | KeyCode::Enter | KeyCode::Char(' ') => {
-                app.current_popup = None;
-                app.current_page = Pages::Home;
-            }
+            KeyCode::Esc | KeyCode::Enter | KeyCode::Char(' ') => app.close_popup_and_go_home(),
             _ => fallback_key_handler(app, key_event),
         },
         Popups::WaitingForOpponentToJoin => match key_event.code {
-            KeyCode::Esc | KeyCode::Enter | KeyCode::Char(' ') => {
-                app.current_popup = None;
-                app.current_page = Pages::Home;
-            }
+            KeyCode::Esc | KeyCode::Enter | KeyCode::Char(' ') => app.close_popup_and_go_home(),
             _ => fallback_key_handler(app, key_event),
         },
         // End screen popup - shown when game ends (checkmate or draw)
@@ -140,24 +125,7 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
             }
             KeyCode::Char('b' | 'B') => {
                 // Go back to home menu - completely reset all game state
-                let display_mode = app.game.ui.display_mode;
-                app.selected_color = None;
-                app.game.logic.bot = None;
-                app.bot_move_receiver = None;
-
-                // Clean up multiplayer connection if active
-                if let Some(opponent) = app.game.logic.opponent.as_mut() {
-                    opponent.send_end_game_to_server();
-                    app.game.logic.opponent = None;
-                    app.hosting = None;
-                    app.host_ip = None;
-                }
-
-                // Reset game completely but preserve display mode preference
-                app.game = Game::default();
-                app.game.ui.display_mode = display_mode;
-                app.current_page = Pages::Home;
-                app.current_popup = None;
+                app.reset_home();
             }
             _ => fallback_key_handler(app, key_event),
         },
@@ -201,15 +169,7 @@ fn handle_solo_page_events(app: &mut App, key_event: KeyEvent) {
         KeyCode::Char('r') => app.restart(), // Restart current game
         KeyCode::Char('b') => {
             // Return to home menu - reset all game state
-            let display_mode = app.game.ui.display_mode;
-            app.selected_color = None;
-            app.game.logic.bot = None;
-            app.bot_move_receiver = None;
-
-            app.game = Game::default();
-            app.game.ui.display_mode = display_mode;
-            app.current_page = Pages::Home;
-            app.current_popup = None;
+            app.reset_home();
         }
         _ => chess_inputs(app, key_event), // Delegate chess-specific inputs
     }
@@ -248,19 +208,7 @@ fn chess_inputs(app: &mut App, key_event: KeyEvent) {
         // Select/move piece or confirm action
         KeyCode::Char(' ') | KeyCode::Enter => {
             app.game.handle_cell_click();
-            // Check game end conditions after move execution
-            if app.game.logic.game_board.is_checkmate() {
-                app.game.logic.game_state = GameState::Checkmate;
-                app.show_end_screen();
-            } else if app.game.logic.game_board.is_draw() {
-                app.game.logic.game_state = GameState::Draw;
-                app.show_end_screen();
-            } else if app.game.logic.game_state == GameState::Checkmate
-                || app.game.logic.game_state == GameState::Draw
-            {
-                // Game already ended, just show the screen
-                app.show_end_screen();
-            }
+            app.check_and_show_game_end();
         }
         KeyCode::Char('?') => app.toggle_help_popup(), // Toggle help popup
         KeyCode::Esc => app.game.ui.unselect_cell(),   // Deselect piece
@@ -274,23 +222,7 @@ fn handle_multiplayer_page_events(app: &mut App, key_event: KeyEvent) {
     match key_event.code {
         KeyCode::Char('b') => {
             // Return to home menu - disconnect from opponent and reset state
-            let display_mode = app.game.ui.display_mode;
-            app.selected_color = None;
-            app.game.logic.bot = None;
-            app.bot_move_receiver = None;
-
-            // Clean up multiplayer connection
-            if let Some(opponent) = app.game.logic.opponent.as_mut() {
-                opponent.send_end_game_to_server();
-                app.game.logic.opponent = None;
-                app.hosting = None;
-                app.host_ip = None;
-            }
-
-            app.game = Game::default();
-            app.game.ui.display_mode = display_mode;
-            app.current_page = Pages::Home;
-            app.current_popup = None;
+            app.reset_home();
         }
 
         _ => chess_inputs(app, key_event), // Delegate chess-specific inputs
@@ -304,23 +236,7 @@ fn handle_bot_page_events(app: &mut App, key_event: KeyEvent) {
         KeyCode::Char('r') => app.restart(), // Restart current game
         KeyCode::Char('b') => {
             // Return to home menu - clean up bot and reset state
-            let display_mode = app.game.ui.display_mode;
-            app.selected_color = None;
-            app.game.logic.bot = None;
-            app.bot_move_receiver = None;
-
-            // Clean up any multiplayer state (shouldn't happen in bot mode, but be safe)
-            if let Some(opponent) = app.game.logic.opponent.as_mut() {
-                opponent.send_end_game_to_server();
-                app.game.logic.opponent = None;
-                app.hosting = None;
-                app.host_ip = None;
-            }
-
-            app.game = Game::default();
-            app.game.ui.display_mode = display_mode;
-            app.current_page = Pages::Home;
-            app.current_popup = None;
+            app.reset_home();
         }
         _ => chess_inputs(app, key_event), // Delegate chess-specific inputs
     }
@@ -342,6 +258,34 @@ fn fallback_key_handler(app: &mut App, key_event: KeyEvent) {
         KeyCode::Char('c' | 'C') if key_event.modifiers == KeyModifiers::CONTROL => app.quit(), // Ctrl+C to quit
         _ => (), // Ignore other keys
     }
+}
+
+/// Helper function to validate and execute a move from a selected square to a target square.
+/// Returns true if the move was executed, false otherwise.
+fn try_execute_move(app: &mut App, target_square: shakmaty::Square, coords: Coord) -> bool {
+    if app.game.ui.selected_square.is_none() {
+        return false;
+    }
+
+    let authorized_positions = app.game.logic.game_board.get_authorized_positions(
+        app.game.logic.player_turn,
+        &flip_square_if_needed(
+            app.game.ui.selected_square.unwrap(),
+            app.game.logic.game_board.is_flipped,
+        ),
+    );
+
+    // Check if target square is a valid move destination
+    if authorized_positions.contains(&flip_square_if_needed(
+        target_square,
+        app.game.logic.game_board.is_flipped,
+    )) {
+        app.game.ui.cursor_coordinates = coords;
+        app.game.handle_cell_click();
+        app.check_and_show_game_end();
+        return true;
+    }
+    false
 }
 
 /// Handles mouse click events for piece selection and movement.
@@ -425,29 +369,8 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
             if app.game.ui.selected_square.is_none() {
                 return Ok(());
             } else {
-                // Piece was selected - check if empty square is a valid move destination
-                let authorized_positions = app.game.logic.game_board.get_authorized_positions(
-                    app.game.logic.player_turn,
-                    &flip_square_if_needed(
-                        app.game.ui.selected_square.unwrap(),
-                        app.game.logic.game_board.is_flipped,
-                    ),
-                );
-
-                // If valid move, execute it
-                if authorized_positions.contains(&flip_square_if_needed(
-                    square,
-                    app.game.logic.game_board.is_flipped,
-                )) {
-                    app.game.ui.cursor_coordinates = coords;
-                    app.game.handle_cell_click();
-                    // Check for game end conditions
-                    if app.game.logic.game_state == GameState::Checkmate
-                        || app.game.logic.game_state == GameState::Draw
-                    {
-                        app.show_end_screen();
-                    }
-                }
+                // Piece was selected - try to execute move to empty square
+                try_execute_move(app, square, coords);
             }
         }
         // Handle click on square with a piece
@@ -457,32 +380,9 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
         } else {
             // Clicked on opponent's piece - try to capture if valid
             if app.game.ui.selected_square.is_some() {
-                // Check if capture is a valid move
-                let authorized_positions = app.game.logic.game_board.get_authorized_positions(
-                    app.game.logic.player_turn,
-                    &flip_square_if_needed(
-                        app.game.ui.selected_square.unwrap(),
-                        app.game.logic.game_board.is_flipped,
-                    ),
-                );
-                // If valid capture, execute it
-                if authorized_positions.contains(&flip_square_if_needed(
-                    square,
-                    app.game.logic.game_board.is_flipped,
-                )) {
-                    app.game.ui.cursor_coordinates = coords;
-                    app.game.handle_cell_click();
-                    // Check for game end conditions
-                    if app.game.logic.game_state == GameState::Checkmate
-                        || app.game.logic.game_state == GameState::Draw
-                    {
-                        app.show_end_screen();
-                    }
-                }
-            } else {
-                // No piece selected and clicked opponent piece - ignore
-                return Ok(());
+                try_execute_move(app, square, coords);
             }
+            // No piece selected and clicked opponent piece - ignore (try_execute_move handles this)
         }
     }
     Ok(())

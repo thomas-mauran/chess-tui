@@ -142,21 +142,10 @@ impl Game {
             self.logic.execute_bot_move();
         }
     }
-    /// Handle game state updates after a move (checkmate, draw, promotion)
-    fn update_game_state_after_move(&mut self) {
-        if self.logic.game_board.is_checkmate() {
-            self.logic.game_state = GameState::Checkmate;
-        } else if self.logic.game_board.is_draw() {
-            self.logic.game_state = GameState::Draw;
-        } else if self.logic.game_board.is_latest_move_promotion() {
-            self.logic.game_state = GameState::Promotion;
-        }
-    }
-
     /// Handle bot-specific logic after a move
     fn handle_after_move_bot_logic(&mut self) {
         if self.logic.bot.is_some() {
-            self.update_game_state_after_move();
+            self.logic.update_game_state();
 
             // Trigger bot move if game is still in progress
             if self.logic.game_state != GameState::Promotion
@@ -175,17 +164,15 @@ impl Game {
             if self.logic.game_board.is_latest_move_promotion() {
                 self.logic.game_state = GameState::Promotion;
             } else {
-                self.update_game_state_after_move();
+                self.logic.update_game_state();
 
-                // Signal opponent to move if game is still in progress
-                if self.logic.game_state != GameState::Checkmate {
-                    if let Some(opponent) = self.logic.opponent.as_mut() {
+                // Signal opponent to move and send move if game is still in progress
+                if let Some(opponent) = self.logic.opponent.as_mut() {
+                    if self.logic.game_state != GameState::Checkmate {
                         opponent.opponent_will_move = true;
                     }
-                }
 
-                // Send move to opponent
-                if let Some(opponent) = self.logic.opponent.as_mut() {
+                    // Send move to opponent
                     if let Some(last_move) = self.logic.game_board.move_history.last() {
                         opponent.send_move_to_server(last_move, last_move.promotion());
                     } else {
@@ -210,61 +197,43 @@ impl Game {
     }
 
     pub fn already_selected_cell_action(&mut self) {
-        if self.ui.selected_square.is_none() {
-            return;
-        }
+        let selected_square = match self.ui.selected_square {
+            Some(sq) => sq,
+            None => return,
+        };
 
         // We already selected a piece so we apply the move
-        if self.ui.cursor_coordinates.is_valid() {
-            let selected_square = match self.ui.selected_square {
-                Some(sq) => sq,
-                None => {
-                    log::error!("selected_square is None despite earlier check");
-                    return;
-                }
-            };
+        let cursor_square = match self.ui.cursor_coordinates.to_square() {
+            Some(sq) => sq,
+            None => return,
+        };
 
-            let cursor_square = match self.ui.cursor_coordinates.to_square() {
-                Some(sq) => sq,
-                None => {
-                    log::error!(
-                        "cursor_coordinates.to_square() returned None despite is_valid() check"
-                    );
-                    return;
-                }
-            };
+        let selected_coords_usize =
+            &flip_square_if_needed(selected_square, self.logic.game_board.is_flipped);
 
-            let selected_coords_usize =
-                &flip_square_if_needed(selected_square, self.logic.game_board.is_flipped);
+        let actual_cursor_coords =
+            flip_square_if_needed(cursor_square, self.logic.game_board.is_flipped);
 
-            let actual_cursor_coords =
-                flip_square_if_needed(cursor_square, self.logic.game_board.is_flipped);
+        // Execute the move
+        self.logic
+            .execute_move(*selected_coords_usize, actual_cursor_coords);
+        self.ui.unselect_cell();
+        self.logic.switch_player_turn();
 
-            // Execute the move
-            self.logic
-                .execute_move(*selected_coords_usize, actual_cursor_coords);
-            self.ui.unselect_cell();
-            self.logic.switch_player_turn();
-
-            // Update game state
-            if self.logic.game_board.is_draw() {
-                self.logic.game_state = GameState::Draw;
-            }
-
-            // Handle post-move logic based on game mode
-            self.handle_after_move_board_flip();
-            self.handle_after_move_bot_logic();
-            self.handle_after_move_opponent_logic();
-        }
+        // Handle post-move logic based on game mode
+        self.handle_after_move_board_flip();
+        self.handle_after_move_bot_logic();
+        self.handle_after_move_opponent_logic();
     }
 
     pub fn select_cell(&mut self) {
-        let square = self
-            .ui
-            .cursor_coordinates
-            .to_square()
-            .map(|s| Coord::from_square(s).to_square().unwrap())
-            .unwrap();
+        let square = match self.ui.cursor_coordinates.to_square() {
+            Some(s) => match Coord::from_square(s).to_square() {
+                Some(sq) => sq,
+                None => return,
+            },
+            None => return,
+        };
         let actual_square = flip_square_if_needed(square, self.logic.game_board.is_flipped);
 
         // Check if there is a piece on the cell or if the cells is the right color
@@ -291,35 +260,24 @@ impl Game {
         if authorized_positions.is_empty() {
             return;
         }
-        if let Some(piece_color) = self
-            .logic
-            .game_board
-            .get_piece_color_at_square(&actual_square)
-        {
-            let authorized_positions = self
-                .logic
-                .game_board
-                .get_authorized_positions(self.logic.player_turn, &actual_square);
 
-            if piece_color == self.logic.player_turn {
-                self.ui.selected_square = Some(square);
-                self.ui.old_cursor_position = self.ui.cursor_coordinates;
+        // We already verified the piece color matches player_turn above, so we can proceed
+        self.ui.selected_square = Some(square);
+        self.ui.old_cursor_position = self.ui.cursor_coordinates;
 
-                let authorized_positions_flipped: Vec<Square> = authorized_positions
-                    .iter()
-                    .map(|s| flip_square_if_needed(*s, self.logic.game_board.is_flipped))
-                    .collect();
+        let authorized_positions_flipped: Vec<Square> = authorized_positions
+            .iter()
+            .map(|s| flip_square_if_needed(*s, self.logic.game_board.is_flipped))
+            .collect();
 
-                self.ui.move_selected_piece_cursor(
-                    true,
-                    1,
-                    authorized_positions_flipped
-                        .iter()
-                        .map(|s| Coord::from_square(*s))
-                        .collect(),
-                );
-            }
-        }
+        self.ui.move_selected_piece_cursor(
+            true,
+            1,
+            authorized_positions_flipped
+                .iter()
+                .map(|s| Coord::from_square(*s))
+                .collect(),
+        );
     }
 }
 

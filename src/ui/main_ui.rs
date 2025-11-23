@@ -39,27 +39,39 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
         if app.current_popup != Some(Popups::Error) {
             if app.hosting.is_none() {
                 app.current_popup = Some(Popups::MultiplayerSelection);
-            } else if app.selected_color.is_none() && app.hosting.unwrap() {
+            } else if app.selected_color.is_none() && app.hosting == Some(true) {
                 app.current_popup = Some(Popups::ColorSelection);
             } else if app.game.logic.opponent.is_none() {
                 if app.host_ip.is_none() {
-                    if app.hosting.is_some() && app.hosting.unwrap() {
-                        app.setup_game_server(app.selected_color.unwrap());
-                        app.host_ip = Some("127.0.0.1".to_string());
+                    if app.hosting == Some(true) {
+                        if let Some(color) = app.selected_color {
+                            app.setup_game_server(color);
+                            app.host_ip = Some("127.0.0.1".to_string());
+                        }
                     } else {
                         app.current_popup = Some(Popups::EnterHostIP);
                     }
                 } else {
                     app.create_opponent();
                 }
-            } else if app.game.logic.opponent.as_mut().unwrap().game_started {
+            } else if app
+                .game
+                .logic
+                .opponent
+                .as_ref()
+                .is_some_and(|opponent| opponent.game_started)
+            {
                 render_game_ui(frame, app, main_area);
             }
         }
     }
     // Play against bot
     else if app.current_page == Pages::Bot {
-        if app.chess_engine_path.is_none() || app.chess_engine_path.as_ref().unwrap().is_empty() {
+        if app
+            .chess_engine_path
+            .as_ref()
+            .map_or(true, |path| path.is_empty())
+        {
             render_engine_path_error_popup(frame);
         } else if app.selected_color.is_none() {
             app.current_popup = Some(Popups::ColorSelection);

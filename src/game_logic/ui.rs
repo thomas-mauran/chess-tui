@@ -388,8 +388,10 @@ impl UI {
         let last_move_to = last_move.map(|m| m.to());
 
         // If the opponent is the same as the last move player, we don't want to show his last move
-        if logic.opponent.is_some() && logic.opponent.as_ref().unwrap().color == logic.player_turn {
-            return (None, None);
+        if let Some(opponent) = logic.opponent.as_ref() {
+            if opponent.color == logic.player_turn {
+                return (None, None);
+            }
         }
 
         (last_move_from, last_move_to)

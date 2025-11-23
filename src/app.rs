@@ -105,11 +105,7 @@ impl App {
     }
 
     pub fn create_opponent(&mut self) {
-        let other_player_color = if self.selected_color.is_some() {
-            Some(self.selected_color.unwrap().other())
-        } else {
-            None
-        };
+        let other_player_color = self.selected_color.map(|c| c.other());
 
         if self.hosting.unwrap_or(false) {
             log::info!("Setting up host with color: {:?}", self.selected_color);
@@ -122,22 +118,17 @@ impl App {
             }
         }
 
-        let addr = self
+        let addr_with_port = self
             .host_ip
             .as_ref()
+            .map(|s| s.as_str())
             .unwrap_or(&format!("127.0.0.1:{}", NETWORK_PORT))
             .to_string();
-        let addr_with_port = addr.to_string();
         log::info!("Attempting to connect to: {}", addr_with_port);
 
         // ping the server to see if it's up
-        let s = UdpSocket::bind(addr_with_port.clone());
-        if s.is_err() {
-            log::error!(
-                "Server is unreachable at {}: {}",
-                addr_with_port,
-                s.err().unwrap()
-            );
+        if let Err(e) = UdpSocket::bind(addr_with_port.clone()) {
+            log::error!("Server is unreachable at {}: {}", addr_with_port, e);
             self.host_ip = None;
             return;
         }
@@ -239,14 +230,13 @@ impl App {
     fn apply_bot_move(&mut self, bot_move: Move) {
         use shakmaty::Position;
 
-        let current_position = self
-            .game
-            .logic
-            .game_board
-            .position_history
-            .last()
-            .unwrap()
-            .clone();
+        let current_position = match self.game.logic.game_board.current_position() {
+            Some(pos) => pos.clone(),
+            None => {
+                log::error!("Cannot apply bot move: position history is empty");
+                return;
+            }
+        };
 
         // Store in history
         self.game.logic.game_board.move_history.push(Move::Normal {
@@ -323,21 +313,15 @@ impl App {
     }
 
     pub fn bot_setup(&mut self) {
-        let empty = "".to_string();
         let is_bot_starting = self.selected_color.unwrap_or(Color::White) == shakmaty::Color::Black;
-        let path = match self.chess_engine_path.as_ref() {
-            Some(engine_path) => engine_path,
-            None => &empty,
-        };
+        let path = self.chess_engine_path.as_deref().unwrap_or("");
         self.game.logic.bot = Some(Bot::new(path, is_bot_starting, self.bot_depth));
         if let Some(color) = self.selected_color {
             if color == Color::Black {
                 // Flip the board once so Black player sees from their perspective
                 self.game.logic.game_board.flip_the_board();
 
-                if self.game.logic.bot.is_some()
-                    && self.game.logic.player_turn != self.selected_color.unwrap()
-                {
+                if self.game.logic.bot.is_some() && self.game.logic.player_turn != color {
                     self.start_bot_thinking();
                 }
                 // Don't set player_turn to Black here - the bot (White) moves first,
@@ -361,19 +345,16 @@ impl App {
         self.game.logic.opponent = opponent;
         self.current_popup = None;
 
-        if self.game.logic.bot.as_ref().is_some()
-            && self
-                .game
-                .logic
-                .bot
-                .as_ref()
-                .is_some_and(|bot| bot.is_bot_starting)
+        if self
+            .game
+            .logic
+            .bot
+            .as_ref()
+            .is_some_and(|bot| bot.is_bot_starting)
         {
             // Flip the board once so Black player sees from their perspective
             self.game.logic.game_board.flip_the_board();
-            if self.game.logic.bot.is_some() {
-                self.start_bot_thinking();
-            }
+            self.start_bot_thinking();
             // Don't set player_turn to Black here - the bot (White) moves first,
             // so player_turn should remain White until after the bot's first move
         }
@@ -406,7 +387,7 @@ impl App {
     pub fn update_config(&self) {
         let home_dir = home_dir().expect("Could not get home directory");
         let config_path = home_dir.join(".config/chess-tui/config.toml");
-        let mut config: Config = match fs::read_to_string(config_path.clone()) {
+        let mut config: Config = match fs::read_to_string(&config_path) {
             Ok(content) => toml::from_str(&content).unwrap_or_default(),
             Err(_) => Config::default(),
         };
@@ -415,7 +396,7 @@ impl App {
         config.log_level = Some(self.log_level.to_string());
         config.bot_depth = Some(self.bot_depth);
 
-        if let Ok(mut file) = File::create(config_path.clone()) {
+        if let Ok(mut file) = File::create(&config_path) {
             let toml_string = toml::to_string(&config).unwrap_or_default();
             if let Err(e) = file.write_all(toml_string.as_bytes()) {
                 log::error!("Failed to write config: {}", e);
@@ -435,16 +416,14 @@ impl App {
     }
 
     fn get_authorized_positions_flipped(&self) -> Vec<Coord> {
-        let mut authorized_positions = vec![];
-        if self.game.ui.selected_square.is_some() {
-            authorized_positions = self.game.logic.game_board.get_authorized_positions(
+        let authorized_positions = if let Some(selected_square) = self.game.ui.selected_square {
+            self.game.logic.game_board.get_authorized_positions(
                 self.game.logic.player_turn,
-                &flip_square_if_needed(
-                    self.game.ui.selected_square.unwrap(),
-                    self.game.logic.game_board.is_flipped,
-                ),
-            );
-        }
+                &flip_square_if_needed(selected_square, self.game.logic.game_board.is_flipped),
+            )
+        } else {
+            vec![]
+        };
 
         authorized_positions
             .iter()
@@ -471,5 +450,56 @@ impl App {
     pub fn go_down_in_game(&mut self) {
         let authorized_positions = self.get_authorized_positions_flipped();
         self.game.ui.cursor_down(authorized_positions);
+    }
+
+    /// Resets the application state and returns to the home page.
+    /// Preserves display mode preference while cleaning up all game state,
+    /// bot state, and multiplayer connections.
+    pub fn reset_home(&mut self) {
+        // Preserve display mode preference
+        let display_mode = self.game.ui.display_mode;
+
+        // Reset game-related state
+        self.selected_color = None;
+        self.game.logic.bot = None;
+        self.bot_move_receiver = None;
+
+        // Clean up multiplayer connection if active
+        if let Some(opponent) = self.game.logic.opponent.as_mut() {
+            opponent.send_end_game_to_server();
+            self.game.logic.opponent = None;
+            self.hosting = None;
+            self.host_ip = None;
+        }
+
+        // Reset game completely but preserve display mode preference
+        self.game = Game::default();
+        self.game.ui.display_mode = display_mode;
+        self.current_page = Pages::Home;
+        self.current_popup = None;
+    }
+
+    /// Checks for game end conditions after a move and shows end screen if needed.
+    /// This consolidates the repeated game end checking logic.
+    pub fn check_and_show_game_end(&mut self) {
+        if self.game.logic.game_board.is_checkmate() {
+            self.game.logic.game_state = GameState::Checkmate;
+            self.show_end_screen();
+        } else if self.game.logic.game_board.is_draw() {
+            self.game.logic.game_state = GameState::Draw;
+            self.show_end_screen();
+        } else if self.game.logic.game_state == GameState::Checkmate
+            || self.game.logic.game_state == GameState::Draw
+        {
+            // Game already ended, just show the screen
+            self.show_end_screen();
+        }
+    }
+
+    /// Closes popup and navigates to home page.
+    /// Used by popups that should return to home when closed.
+    pub fn close_popup_and_go_home(&mut self) {
+        self.current_popup = None;
+        self.current_page = Pages::Home;
     }
 }
