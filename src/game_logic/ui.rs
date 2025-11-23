@@ -589,13 +589,19 @@ impl UI {
                     let highlight_color = match self.display_mode {
                         DisplayMode::CUSTOM => {
                             // Use selection color for selected square, last move color for last move
-                            if i == get_coord_from_square(actual_square, logic.game_board.is_flipped).row
-                                && j == get_coord_from_square(actual_square, logic.game_board.is_flipped).col {
+                            if i == get_coord_from_square(
+                                actual_square,
+                                logic.game_board.is_flipped,
+                            )
+                            .row && j
+                                == get_coord_from_square(actual_square, logic.game_board.is_flipped)
+                                    .col
+                            {
                                 self.skin.selection_color
                             } else {
                                 self.skin.last_move_color
                             }
-                        },
+                        }
                         _ => Color::LightGreen,
                     };
                     render_cell(frame, square, highlight_color, None);
