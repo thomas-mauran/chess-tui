@@ -22,10 +22,11 @@ pub const TITLE: &str = r"
  ╚═════╝╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝      ╚═╝    ╚═════╝ ╚═╝
 ";
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum DisplayMode {
     DEFAULT,
     ASCII,
+    CUSTOM,
 }
 
 impl fmt::Display for DisplayMode {
@@ -33,6 +34,7 @@ impl fmt::Display for DisplayMode {
         match *self {
             DisplayMode::ASCII => write!(f, "ASCII"),
             DisplayMode::DEFAULT => write!(f, "DEFAULT"),
+            DisplayMode::CUSTOM => write!(f, "CUSTOM"),
         }
     }
 }

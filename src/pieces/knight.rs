@@ -5,7 +5,7 @@ pub struct Knight;
 impl Knight {
     pub fn to_string(display_mode: &DisplayMode) -> &'static str {
         match display_mode {
-            DisplayMode::DEFAULT => {
+            DisplayMode::DEFAULT | DisplayMode::CUSTOM => {
                 "\
     \n\
     ▟▛██▙\n\

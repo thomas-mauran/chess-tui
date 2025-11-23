@@ -5,6 +5,7 @@ use super::{
 use crate::{
     constants::{DisplayMode, BLACK, WHITE},
     pieces::role_to_utf_enum,
+    skin::Skin,
     ui::{main_ui::render_cell, prompt::Prompt},
     utils::{flip_square_if_needed, get_coord_from_square, get_square_from_coord},
 };
@@ -41,6 +42,8 @@ pub struct UI {
     pub display_mode: DisplayMode,
     // The prompt for the player
     pub prompt: Prompt,
+    // The skin of the game
+    pub skin: Skin,
 }
 
 impl Default for UI {
@@ -58,6 +61,7 @@ impl Default for UI {
             mouse_used: false,
             display_mode: DisplayMode::DEFAULT,
             prompt: Prompt::new(),
+            skin: Skin::default(),
         }
     }
 }
@@ -174,12 +178,12 @@ impl UI {
     }
 
     /// Helper method to render a piece paragraph
-    fn render_piece_paragraph<'a>(
+    fn render_piece_paragraph(
         &self,
         piece_type: Option<Role>,
         piece_color: Option<shakmaty::Color>,
         square: Rect,
-    ) -> Paragraph<'a> {
+    ) -> Paragraph<'static> {
         use crate::{
             pieces::{
                 bishop::Bishop, king::King, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook,
@@ -190,6 +194,27 @@ impl UI {
         match self.display_mode {
             DisplayMode::DEFAULT => {
                 let color_enum = color_to_ratatui_enum(piece_color);
+
+                let piece_str = match piece_type {
+                    Some(Role::King) => King::to_string(&self.display_mode),
+                    Some(Role::Queen) => Queen::to_string(&self.display_mode),
+                    Some(Role::Rook) => Rook::to_string(&self.display_mode),
+                    Some(Role::Bishop) => Bishop::to_string(&self.display_mode),
+                    Some(Role::Knight) => Knight::to_string(&self.display_mode),
+                    Some(Role::Pawn) => Pawn::to_string(&self.display_mode),
+                    None => " ",
+                };
+
+                Paragraph::new(piece_str)
+                    .fg(color_enum)
+                    .alignment(Alignment::Center)
+            }
+            DisplayMode::CUSTOM => {
+                let color_enum = match piece_color {
+                    Some(shakmaty::Color::White) => self.skin.piece_white_color,
+                    Some(shakmaty::Color::Black) => self.skin.piece_black_color,
+                    None => Color::Red,
+                };
 
                 let piece_str = match piece_type {
                     Some(Role::King) => King::to_string(&self.display_mode),
@@ -504,7 +529,17 @@ impl UI {
                 .split(columns[i as usize + 1]);
             for j in 0..8u8 {
                 // Color of the cell to draw the board
-                let cell_color: Color = if (i + j) % 2 == 0 { WHITE } else { BLACK };
+                let cell_color: Color = if (i + j) % 2 == 0 {
+                    match self.display_mode {
+                        DisplayMode::CUSTOM => self.skin.board_white_color,
+                        _ => WHITE,
+                    }
+                } else {
+                    match self.display_mode {
+                        DisplayMode::CUSTOM => self.skin.board_black_color,
+                        _ => BLACK,
+                    }
+                };
 
                 let (last_move_from, last_move_to) = self.get_last_move_squares(logic);
 
@@ -528,7 +563,11 @@ impl UI {
                     && j == self.cursor_coordinates.col
                     && !self.mouse_used
                 {
-                    render_cell(frame, square, Color::LightBlue, None);
+                    let cursor_color = match self.display_mode {
+                        DisplayMode::CUSTOM => self.skin.cursor_color,
+                        _ => Color::LightBlue,
+                    };
+                    render_cell(frame, square, cursor_color, None);
                 }
                 // Draw the cell magenta if the king is getting checked
                 else if logic.game_board.is_getting_checked(logic.player_turn)
@@ -547,7 +586,25 @@ impl UI {
                         && !is_cell_in_positions(&authorized_positions, i, j)
                 // and not in the authorized positions (grey instead of green)
                 {
-                    render_cell(frame, square, Color::LightGreen, None);
+                    let highlight_color = match self.display_mode {
+                        DisplayMode::CUSTOM => {
+                            // Use selection color for selected square, last move color for last move
+                            if i == get_coord_from_square(
+                                actual_square,
+                                logic.game_board.is_flipped,
+                            )
+                            .row && j
+                                == get_coord_from_square(actual_square, logic.game_board.is_flipped)
+                                    .col
+                            {
+                                self.skin.selection_color
+                            } else {
+                                self.skin.last_move_color
+                            }
+                        }
+                        _ => Color::LightGreen,
+                    };
+                    render_cell(frame, square, highlight_color, None);
                 } else if is_cell_in_positions(&authorized_positions, i, j) {
                     render_cell(frame, square, Color::Rgb(100, 100, 100), None);
                 }
@@ -555,7 +612,7 @@ impl UI {
                 else {
                     let mut cell = Block::default();
                     cell = match self.display_mode {
-                        DisplayMode::DEFAULT => cell.bg(cell_color),
+                        DisplayMode::DEFAULT | DisplayMode::CUSTOM => cell.bg(cell_color),
                         DisplayMode::ASCII => match cell_color {
                             WHITE => cell.bg(Color::White).fg(Color::Black),
                             BLACK => cell.bg(Color::Black).fg(Color::White),

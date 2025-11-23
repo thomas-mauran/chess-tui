@@ -6,7 +6,7 @@ sidebar_position: 1
 
 # Configuration
 
-Chess-tui can be configured through the configuration file located at `~/.config/chess-tui/config.toml`. This section covers all available configuration options.
+Chess-tui can be configured through the configuration file located at `~/.config/chess-tui/config.toml`. Additionally, custom color skins can be configured in `~/.config/chess-tui/skins.json`. This section covers all available configuration options.
 
 ## Command Line Options
 

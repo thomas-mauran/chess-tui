@@ -6,6 +6,7 @@ use crate::game_logic::game::Game;
 use crate::game_logic::game::GameState;
 use crate::game_logic::opponent::Opponent;
 use crate::server::game_server::GameServer;
+use crate::skin::Skin;
 use crate::utils::flip_square_if_needed;
 use dirs::home_dir;
 use log::LevelFilter;
@@ -48,6 +49,12 @@ pub struct App {
     pub bot_move_receiver: Option<Receiver<Move>>,
     /// Error message for Error popup
     pub error_message: Option<String>,
+    /// The loaded skin
+    pub loaded_skin: Option<Skin>,
+    /// Available skins loaded from skins.json
+    pub available_skins: Vec<Skin>,
+    /// Selected skin name
+    pub selected_skin_name: String,
 }
 
 impl Default for App {
@@ -66,6 +73,9 @@ impl Default for App {
             bot_depth: 10,
             bot_move_receiver: None,
             error_message: None,
+            loaded_skin: None,
+            available_skins: Vec::new(),
+            selected_skin_name: "Default".to_string(),
         }
     }
 }
@@ -154,6 +164,11 @@ impl App {
         if self.selected_color.unwrap_or(Color::White) == Color::Black {
             log::debug!("Flipping board for black player");
             self.game.logic.game_board.flip_the_board();
+        }
+
+        // Ensure skin is preserved when starting multiplayer
+        if let Some(skin) = &self.loaded_skin {
+            self.game.ui.skin = skin.clone();
         }
     }
 
@@ -327,6 +342,11 @@ impl App {
                 // so player_turn should remain White until after the bot's first move
             }
         }
+
+        // Ensure skin is preserved when setting up bot
+        if let Some(skin) = &self.loaded_skin {
+            self.game.ui.skin = skin.clone();
+        }
     }
 
     pub fn hosting_selection(&mut self) {
@@ -338,10 +358,17 @@ impl App {
     pub fn restart(&mut self) {
         let bot = self.game.logic.bot.clone();
         let opponent = self.game.logic.opponent.clone();
+        // Preserve skin and display mode
+        let current_skin = self.game.ui.skin.clone();
+        let display_mode = self.game.ui.display_mode;
+
         self.game = Game::default();
 
         self.game.logic.bot = bot;
         self.game.logic.opponent = opponent;
+        // Restore skin and display mode
+        self.game.ui.skin = current_skin;
+        self.game.ui.display_mode = display_mode;
         self.current_popup = None;
 
         if self
@@ -371,10 +398,8 @@ impl App {
                 self.current_page = Pages::Bot
             }
             3 => {
-                self.game.ui.display_mode = match self.game.ui.display_mode {
-                    DisplayMode::ASCII => DisplayMode::DEFAULT,
-                    DisplayMode::DEFAULT => DisplayMode::ASCII,
-                };
+                // Cycle through available skins
+                self.cycle_skin();
                 self.update_config();
             }
             4 => self.toggle_help_popup(),
@@ -394,6 +419,7 @@ impl App {
         config.display_mode = Some(self.game.ui.display_mode.to_string());
         config.log_level = Some(self.log_level.to_string());
         config.bot_depth = Some(self.bot_depth);
+        config.selected_skin_name = Some(self.selected_skin_name.clone());
 
         if let Ok(mut file) = File::create(&config_path) {
             let toml_string = toml::to_string(&config).unwrap_or_default();
@@ -404,6 +430,7 @@ impl App {
     }
 
     pub fn reset(&mut self) {
+        let loaded_skin = self.loaded_skin.clone();
         self.game = Game::default();
         self.current_popup = None;
         self.selected_color = None;
@@ -412,6 +439,7 @@ impl App {
         self.menu_cursor = 0;
         self.chess_engine_path = None;
         self.bot_depth = 10;
+        self.loaded_skin = loaded_skin;
     }
 
     fn get_authorized_positions_flipped(&self) -> Vec<Coord> {
@@ -455,8 +483,9 @@ impl App {
     /// Preserves display mode preference while cleaning up all game state,
     /// bot state, and multiplayer connections.
     pub fn reset_home(&mut self) {
-        // Preserve display mode preference
+        // Preserve display mode and skin preference
         let display_mode = self.game.ui.display_mode;
+        let current_skin = self.game.ui.skin.clone();
 
         // Reset game-related state
         self.selected_color = None;
@@ -471,11 +500,13 @@ impl App {
             self.host_ip = None;
         }
 
-        // Reset game completely but preserve display mode preference
+        // Reset game completely but preserve display mode and skin preference
         self.game = Game::default();
         self.game.ui.display_mode = display_mode;
+        self.game.ui.skin = current_skin;
         self.current_page = Pages::Home;
         self.current_popup = None;
+        self.loaded_skin = self.loaded_skin.clone();
     }
 
     /// Checks for game end conditions after a move and shows end screen if needed.
@@ -500,5 +531,65 @@ impl App {
     pub fn close_popup_and_go_home(&mut self) {
         self.current_popup = None;
         self.current_page = Pages::Home;
+    }
+
+    /// Cycles through available skins forward.
+    /// Updates the selected skin and applies it to the game UI.
+    pub fn cycle_skin(&mut self) {
+        if self.available_skins.is_empty() {
+            return;
+        }
+
+        // Find current skin index
+        let current_index = self
+            .available_skins
+            .iter()
+            .position(|s| s.name == self.selected_skin_name)
+            .unwrap_or(0);
+
+        // Move to next skin (wrap around)
+        let next_index = (current_index + 1) % self.available_skins.len();
+        self.apply_skin_by_index(next_index);
+    }
+
+    /// Cycles through available skins backward.
+    /// Updates the selected skin and applies it to the game UI.
+    pub fn cycle_skin_backward(&mut self) {
+        if self.available_skins.is_empty() {
+            return;
+        }
+
+        // Find current skin index
+        let current_index = self
+            .available_skins
+            .iter()
+            .position(|s| s.name == self.selected_skin_name)
+            .unwrap_or(0);
+
+        // Move to previous skin (wrap around)
+        let prev_index = if current_index == 0 {
+            self.available_skins.len() - 1
+        } else {
+            current_index - 1
+        };
+        self.apply_skin_by_index(prev_index);
+    }
+
+    /// Applies a skin by its index in the available_skins vector.
+    fn apply_skin_by_index(&mut self, index: usize) {
+        let next_skin = self.available_skins[index].clone();
+        let next_skin_name = next_skin.name.clone();
+
+        // Update selected skin name and apply it
+        self.selected_skin_name = next_skin_name.clone();
+        self.loaded_skin = Some(next_skin.clone());
+        self.game.ui.skin = next_skin;
+
+        // Set display mode based on skin name
+        match next_skin_name.as_str() {
+            "Default" => self.game.ui.display_mode = DisplayMode::DEFAULT,
+            "ASCII" => self.game.ui.display_mode = DisplayMode::ASCII,
+            _ => self.game.ui.display_mode = DisplayMode::CUSTOM,
+        }
     }
 }

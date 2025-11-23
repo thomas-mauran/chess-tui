@@ -6,6 +6,7 @@ pub struct Config {
     pub display_mode: Option<String>,
     pub log_level: Option<String>,
     pub bot_depth: Option<u8>,
+    pub selected_skin_name: Option<String>,
 }
 
 impl Default for Config {
@@ -15,6 +16,7 @@ impl Default for Config {
             display_mode: Some("DEFAULT".to_string()),
             log_level: Some("OFF".to_string()),
             bot_depth: Some(10),
+            selected_skin_name: Some("Default".to_string()),
         }
     }
 }
