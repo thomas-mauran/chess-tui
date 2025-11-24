@@ -100,6 +100,11 @@ impl Game {
 
     // Methods to select a cell on the board
     pub fn handle_cell_click(&mut self) {
+        // If we are viewing history and making a move, truncate history at this point
+        if let Some(history_index) = self.logic.game_board.history_position_index {
+            self.logic.game_board.truncate_history_at(history_index);
+        }
+        
         // If we are doing a promotion the cursor is used for the popup
         if self.logic.game_state == GameState::Promotion {
             self.handle_promotion();
@@ -300,6 +305,14 @@ impl GameLogic {
         }
     }
 
+    /// Sync player_turn with the current position's turn
+    /// This is needed when navigating history to ensure moves are allowed for the correct player
+    pub fn sync_player_turn_with_position(&mut self) {
+        if let Some(position) = self.game_board.current_position() {
+            self.player_turn = position.turn();
+        }
+    }
+
     /* Method to make a move for the bot
        We use the UCI protocol to communicate with the chess engine
     */
@@ -337,6 +350,9 @@ impl GameLogic {
         // Store move and position in history
         self.game_board.move_history.push(bot_actual_move);
         self.game_board.position_history.push(new_position);
+        // Reset history navigation when a new move is made
+        self.game_board.history_position_index = None;
+        self.game_board.original_flip_state = None;
     }
 
     // Method to promote a pawn
@@ -405,8 +421,27 @@ impl GameLogic {
             self.game_board
                 .increment_consecutive_non_pawn_or_capture(role_from, role_to);
 
+            // If this is a pawn reaching the last row, store it without promotion piece
+            // so that is_latest_move_promotion() returns true and the popup appears
+            let move_to_store = if role_from == Role::Pawn
+                && (executed_move.to().rank() == shakmaty::Rank::First
+                    || executed_move.to().rank() == shakmaty::Rank::Eighth)
+                && executed_move.promotion().is_some()
+            {
+                // Store the move without promotion piece so popup will appear
+                shakmaty::Move::Normal {
+                    role: Role::Pawn,
+                    from: executed_move.from().unwrap(),
+                    capture: executed_move.capture(),
+                    to: executed_move.to(),
+                    promotion: None,
+                }
+            } else {
+                executed_move
+            };
+
             // We store it in the history
-            self.game_board.move_history.push(executed_move);
+            self.game_board.move_history.push(move_to_store);
         }
     }
 

@@ -180,6 +180,22 @@ fn handle_solo_page_events(app: &mut App, key_event: KeyEvent) {
             // Return to home menu - reset all game state
             app.reset_home();
         }
+        KeyCode::Char('n' | 'N') => {
+            // Navigate to next position in history (only if game hasn't ended)
+            if app.game.logic.game_state != GameState::Checkmate
+                && app.game.logic.game_state != GameState::Draw
+            {
+                app.navigate_history_next();
+            }
+        }
+        KeyCode::Char('p' | 'P') => {
+            // Navigate to previous position in history (only if game hasn't ended)
+            if app.game.logic.game_state != GameState::Checkmate
+                && app.game.logic.game_state != GameState::Draw
+            {
+                app.navigate_history_previous();
+            }
+        }
         _ => chess_inputs(app, key_event), // Delegate chess-specific inputs
     }
 }
@@ -216,10 +232,20 @@ fn chess_inputs(app: &mut App, key_event: KeyEvent) {
         },
         // Select/move piece or confirm action
         KeyCode::Char(' ') | KeyCode::Enter => {
-            app.game.handle_cell_click();
-            app.check_and_show_game_end();
+            // Handle promotion directly (like mouse handler does)
+            if app.game.logic.game_state == GameState::Promotion {
+                app.game.handle_promotion();
+                app.check_and_show_game_end();
+            } else {
+                app.game.handle_cell_click();
+                app.check_and_show_game_end();
+            }
         }
         KeyCode::Char('?') => app.toggle_help_popup(), // Toggle help popup
+        KeyCode::Char('s' | 'S') => {
+            app.cycle_skin(); // Cycle through available skins
+            app.update_config();
+        }
         KeyCode::Esc => app.game.ui.unselect_cell(),   // Deselect piece
         _ => fallback_key_handler(app, key_event),
     }

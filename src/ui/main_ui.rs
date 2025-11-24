@@ -105,7 +105,7 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
             render_wait_for_other_player(frame, app.get_host_ip());
         }
         Some(Popups::Help) => {
-            render_help_popup(frame);
+            render_help_popup(frame, app);
         }
         Some(Popups::Error) => {
             if let Some(ref error_msg) = app.error_message {

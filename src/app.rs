@@ -266,6 +266,9 @@ impl App {
             .game_board
             .position_history
             .push(current_position.play(&bot_move).unwrap());
+        // Reset history navigation when a new move is made
+        self.game.logic.game_board.history_position_index = None;
+        self.game.logic.game_board.original_flip_state = None;
     }
 
     /// Check if bot is currently thinking
@@ -590,6 +593,36 @@ impl App {
             "Default" => self.game.ui.display_mode = DisplayMode::DEFAULT,
             "ASCII" => self.game.ui.display_mode = DisplayMode::ASCII,
             _ => self.game.ui.display_mode = DisplayMode::CUSTOM,
+        }
+    }
+
+    /// Navigate to the next position in history (forward in time)
+    pub fn navigate_history_next(&mut self) {
+        // Check if we're in solo mode (no bot, no opponent)
+        let is_solo_mode = self.game.logic.bot.is_none() && self.game.logic.opponent.is_none();
+        if self
+            .game
+            .logic
+            .game_board
+            .navigate_history_next(is_solo_mode)
+        {
+            // Update player_turn to match the position's turn
+            self.game.logic.sync_player_turn_with_position();
+        }
+    }
+
+    /// Navigate to the previous position in history (backward in time)
+    pub fn navigate_history_previous(&mut self) {
+        // Check if we're in solo mode (no bot, no opponent)
+        let is_solo_mode = self.game.logic.bot.is_none() && self.game.logic.opponent.is_none();
+        if self
+            .game
+            .logic
+            .game_board
+            .navigate_history_previous(is_solo_mode)
+        {
+            // Update player_turn to match the position's turn
+            self.game.logic.sync_player_turn_with_position();
         }
     }
 }

@@ -29,6 +29,10 @@ pub struct GameBoard {
     pub taken_pieces: Vec<Piece>,
     /// Track if the board is currently flipped (for coordinate conversion)
     pub is_flipped: bool,
+    /// Current position index in history when navigating. None means viewing the latest position.
+    pub history_position_index: Option<usize>,
+    /// Original flip state before navigating history (used to restore when returning to latest)
+    pub original_flip_state: Option<bool>,
 }
 
 impl Default for GameBoard {
@@ -39,6 +43,8 @@ impl Default for GameBoard {
             consecutive_non_pawn_or_capture: 0,
             taken_pieces: Vec::new(),
             is_flipped: false,
+            history_position_index: None,
+            original_flip_state: None,
         }
     }
 }
@@ -80,16 +86,32 @@ impl GameBoard {
         self.position_history.push(Chess::default());
         self.consecutive_non_pawn_or_capture = 0;
         self.is_flipped = false;
+        self.history_position_index = None;
+        self.original_flip_state = None;
     }
 
     /// Gets a read-only reference to the last position in the history.
+    /// If navigating history, returns the position at history_position_index.
     pub fn position_ref(&self) -> &Chess {
-        self.position_history.last().unwrap()
+        if let Some(index) = self.history_position_index {
+            if index < self.position_history.len() {
+                &self.position_history[index]
+            } else {
+                self.position_history.last().unwrap()
+            }
+        } else {
+            self.position_history.last().unwrap()
+        }
     }
 
     /// Gets a read-only reference to the current position, or None if history is empty
+    /// If navigating history, returns the position at history_position_index.
     pub fn current_position(&self) -> Option<&Chess> {
-        self.position_history.last()
+        if let Some(index) = self.history_position_index {
+            self.position_history.get(index)
+        } else {
+            self.position_history.last()
+        }
     }
 
     // Check if the game is a draw by repetition
@@ -116,13 +138,19 @@ impl GameBoard {
     }
 
     // We check manually if the last move was a pawn to one of the promotion squares
+    // AND the promotion hasn't been handled yet (no promotion piece set)
     pub fn is_latest_move_promotion(&self) -> bool {
         self.move_history
             .last()
             .map(|last_move| {
-                last_move.role() == Role::Pawn
+                // Check if it's a pawn move to promotion square
+                let is_pawn_to_promotion_square = last_move.role() == Role::Pawn
                     && (last_move.to().rank() == Rank::First
-                        || last_move.to().rank() == Rank::Eighth)
+                        || last_move.to().rank() == Rank::Eighth);
+
+                // Only return true if it's a promotion move AND promotion hasn't been handled yet
+                // If promotion() returns Some, the promotion was already handled
+                is_pawn_to_promotion_square && last_move.promotion().is_none()
             })
             .unwrap_or(false)
     }
@@ -261,6 +289,9 @@ impl GameBoard {
                 Ok(new_chess) => {
                     // Update history
                     self.position_history.push(new_chess);
+                    // Reset history navigation when a new move is made
+                    self.history_position_index = None;
+                    self.original_flip_state = None;
                     Some(shakmaty_move.clone())
                 }
                 Err(e) => {
@@ -298,5 +329,135 @@ impl GameBoard {
         promotion: Option<Role>,
     ) -> bool {
         self.execute_move(from, to, promotion).is_some()
+    }
+
+    /// Get the correct flip state for a given position index in solo mode
+    /// In solo mode, the board flips after each move, so:
+    /// - index 0 (initial): not flipped
+    /// - index 1 (after move 1): flipped
+    /// - index 2 (after move 2): not flipped
+    /// - etc.
+    fn get_flip_state_for_index(&self, index: usize, is_solo_mode: bool) -> bool {
+        if !is_solo_mode {
+            // In non-solo modes, use the current flip state
+            return self.is_flipped;
+        }
+        // In solo mode, flip state alternates: odd indices are flipped
+        (index % 2) == 1
+    }
+
+    /// Navigate to the next position in history (forward in time)
+    /// Returns true if navigation was successful, false if already at the latest position
+    /// is_solo_mode: whether we're in solo mode (affects board flipping)
+    pub fn navigate_history_next(&mut self, is_solo_mode: bool) -> bool {
+        if self.position_history.is_empty() {
+            return false;
+        }
+
+        let max_index = self.position_history.len() - 1;
+
+        match self.history_position_index {
+            None => {
+                // Already at the latest position
+                false
+            }
+            Some(index) => {
+                if index < max_index {
+                    let new_index = index + 1;
+                    self.history_position_index = Some(new_index);
+                    // Update flip state based on position index
+                    self.is_flipped = self.get_flip_state_for_index(new_index, is_solo_mode);
+                    true
+                } else {
+                    // Reached the latest position, reset to None
+                    // Restore the original flip state
+                    self.history_position_index = None;
+                    if let Some(original_flip) = self.original_flip_state.take() {
+                        self.is_flipped = original_flip;
+                    } else {
+                        // Fallback: calculate based on latest index
+                        self.is_flipped = self.get_flip_state_for_index(max_index, is_solo_mode);
+                    }
+                    true
+                }
+            }
+        }
+    }
+
+    /// Navigate to the previous position in history (backward in time)
+    /// Returns true if navigation was successful, false if already at the first position
+    /// is_solo_mode: whether we're in solo mode (affects board flipping)
+    pub fn navigate_history_previous(&mut self, is_solo_mode: bool) -> bool {
+        if self.position_history.is_empty() {
+            return false;
+        }
+
+        match self.history_position_index {
+            None => {
+                // Currently at latest position, go to previous
+                // Store the current flip state before navigating
+                if self.position_history.len() > 1 {
+                    self.original_flip_state = Some(self.is_flipped);
+                    let prev_index = self.position_history.len() - 2;
+                    self.history_position_index = Some(prev_index);
+                    // Update flip state based on position index
+                    self.is_flipped = self.get_flip_state_for_index(prev_index, is_solo_mode);
+                    true
+                } else {
+                    false
+                }
+            }
+            Some(index) => {
+                if index > 0 {
+                    let new_index = index - 1;
+                    self.history_position_index = Some(new_index);
+                    // Update flip state based on position index
+                    self.is_flipped = self.get_flip_state_for_index(new_index, is_solo_mode);
+                    true
+                } else {
+                    false
+                }
+            }
+        }
+    }
+
+    /// Reset history navigation to view the latest position
+    /// is_solo_mode: whether we're in solo mode (affects board flipping)
+    pub fn reset_history_navigation(&mut self, is_solo_mode: bool) {
+        if self.history_position_index.is_some() {
+            self.history_position_index = None;
+            // Restore the original flip state
+            if let Some(original_flip) = self.original_flip_state.take() {
+                self.is_flipped = original_flip;
+            } else {
+                // Fallback: calculate based on latest index
+                let max_index = self.position_history.len().saturating_sub(1);
+                self.is_flipped = self.get_flip_state_for_index(max_index, is_solo_mode);
+            }
+        }
+    }
+
+    /// Truncate history at the given index, removing all moves and positions after it
+    /// This is used when making a move from a historical position to create a new branch
+    pub fn truncate_history_at(&mut self, index: usize) {
+        if index >= self.position_history.len() {
+            return;
+        }
+
+        // Truncate position history to index + 1 (keep the position at index)
+        // We keep index + 1 because position_history[i] is the position AFTER move i
+        let new_len = index + 1;
+        if new_len < self.position_history.len() {
+            self.position_history.truncate(new_len);
+        }
+
+        // Truncate move history to index (remove moves after this point)
+        if index < self.move_history.len() {
+            self.move_history.truncate(index);
+        }
+
+        // Reset history navigation since we're now at the latest position
+        self.history_position_index = None;
+        self.original_flip_state = None;
     }
 }
