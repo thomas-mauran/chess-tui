@@ -246,7 +246,7 @@ fn chess_inputs(app: &mut App, key_event: KeyEvent) {
             app.cycle_skin(); // Cycle through available skins
             app.update_config();
         }
-        KeyCode::Esc => app.game.ui.unselect_cell(),   // Deselect piece
+        KeyCode::Esc => app.game.ui.unselect_cell(), // Deselect piece
         _ => fallback_key_handler(app, key_event),
     }
 }
