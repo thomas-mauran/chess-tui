@@ -73,6 +73,37 @@ pub fn render_error_popup(frame: &mut Frame, error_message: &str) {
     frame.render_widget(paragraph, area);
 }
 
+// This renders a success popup with a custom message
+pub fn render_success_popup(frame: &mut Frame, success_message: &str) {
+    let block = Block::default()
+        .title("Success")
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .padding(Padding::horizontal(1))
+        .border_style(Style::default().fg(Color::Green));
+    let area = centered_rect(60, 30, frame.area());
+
+    // Split message into lines for better display
+    let lines: Vec<Line> = success_message
+        .split('\n')
+        .map(|line| Line::from(line).alignment(Alignment::Center))
+        .collect();
+
+    let mut text = vec![Line::from("")];
+    text.extend(lines);
+    text.push(Line::from(""));
+    text.push(Line::from("Press `Esc` or `Enter` to close.").alignment(Alignment::Center));
+
+    let paragraph = Paragraph::new(text)
+        .block(block.clone())
+        .alignment(Alignment::Left)
+        .wrap(Wrap { trim: true });
+
+    frame.render_widget(Clear, area); //this clears out the background
+    frame.render_widget(block, area);
+    frame.render_widget(paragraph, area);
+}
+
 // This renders a popup for a promotion
 pub fn render_end_popup(frame: &mut Frame, sentence: &str, is_multiplayer: bool) {
     let block = Block::default()
@@ -83,7 +114,7 @@ pub fn render_end_popup(frame: &mut Frame, sentence: &str, is_multiplayer: bool)
         .padding(Padding::horizontal(2))
         .border_style(Style::default().fg(Color::Yellow))
         .style(Style::default().bg(Color::DarkGray));
-    let area = centered_rect(50, 50, frame.area());
+    let area = centered_rect(60, 55, frame.area());
 
     // Create styled text with better formatting
     let text = vec![
@@ -103,13 +134,37 @@ pub fn render_end_popup(frame: &mut Frame, sentence: &str, is_multiplayer: bool)
             .alignment(Alignment::Center)
             .style(Style::default().fg(Color::LightBlue)),
         Line::from(""),
+        Line::from("Press `E` to export game to PGN")
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(Color::Cyan)),
+        Line::from(""),
         Line::from(if is_multiplayer {
             "Press `B` to go back to the menu"
         } else {
             "Press `R` to restart a new game"
         })
         .alignment(Alignment::Center)
-        .style(Style::default().fg(Color::LightGreen)),
+        .style(
+            Style::default()
+                .fg(if is_multiplayer {
+                    Color::Yellow
+                } else {
+                    Color::LightGreen
+                })
+                .add_modifier(if is_multiplayer {
+                    Modifier::BOLD
+                } else {
+                    Modifier::empty()
+                }),
+        ),
+        Line::from(""),
+        Line::from("Press `B` to go back to the menu")
+            .alignment(Alignment::Center)
+            .style(
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
         Line::from(""),
         Line::from(""),
     ];

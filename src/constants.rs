@@ -70,4 +70,5 @@ pub enum Popups {
     Help,
     EndScreen,
     Error,
+    Success,
 }

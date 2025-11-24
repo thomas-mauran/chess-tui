@@ -938,4 +938,85 @@ mod tests {
         // Should be same as original latest
         assert_eq!(latest_position, back_to_latest);
     }
+
+    #[test]
+    fn test_export_pgn_empty_game() {
+        let game_board = GameBoard::default();
+
+        let pgn = game_board.export_pgn("Player 1", "Player 2", "*");
+
+        // Check that PGN contains required headers
+        assert!(pgn.contains("[Event \"Chess-tui Game\"]"));
+        assert!(pgn.contains("[Site \"Local\"]"));
+        assert!(pgn.contains("[Date"));
+        assert!(pgn.contains("[Round \"1\"]"));
+        assert!(pgn.contains("[White \"Player 1\"]"));
+        assert!(pgn.contains("[Black \"Player 2\"]"));
+        assert!(pgn.contains("[Result \"*\"]"));
+
+        // Check that result is at the end
+        assert!(pgn.trim_end().ends_with("*"));
+    }
+
+    #[test]
+    fn test_export_pgn_with_moves() {
+        let mut game_board = GameBoard::default();
+
+        // Make some moves and manually add them to move_history
+        if let Some(move1) = game_board.execute_shakmaty_move(Square::E2, Square::E4) {
+            game_board.move_history.push(move1);
+        }
+        if let Some(move2) = game_board.execute_shakmaty_move(Square::E7, Square::E5) {
+            game_board.move_history.push(move2);
+        }
+        if let Some(move3) = game_board.execute_shakmaty_move(Square::G1, Square::F3) {
+            game_board.move_history.push(move3);
+        }
+
+        let pgn = game_board.export_pgn("White", "Black", "1-0");
+
+        // Check headers
+        assert!(pgn.contains("[White \"White\"]"));
+        assert!(pgn.contains("[Black \"Black\"]"));
+        assert!(pgn.contains("[Result \"1-0\"]"));
+
+        // Check that moves are included
+        assert!(pgn.contains("1."));
+        assert!(pgn.contains("1-0"));
+
+        // Check that result is at the end
+        assert!(pgn.trim_end().ends_with("1-0"));
+    }
+
+    #[test]
+    fn test_export_pgn_different_results() {
+        let game_board = GameBoard::default();
+
+        // Test different result formats
+        let pgn_white_wins = game_board.export_pgn("Player", "Bot", "1-0");
+        assert!(pgn_white_wins.contains("[Result \"1-0\"]"));
+        assert!(pgn_white_wins.trim_end().ends_with("1-0"));
+
+        let pgn_black_wins = game_board.export_pgn("Player", "Bot", "0-1");
+        assert!(pgn_black_wins.contains("[Result \"0-1\"]"));
+        assert!(pgn_black_wins.trim_end().ends_with("0-1"));
+
+        let pgn_draw = game_board.export_pgn("Player 1", "Player 2", "1/2-1/2");
+        assert!(pgn_draw.contains("[Result \"1/2-1/2\"]"));
+        assert!(pgn_draw.trim_end().ends_with("1/2-1/2"));
+    }
+
+    #[test]
+    fn test_export_pgn_player_names() {
+        let game_board = GameBoard::default();
+
+        // Test different player name combinations
+        let pgn1 = game_board.export_pgn("Alice", "Bob", "*");
+        assert!(pgn1.contains("[White \"Alice\"]"));
+        assert!(pgn1.contains("[Black \"Bob\"]"));
+
+        let pgn2 = game_board.export_pgn("Player", "Opponent", "*");
+        assert!(pgn2.contains("[White \"Player\"]"));
+        assert!(pgn2.contains("[Black \"Opponent\"]"));
+    }
 }

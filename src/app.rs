@@ -49,6 +49,8 @@ pub struct App {
     pub bot_move_receiver: Option<Receiver<Move>>,
     /// Error message for Error popup
     pub error_message: Option<String>,
+    /// Success message for Success popup
+    pub success_message: Option<String>,
     /// The loaded skin
     pub loaded_skin: Option<Skin>,
     /// Available skins loaded from skins.json
@@ -73,6 +75,7 @@ impl Default for App {
             bot_depth: 10,
             bot_move_receiver: None,
             error_message: None,
+            success_message: None,
             loaded_skin: None,
             available_skins: Vec::new(),
             selected_skin_name: "Default".to_string(),
@@ -624,5 +627,69 @@ impl App {
             // Update player_turn to match the position's turn
             self.game.logic.sync_player_turn_with_position();
         }
+    }
+
+    /// Export the current game to PGN format and save it to a file
+    /// Returns the file path as a String on success
+    pub fn export_game_to_pgn(&self) -> AppResult<String> {
+        use chrono::Local;
+
+        // Determine player names based on game mode
+        let (white_name, black_name) = if self.game.logic.opponent.is_some() {
+            // Multiplayer mode: use Player/Opponent based on selected color
+            match self.selected_color {
+                Some(shakmaty::Color::White) => ("Player", "Opponent"),
+                Some(shakmaty::Color::Black) => ("Opponent", "Player"),
+                None => ("Player", "Opponent"), // Default if not set
+            }
+        } else if self.game.logic.bot.is_some() {
+            // Bot mode: check which color the player selected
+            match self.selected_color {
+                Some(shakmaty::Color::White) => ("Player", "Bot"),
+                Some(shakmaty::Color::Black) => ("Bot", "Player"),
+                None => ("Player", "Bot"), // Default if not set
+            }
+        } else {
+            // Solo mode
+            ("Player 1", "Player 2")
+        };
+
+        // Determine game result
+        let result = match self.game.logic.game_state {
+            GameState::Checkmate => {
+                // The player whose turn it is has been checkmated, so the other player won
+                match self.game.logic.player_turn {
+                    Color::White => "0-1", // Black won
+                    Color::Black => "1-0", // White won
+                }
+            }
+            GameState::Draw => "1/2-1/2",
+            _ => "*", // Game still in progress
+        };
+
+        // Generate PGN
+        let pgn = self
+            .game
+            .logic
+            .game_board
+            .export_pgn(white_name, black_name, result);
+
+        // Create filename with timestamp
+        let timestamp = Local::now().format("%Y%m%d_%H%M%S");
+        let filename = format!("chess_game_{}.pgn", timestamp);
+
+        // Save to .config/chess-tui/pgn directory
+        let home_dir = home_dir().ok_or("Failed to get home directory")?;
+        let pgn_dir = home_dir.join(".config/chess-tui/pgn");
+        std::fs::create_dir_all(&pgn_dir)?;
+
+        let file_path = pgn_dir.join(&filename);
+        let mut file = File::create(&file_path)?;
+        file.write_all(pgn.as_bytes())?;
+
+        log::info!("Game exported to PGN: {}", file_path.display());
+
+        // Return the file path as a string for display
+        Ok(file_path.to_string_lossy().to_string())
     }
 }

@@ -65,6 +65,52 @@ impl GameBoard {
         san.to_string()
     }
 
+    /// Export the game to PGN format
+    /// Returns a String containing the PGN representation of the game
+    pub fn export_pgn(&self, white_name: &str, black_name: &str, result: &str) -> String {
+        use chrono::Local;
+
+        let date = Local::now().format("%Y.%m.%d");
+
+        let mut pgn = String::new();
+
+        // PGN headers
+        pgn.push_str(&format!("[Event \"{}\"]\n", "Chess-tui Game"));
+        pgn.push_str(&format!("[Site \"{}\"]\n", "Local"));
+        pgn.push_str(&format!("[Date \"{}\"]\n", date));
+        pgn.push_str(&format!("[Round \"{}\"]\n", "1"));
+        pgn.push_str(&format!("[White \"{}\"]\n", white_name));
+        pgn.push_str(&format!("[Black \"{}\"]\n", black_name));
+        pgn.push_str(&format!("[Result \"{}\"]\n", result));
+        pgn.push_str("\n");
+
+        // Moves in SAN notation
+        let mut move_text = String::new();
+        for (i, _move) in self.move_history.iter().enumerate() {
+            let san = self.move_to_san(i);
+
+            if i % 2 == 0 {
+                // White's move
+                if !move_text.is_empty() {
+                    move_text.push(' ');
+                }
+                move_text.push_str(&format!("{}. {}", (i / 2) + 1, san));
+            } else {
+                // Black's move
+                move_text.push_str(&format!(" {}", san));
+            }
+        }
+
+        pgn.push_str(&move_text);
+        if !move_text.is_empty() {
+            pgn.push(' ');
+        }
+        pgn.push_str(result);
+        pgn.push('\n');
+
+        pgn
+    }
+
     pub fn increment_consecutive_non_pawn_or_capture(
         &mut self,
         role_from: Role,

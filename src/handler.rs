@@ -86,6 +86,20 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
             KeyCode::Esc => app.toggle_help_popup(),
             _ => fallback_key_handler(app, key_event),
         },
+        // Success popup - shows success messages
+        Popups::Success => match key_event.code {
+            KeyCode::Esc | KeyCode::Enter => {
+                app.current_popup = None;
+                app.success_message = None;
+                // If the game has ended, show the end screen popup
+                if app.game.logic.game_state == GameState::Checkmate
+                    || app.game.logic.game_state == GameState::Draw
+                {
+                    app.show_end_screen();
+                }
+            }
+            _ => fallback_key_handler(app, key_event),
+        },
         // Color selection popup - choose white or black when playing against bot
         Popups::ColorSelection => match key_event.code {
             KeyCode::Esc => app.close_popup_and_go_home(),
@@ -115,6 +129,19 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
             KeyCode::Char('h' | 'H') => {
                 // Hide the end screen (game state remains)
                 app.current_popup = None;
+            }
+            KeyCode::Char('e' | 'E') => {
+                // Export game to PGN
+                match app.export_game_to_pgn() {
+                    Ok(file_path) => {
+                        app.success_message = Some(format!("Game exported to:\n{}", file_path));
+                        app.current_popup = Some(Popups::Success);
+                    }
+                    Err(e) => {
+                        app.error_message = Some(format!("Failed to export game:\n{}", e));
+                        app.current_popup = Some(Popups::Error);
+                    }
+                }
             }
             KeyCode::Char('r' | 'R') => {
                 // Restart the game (only for non-multiplayer games)
@@ -245,6 +272,19 @@ fn chess_inputs(app: &mut App, key_event: KeyEvent) {
         KeyCode::Char('s' | 'S') => {
             app.cycle_skin(); // Cycle through available skins
             app.update_config();
+        }
+        KeyCode::Char('e' | 'E') => {
+            // Export game to PGN (available in all modes)
+            match app.export_game_to_pgn() {
+                Ok(file_path) => {
+                    app.success_message = Some(format!("Game exported to:\n{}", file_path));
+                    app.current_popup = Some(Popups::Success);
+                }
+                Err(e) => {
+                    app.error_message = Some(format!("Failed to export game:\n{}", e));
+                    app.current_popup = Some(Popups::Error);
+                }
+            }
         }
         KeyCode::Esc => app.game.ui.unselect_cell(), // Deselect piece
         _ => fallback_key_handler(app, key_event),

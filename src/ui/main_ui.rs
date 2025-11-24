@@ -13,7 +13,7 @@ use crate::{
     ui::popups::{
         render_color_selection_popup, render_credit_popup, render_end_popup,
         render_engine_path_error_popup, render_error_popup, render_help_popup,
-        render_promotion_popup,
+        render_promotion_popup, render_success_popup,
     },
 };
 
@@ -110,6 +110,11 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
         Some(Popups::Error) => {
             if let Some(ref error_msg) = app.error_message {
                 render_error_popup(frame, error_msg);
+            }
+        }
+        Some(Popups::Success) => {
+            if let Some(ref success_msg) = app.success_message {
+                render_success_popup(frame, success_msg);
             }
         }
         _ => {}
