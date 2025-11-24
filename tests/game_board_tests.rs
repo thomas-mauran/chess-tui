@@ -742,4 +742,200 @@ mod tests {
         game_board.increment_consecutive_non_pawn_or_capture(Role::Pawn, None);
         assert_eq!(game_board.consecutive_non_pawn_or_capture, 0);
     }
+
+    #[test]
+    fn test_history_navigation_previous() {
+        let mut game_board = GameBoard::default();
+        let is_solo_mode = true;
+
+        // Make some moves to create history
+        game_board.execute_shakmaty_move(Square::E2, Square::E4);
+        game_board.execute_shakmaty_move(Square::E7, Square::E5);
+        game_board.execute_shakmaty_move(Square::G1, Square::F3);
+
+        // Initially at latest position
+        assert_eq!(game_board.history_position_index, None);
+
+        // Navigate to previous position
+        let success = game_board.navigate_history_previous(is_solo_mode);
+        assert!(success);
+        assert_eq!(game_board.history_position_index, Some(2)); // After 2 moves (0-indexed)
+
+        // Navigate back one more
+        let success = game_board.navigate_history_previous(is_solo_mode);
+        assert!(success);
+        assert_eq!(game_board.history_position_index, Some(1)); // After 1 move
+
+        // Navigate back to initial position
+        let success = game_board.navigate_history_previous(is_solo_mode);
+        assert!(success);
+        assert_eq!(game_board.history_position_index, Some(0)); // Initial position
+
+        // Can't go back further
+        let success = game_board.navigate_history_previous(is_solo_mode);
+        assert!(!success);
+        assert_eq!(game_board.history_position_index, Some(0)); // Still at initial
+    }
+
+    #[test]
+    fn test_history_navigation_next() {
+        let mut game_board = GameBoard::default();
+        let is_solo_mode = true;
+
+        // Make some moves
+        game_board.execute_shakmaty_move(Square::E2, Square::E4);
+        game_board.execute_shakmaty_move(Square::E7, Square::E5);
+
+        // Navigate to previous position
+        game_board.navigate_history_previous(is_solo_mode);
+        assert_eq!(game_board.history_position_index, Some(1));
+
+        // Navigate forward
+        let success = game_board.navigate_history_next(is_solo_mode);
+        assert!(success);
+        assert_eq!(game_board.history_position_index, Some(2)); // After 2 moves
+
+        // Navigate forward to latest
+        let success = game_board.navigate_history_next(is_solo_mode);
+        assert!(success);
+        assert_eq!(game_board.history_position_index, None); // Back to latest
+
+        // Can't go forward from latest
+        let success = game_board.navigate_history_next(is_solo_mode);
+        assert!(!success);
+        assert_eq!(game_board.history_position_index, None);
+    }
+
+    #[test]
+    fn test_history_navigation_board_flipping_solo_mode() {
+        let mut game_board = GameBoard::default();
+        let is_solo_mode = true;
+
+        // Make some moves
+        game_board.execute_shakmaty_move(Square::E2, Square::E4);
+        game_board.execute_shakmaty_move(Square::E7, Square::E5);
+
+        // Initially not flipped (position 0)
+        assert!(!game_board.is_flipped);
+
+        // Navigate to position 1 (after first move) - should be flipped
+        game_board.navigate_history_previous(is_solo_mode);
+        assert_eq!(game_board.history_position_index, Some(1));
+        assert!(game_board.is_flipped);
+
+        // Navigate to position 0 (initial) - should not be flipped
+        game_board.navigate_history_previous(is_solo_mode);
+        assert_eq!(game_board.history_position_index, Some(0));
+        assert!(!game_board.is_flipped);
+
+        // Navigate forward to position 1 - should be flipped again
+        game_board.navigate_history_next(is_solo_mode);
+        assert_eq!(game_board.history_position_index, Some(1));
+        assert!(game_board.is_flipped);
+    }
+
+    #[test]
+    fn test_history_navigation_no_flipping_non_solo_mode() {
+        let mut game_board = GameBoard::default();
+        let is_solo_mode = false;
+        let original_flip_state = game_board.is_flipped;
+
+        // Make some moves
+        game_board.execute_shakmaty_move(Square::E2, Square::E4);
+        game_board.execute_shakmaty_move(Square::E7, Square::E5);
+
+        // In non-solo mode, flip state should remain unchanged
+        game_board.navigate_history_previous(is_solo_mode);
+        assert_eq!(game_board.history_position_index, Some(1));
+        assert_eq!(game_board.is_flipped, original_flip_state);
+
+        game_board.navigate_history_previous(is_solo_mode);
+        assert_eq!(game_board.history_position_index, Some(0));
+        assert_eq!(game_board.is_flipped, original_flip_state);
+    }
+
+    #[test]
+    fn test_truncate_history_at() {
+        let mut game_board = GameBoard::default();
+
+        // Make several moves and manually add them to move_history
+        // (execute_shakmaty_move doesn't update move_history, Game does that)
+        if let Some(move1) = game_board.execute_shakmaty_move(Square::E2, Square::E4) {
+            game_board.move_history.push(move1);
+        }
+        if let Some(move2) = game_board.execute_shakmaty_move(Square::E7, Square::E5) {
+            game_board.move_history.push(move2);
+        }
+        if let Some(move3) = game_board.execute_shakmaty_move(Square::G1, Square::F3) {
+            game_board.move_history.push(move3);
+        }
+        if let Some(move4) = game_board.execute_shakmaty_move(Square::G8, Square::F6) {
+            game_board.move_history.push(move4);
+        }
+
+        // Should have 4 moves and 5 positions (initial + 4 after moves)
+        assert_eq!(game_board.move_history.len(), 4);
+        assert_eq!(game_board.position_history.len(), 5);
+
+        // Truncate at index 2 (after 2 moves)
+        game_board.truncate_history_at(2);
+
+        // Should have 2 moves and 3 positions (initial + 2 after moves)
+        assert_eq!(game_board.move_history.len(), 2);
+        assert_eq!(game_board.position_history.len(), 3);
+
+        // History navigation should be reset
+        assert_eq!(game_board.history_position_index, None);
+        assert_eq!(game_board.original_flip_state, None);
+    }
+
+    #[test]
+    fn test_truncate_history_at_boundaries() {
+        let mut game_board = GameBoard::default();
+
+        // Make a move
+        game_board.execute_shakmaty_move(Square::E2, Square::E4);
+
+        // Truncate at index 0 (initial position)
+        game_board.truncate_history_at(0);
+        assert_eq!(game_board.move_history.len(), 0);
+        assert_eq!(game_board.position_history.len(), 1);
+
+        // Make moves again
+        game_board.execute_shakmaty_move(Square::E2, Square::E4);
+        game_board.execute_shakmaty_move(Square::E7, Square::E5);
+
+        // Truncate at invalid index (too large) - should do nothing
+        let move_count_before = game_board.move_history.len();
+        let position_count_before = game_board.position_history.len();
+        game_board.truncate_history_at(100);
+        assert_eq!(game_board.move_history.len(), move_count_before);
+        assert_eq!(game_board.position_history.len(), position_count_before);
+    }
+
+    #[test]
+    fn test_position_ref_with_history_navigation() {
+        let mut game_board = GameBoard::default();
+
+        // Make some moves
+        game_board.execute_shakmaty_move(Square::E2, Square::E4);
+        game_board.execute_shakmaty_move(Square::E7, Square::E5);
+
+        // Get reference to latest position
+        let latest_position = game_board.position_ref().clone();
+
+        // Navigate to previous position
+        game_board.navigate_history_previous(true);
+        let previous_position = game_board.position_ref().clone();
+
+        // Positions should be different
+        assert_ne!(latest_position, previous_position);
+
+        // Navigate back to latest
+        game_board.navigate_history_next(true);
+        let back_to_latest = game_board.position_ref().clone();
+
+        // Should be same as original latest
+        assert_eq!(latest_position, back_to_latest);
+    }
 }

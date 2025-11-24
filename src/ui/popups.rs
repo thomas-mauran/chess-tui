@@ -258,7 +258,7 @@ pub fn render_credit_popup(frame: &mut Frame) {
 }
 
 // This render the help popup
-pub fn render_help_popup(frame: &mut Frame) {
+pub fn render_help_popup(frame: &mut Frame, app: &crate::app::App) {
     let block = Block::default()
         .title("Help menu")
         .borders(Borders::ALL)
@@ -267,7 +267,10 @@ pub fn render_help_popup(frame: &mut Frame) {
         .border_style(Style::default().fg(WHITE));
     let area = centered_rect(40, 65, frame.area());
 
-    let text = vec![
+    // Check if we're playing against a bot (history navigation only in solo mode)
+    let is_solo_mode = app.game.logic.bot.is_none() && app.game.logic.opponent.is_none();
+
+    let mut text = vec![
         Line::from("Game controls:".underlined().bold()),
         Line::from(""),
         Line::from(vec![
@@ -287,6 +290,19 @@ pub fn render_help_popup(frame: &mut Frame) {
         Line::from(""),
         Line::from("b: Go to the home menu / reset the game"),
         Line::from(""),
+        Line::from("s: Cycle through available skins"),
+        Line::from(""),
+    ];
+
+    // Only show history navigation controls in solo mode (not against bot)
+    if is_solo_mode {
+        text.push(Line::from("P: Navigate to previous position in history"));
+        text.push(Line::from(""));
+        text.push(Line::from("N: Navigate to next position in history"));
+        text.push(Line::from(""));
+    }
+
+    text.extend(vec![
         Line::from(""),
         Line::from("Color codes:".underlined().bold()),
         Line::from(""),
@@ -303,7 +319,9 @@ pub fn render_help_popup(frame: &mut Frame) {
         Line::from(""),
         Line::from(""),
         Line::from("Press `Esc` to close the popup.").alignment(Alignment::Center),
-    ];
+    ]);
+
+    let text = text;
 
     let paragraph = Paragraph::new(text)
         .block(block.clone())
