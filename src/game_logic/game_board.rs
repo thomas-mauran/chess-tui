@@ -82,7 +82,7 @@ impl GameBoard {
         pgn.push_str(&format!("[White \"{}\"]\n", white_name));
         pgn.push_str(&format!("[Black \"{}\"]\n", black_name));
         pgn.push_str(&format!("[Result \"{}\"]\n", result));
-        pgn.push_str("\n");
+        pgn.push('\n');
 
         // Moves in SAN notation
         let mut move_text = String::new();

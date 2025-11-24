@@ -50,5 +50,22 @@ You can find a more detailed installation guide with your favorite package manag
 - **r**: Restart the current game
 - **p**: Navigate to the previous position in history (go back in time)
 - **n**: Navigate to the next position in history (go forward in time)
+- **e**: Export the current game to PGN format
 
 Press **?** during gameplay to see all available controls in the help menu.
+
+### PGN Export
+
+You can export your games to PGN (Portable Game Notation) format at any time by pressing **e** during gameplay. The exported PGN file includes:
+
+- Game metadata (Event, Site, Date, Round, Player names, Result)
+- All moves in Standard Algebraic Notation (SAN)
+- Game result (1-0, 0-1, 1/2-1/2, or * for in-progress games)
+
+**Export Features:**
+- Available in all game modes (solo, bot, and multiplayer)
+- Can be exported during gameplay or from the end game screen
+- Files are saved to `~/.config/chess-tui/pgn/` with timestamped filenames (e.g., `chess_game_20241220_143022.pgn`)
+- A success popup will display the full file path after export
+
+**Note:** History navigation (p/n) is only available in solo mode (two-player local games).

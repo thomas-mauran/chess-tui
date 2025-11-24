@@ -347,6 +347,8 @@ pub fn render_help_popup(frame: &mut Frame, app: &crate::app::App) {
         Line::from(""),
         Line::from("s: Cycle through available skins"),
         Line::from(""),
+        Line::from("e: Export game to PGN format"),
+        Line::from(""),
     ];
 
     // Only show history navigation controls in solo mode (not against bot)
