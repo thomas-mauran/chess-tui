@@ -12,7 +12,7 @@ A rusty chess game in your terminal 🦀
 
 ### Description
 
-Chess-tui is a simple chess game you can play from your terminal. It supports local 2 players mode, online multiplayer and playing against any UCI compatible chess engine.
+Chess-tui is a simple chess game you can play from your terminal. It supports local 2 players mode, online multiplayer, playing against any UCI compatible chess engine, custom skins and more !
 
 ### Quick install
 
@@ -51,6 +51,10 @@ If you want to install the game with your favorite package manager, you can find
 <details>
   <summary>Piece Promotion</summary>
   no demo available yet
+</details>
+<details>
+  <summary>Move History Navigation (Solo Mode)</summary>
+  Navigate through move history with <strong>P</strong> (previous) and <strong>N</strong> (next) keys. Make moves from any historical position to create alternate game branches.
 </details>
 <details>
   <summary>Play against any UCI chess engine as black or white</summary>
@@ -120,6 +124,20 @@ bot_depth = 10
 The config file is automatically created when you first run chess-tui. You can manually edit it to customize your experience.
 
 All logs are stored in `~/.config/chess-tui/logs`.
+
+### Game Controls
+
+**Basic Controls:**
+- Arrow keys or `h/j/k/l`: Move cursor
+- `Space` or `Enter`: Select/move piece
+- `Esc`: Deselect piece or close popups
+- `?`: Show help menu
+- `q`: Quit game
+- `b`: Return to home menu
+- `s`: Cycle through available skins
+- `r`: Restart current game
+- `p`: Navigate to previous position in history
+- `n`: Navigate to next position in history
 
 Base config:
 ```toml

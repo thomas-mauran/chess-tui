@@ -104,7 +104,7 @@ impl Game {
         if let Some(history_index) = self.logic.game_board.history_position_index {
             self.logic.game_board.truncate_history_at(history_index);
         }
-        
+
         // If we are doing a promotion the cursor is used for the popup
         if self.logic.game_state == GameState::Promotion {
             self.handle_promotion();
