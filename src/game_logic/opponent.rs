@@ -202,6 +202,6 @@ pub fn wait_for_game_start(mut stream: &TcpStream) -> Result<(), &str>{
 
     match response.as_str() {
         "s" => Ok(()),
-        _   => Err("Failed to get color from stream"),    // Panic would broke UI interactivity so the function should return Result
+        _   => Err("Failed to get color from stream"),
     }
 }

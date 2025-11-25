@@ -147,13 +147,11 @@ impl App {
             std::thread::spawn(move || {
                     match wait_for_game_start(&stream_clone) {
                         Ok(()) => {
-                                let _ = start_tx.send(());   // signals start_rx
+                                let _ = start_tx.send(());
                         },
                         Err(e) => log::warn!("Failed to start hosted game: {}", e)
                     };
             });
-            // TODO: There still are some bugs: After the player exits before an opponent joins,
-            // if he selects Normal game or Multiplayer in the Main Menu, it won't work anymore.
         }
 
         if !self.hosting.unwrap() {
