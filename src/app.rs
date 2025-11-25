@@ -261,6 +261,27 @@ impl App {
         self.current_popup = None;
     }
 
+    pub fn cancel_hosting_cleanup(&mut self) {
+        log::info!("Cancelling hosting and cleaning multiplayer state");
+
+        // Close the socket
+        if let Some(mut opponent) = self.game.opponent.take() {
+            if let Some(stream) = opponent.stream.take() {
+                let _ = stream.shutdown(std::net::Shutdown::Both);
+            }
+        }
+
+        // Clear related fields
+        self.hosting = None;
+        self.host_ip = None;
+        self.selected_color = None;
+        self.game_start_rx = None;
+
+        self.game.opponent = None;
+        self.game.game_board.reset();
+        self.game.ui.reset();
+    }
+
     pub fn restart(&mut self) {
         let bot = self.game.bot.clone();
         let opponent = self.game.opponent.clone();

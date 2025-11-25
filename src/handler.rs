@@ -99,15 +99,7 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
             KeyCode::Esc | KeyCode::Enter | KeyCode::Char(' ') => {
                 app.current_popup = None;
                 app.current_page = Pages::Home;
-
-                // Close the socket
-                if let Some(opponent) = &mut app.game.opponent {
-                    if let Some(stream) = &mut opponent.stream {
-                        let _ = stream.shutdown(std::net::Shutdown::Both);
-                        let _ = stream;
-                    }
-                    opponent.stream = None;
-                }
+                app.cancel_hosting_cleanup();
             }
             _ => fallback_key_handler(app, key_event),
         },

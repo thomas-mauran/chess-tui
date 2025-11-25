@@ -151,7 +151,7 @@ fn main() -> AppResult<()> {
                 .game
                 .opponent
                 .as_ref()
-                .is_some_and(|opponent| opponent.opponent_will_move)
+                .is_some_and(|opponent| opponent.opponent_will_move && opponent.game_started)
         {
             tui.draw(&mut app)?;
 
