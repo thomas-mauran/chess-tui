@@ -10,7 +10,7 @@ import Logo from '/img/logo.png';
   <div style={{ flex: '1' }}>
     ### Welcome to the chess-tui documentation!
 
-    Chess TUI is a terminal chess game written in [Rust](https://www.rust-lang.org/) . It is a simple and easy-to-use chess game that you can play in your terminal.
+    Chess TUI is a terminal chess game written in [Rust](https://www.rust-lang.org/). It is a simple and easy-to-use chess game that you can play in your terminal.
 
     This documentation will guide you through the different features of the game, how to install it, and the code architecture of the project if you want to contribute.
   </div>
@@ -18,8 +18,6 @@ import Logo from '/img/logo.png';
     <img src={Logo} alt="logo" width="200" />
   </div>
 </div>
-
-
 
 :::warning Disclaimer
 This project is still in development and some features may not be available yet.
@@ -37,3 +35,20 @@ chess-tui
 ```
 
 You can find a more detailed installation guide with your favorite package manager in the [Installation](/docs/Installation/Cargo) section.
+
+## Game Controls
+
+### Basic Controls
+
+- **Arrow keys** or **h/j/k/l**: Move the cursor
+- **Space** or **Enter**: Select/move a piece
+- **Esc**: Deselect a piece or close popups
+- **?**: Show help menu with all controls
+- **q**: Quit the game
+- **b**: Return to home menu
+- **s**: Cycle through available skins
+- **r**: Restart the current game
+- **p**: Navigate to the previous position in history (go back in time)
+- **n**: Navigate to the next position in history (go forward in time)
+
+Press **?** during gameplay to see all available controls in the help menu.

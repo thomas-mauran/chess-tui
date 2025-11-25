@@ -2,11 +2,12 @@
 extern crate chess_tui;
 
 use chess_tui::app::{App, AppResult};
+use chess_tui::config::Config;
 use chess_tui::constants::{home_dir, DisplayMode};
 use chess_tui::event::{Event, EventHandler};
-use chess_tui::game_logic::game::GameState;
 use chess_tui::handler::{handle_key_events, handle_mouse_events};
 use chess_tui::logging;
+use chess_tui::skin::Skin;
 use chess_tui::ui::tui::Tui;
 use clap::Parser;
 use log::LevelFilter;
@@ -14,7 +15,6 @@ use std::fs::{self, File};
 use std::io::Write;
 use std::panic;
 use std::path::Path;
-use toml::Value;
 
 /// Simple program to greet a person
 #[derive(Parser, Debug)]
@@ -52,40 +52,94 @@ fn main() -> AppResult<()> {
         if content.trim().is_empty() {
             app.chess_engine_path = None;
         } else {
-            let config = content.parse::<toml::Value>().unwrap();
-            if let Some(engine_path) = config.get("engine_path") {
-                app.chess_engine_path = Some(engine_path.as_str().unwrap().to_string());
+            let config: Config = toml::from_str(&content).unwrap_or_default();
+
+            if let Some(engine_path) = config.engine_path {
+                app.chess_engine_path = Some(engine_path);
             }
             // Set the display mode based on the configuration file
-            if let Some(display_mode) = config.get("display_mode") {
+            if let Some(display_mode) = config.display_mode {
                 app.game.ui.display_mode = match display_mode.as_str() {
-                    Some("ASCII") => DisplayMode::ASCII,
+                    "ASCII" => DisplayMode::ASCII,
+                    "CUSTOM" => DisplayMode::CUSTOM,
                     _ => DisplayMode::DEFAULT,
                 };
             }
             // Add log level handling
-            if let Some(log_level) = config.get("log_level") {
-                app.log_level = log_level
-                    .as_str()
-                    .and_then(|s| s.parse().ok())
-                    .unwrap_or(LevelFilter::Off);
+            if let Some(log_level) = config.log_level {
+                app.log_level = log_level.parse().unwrap_or(LevelFilter::Off);
             }
             // Add bot depth handling
-            if let Some(bot_depth) = config.get("bot_depth") {
-                app.bot_depth = bot_depth
-                    .as_integer()
-                    .and_then(|d| {
-                        if (0..=255).contains(&d) {
-                            Some(d as u8)
-                        } else {
-                            None
-                        }
-                    })
-                    .unwrap_or(10);
+            if let Some(bot_depth) = config.bot_depth {
+                app.bot_depth = bot_depth;
+            }
+            // Add selected skin name handling
+            if let Some(selected_skin_name) = config.selected_skin_name {
+                app.selected_skin_name = selected_skin_name;
             }
         }
     } else {
         println!("Error reading the file or the file does not exist");
+    }
+
+    // Always start with Default and ASCII display modes at the beginning
+    app.available_skins.push(Skin::default_display_mode());
+    app.available_skins.push(Skin::ascii_display_mode());
+
+    // Load all available skins from skins.json
+    let skins_path = home_dir.join(".config/chess-tui/skins.json");
+
+    // Create skins.json if it doesn't exist
+    if !skins_path.exists() {
+        if let Err(e) = create_default_skins_file(&skins_path) {
+            eprintln!("Failed to create default skins.json: {}", e);
+        }
+    }
+
+    if skins_path.exists() {
+        match Skin::load_all_skins(&skins_path) {
+            Ok(skins) => {
+                // Filter out any "Default" or "ASCII" skins from JSON to avoid duplicates
+                let custom_skins: Vec<Skin> = skins
+                    .into_iter()
+                    .filter(|s| s.name != "Default" && s.name != "ASCII")
+                    .collect();
+                app.available_skins.extend(custom_skins);
+            }
+            Err(e) => {
+                eprintln!("Failed to load skins: {}", e);
+            }
+        }
+    }
+
+    // Apply selected skin
+    if let Some(skin) = Skin::get_skin_by_name(&app.available_skins, &app.selected_skin_name) {
+        app.loaded_skin = Some(skin.clone());
+        app.game.ui.skin = skin.clone();
+        // Set display mode based on skin name
+        match app.selected_skin_name.as_str() {
+            "Default" => app.game.ui.display_mode = DisplayMode::DEFAULT,
+            "ASCII" => app.game.ui.display_mode = DisplayMode::ASCII,
+            _ => {
+                // For custom skins, set to CUSTOM if not already set
+                if app.game.ui.display_mode == DisplayMode::DEFAULT {
+                    app.game.ui.display_mode = DisplayMode::CUSTOM;
+                }
+            }
+        }
+    } else {
+        // Fallback: use the first available skin if selected skin not found
+        if let Some(first_skin) = app.available_skins.first() {
+            app.selected_skin_name = first_skin.name.clone();
+            app.loaded_skin = Some(first_skin.clone());
+            app.game.ui.skin = first_skin.clone();
+            // Set display mode based on skin name
+            match app.selected_skin_name.as_str() {
+                "Default" => app.game.ui.display_mode = DisplayMode::DEFAULT,
+                "ASCII" => app.game.ui.display_mode = DisplayMode::ASCII,
+                _ => app.game.ui.display_mode = DisplayMode::CUSTOM,
+            }
+        }
     }
 
     // Command line arguments take precedence over configuration file
@@ -128,49 +182,48 @@ fn main() -> AppResult<()> {
             Event::Mouse(mouse_event) => handle_mouse_events(mouse_event, &mut app)?,
             Event::Resize(_, _) => {}
         }
-        if app.game.bot.is_some() && app.game.bot.as_ref().is_some_and(|bot| bot.bot_will_move) {
-            app.game.execute_bot_move();
-            app.game.switch_player_turn();
-            if let Some(bot) = app.game.bot.as_mut() {
-                bot.bot_will_move = false;
-            }
-            // need to be centralised
-            if app.game.game_board.is_checkmate(app.game.player_turn) {
-                app.game.game_state = GameState::Checkmate;
-                app.show_end_screen();
-            } else if app.game.game_board.is_draw(app.game.player_turn) {
-                app.game.game_state = GameState::Draw;
-                app.show_end_screen();
-            }
-            tui.draw(&mut app)?;
-        }
 
-        // If it's the opponent turn, wait for the opponent to move
-        if app.game.opponent.is_some()
+        // Check if bot should start thinking
+        if !app.is_bot_thinking()
             && app
                 .game
-                .opponent
+                .logic
+                .bot
                 .as_ref()
-                .is_some_and(|opponent| opponent.opponent_will_move && opponent.game_started)
+                .is_some_and(|bot| bot.bot_will_move)
         {
-            tui.draw(&mut app)?;
-
-            if !app.game.game_board.is_checkmate(app.game.player_turn)
-                && !app.game.game_board.is_draw(app.game.player_turn)
-            {
-                app.game.execute_opponent_move();
-                app.game.switch_player_turn();
+            app.start_bot_thinking();
+            if let Some(bot) = app.game.logic.bot.as_mut() {
+                bot.bot_will_move = false;
             }
+        }
+
+        // Check if bot move is ready
+        if app.check_bot_move() {
+            app.game.switch_player_turn();
 
             // need to be centralised
-            if app.game.game_board.is_checkmate(app.game.player_turn) {
-                app.game.game_state = GameState::Checkmate;
-                app.show_end_screen();
-            } else if app.game.game_board.is_draw(app.game.player_turn) {
-                app.game.game_state = GameState::Draw;
-                app.show_end_screen();
+            app.check_game_end_status();
+        }
+
+        // If it's the opponent turn and the game started, wait for the opponent to move
+        if let Some(opponent) = app.game.logic.opponent.as_mut() {
+            if opponent.game_started {
+                if opponent.opponent_will_move {
+                    tui.draw(&mut app)?;
+
+                    if !app.game.logic.game_board.is_checkmate()
+                        && !app.game.logic.game_board.is_draw()
+                        && app.game.logic.execute_opponent_move()
+                    {
+                        app.game.switch_player_turn();
+                    }
+
+                    // need to be centralised
+                    app.check_game_end_status();
+                    tui.draw(&mut app)?;
+                }
             }
-            tui.draw(&mut app)?;
         }
     }
 
@@ -195,46 +248,59 @@ fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResu
 
     // Attempt to read the configuration file and parse it as a TOML Value.
     // If we encounter any issues (like the file not being readable or not being valid TOML), we start with a new, empty TOML table instead.
-    let mut config = match fs::read_to_string(config_path) {
-        Ok(content) => content
-            .parse::<Value>()
-            .unwrap_or_else(|_| Value::Table(Default::default())),
-        Err(_) => Value::Table(Default::default()),
+    let mut config: Config = match fs::read_to_string(config_path) {
+        Ok(content) => toml::from_str(&content).unwrap_or_default(),
+        Err(_) => Config::default(),
     };
 
     // We update the configuration with the engine_path and display_mode.
     // If these keys are already in the configuration, we leave them as they are.
     // If they're not, we add them with default values.
-    if let Some(table) = config.as_table_mut() {
-        // Only update the engine_path in the configuration if it's not empty
+    if config.engine_path.as_ref().is_none_or(|s| s.is_empty()) {
         if args.engine_path.is_empty() {
-            table
-                .entry("engine_path".to_string())
-                .or_insert(Value::String(String::new()));
+            config.engine_path = Some(String::new());
         } else {
-            table.insert(
-                "engine_path".to_string(),
-                Value::String(args.engine_path.clone()),
-            );
-        }
-        table
-            .entry("display_mode".to_string())
-            .or_insert(Value::String("DEFAULT".to_string()));
-        table
-            .entry("log_level".to_string())
-            .or_insert(Value::String(LevelFilter::Off.to_string()));
-        table
-            .entry("bot_depth".to_string())
-            .or_insert(Value::Integer(10));
-
-        // Update bot_depth if provided via command line
-        if args.depth != 10 {
-            table.insert("bot_depth".to_string(), Value::Integer(args.depth as i64));
+            config.engine_path = Some(args.engine_path.clone());
         }
     }
 
+    if config.display_mode.is_none() {
+        config.display_mode = Some("DEFAULT".to_string());
+    }
+    if config.log_level.is_none() {
+        config.log_level = Some(LevelFilter::Off.to_string());
+    }
+    if config.bot_depth.is_none() {
+        config.bot_depth = Some(10);
+    }
+    if config.selected_skin_name.is_none() {
+        config.selected_skin_name = Some("Default".to_string());
+    }
+
+    // Update bot_depth if provided via command line
+    if args.depth != 10 {
+        config.bot_depth = Some(args.depth);
+    }
+
+    let toml_string = toml::to_string(&config)
+        .expect("Failed to serialize config to TOML. This is a bug, please report it.");
     let mut file = File::create(config_path)?;
-    file.write_all(config.to_string().as_bytes())?;
+    file.write_all(toml_string.as_bytes())?;
+
+    Ok(())
+}
+
+fn create_default_skins_file(skins_path: &Path) -> AppResult<()> {
+    // Ensure the directory exists
+    if let Some(parent) = skins_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+
+    // Default skins.json content (embedded at compile time)
+    const DEFAULT_SKINS: &str = include_str!("default_skins.json");
+
+    let mut file = File::create(skins_path)?;
+    file.write_all(DEFAULT_SKINS.as_bytes())?;
 
     Ok(())
 }
@@ -243,7 +309,6 @@ fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResu
 mod tests {
     use super::*;
     use std::fs;
-    use toml::Value;
 
     #[test]
     fn test_config_create() {
@@ -261,19 +326,13 @@ mod tests {
         assert!(result.is_ok());
         assert!(config_path.exists());
 
-        let content = fs::read_to_string(config_path).unwrap();
-        let config: Value = content.parse().unwrap();
-        let table = config.as_table().unwrap();
+        let content = fs::read_to_string(&config_path).unwrap();
+        let config: Config = toml::from_str(&content).unwrap();
 
-        assert_eq!(
-            table.get("engine_path").unwrap().as_str().unwrap(),
-            "test_engine_path"
-        );
-        assert_eq!(
-            table.get("display_mode").unwrap().as_str().unwrap(),
-            "DEFAULT"
-        );
-        let removed = fs::remove_dir_all(home_dir.join(".test"));
+        assert_eq!(config.engine_path.unwrap(), "test_engine_path");
+        assert_eq!(config.display_mode.unwrap(), "DEFAULT");
+        assert_eq!(config.bot_depth.unwrap(), 10);
+        let removed = fs::remove_file(config_path);
         assert!(removed.is_ok());
     }
 }

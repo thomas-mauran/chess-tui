@@ -2,7 +2,7 @@ use std::net::IpAddr;
 
 use crate::{
     app::App,
-    constants::WHITE,
+    constants::{NETWORK_PORT, WHITE},
     pieces::{bishop::Bishop, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook},
     ui::main_ui::centered_rect,
 };
@@ -33,6 +33,34 @@ pub fn render_engine_path_error_popup(frame: &mut Frame) {
         Line::from(""),
         Line::from("Example: "),
         Line::from("chess-tui -e /opt/homebrew/opt/stockfish"),
+    ];
+
+    let paragraph = Paragraph::new(text)
+        .block(block.clone())
+        .alignment(Alignment::Left)
+        .wrap(Wrap { trim: true });
+
+    frame.render_widget(Clear, area); //this clears out the background
+    frame.render_widget(block, area);
+    frame.render_widget(paragraph, area);
+}
+
+// This renders a generic error popup with a custom message
+pub fn render_error_popup(frame: &mut Frame, error_message: &str) {
+    let block = Block::default()
+        .title("Error")
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .padding(Padding::horizontal(1))
+        .border_style(Style::default().fg(Color::Red));
+    let area = centered_rect(50, 30, frame.area());
+
+    let text = vec![
+        Line::from(""),
+        Line::from(error_message).alignment(Alignment::Center),
+        Line::from(""),
+        Line::from(""),
+        Line::from("Press `Esc` or `Enter` to close.").alignment(Alignment::Center),
     ];
 
     let paragraph = Paragraph::new(text)
@@ -203,7 +231,7 @@ pub fn render_credit_popup(frame: &mut Frame) {
 
     let credits_text = vec![
         Line::from(""),
-        Line::from("Hi 👋, I'm Thomas, a 22 years old French computer science student."),
+        Line::from("Hi 👋, I'm Thomas, a 23 years old French computer science student."),
         Line::from("Thank you for playing Chess-tui! This project started as a personal journey to improve my algorithmic skills and learn Rust."),
         Line::from(""),
         Line::from("The entire source code is available on GitHub at https://github.com/thomas-mauran/chess-tui"),
@@ -230,7 +258,7 @@ pub fn render_credit_popup(frame: &mut Frame) {
 }
 
 // This render the help popup
-pub fn render_help_popup(frame: &mut Frame) {
+pub fn render_help_popup(frame: &mut Frame, app: &crate::app::App) {
     let block = Block::default()
         .title("Help menu")
         .borders(Borders::ALL)
@@ -239,7 +267,10 @@ pub fn render_help_popup(frame: &mut Frame) {
         .border_style(Style::default().fg(WHITE));
     let area = centered_rect(40, 65, frame.area());
 
-    let text = vec![
+    // Check if we're playing against a bot (history navigation only in solo mode)
+    let is_solo_mode = app.game.logic.bot.is_none() && app.game.logic.opponent.is_none();
+
+    let mut text = vec![
         Line::from("Game controls:".underlined().bold()),
         Line::from(""),
         Line::from(vec![
@@ -259,6 +290,19 @@ pub fn render_help_popup(frame: &mut Frame) {
         Line::from(""),
         Line::from("b: Go to the home menu / reset the game"),
         Line::from(""),
+        Line::from("s: Cycle through available skins"),
+        Line::from(""),
+    ];
+
+    // Only show history navigation controls in solo mode (not against bot)
+    if is_solo_mode {
+        text.push(Line::from("P: Navigate to previous position in history"));
+        text.push(Line::from(""));
+        text.push(Line::from("N: Navigate to next position in history"));
+        text.push(Line::from(""));
+    }
+
+    text.extend(vec![
         Line::from(""),
         Line::from("Color codes:".underlined().bold()),
         Line::from(""),
@@ -275,7 +319,9 @@ pub fn render_help_popup(frame: &mut Frame) {
         Line::from(""),
         Line::from(""),
         Line::from("Press `Esc` to close the popup.").alignment(Alignment::Center),
-    ];
+    ]);
+
+    let text = text;
 
     let paragraph = Paragraph::new(text)
         .block(block.clone())
@@ -441,7 +487,7 @@ pub fn render_multiplayer_selection_popup(frame: &mut Frame, app: &App) {
 
 // MULTIPLAYER POPUPS
 // This renders a popup indicating we are waiting for the other player
-pub fn render_wait_for_other_player(frame: &mut Frame, ip: IpAddr) {
+pub fn render_wait_for_other_player(frame: &mut Frame, ip: Option<IpAddr>) {
     let block = Block::default()
         .title("Waiting ...")
         .borders(Borders::ALL)
@@ -450,11 +496,19 @@ pub fn render_wait_for_other_player(frame: &mut Frame, ip: IpAddr) {
         .border_style(Style::default().fg(WHITE));
     let area = centered_rect(40, 40, frame.area());
 
+    let ip_str = ip
+        .map(|i| i.to_string())
+        .unwrap_or_else(|| "Unknown".to_string());
+
     let text = vec![
         Line::from(""),
         Line::from(""),
         Line::from("Waiting for other player").alignment(Alignment::Center),
-        Line::from(format!("Host IP address and port: {}:2308", ip)).alignment(Alignment::Center),
+        Line::from(format!(
+            "Host IP address and port: {}:{}",
+            ip_str, NETWORK_PORT
+        ))
+        .alignment(Alignment::Center),
     ];
 
     let paragraph = Paragraph::new(text)
@@ -487,7 +541,7 @@ pub fn render_enter_multiplayer_ip(frame: &mut Frame, prompt: &Prompt) {
         Line::from(""),
         Line::from(""),
         Line::from(""),
-        Line::from("Example: 10.111.6.50:2308;"),
+        Line::from(format!("Example: 10.111.6.50:{};", NETWORK_PORT)),
         Line::from("Documentation: https://thomas-mauran.github.io/chess-tui/docs/Multiplayer/Online%20multiplayer/"),
         Line::from(""),
         Line::from(""),

@@ -35,6 +35,10 @@ Uses ASCII characters for better compatibility with terminals that don't support
 
 You can toggle between display modes in-game using the menu option or by editing the configuration file.
 
+## Custom Skins
+
+When using custom color skins (see [Skins](/docs/Configuration/skins)), the display mode is automatically set to `CUSTOM`. Custom skins allow you to personalize the board colors, piece colors, and UI element colors while still using Unicode chess pieces.
+
 :::tip
 Use ASCII mode if you experience display issues with the default Unicode pieces in your terminal.
 ::: 

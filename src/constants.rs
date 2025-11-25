@@ -7,6 +7,12 @@ pub const UNDEFINED_POSITION: u8 = u8::MAX;
 pub const WHITE: Color = Color::Rgb(160, 160, 160);
 pub const BLACK: Color = Color::Rgb(128, 95, 69);
 
+// Network constants
+pub const NETWORK_PORT: u16 = 2308;
+pub const NETWORK_BUFFER_SIZE: usize = 5;
+pub const SLEEP_DURATION_SHORT_MS: u64 = 50;
+pub const SLEEP_DURATION_LONG_MS: u64 = 100;
+
 pub const TITLE: &str = r"
  ██████╗██╗  ██╗███████╗███████╗███████╗   ████████╗██╗   ██╗██╗
 ██╔════╝██║  ██║██╔════╝██╔════╝██╔════╝   ╚══██╔══╝██║   ██║██║
@@ -16,10 +22,11 @@ pub const TITLE: &str = r"
  ╚═════╝╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝      ╚═╝    ╚═════╝ ╚═╝
 ";
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum DisplayMode {
     DEFAULT,
     ASCII,
+    CUSTOM,
 }
 
 impl fmt::Display for DisplayMode {
@@ -27,6 +34,7 @@ impl fmt::Display for DisplayMode {
         match *self {
             DisplayMode::ASCII => write!(f, "ASCII"),
             DisplayMode::DEFAULT => write!(f, "DEFAULT"),
+            DisplayMode::CUSTOM => write!(f, "CUSTOM"),
         }
     }
 }
@@ -61,4 +69,5 @@ pub enum Popups {
     EnginePathError,
     Help,
     EndScreen,
+    Error,
 }
