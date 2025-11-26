@@ -4,8 +4,8 @@ use crate::game_logic::bot::Bot;
 use crate::game_logic::coord::Coord;
 use crate::game_logic::game::Game;
 use crate::game_logic::game::GameState;
-use crate::game_logic::opponent::Opponent;
 use crate::game_logic::opponent::wait_for_game_start;
+use crate::game_logic::opponent::Opponent;
 use crate::server::game_server::GameServer;
 use crate::skin::Skin;
 use crate::utils::flip_square_if_needed;
@@ -75,7 +75,7 @@ impl Default for App {
             menu_cursor: 0,
             chess_engine_path: None,
             log_level: LevelFilter::Off,
-            bot_depth: 10, 
+            bot_depth: 10,
             bot_move_receiver: None,
             error_message: None,
             loaded_skin: None,
@@ -154,19 +154,19 @@ impl App {
                 if self.hosting.unwrap_or(false) {
                     log::info!("Setting up client (host) player");
                     log::info!("Starting background thread to monitor when the opponent is ready");
-                    
+
                     let (start_tx, start_rx) = std::sync::mpsc::channel();
                     self.game_start_rx = Some(start_rx);
 
                     // Create a separate thread that checks in background if the game can start
                     let stream_clone = opponent.stream.as_ref().unwrap().try_clone().unwrap();
                     std::thread::spawn(move || {
-                            match wait_for_game_start(&stream_clone) {
-                                Ok(()) => {
-                                        let _ = start_tx.send(());
-                                },
-                                Err(e) => log::warn!("Failed to start hosted game: {}", e)
-                            };
+                        match wait_for_game_start(&stream_clone) {
+                            Ok(()) => {
+                                let _ = start_tx.send(());
+                            }
+                            Err(e) => log::warn!("Failed to start hosted game: {}", e),
+                        };
                     });
                 } else {
                     log::info!("Setting up client (non-host) player");
