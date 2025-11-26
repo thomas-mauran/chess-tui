@@ -208,21 +208,19 @@ fn main() -> AppResult<()> {
 
         // If it's the opponent turn and the game started, wait for the opponent to move
         if let Some(opponent) = app.game.logic.opponent.as_mut() {
-            if opponent.game_started {
-                if opponent.opponent_will_move {
-                    tui.draw(&mut app)?;
+            if opponent.game_started && opponent.opponent_will_move {
+                tui.draw(&mut app)?;
 
-                    if !app.game.logic.game_board.is_checkmate()
-                        && !app.game.logic.game_board.is_draw()
-                        && app.game.logic.execute_opponent_move()
-                    {
-                        app.game.switch_player_turn();
-                    }
-
-                    // need to be centralised
-                    app.check_game_end_status();
-                    tui.draw(&mut app)?;
+                if !app.game.logic.game_board.is_checkmate()
+                    && !app.game.logic.game_board.is_draw()
+                    && app.game.logic.execute_opponent_move()
+                {
+                    app.game.switch_player_turn();
                 }
+
+                // need to be centralised
+                app.check_game_end_status();
+                tui.draw(&mut app)?;
             }
         }
     }
