@@ -107,7 +107,10 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
             _ => fallback_key_handler(app, key_event),
         },
         Popups::WaitingForOpponentToJoin => match key_event.code {
-            KeyCode::Esc | KeyCode::Enter | KeyCode::Char(' ') => app.close_popup_and_go_home(),
+            KeyCode::Esc | KeyCode::Enter | KeyCode::Char(' ') => {
+                app.close_popup_and_go_home();
+                app.cancel_hosting_cleanup();
+            }
             _ => fallback_key_handler(app, key_event),
         },
         // End screen popup - shown when game ends (checkmate or draw)

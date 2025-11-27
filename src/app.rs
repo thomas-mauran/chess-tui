@@ -4,6 +4,7 @@ use crate::game_logic::bot::Bot;
 use crate::game_logic::coord::Coord;
 use crate::game_logic::game::Game;
 use crate::game_logic::game::GameState;
+use crate::game_logic::opponent::wait_for_game_start;
 use crate::game_logic::opponent::Opponent;
 use crate::server::game_server::GameServer;
 use crate::skin::Skin;
@@ -38,6 +39,9 @@ pub struct App {
     pub hosting: Option<bool>,
     /// Host Ip
     pub host_ip: Option<String>,
+    /// If player is hosting
+    /// gets a signal when the opponent has joined and the game can start
+    pub game_start_rx: Option<std::sync::mpsc::Receiver<()>>,
     /// menu current cursor
     pub menu_cursor: u8,
     /// path of the chess engine
@@ -67,6 +71,7 @@ impl Default for App {
             selected_color: None,
             hosting: None,
             host_ip: None,
+            game_start_rx: None,
             menu_cursor: 0,
             chess_engine_path: None,
             log_level: LevelFilter::Off,
@@ -143,9 +148,27 @@ impl App {
         }
 
         log::info!("Creating opponent with color: {:?}", other_player_color);
+
         match Opponent::new(addr_with_port, other_player_color) {
             Ok(mut opponent) => {
-                if !self.hosting.unwrap_or(false) {
+                if self.hosting.unwrap_or(false) {
+                    log::info!("Setting up client (host) player");
+                    log::info!("Starting background thread to monitor when the opponent is ready");
+
+                    let (start_tx, start_rx) = std::sync::mpsc::channel();
+                    self.game_start_rx = Some(start_rx);
+
+                    // Create a separate thread that checks in background if the game can start
+                    let stream_clone = opponent.stream.as_ref().unwrap().try_clone().unwrap();
+                    std::thread::spawn(move || {
+                        match wait_for_game_start(&stream_clone) {
+                            Ok(()) => {
+                                let _ = start_tx.send(());
+                            }
+                            Err(e) => log::warn!("Failed to start hosted game: {}", e),
+                        };
+                    });
+                } else {
                     log::info!("Setting up client (non-host) player");
                     self.selected_color = Some(opponent.color.other());
                     opponent.game_started = true;
@@ -185,7 +208,16 @@ impl App {
     }
 
     /// Handles the tick event of the terminal.
-    pub fn tick(&self) {}
+    pub fn tick(&mut self) {
+        if let Some(start_rx) = &self.game_start_rx {
+            if let Ok(()) = start_rx.try_recv() {
+                if let Some(opponent) = &mut self.game.logic.opponent {
+                    opponent.game_started = true;
+                    self.current_popup = None;
+                }
+            }
+        }
+    }
 
     /// Start bot thinking in a separate thread
     pub fn start_bot_thinking(&mut self) {
@@ -356,6 +388,27 @@ impl App {
         let choice = self.menu_cursor == 0;
         self.hosting = Some(choice);
         self.current_popup = None;
+    }
+
+    pub fn cancel_hosting_cleanup(&mut self) {
+        log::info!("Cancelling hosting and cleaning multiplayer state");
+
+        // Close the socket
+        if let Some(mut opponent) = self.game.logic.opponent.take() {
+            if let Some(stream) = opponent.stream.take() {
+                let _ = stream.shutdown(std::net::Shutdown::Both);
+            }
+        }
+
+        // Clear related fields
+        self.hosting = None;
+        self.host_ip = None;
+        self.selected_color = None;
+        self.game_start_rx = None;
+
+        self.game.logic.opponent = None;
+        self.game.logic.game_board.reset();
+        self.game.ui.reset();
     }
 
     pub fn restart(&mut self) {

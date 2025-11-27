@@ -5,7 +5,6 @@ use chess_tui::app::{App, AppResult};
 use chess_tui::config::Config;
 use chess_tui::constants::{home_dir, DisplayMode};
 use chess_tui::event::{Event, EventHandler};
-use chess_tui::game_logic::opponent::wait_for_game_start;
 use chess_tui::handler::{handle_key_events, handle_mouse_events};
 use chess_tui::logging;
 use chess_tui::skin::Skin;
@@ -207,23 +206,9 @@ fn main() -> AppResult<()> {
             app.check_game_end_status();
         }
 
+        // If it's the opponent turn and the game started, wait for the opponent to move
         if let Some(opponent) = app.game.logic.opponent.as_mut() {
-            if !opponent.game_started {
-                if let Some(stream) = opponent.stream.as_ref() {
-                    if let Err(e) = wait_for_game_start(stream) {
-                        log::error!("Error waiting for game start: {}", e);
-                        // Handle error
-                    } else {
-                        opponent.game_started = true;
-                        app.current_popup = None;
-                    }
-                }
-            }
-        }
-
-        // If it's the opponent turn, wait for the opponent to move
-        if let Some(opponent) = app.game.logic.opponent.as_mut() {
-            if opponent.opponent_will_move {
+            if opponent.game_started && opponent.opponent_will_move {
                 tui.draw(&mut app)?;
 
                 if !app.game.logic.game_board.is_checkmate()
