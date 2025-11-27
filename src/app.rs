@@ -49,6 +49,8 @@ pub struct App {
     pub log_level: LevelFilter,
     /// Bot thinking depth for chess engine
     pub bot_depth: u8,
+    /// PGN file path
+    pub pgn_file_path: Option<String>,
     /// Bot thinking channel receiver
     pub bot_move_receiver: Option<Receiver<Move>>,
     /// Error message for Error popup
@@ -76,6 +78,7 @@ impl Default for App {
             chess_engine_path: None,
             log_level: LevelFilter::Off,
             bot_depth: 10,
+            pgn_file_path: None,
             bot_move_receiver: None,
             error_message: None,
             loaded_skin: None,
@@ -535,6 +538,33 @@ impl App {
         self.game.ui.cursor_down(authorized_positions);
     }
 
+    pub fn load_pgn_file(&mut self) -> Result<(), String> {
+        use crate::game_logic::pgn_loader::load_pgn_file;
+
+        if let Some(ref path) = self.pgn_file_path {
+            log::info!("Attempting to load PGN file from: {}", path);
+
+            let (game_board, player_turn) = load_pgn_file(path)?;
+
+            log::info!(
+                "PGN file parsed successfully. Player turn: {:?}",
+                player_turn
+            );
+            log::info!("Move history length: {}", game_board.move_history.len());
+
+            self.game.set_board(game_board);
+            self.game.set_player_turn(player_turn);
+
+            // If it's black's turn, flip the board
+            if player_turn == PieceColor::Black {
+                self.game.game_board.flip_the_board();
+            }
+
+            Ok(())
+        } else {
+            Err("No PGN file path specified".to_string())
+        }
+    }
     /// Resets the application state and returns to the home page.
     /// Preserves display mode preference while cleaning up all game state,
     /// bot state, and multiplayer connections.

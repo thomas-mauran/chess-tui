@@ -265,7 +265,7 @@ pub fn render_help_popup(frame: &mut Frame, app: &crate::app::App) {
         .border_type(BorderType::Rounded)
         .padding(Padding::horizontal(1))
         .border_style(Style::default().fg(WHITE));
-    let area = centered_rect(40, 65, frame.area());
+    let area = centered_rect(40, 70, frame.area());
 
     // Check if we're playing against a bot (history navigation only in solo mode)
     let is_solo_mode = app.game.logic.bot.is_none() && app.game.logic.opponent.is_none();
@@ -285,6 +285,8 @@ pub fn render_help_popup(frame: &mut Frame, app: &crate::app::App) {
         Line::from("`Space`: Select a piece"),
         Line::from(""),
         Line::from("`Esc`: Deselect a piece / hide popups"),
+        Line::from(""),
+        Line::from("p: Load a game from a PGN file (Solo mode only)"),
         Line::from(""),
         Line::from("q: Quit the game"),
         Line::from(""),
@@ -515,6 +517,49 @@ pub fn render_wait_for_other_player(frame: &mut Frame, ip: Option<IpAddr>) {
         .block(block.clone())
         .alignment(Alignment::Left)
         .wrap(Wrap { trim: true });
+
+    frame.render_widget(Clear, area); //this clears out the background
+    frame.render_widget(block, area);
+    frame.render_widget(paragraph, area);
+}
+
+// This renders a popup allowing us to get a user input for PGN file path
+pub fn render_enter_pgn_path(frame: &mut Frame, prompt: &Prompt) {
+    let block = Block::default()
+        .title("Load PGN File")
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .padding(Padding::horizontal(1))
+        .border_style(Style::default().fg(WHITE));
+    let area = centered_rect(50, 40, frame.area());
+
+    let current_input = prompt.input.as_str();
+
+    let text = vec![
+        Line::from("Enter the path to your PGN file:").alignment(Alignment::Center),
+        Line::from(""),
+        Line::from(current_input),
+        Line::from(""),
+        Line::from(""),
+        Line::from("Example: /home/user/games/game.pgn"),
+        Line::from(""),
+        Line::from("The game will load from the moves in the PGN file."),
+        Line::from(""),
+        Line::from("Press `Enter` to load or `Esc` to cancel.").alignment(Alignment::Center),
+    ];
+
+    let paragraph = Paragraph::new(text)
+        .block(block.clone())
+        .alignment(Alignment::Left)
+        .wrap(Wrap { trim: true });
+
+    frame.set_cursor_position(Position::new(
+        // Draw the cursor at the current position in the input field.
+        // This position is can be controlled via the left and right arrow key
+        area.x + prompt.character_index as u16 + 2,
+        // Move one line down, from the border to the input line
+        area.y + 3,
+    ));
 
     frame.render_widget(Clear, area); //this clears out the background
     frame.render_widget(block, area);

@@ -69,5 +69,6 @@ pub enum Popups {
     EnginePathError,
     Help,
     EndScreen,
+    EnterPGNPath,
     Error,
 }
