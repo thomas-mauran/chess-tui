@@ -7,6 +7,7 @@ pub struct Config {
     pub log_level: Option<String>,
     pub bot_depth: Option<u8>,
     pub selected_skin_name: Option<String>,
+    pub lichess_token: Option<String>,
 }
 
 impl Default for Config {
@@ -17,6 +18,7 @@ impl Default for Config {
             log_level: Some("OFF".to_string()),
             bot_depth: Some(10),
             selected_skin_name: Some("Default".to_string()),
+            lichess_token: None,
         }
     }
 }

@@ -12,12 +12,7 @@ pub enum GameState {
 
 impl Clone for GameLogic {
     fn clone(&self) -> Self {
-        let opponent_clone = self.opponent.as_ref().map(|p| Opponent {
-            stream: p.stream.as_ref().and_then(|s| s.try_clone().ok()),
-            opponent_will_move: p.opponent_will_move,
-            color: p.color,
-            game_started: p.game_started,
-        });
+        let opponent_clone = self.opponent.clone();
 
         GameLogic {
             game_board: self.game_board.clone(),
@@ -510,40 +505,47 @@ impl GameLogic {
             return false;
         }
 
-        // We received a move, so we can stop waiting
+       // We received a move, so we can stop waiting
+    // opponent.opponent_will_move = false;
+
+    log::info!("Executing opponent move: {}", opponent_move);
+
+    // Parse move string
+    let (from, to, promotion_piece) = match Self::parse_opponent_move_string(&opponent_move) {
+        Some(m) => m,
+        None => {
+            log::error!("Failed to parse opponent move: {}", opponent_move);
+            return false;
+        }
+    };
+
+    // Get the piece type at the source square to store it in history
+    let piece_type_from = self.game_board.get_role_at_square(&from);
+
+    let executed_move = self
+        .game_board
+        .execute_standard_move(from, to, promotion_piece);
+
+    // Store in history (use visual coordinates for history)
+    if let Some(move_to_store) = executed_move {
+        log::info!("Move executed successfully: {:?}", move_to_store);
+        // If the move was executed successfully, we can stop waiting for the opponent
         opponent.opponent_will_move = false;
 
-        // Parse move string
-        let (from, to, promotion_piece) = match Self::parse_opponent_move_string(&opponent_move) {
-            Some(parsed) => parsed,
-            None => {
-                log::error!("Failed to parse opponent move: {}", opponent_move);
-                return false;
-            }
-        };
-
-        let piece_type_from = self.game_board.get_role_at_square(&from);
-
-        // Execute move with promotion if needed (using standard coordinates)
-        let executed_move = self
-            .game_board
-            .execute_standard_move(from, to, promotion_piece);
-
-        // Store in history (use visual coordinates for history)
-        if let Some(move_to_store) = executed_move {
-            if let Some(piece_type) = piece_type_from {
-                self.game_board.move_history.push(Move::Normal {
-                    role: piece_type,
-                    from,
-                    capture: move_to_store.capture(),
-                    to,
-                    promotion: move_to_store.promotion(),
-                });
-            }
-            true
-        } else {
-            false
+        if let Some(piece_type) = piece_type_from {
+            self.game_board.move_history.push(Move::Normal {
+                role: piece_type,
+                from,
+                capture: move_to_store.capture(),
+                to,
+                promotion: move_to_store.promotion(),
+            });
         }
+        true
+    } else {
+        log::warn!("Failed to execute move on board: {}", opponent_move);
+        false
+    }
     }
 
     pub fn handle_multiplayer_promotion(&mut self) {

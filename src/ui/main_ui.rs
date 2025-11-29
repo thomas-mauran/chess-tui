@@ -3,7 +3,7 @@ use ratatui::{
     prelude::{Alignment, Rect},
     style::{Color, Modifier, Style, Stylize},
     text::Line,
-    widgets::{Block, Paragraph},
+    widgets::{Block, Borders, Paragraph},
     Frame,
 };
 
@@ -13,13 +13,15 @@ use crate::{
     ui::popups::{
         render_color_selection_popup, render_credit_popup, render_end_popup,
         render_engine_path_error_popup, render_error_popup, render_help_popup,
-        render_promotion_popup,
+        render_promotion_popup, render_enter_game_code_popup, render_puzzle_end_popup,
     },
 };
 
 use super::popups::{
     render_enter_multiplayer_ip, render_multiplayer_selection_popup, render_wait_for_other_player,
 };
+use super::lichess_menu::render_lichess_menu;
+use super::ongoing_games::render_ongoing_games;
 use crate::{
     app::App,
     constants::{DisplayMode, Pages, TITLE},
@@ -65,6 +67,12 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
             }
         }
     }
+    // Lichess game
+    else if app.current_page == Pages::Lichess {
+        if app.game.logic.opponent.is_some() {
+             render_game_ui(frame, app, main_area);
+        }
+    }
     // Play against bot
     else if app.current_page == Pages::Bot {
         if app
@@ -80,6 +88,14 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
         } else {
             render_game_ui(frame, app, main_area);
         }
+    }
+    // Lichess menu
+    else if app.current_page == Pages::LichessMenu {
+        render_lichess_menu(frame, app);
+    }
+    // Ongoing games list
+    else if app.current_page == Pages::OngoingGames {
+        render_ongoing_games(frame, app);
     }
     // Render menu
     else {
@@ -111,6 +127,34 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
             if let Some(ref error_msg) = app.error_message {
                 render_error_popup(frame, error_msg);
             }
+        }
+        Some(Popups::SeekingLichessGame) => {
+            let popup_area = centered_rect(60, 20, main_area);
+            let block = Block::default()
+                .title("Lichess")
+                .borders(Borders::ALL)
+                .style(Style::default().bg(Color::DarkGray));
+            let paragraph = Paragraph::new("Seeking a game on Lichess...\n(Press 'Esc' to cancel)")
+                .block(block)
+                .alignment(Alignment::Center);
+            frame.render_widget(paragraph, popup_area);
+        }
+        Some(Popups::EnterGameCode) => {
+            render_enter_game_code_popup(frame, &app.game.ui.prompt);
+        }
+        Some(Popups::PuzzleEndScreen) => {
+            // Show puzzle completion message
+            let message = if let Some(ref error_msg) = app.error_message {
+                error_msg.clone()
+            } else {
+                "Puzzle solved! Well done!".to_string()
+            };
+            
+            // Check if we're still waiting for Elo change calculation
+            let is_calculating = app.puzzle_elo_change.is_none() 
+                && app.puzzle_elo_change_receiver.is_some();
+            
+            render_puzzle_end_popup(frame, &message, app.puzzle_elo_change, is_calculating);
         }
         _ => {}
     }
@@ -186,6 +230,7 @@ pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
     let menu_items = [
         "Normal game",
         "Multiplayer",
+        "Play on Lichess",
         "Play against a bot",
         &display_mode_menu,
         "Help",

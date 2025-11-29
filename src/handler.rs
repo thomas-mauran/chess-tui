@@ -112,18 +112,43 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
         },
         // End screen popup - shown when game ends (checkmate or draw)
         Popups::EndScreen => match key_event.code {
-            KeyCode::Char('h' | 'H') => {
+            KeyCode::Char('h') | KeyCode::Char('H') => {
                 // Hide the end screen (game state remains)
                 app.current_popup = None;
             }
-            KeyCode::Char('r' | 'R') => {
+            KeyCode::Esc => {
+                // Also allow Esc to hide the end screen
+                app.current_popup = None;
+            }
+            KeyCode::Char('r') | KeyCode::Char('R') => {
                 // Restart the game (only for non-multiplayer games)
                 if app.game.logic.opponent.is_none() {
                     app.restart();
                     app.current_popup = None;
                 }
             }
-            KeyCode::Char('b' | 'B') => {
+            KeyCode::Char('b') | KeyCode::Char('B') => {
+                // Go back to home menu - completely reset all game state
+                app.reset_home();
+            }
+            _ => fallback_key_handler(app, key_event),
+        },
+        // Puzzle end screen popup - shown when puzzle is completed
+        Popups::PuzzleEndScreen => match key_event.code {
+            KeyCode::Char('h') | KeyCode::Char('H') => {
+                // Hide the puzzle end screen
+                app.current_popup = None;
+            }
+            KeyCode::Esc => {
+                // Also allow Esc to hide the puzzle end screen
+                app.current_popup = None;
+            }
+            KeyCode::Char('n') | KeyCode::Char('N') => {
+                // Start a new puzzle
+                app.current_popup = None;
+                app.start_puzzle_mode();
+            }
+            KeyCode::Char('b') | KeyCode::Char('B') => {
                 // Go back to home menu - completely reset all game state
                 app.reset_home();
             }
@@ -137,6 +162,45 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
             }
             _ => fallback_key_handler(app, key_event),
         },
+        Popups::EnterGameCode => match key_event.code {
+            KeyCode::Enter => {
+                // Submit the entered game code
+                app.game.ui.prompt.submit_message();
+                let game_code = app.game.ui.prompt.message.clone();
+
+                if !game_code.is_empty() {
+                    // Join the game with the entered code
+                    app.current_page = Pages::Lichess;
+                    app.join_lichess_game_by_code(game_code);
+                } else {
+                    // No code entered, return to menu
+                    app.current_popup = None;
+                    app.current_page = Pages::LichessMenu;
+                }
+            }
+            KeyCode::Char(to_insert) => app.game.ui.prompt.enter_char(to_insert),
+            KeyCode::Backspace => app.game.ui.prompt.delete_char(),
+            KeyCode::Left => app.game.ui.prompt.move_cursor_left(),
+            KeyCode::Right => app.game.ui.prompt.move_cursor_right(),
+            KeyCode::Esc => {
+                // Cancel game code entry and return to Lichess menu
+                app.current_popup = None;
+                app.current_page = Pages::LichessMenu;
+            }
+            _ => fallback_key_handler(app, key_event),
+        },
+        Popups::SeekingLichessGame => match key_event.code {
+            KeyCode::Esc => {
+                if let Some(token) = &app.lichess_cancellation_token {
+                    token.store(true, std::sync::atomic::Ordering::Relaxed);
+                }
+                app.lichess_seek_receiver = None; // Cancel the receiver (thread continues but result ignored)
+                app.lichess_cancellation_token = None;
+                app.current_popup = None;
+                app.current_page = Pages::Home; // Go back to home
+            }
+            _ => fallback_key_handler(app, key_event),
+        },
     };
 }
 
@@ -146,6 +210,9 @@ fn handle_page_input(app: &mut App, key_event: KeyEvent) {
         Pages::Home => handle_home_page_events(app, key_event),
         Pages::Solo => handle_solo_page_events(app, key_event),
         Pages::Multiplayer => handle_multiplayer_page_events(app, key_event),
+        Pages::Lichess => handle_multiplayer_page_events(app, key_event),
+        Pages::LichessMenu => handle_lichess_menu_page_events(app, key_event),
+        Pages::OngoingGames => handle_ongoing_games_page_events(app, key_event),
         Pages::Bot => handle_bot_page_events(app, key_event),
         Pages::Credit => handle_credit_page_events(app, key_event),
     }
@@ -232,12 +299,55 @@ fn chess_inputs(app: &mut App, key_event: KeyEvent) {
         },
         // Select/move piece or confirm action
         KeyCode::Char(' ') | KeyCode::Enter => {
+            // In Lichess mode, only allow input if it's our turn
+            if app.current_page == Pages::Lichess {
+                if let Some(my_color) = app.selected_color {
+                    if app.game.logic.player_turn != my_color {
+                        return;
+                    }
+                }
+            }
+
             // Handle promotion directly (like mouse handler does)
             if app.game.logic.game_state == GameState::Promotion {
                 app.game.handle_promotion();
                 app.check_and_show_game_end();
             } else {
+                // Store move info before execution for puzzle validation
+                let puzzle_move_info = if app.puzzle.is_some() && app.game.ui.is_cell_selected() {
+                    if let Some(selected_square) = app.game.ui.selected_square {
+                        if let Some(cursor_square) = app.game.ui.cursor_coordinates.to_square() {
+                            let from = flip_square_if_needed(
+                                selected_square,
+                                app.game.logic.game_board.is_flipped,
+                            );
+                            let to = flip_square_if_needed(
+                                cursor_square,
+                                app.game.logic.game_board.is_flipped,
+                            );
+                            Some((from, to))
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
+                
                 app.game.handle_cell_click();
+
+                // Validate puzzle move after execution
+                if let Some((from, to)) = puzzle_move_info {
+                    app.validate_puzzle_move_after_execution(from, to);
+                }
+
+                // Ensure board stays unflipped in puzzle mode
+                if app.puzzle.is_some() {
+                    app.game.logic.game_board.is_flipped = false;
+                }
+
                 app.check_and_show_game_end();
             }
         }
@@ -316,8 +426,31 @@ fn try_execute_move(app: &mut App, target_square: shakmaty::Square, coords: Coor
         target_square,
         app.game.logic.game_board.is_flipped,
     )) {
+        // Store move info before execution for puzzle validation
+        let puzzle_move_info = if app.puzzle.is_some() {
+            let from = flip_square_if_needed(
+                app.game.ui.selected_square.unwrap(),
+                app.game.logic.game_board.is_flipped,
+            );
+            let to = flip_square_if_needed(target_square, app.game.logic.game_board.is_flipped);
+            Some((from, to))
+        } else {
+            None
+        };
+        
         app.game.ui.cursor_coordinates = coords;
         app.game.handle_cell_click();
+
+        // Validate puzzle move after execution
+        if let Some((from, to)) = puzzle_move_info {
+            app.validate_puzzle_move_after_execution(from, to);
+        }
+
+        // Ensure board stays unflipped in puzzle mode
+        if app.puzzle.is_some() {
+            app.game.logic.game_board.is_flipped = false;
+        }
+
         app.check_and_show_game_end();
         return true;
     }
@@ -345,6 +478,15 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
         // Ignore clicks when a popup is active
         if app.current_popup.is_some() {
             return Ok(());
+        }
+
+        // In Lichess mode, only allow input if it's our turn
+        if app.current_page == Pages::Lichess {
+            if let Some(my_color) = app.selected_color {
+                if app.game.logic.player_turn != my_color {
+                    return Ok(());
+                }
+            }
         }
 
         // Handle promotion piece selection via mouse
@@ -422,4 +564,69 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
         }
     }
     Ok(())
+}
+
+/// Handles keyboard input on the Lichess menu page.
+/// Supports navigation through menu items and selection.
+fn handle_lichess_menu_page_events(app: &mut App, key_event: KeyEvent) {
+    match key_event.code {
+        KeyCode::Up | KeyCode::Char('k') => app.menu_cursor_up(4), // 4 menu options
+        KeyCode::Down | KeyCode::Char('j') => app.menu_cursor_down(4),
+        KeyCode::Char(' ') | KeyCode::Enter => {
+            // Handle menu selection
+            match app.menu_cursor {
+                0 => {
+                    // Seek Game
+                    app.menu_cursor = 0;
+                    app.current_page = Pages::Lichess;
+                    app.create_lichess_opponent();
+                }
+                1 => {
+                    // Puzzle
+                    app.start_puzzle_mode();
+                }
+                2 => {
+                    // My Ongoing Games
+                    app.fetch_ongoing_games();
+                }
+                3 => {
+                    // Join by Code
+                    app.current_popup = Some(Popups::EnterGameCode);
+                    app.game.ui.prompt.reset();
+                }
+                _ => {}
+            }
+        }
+        KeyCode::Esc | KeyCode::Char('b') => {
+            // Return to home menu
+            app.menu_cursor = 0;
+            app.current_page = Pages::Home;
+        }
+        KeyCode::Char('?') => app.toggle_help_popup(),
+        _ => fallback_key_handler(app, key_event),
+    }
+}
+
+fn handle_ongoing_games_page_events(app: &mut App, key_event: KeyEvent) {
+    match key_event.code {
+        KeyCode::Up | KeyCode::Char('k') => {
+            if app.menu_cursor > 0 {
+                app.menu_cursor -= 1;
+            }
+        }
+        KeyCode::Down | KeyCode::Char('j') => {
+            if (app.menu_cursor as usize) < app.ongoing_games.len().saturating_sub(1) {
+                app.menu_cursor += 1;
+            }
+        }
+        KeyCode::Enter | KeyCode::Char(' ') => {
+            app.select_ongoing_game();
+        }
+        KeyCode::Esc | KeyCode::Char('b') => {
+            app.menu_cursor = 0;
+            app.current_page = Pages::LichessMenu;
+        }
+        KeyCode::Char('?') => app.toggle_help_popup(),
+        _ => fallback_key_handler(app, key_event),
+    }
 }

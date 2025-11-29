@@ -27,6 +27,9 @@ struct Args {
     /// Bot thinking depth for chess engine (1-255)
     #[arg(short, long, default_value = "10")]
     depth: u8,
+    /// Lichess API token
+    #[arg(short, long)]
+    lichess_token: Option<String>,
 }
 
 fn main() -> AppResult<()> {
@@ -77,6 +80,10 @@ fn main() -> AppResult<()> {
             // Add selected skin name handling
             if let Some(selected_skin_name) = config.selected_skin_name {
                 app.selected_skin_name = selected_skin_name;
+            }
+            // Add lichess token handling
+            if let Some(lichess_token) = config.lichess_token {
+                app.lichess_token = Some(lichess_token);
             }
         }
     } else {
@@ -151,6 +158,11 @@ fn main() -> AppResult<()> {
     // Command line depth argument takes precedence over configuration file
     app.bot_depth = args.depth;
 
+    // Command line lichess token takes precedence over configuration file
+    if let Some(token) = &args.lichess_token {
+        app.lichess_token = Some(token.clone());
+    }
+
     // Setup logging
     if let Err(e) = logging::setup_logging(&folder_path, &app.log_level) {
         eprintln!("Failed to initialize logging: {}", e);
@@ -201,22 +213,23 @@ fn main() -> AppResult<()> {
 
         // Check if bot move is ready
         if app.check_bot_move() {
-            app.game.switch_player_turn();
-
-            // need to be centralised
-            app.check_game_end_status();
+            app.check_and_show_game_end();
         }
+
+        // Check if Lichess seek is done
+        app.check_lichess_seek();
+
+        // Check if game ended
+        app.check_game_end_status();
 
         if let Some(opponent) = app.game.logic.opponent.as_mut() {
             if !opponent.game_started {
-                if let Some(stream) = opponent.stream.as_ref() {
-                    if let Err(e) = wait_for_game_start(stream) {
-                        log::error!("Error waiting for game start: {}", e);
-                        // Handle error
-                    } else {
-                        opponent.game_started = true;
-                        app.current_popup = None;
-                    }
+                if let Err(e) = wait_for_game_start(opponent) {
+                    log::error!("Error waiting for game start: {}", e);
+                    // Handle error
+                } else {
+                    opponent.game_started = true;
+                    app.current_popup = None;
                 }
             }
         }
@@ -289,6 +302,12 @@ fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResu
     if config.selected_skin_name.is_none() {
         config.selected_skin_name = Some("Default".to_string());
     }
+    
+    if config.lichess_token.is_none() {
+        if let Some(token) = &args.lichess_token {
+            config.lichess_token = Some(token.clone());
+        }
+    }
 
     // Update bot_depth if provided via command line
     if args.depth != 10 {
@@ -328,6 +347,7 @@ mod tests {
         let args = Args {
             engine_path: "test_engine_path".to_string(),
             depth: 10,
+            lichess_token: None,
         };
 
         let home_dir = home_dir().expect("Failed to get home directory");

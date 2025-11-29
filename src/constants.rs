@@ -51,12 +51,15 @@ pub enum Pages {
     Home,
     Solo,
     Multiplayer,
+    Lichess,
+    LichessMenu,
+    OngoingGames,
     Bot,
     Credit,
 }
 impl Pages {
     pub fn variant_count() -> usize {
-        6
+        7
     }
 }
 
@@ -69,5 +72,8 @@ pub enum Popups {
     EnginePathError,
     Help,
     EndScreen,
+    PuzzleEndScreen,
     Error,
+    SeekingLichessGame,
+    EnterGameCode,
 }
