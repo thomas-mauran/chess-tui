@@ -14,6 +14,7 @@ pub enum OpponentKind {
         game_id: String,
         move_rx: Receiver<String>,
         move_tx: Sender<String>,
+        player_move_tx: Option<Sender<()>>,
     },
 }
 
@@ -25,6 +26,10 @@ pub struct Opponent {
     pub color: Color,
     /// Is Game started
     pub game_started: bool,
+    /// Number of moves already played when joining (for ongoing games)
+    pub initial_move_count: usize,
+    /// Counter for moves received from stream
+    pub moves_received: usize,
 }
 
 // Custom Default implementation
@@ -35,6 +40,8 @@ impl Default for Opponent {
             opponent_will_move: false,
             color: Color::Black,
             game_started: false,
+            initial_move_count: 0,
+            moves_received: 0,
         }
     }
 }
@@ -46,7 +53,7 @@ impl Clone for Opponent {
         // The original code tried to clone TcpStream.
         let kind = match &self.kind {
             Some(OpponentKind::Tcp(stream)) => stream.try_clone().ok().map(OpponentKind::Tcp),
-            Some(OpponentKind::Lichess { .. }) => None, // Cannot clone channels
+            Some(OpponentKind::Lichess { .. }) => None, // Cannot clone channels or senders
             None => None,
         };
 
@@ -55,6 +62,8 @@ impl Clone for Opponent {
             opponent_will_move: self.opponent_will_move,
             color: self.color,
             game_started: self.game_started,
+            initial_move_count: self.initial_move_count,
+            moves_received: self.moves_received,
         }
     }
 }
@@ -66,6 +75,8 @@ impl Opponent {
             opponent_will_move: self.opponent_will_move,
             color: self.color,
             game_started: self.game_started,
+            initial_move_count: self.initial_move_count,
+            moves_received: self.moves_received,
         }
     }
 
@@ -119,6 +130,8 @@ impl Opponent {
                 opponent_will_move,
                 color,
                 game_started: false,
+                initial_move_count: 0,
+                moves_received: 0,
             })
         } else {
             log::error!("Failed to connect after 5 attempts to {}", addr);
@@ -134,6 +147,8 @@ impl Opponent {
         color: Color,
         move_rx: Receiver<String>,
         move_tx: Sender<String>,
+        initial_move_count: usize,
+        player_move_tx: Option<Sender<()>>,
     ) -> Self {
         let opponent_will_move = color == Color::White;
         Opponent {
@@ -141,10 +156,13 @@ impl Opponent {
                 game_id,
                 move_rx,
                 move_tx,
+                player_move_tx,
             }),
             opponent_will_move,
             color,
             game_started: true, // Lichess game starts immediately when we join/seek
+            initial_move_count,
+            moves_received: 0,
         }
     }
 

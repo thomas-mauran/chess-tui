@@ -102,7 +102,9 @@ impl Game {
 
         // If we are doing a promotion the cursor is used for the popup
         if self.logic.game_state == GameState::Promotion {
-            self.handle_promotion();
+            // Default to flipping in solo mode (no bot, no opponent)
+            let should_flip = self.logic.opponent.is_none() && self.logic.bot.is_none();
+            self.handle_promotion(should_flip);
         } else if !(self.logic.game_state == GameState::Checkmate)
             && !(self.logic.game_state == GameState::Draw)
         {
@@ -115,11 +117,11 @@ impl Game {
         self.logic.update_game_state();
     }
 
-    pub fn handle_promotion(&mut self) {
+    pub fn handle_promotion(&mut self, should_flip: bool) {
         // Validate promotion cursor is in valid range (0-3)
         if self.ui.promotion_cursor >= 0 && self.ui.promotion_cursor <= 3 {
             if let Ok(promotion_cursor_u8) = self.ui.promotion_cursor.try_into() {
-                self.logic.promote_piece(promotion_cursor_u8);
+                self.logic.promote_piece(promotion_cursor_u8, should_flip);
             } else {
                 log::error!(
                     "Failed to convert promotion cursor {} to u8",
@@ -175,6 +177,18 @@ impl Game {
                     // Send move to opponent
                     if let Some(last_move) = self.logic.game_board.move_history.last() {
                         opponent.send_move_to_server(last_move, last_move.promotion());
+                        
+                        // For Lichess games, signal the polling thread that player made a move
+                        // This resets the polling skip flag so polling resumes for opponent's turn
+                        if let Some(crate::game_logic::opponent::OpponentKind::Lichess { player_move_tx, .. }) = &opponent.kind {
+                            if let Some(ref tx) = player_move_tx {
+                                if let Err(e) = tx.send(()) {
+                                    log::warn!("Failed to signal player move to polling thread: {}", e);
+                                } else {
+                                    log::debug!("Signaled polling thread that player made a move");
+                                }
+                            }
+                        }
                     } else {
                         log::error!("Cannot send move to opponent: move history is empty");
                     }
@@ -351,7 +365,7 @@ impl GameLogic {
     }
 
     // Method to promote a pawn
-    pub fn promote_piece(&mut self, promotion_cursor: u8) {
+    pub fn promote_piece(&mut self, promotion_cursor: u8, should_flip: bool) {
         if let Some(last_move) = self.game_board.move_history.last().cloned() {
             let new_piece = match promotion_cursor {
                 0 => Role::Queen,
@@ -392,7 +406,8 @@ impl GameLogic {
         }
 
         self.game_state = GameState::Playing;
-        if !self.game_board.is_draw()
+        if should_flip
+            && !self.game_board.is_draw()
             && !self.game_board.is_checkmate()
             && self.opponent.is_none()
             && self.bot.is_none()
@@ -505,47 +520,74 @@ impl GameLogic {
             return false;
         }
 
-       // We received a move, so we can stop waiting
-    // opponent.opponent_will_move = false;
+        // Check if this is a control message to update initial_move_count
+        if opponent_move.starts_with("INIT_MOVES:") {
+            if let Some(count_str) = opponent_move.strip_prefix("INIT_MOVES:") {
+                if let Ok(count) = count_str.parse::<usize>() {
+                    log::info!("Updating initial_move_count to {} (turns from stream)", count);
+                    opponent.initial_move_count = count;
+                    // Set moves_received to initial_move_count so that the next move we receive
+                    // will be considered new (moves_received > initial_move_count)
+                    opponent.moves_received = count;
+                }
+            }
+            return false; // Don't execute this as a move
+        }
 
-    log::info!("Executing opponent move: {}", opponent_move);
+        // Increment moves received counter
+        opponent.moves_received += 1;
 
-    // Parse move string
-    let (from, to, promotion_piece) = match Self::parse_opponent_move_string(&opponent_move) {
-        Some(m) => m,
-        None => {
-            log::error!("Failed to parse opponent move: {}", opponent_move);
+        // Skip historical moves - only execute moves that are new (after initial_move_count)
+        // When joining an ongoing game, the stream replays all moves, but we've already set up
+        // the board with the current position, so we need to skip those historical moves
+        if opponent.moves_received <= opponent.initial_move_count {
+            log::debug!(
+                "Skipping historical move {} (received: {}, initial: {})",
+                opponent_move,
+                opponent.moves_received,
+                opponent.initial_move_count
+            );
             return false;
         }
-    };
 
-    // Get the piece type at the source square to store it in history
-    let piece_type_from = self.game_board.get_role_at_square(&from);
+        log::info!("Executing opponent move: {}", opponent_move);
 
-    let executed_move = self
-        .game_board
-        .execute_standard_move(from, to, promotion_piece);
+        // Parse move string
+        let (from, to, promotion_piece) = match Self::parse_opponent_move_string(&opponent_move) {
+            Some(m) => m,
+            None => {
+                log::error!("Failed to parse opponent move: {}", opponent_move);
+                return false;
+            }
+        };
 
-    // Store in history (use visual coordinates for history)
-    if let Some(move_to_store) = executed_move {
-        log::info!("Move executed successfully: {:?}", move_to_store);
-        // If the move was executed successfully, we can stop waiting for the opponent
-        opponent.opponent_will_move = false;
+        // Get the piece type at the source square to store it in history
+        let piece_type_from = self.game_board.get_role_at_square(&from);
 
-        if let Some(piece_type) = piece_type_from {
-            self.game_board.move_history.push(Move::Normal {
-                role: piece_type,
-                from,
-                capture: move_to_store.capture(),
-                to,
-                promotion: move_to_store.promotion(),
-            });
+        let executed_move = self
+            .game_board
+            .execute_standard_move(from, to, promotion_piece);
+
+        // Store in history (use visual coordinates for history)
+        if let Some(move_to_store) = executed_move {
+            log::info!("Move executed successfully: {:?}", move_to_store);
+            // If the move was executed successfully, we can stop waiting for the opponent
+            opponent.opponent_will_move = false;
+
+            if let Some(piece_type) = piece_type_from {
+                self.game_board.move_history.push(Move::Normal {
+                    role: piece_type,
+                    from,
+                    capture: move_to_store.capture(),
+                    to,
+                    promotion: move_to_store.promotion(),
+                });
+            }
+            true
+        } else {
+            log::warn!("Failed to execute move on board: {} (may be a historical move)", opponent_move);
+            false
         }
-        true
-    } else {
-        log::warn!("Failed to execute move on board: {}", opponent_move);
-        false
-    }
     }
 
     pub fn handle_multiplayer_promotion(&mut self) {
@@ -567,5 +609,17 @@ impl GameLogic {
 
         opponent.send_move_to_server(last_move, last_move.promotion());
         opponent.opponent_will_move = true;
+        
+        // For Lichess games, signal the polling thread that player made a move
+        // This resets the polling skip flag so polling resumes for opponent's turn
+        if let Some(crate::game_logic::opponent::OpponentKind::Lichess { player_move_tx, .. }) = &opponent.kind {
+            if let Some(ref tx) = player_move_tx {
+                if let Err(e) = tx.send(()) {
+                    log::warn!("Failed to signal player move to polling thread: {}", e);
+                } else {
+                    log::debug!("Signaled polling thread that player made a move (promotion)");
+                }
+            }
+        }
     }
 }

@@ -103,13 +103,13 @@ pub fn render_end_popup(frame: &mut Frame, sentence: &str, is_multiplayer: bool)
             .alignment(Alignment::Center)
             .style(Style::default().fg(Color::LightBlue)),
         Line::from(""),
-        Line::from(if is_multiplayer {
-            "Press `B` to go back to the menu"
-        } else {
-            "Press `R` to restart a new game"
-        })
-        .alignment(Alignment::Center)
-        .style(Style::default().fg(Color::LightGreen)),
+        Line::from("Press `R` to restart a new game")
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(Color::LightGreen)),
+        Line::from(""),
+        Line::from("Press `B` to go back to the menu")
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(Color::LightCyan)),
         Line::from(""),
         Line::from(""),
     ];
@@ -347,16 +347,33 @@ pub fn render_help_popup(frame: &mut Frame, app: &crate::app::App) {
 
     // Check if we're playing against a bot (history navigation only in solo mode)
     let is_solo_mode = app.game.logic.bot.is_none() && app.game.logic.opponent.is_none();
+    let is_puzzle_mode = app.puzzle_game.is_some();
 
     let mut text = vec![
         Line::from("Game controls:".underlined().bold()),
         Line::from(""),
-        Line::from(vec![
+    ];
+
+    // In puzzle mode, 'h' is for hint, not left movement
+    if is_puzzle_mode {
+        text.push(Line::from(vec![
+            "← ↑/k ↓/j →/l: Use these keys or the mouse to move the ".into(),
+            "blue".blue(),
+            " cursor".into(),
+        ]));
+        text.push(Line::from(""));
+        text.push(Line::from("T: Show hint (select the piece to move)".yellow()));
+        text.push(Line::from(""));
+    } else {
+        text.push(Line::from(vec![
             "←/h ↑/k ↓/j →/l: Use these keys or the mouse to move the ".into(),
             "blue".blue(),
             " cursor".into(),
-        ]),
-        Line::from(""),
+        ]));
+        text.push(Line::from(""));
+    }
+
+    text.extend(vec![
         Line::from("`Ctrl` '+' or '-': Zoom in or out to adjust pieces sizes"),
         Line::from("(Might differ in certain terminals)"),
         Line::from(""),
@@ -370,10 +387,10 @@ pub fn render_help_popup(frame: &mut Frame, app: &crate::app::App) {
         Line::from(""),
         Line::from("s: Cycle through available skins"),
         Line::from(""),
-    ];
+    ]);
 
-    // Only show history navigation controls in solo mode (not against bot)
-    if is_solo_mode {
+    // Only show history navigation controls in solo mode (not against bot or puzzle)
+    if is_solo_mode && !is_puzzle_mode {
         text.push(Line::from("P: Navigate to previous position in history"));
         text.push(Line::from(""));
         text.push(Line::from("N: Navigate to next position in history"));

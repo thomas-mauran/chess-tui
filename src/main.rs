@@ -235,20 +235,31 @@ fn main() -> AppResult<()> {
         }
 
         // If it's the opponent turn, wait for the opponent to move
-        if let Some(opponent) = app.game.logic.opponent.as_mut() {
-            if opponent.opponent_will_move {
-                tui.draw(&mut app)?;
+        // Only check when it's actually the opponent's turn to avoid unnecessary work
+        if let Some(opponent) = app.game.logic.opponent.as_ref() {
+            // Check if it's the opponent's turn: if player_turn == opponent.color, it's opponent's turn
+            let is_opponent_turn = app.game.logic.player_turn == opponent.color;
+            
+            // Only check for TCP multiplayer moves here (Lichess is handled in tick())
+            // Check both the turn and the flag for TCP multiplayer
+            if is_opponent_turn && opponent.opponent_will_move {
+                // Check if it's TCP (not Lichess) - Lichess is handled in tick()
+                let is_tcp = matches!(opponent.kind, Some(chess_tui::game_logic::opponent::OpponentKind::Tcp(_)));
+                
+                if is_tcp {
+                    tui.draw(&mut app)?;
 
-                if !app.game.logic.game_board.is_checkmate()
-                    && !app.game.logic.game_board.is_draw()
-                    && app.game.logic.execute_opponent_move()
-                {
-                    app.game.switch_player_turn();
+                    if !app.game.logic.game_board.is_checkmate()
+                        && !app.game.logic.game_board.is_draw()
+                        && app.game.logic.execute_opponent_move()
+                    {
+                        app.game.switch_player_turn();
+                    }
+
+                    // need to be centralised
+                    app.check_game_end_status();
+                    tui.draw(&mut app)?;
                 }
-
-                // need to be centralised
-                app.check_game_end_status();
-                tui.draw(&mut app)?;
             }
         }
     }

@@ -5,6 +5,7 @@ use crate::game_logic::coord::Coord;
 use crate::game_logic::game::Game;
 use crate::game_logic::game::GameState;
 use crate::game_logic::opponent::Opponent;
+use crate::game_logic::puzzle::PuzzleGame;
 use crate::lichess::LichessClient;
 use crate::server::game_server::GameServer;
 use crate::skin::Skin;
@@ -18,7 +19,7 @@ use std::io::Write;
 use std::net::{IpAddr, UdpSocket};
 use std::sync::mpsc::{channel, Receiver};
 use std::thread::sleep;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 /// Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
@@ -64,28 +65,13 @@ pub struct App {
     pub lichess_cancellation_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
     /// Ongoing Lichess games
     pub ongoing_games: Vec<crate::lichess::OngoingGame>,
-    /// Current puzzle
-    pub puzzle: Option<crate::lichess::Puzzle>,
-    /// Current puzzle solution index
-    pub puzzle_solution_index: usize,
-    /// Pending opponent move to play after delay (move_uci, index_to_advance)
-    pub puzzle_opponent_move_pending: Option<(String, usize)>,
-    /// Timestamp when player move was made (for 1 second delay)
-    pub puzzle_opponent_move_time: Option<Instant>,
-    /// Timestamp when puzzle was started (for calculating completion time)
-    pub puzzle_start_time: Option<Instant>,
-    /// Whether the user made any wrong moves during the puzzle
-    pub puzzle_has_mistakes: bool,
-    /// Whether the puzzle result has already been submitted to Lichess
-    pub puzzle_submitted: bool,
+    /// Puzzle Game State
+    pub puzzle_game: Option<PuzzleGame>,
+    /// Pending promotion move for puzzle validation (from, to squares)
+    /// This is set when a promotion move is made and cleared after validation
+    pub pending_promotion_move: Option<(shakmaty::Square, shakmaty::Square)>,
     /// Lichess user profile (username, ratings, etc.)
     pub lichess_user_profile: Option<crate::lichess::UserProfile>,
-    /// Puzzle rating before submission (to calculate Elo change)
-    pub puzzle_rating_before: Option<u32>,
-    /// Puzzle Elo change after submission
-    pub puzzle_elo_change: Option<i32>,
-    /// Receiver for Elo change updates from background thread
-    pub puzzle_elo_change_receiver: Option<std::sync::mpsc::Receiver<i32>>,
 }
 
 impl Default for App {
@@ -111,17 +97,9 @@ impl Default for App {
             lichess_seek_receiver: None,
             lichess_cancellation_token: None,
             ongoing_games: Vec::new(),
-            puzzle: None,
-            puzzle_solution_index: 0,
-            puzzle_opponent_move_pending: None,
-            puzzle_opponent_move_time: None,
-            puzzle_start_time: None,
-            puzzle_has_mistakes: false,
-            puzzle_submitted: false,
+            puzzle_game: None,
+            pending_promotion_move: None,
             lichess_user_profile: None,
-            puzzle_rating_before: None,
-            puzzle_elo_change: None,
-            puzzle_elo_change_receiver: None,
         }
     }
 }
@@ -137,10 +115,10 @@ impl App {
 
     pub fn show_end_screen(&mut self) {
         // Use puzzle-specific end screen if in puzzle mode
-        if self.puzzle.is_some() {
+        if self.puzzle_game.is_some() {
             self.current_popup = Some(Popups::PuzzleEndScreen);
         } else {
-        self.current_popup = Some(Popups::EndScreen);
+            self.current_popup = Some(Popups::EndScreen);
         }
     }
     pub fn toggle_credit_popup(&mut self) {
@@ -228,10 +206,10 @@ impl App {
             let client = LichessClient::new(token.clone());
             let (tx, rx) = channel();
             self.lichess_seek_receiver = Some(rx);
-            
+
             let cancellation_token = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
             self.lichess_cancellation_token = Some(cancellation_token.clone());
-            
+
             self.current_popup = Some(Popups::SeekingLichessGame);
 
             std::thread::spawn(move || {
@@ -255,8 +233,8 @@ impl App {
                 }
             });
         } else {
-             self.error_message = Some("No Lichess token found in config".to_string());
-             self.current_popup = Some(Popups::Error);
+            self.error_message = Some("No Lichess token found in config".to_string());
+            self.current_popup = Some(Popups::Error);
         }
     }
 
@@ -265,7 +243,7 @@ impl App {
             let client = LichessClient::new(token.clone());
             let (tx, rx) = channel();
             self.lichess_seek_receiver = Some(rx);
-            
+
             self.current_popup = Some(Popups::SeekingLichessGame);
 
             std::thread::spawn(move || {
@@ -301,8 +279,8 @@ impl App {
                 }
             });
         } else {
-             self.error_message = Some("No Lichess token found in config".to_string());
-             self.current_popup = Some(Popups::Error);
+            self.error_message = Some("No Lichess token found in config".to_string());
+            self.current_popup = Some(Popups::Error);
         }
     }
 
@@ -314,8 +292,9 @@ impl App {
 
                 match result {
                     Ok((game_id, color)) => {
-                         log::info!("Found Lichess game: {} with color {:?}", game_id, color);
-                         self.setup_lichess_game(game_id, color);
+                        log::info!("Found Lichess game: {} with color {:?}", game_id, color);
+                        // For new games from seek, initial_move_count is 0
+                        self.setup_lichess_game(game_id, color, 0);
                     }
                     Err(e) => {
                         log::error!("Failed to seek Lichess game: {}", e);
@@ -327,18 +306,24 @@ impl App {
         }
     }
 
-    fn setup_lichess_game(&mut self, game_id: String, color: Color) {
+    fn setup_lichess_game(&mut self, game_id: String, color: Color, initial_move_count: usize) {
         if let Some(token) = &self.lichess_token {
             let client = LichessClient::new(token.clone());
             let (lichess_to_app_tx, lichess_to_app_rx) = channel::<String>();
             let (app_to_lichess_tx, app_to_lichess_rx) = channel::<String>();
+            let (player_move_tx, player_move_rx) = channel::<()>();
 
             // Start streaming game events
-            if let Err(e) = client.stream_game(game_id.clone(), lichess_to_app_tx) {
-                 log::error!("Failed to stream Lichess game: {}", e);
-                 self.error_message = Some(format!("Failed to stream game: {}", e));
-                 self.current_popup = Some(Popups::Error);
-                 return;
+            if let Err(e) = client.stream_game(
+                game_id.clone(),
+                lichess_to_app_tx,
+                Some(color),
+                Some(player_move_rx),
+            ) {
+                log::error!("Failed to stream Lichess game: {}", e);
+                self.error_message = Some(format!("Failed to stream game: {}", e));
+                self.current_popup = Some(Popups::Error);
+                return;
             }
 
             // Spawn thread to handle outgoing moves
@@ -352,20 +337,26 @@ impl App {
                 }
             });
 
-            let opponent =
-                Opponent::new_lichess(game_id, color, lichess_to_app_rx, app_to_lichess_tx);
-            
+            let opponent = Opponent::new_lichess(
+                game_id,
+                color,
+                lichess_to_app_rx,
+                app_to_lichess_tx,
+                initial_move_count,
+                Some(player_move_tx),
+            );
+
             self.selected_color = Some(color);
             self.game.logic.opponent = Some(opponent);
-            
+
             if color == Color::Black {
-                 self.game.logic.game_board.flip_the_board();
+                self.game.logic.game_board.flip_the_board();
             }
-             // Ensure skin is preserved
+            // Ensure skin is preserved
             if let Some(skin) = &self.loaded_skin {
                 self.game.ui.skin = skin.clone();
             }
-            
+
             // Switch to Lichess page to show the game board
             self.current_page = Pages::Lichess;
         }
@@ -412,37 +403,194 @@ impl App {
             let game_id = game.game_id.clone();
             let color_str = game.color.clone();
             let fen = game.fen.clone();
-            
+
             // Convert color string to shakmaty::Color
             let color = if color_str == "white" {
                 shakmaty::Color::White
             } else {
                 shakmaty::Color::Black
             };
-            
+
             log::info!(
                 "Joining ongoing game: {} as {:?} with FEN: {}",
                 game_id,
                 color,
                 fen
             );
-            
+
+            // Fetch moves from board API to build history
+            let moves_string = if let Some(token) = &self.lichess_token {
+                let client = crate::lichess::LichessClient::new(token.clone());
+                match client.get_game_state_with_moves(&game_id) {
+                    Ok(moves) => {
+                        log::info!("Fetched moves string: {}", moves);
+                        Some(moves)
+                    }
+                    Err(e) => {
+                        log::warn!(
+                            "Failed to fetch moves from board API: {}, will use FEN only",
+                            e
+                        );
+                        None
+                    }
+                }
+            } else {
+                None
+            };
+
             // Parse the FEN to get the current game state
             match shakmaty::fen::Fen::from_ascii(fen.as_bytes()) {
                 Ok(fen_data) => {
                     match fen_data.into_position(shakmaty::CastlingMode::Standard) {
                         Ok(position) => {
-                            // Set up the game with the current position
-                            // Clear existing history and set the new position
-                            self.game.logic.game_board.position_history = vec![position];
-                            self.game.logic.game_board.move_history = vec![];
-                            self.game.logic.game_board.history_position_index = None;
-                            
-                            // Sync the player turn with the position's turn
-                            self.game.logic.sync_player_turn_with_position();
-                            
-                            // Now set up the Lichess connection
-                            self.setup_lichess_game(game_id, color);
+                            // If we have moves, apply them to build the history
+                            if let Some(moves_str) = moves_string {
+                                if !moves_str.trim().is_empty() {
+                                    log::info!(
+                                        "Applying {} moves to build history",
+                                        moves_str.split_whitespace().count()
+                                    );
+
+                                    // Parse moves string (space-separated UCI moves)
+                                    let move_strings: Vec<&str> =
+                                        moves_str.split_whitespace().collect();
+
+                                    // Start from the initial position
+                                    let mut current_position = shakmaty::Chess::default();
+                                    let mut position_history = vec![current_position.clone()];
+                                    let mut move_history = Vec::new();
+
+                                    // Helper function to parse UCI move
+                                    let parse_uci_move = |move_str: &str| -> Option<(
+                                        shakmaty::Square,
+                                        shakmaty::Square,
+                                        Option<shakmaty::Role>,
+                                    )> {
+                                        if move_str.len() < 4 {
+                                            return None;
+                                        }
+
+                                        let mut chars = move_str.chars();
+                                        let from_file_char = chars.next()?;
+                                        let from_rank_char = chars.next()?;
+                                        let to_file_char = chars.next()?;
+                                        let to_rank_char = chars.next()?;
+
+                                        // Parse promotion piece if present (5th character)
+                                        let promotion_piece: Option<shakmaty::Role> =
+                                            if move_str.len() == 5 {
+                                                match move_str.chars().nth(4)? {
+                                                    'q' => Some(shakmaty::Role::Queen),
+                                                    'r' => Some(shakmaty::Role::Rook),
+                                                    'b' => Some(shakmaty::Role::Bishop),
+                                                    'n' => Some(shakmaty::Role::Knight),
+                                                    _ => None,
+                                                }
+                                            } else {
+                                                None
+                                            };
+
+                                        let from_str =
+                                            format!("{}{}", from_file_char, from_rank_char);
+                                        let to_str = format!("{}{}", to_file_char, to_rank_char);
+
+                                        let from =
+                                            shakmaty::Square::from_ascii(from_str.as_bytes())
+                                                .ok()?;
+                                        let to =
+                                            shakmaty::Square::from_ascii(to_str.as_bytes()).ok()?;
+
+                                        Some((from, to, promotion_piece))
+                                    };
+
+                                    // Apply each move
+                                    for (i, move_uci) in move_strings.iter().enumerate() {
+                                        // Parse UCI move (e.g., "e2e4" or "e7e8q")
+                                        if let Some((from, to, promotion)) =
+                                            parse_uci_move(move_uci)
+                                        {
+                                            // Find the legal move matching this UCI move
+                                            let legal_moves = current_position.legal_moves();
+                                            if let Some(chess_move) = legal_moves.iter().find(|m| {
+                                                m.from() == Some(from)
+                                                    && m.to() == to
+                                                    && m.promotion() == promotion
+                                            }) {
+                                                // Store the move
+                                                move_history.push(chess_move.clone());
+
+                                                // Apply the move
+                                                match current_position.play(chess_move) {
+                                                    Ok(new_pos) => {
+                                                        log::debug!(
+                                                            "Applied move {}: {} -> position {}",
+                                                            i + 1,
+                                                            move_uci,
+                                                            i + 2
+                                                        );
+                                                        position_history.push(new_pos.clone());
+                                                        current_position = new_pos;
+                                                    }
+                                                    Err(e) => {
+                                                        log::error!(
+                                                            "Failed to play move {}: {} - {}",
+                                                            i + 1,
+                                                            move_uci,
+                                                            e
+                                                        );
+                                                        break;
+                                                    }
+                                                }
+                                            } else {
+                                                log::error!(
+                                                    "Move {} is not legal: {}",
+                                                    i + 1,
+                                                    move_uci
+                                                );
+                                                break;
+                                            }
+                                        } else {
+                                            log::error!("Failed to parse UCI move: {}", move_uci);
+                                            break;
+                                        }
+                                    }
+
+                                    log::info!(
+                                        "Applied {} moves, built history with {} positions",
+                                        move_history.len(),
+                                        position_history.len()
+                                    );
+
+                                    // Set up the game with the full history
+                                    self.game.logic.game_board.position_history = position_history;
+                                    self.game.logic.game_board.move_history = move_history;
+                                    self.game.logic.game_board.history_position_index = None;
+
+                                    // Sync the player turn with the position's turn
+                                    self.game.logic.sync_player_turn_with_position();
+
+                                    // Calculate initial move count (number of half-moves)
+                                    let initial_move_count =
+                                        self.game.logic.game_board.move_history.len();
+
+                                    // Now set up the Lichess connection
+                                    self.setup_lichess_game(game_id, color, initial_move_count);
+                                } else {
+                                    // No moves, just set up with current position
+                                    self.game.logic.game_board.position_history = vec![position];
+                                    self.game.logic.game_board.move_history = vec![];
+                                    self.game.logic.game_board.history_position_index = None;
+                                    self.game.logic.sync_player_turn_with_position();
+                                    self.setup_lichess_game(game_id, color, 0);
+                                }
+                            } else {
+                                // No moves available, just set up with current position
+                                self.game.logic.game_board.position_history = vec![position];
+                                self.game.logic.game_board.move_history = vec![];
+                                self.game.logic.game_board.history_position_index = None;
+                                self.game.logic.sync_player_turn_with_position();
+                                self.setup_lichess_game(game_id, color, 0);
+                            }
                         }
                         Err(e) => {
                             log::error!("Failed to parse FEN position: {}", e);
@@ -465,17 +613,13 @@ impl App {
         // Clear any existing popups and error messages when starting a new puzzle
         self.current_popup = None;
         self.error_message = None;
-        // Clear any pending opponent moves
-        self.puzzle_opponent_move_pending = None;
-        self.puzzle_opponent_move_time = None;
-        // Reset puzzle start time and mistake tracking
-        self.puzzle_start_time = None;
-        self.puzzle_has_mistakes = false;
-        self.puzzle_submitted = false;
-        self.puzzle_rating_before = None;
-        self.puzzle_elo_change = None;
-        // Clear any pending Elo change receiver from previous puzzle
-        self.puzzle_elo_change_receiver = None;
+        self.puzzle_game = None;
+
+        // Clear opponent - puzzles don't use Lichess multiplayer, so no polling needed
+        // This stops any polling threads from previous Lichess games
+        self.game.logic.opponent = None;
+        self.selected_color = None;
+
         // Reset game state to Playing (in case it was Checkmate/Draw from previous puzzle)
         // This must be done early to prevent check_and_show_game_end from re-showing the popup
         self.game.logic.game_state = GameState::Playing;
@@ -496,14 +640,14 @@ impl App {
                     log::info!("Puzzle solution: {:?}", puzzle.puzzle.solution);
                     log::info!("Puzzle themes: {:?}", puzzle.puzzle.themes);
                     log::info!("Puzzle PGN: {}", puzzle.game.pgn);
-                    
+
                     // Extract moves from PGN (after the headers)
                     let moves_section = if let Some(moves_start) = puzzle.game.pgn.rfind("\n\n") {
                         &puzzle.game.pgn[moves_start + 2..]
                     } else {
                         &puzzle.game.pgn
                     };
-                    
+
                     // Parse moves (remove move numbers and result)
                     // Move numbers are in format "1." "2." etc, or just numbers
                     let move_strings: Vec<&str> = moves_section
@@ -519,19 +663,19 @@ impl App {
                                 && *s != "1/2-1/2"
                         })
                         .collect();
-                    
+
                     log::info!("Extracted moves: {:?}", move_strings);
                     log::info!("Total moves extracted: {}", move_strings.len());
-                    
+
                     // Start from the initial position
                     let mut position = shakmaty::Chess::default();
                     let mut position_history = vec![position.clone()];
                     let mut move_history = Vec::new();
-                    
+
                     // Apply moves and store them in history
                     let moves_to_apply = move_strings.len();
                     log::info!("Will apply {} moves", moves_to_apply);
-                    
+
                     for (i, move_str) in move_strings.iter().take(moves_to_apply).enumerate() {
                         if let Ok(san) = shakmaty::san::San::from_ascii(move_str.as_bytes()) {
                             if let Ok(chess_move) = san.to_move(&position) {
@@ -560,7 +704,7 @@ impl App {
                             log::error!("Failed to parse SAN: {}", move_str);
                         }
                     }
-                    
+
                     log::info!(
                         "Finished applying moves. Current turn: {:?}",
                         position.turn()
@@ -570,32 +714,32 @@ impl App {
                         move_history.len(),
                         position_history.len()
                     );
-                    
+
                     // Set up the game with the puzzle position and all past moves
                     self.game.logic.game_board.position_history = position_history;
                     self.game.logic.game_board.move_history = move_history;
                     self.game.logic.game_board.history_position_index = None;
-                    
+
                     // Sync the player turn with the position's turn
                     self.game.logic.sync_player_turn_with_position();
-                    
-                    // Store puzzle data
-                    self.puzzle = Some(puzzle);
-                    self.puzzle_solution_index = 0;
-                    // Record puzzle start time
-                    self.puzzle_start_time = Some(Instant::now());
-                    // Store puzzle rating before starting (to calculate Elo change later)
+
+                    // Get rating before
+                    let mut rating_before = None;
                     if let Some(profile) = &self.lichess_user_profile {
                         if let Some(perfs) = &profile.perfs {
                             if let Some(puzzle_perf) = &perfs.puzzle {
-                                self.puzzle_rating_before = Some(puzzle_perf.rating);
+                                rating_before = Some(puzzle_perf.rating);
                             }
                         }
                     }
 
-                    // Ensure board is not flipped in puzzle mode - always show from white's perspective
-                    self.game.logic.game_board.is_flipped = false;
-                    
+                    // Initialize PuzzleGame
+                    self.puzzle_game = Some(PuzzleGame::new(puzzle, rating_before));
+
+                    // Ensure board stays unflipped in puzzle mode
+                    if self.puzzle_game.is_some() {
+                        self.game.logic.game_board.is_flipped = false;
+                    }
                     // Switch to Solo page to show the board
                     self.current_page = Pages::Solo;
                 }
@@ -614,341 +758,75 @@ impl App {
     /// Validate puzzle move after it has been executed.
     /// Returns true if the move was correct, false if it was wrong.
     /// Always auto-plays the opponent's next move regardless of correctness.
+    /// Validate puzzle move after it has been executed.
+    /// Returns true if the move was correct, false if it was wrong.
+    /// Always auto-plays the opponent's next move regardless of correctness.
     pub fn validate_puzzle_move_after_execution(
         &mut self,
         from: shakmaty::Square,
         to: shakmaty::Square,
     ) -> bool {
         // Check if we're in puzzle mode
-        let puzzle = match &self.puzzle {
-            Some(p) => p,
-            None => return true, // Not in puzzle mode, allow move
-        };
-
-        // Check if we've completed the puzzle
-        if self.puzzle_solution_index >= puzzle.puzzle.solution.len() {
-            log::info!("Puzzle already completed!");
+        if self.puzzle_game.is_none() {
             return true;
         }
 
         // Convert the move to UCI format (e.g., "e2e4")
         let move_uci = format!("{}{}", from, to);
-        let expected_move = &puzzle.puzzle.solution[self.puzzle_solution_index];
 
-        log::info!("Player move: {}, Expected: {}", move_uci, expected_move);
+        // We need to temporarily take puzzle_game out to avoid borrowing issues
+        if let Some(mut puzzle_game) = self.puzzle_game.take() {
+            let (is_correct, message) =
+                puzzle_game.validate_move(move_uci, &mut self.game, self.lichess_token.clone());
 
-        let is_correct = move_uci == *expected_move;
+            // Put it back
+            self.puzzle_game = Some(puzzle_game);
 
-        if is_correct {
-            // Correct move!
-            self.puzzle_solution_index += 1;
-            log::info!(
-                "Correct move! Progress: {}/{}",
-                self.puzzle_solution_index,
-                puzzle.puzzle.solution.len()
-            );
-
-            // Check if puzzle is complete (if that was the last move)
-            if self.puzzle_solution_index >= puzzle.puzzle.solution.len() {
-                self.error_message = Some("Puzzle solved! Well done!".to_string());
-                self.current_popup = Some(Popups::PuzzleEndScreen);
-
-                // Submit puzzle completion to Lichess (win: true only if no mistakes were made)
-                let win = !self.puzzle_has_mistakes;
-                self.submit_puzzle_completion(win);
-
-                return true;
-            }
-        } else {
-            // Wrong move - rollback the move and notify
-            log::warn!("Wrong move! Expected: {}, Got: {}", expected_move, move_uci);
-            self.error_message = Some("Wrong move! Try again.".to_string());
-            self.current_popup = Some(Popups::Error);
-
-            // Mark that a mistake was made
-            self.puzzle_has_mistakes = true;
-
-            // Submit puzzle result immediately with win: false
-            self.submit_puzzle_completion(false);
-
-            // Rollback the wrong move
-            self.reset_last_puzzle_move();
-
-            // Don't schedule opponent move for wrong moves - just return
-            return false;
-        }
-
-        // Auto-play the opponent's response (next move in solution) for correct moves only
-        // Note: Player move has already been executed at this point (in handle_cell_click)
-        // The opponent's move is at solution_index (after correct move)
-        let opponent_move_index = self.puzzle_solution_index;
-
-        if opponent_move_index < puzzle.puzzle.solution.len() {
-            let opponent_move_uci = puzzle.puzzle.solution[opponent_move_index].clone();
-            log::info!(
-                "Scheduling opponent move: {} (will play in 1 second)",
-                opponent_move_uci
-            );
-
-            // Calculate how much to advance solution_index after opponent move (always 1 for correct moves)
-            let index_to_advance = 1;
-
-            // Schedule the opponent move to be played after 1 second delay
-            self.puzzle_opponent_move_pending = Some((opponent_move_uci, index_to_advance));
-            self.puzzle_opponent_move_time = Some(Instant::now());
-        }
-
-        is_correct
-    }
-
-    /// Validate puzzle move before execution (legacy method, kept for compatibility).
-    /// This is now deprecated in favor of validate_puzzle_move_after_execution.
-    pub fn validate_puzzle_move(&mut self, from: shakmaty::Square, to: shakmaty::Square) -> bool {
-        // Check if we're in puzzle mode
-        let puzzle = match &self.puzzle {
-            Some(p) => p,
-            None => return true, // Not in puzzle mode, allow move
-        };
-
-        // Check if we've completed the puzzle
-        if self.puzzle_solution_index >= puzzle.puzzle.solution.len() {
-            log::info!("Puzzle already completed!");
-            return true;
-        }
-
-        // Convert the move to UCI format (e.g., "e2e4")
-        let move_uci = format!("{}{}", from, to);
-        let expected_move = &puzzle.puzzle.solution[self.puzzle_solution_index];
-
-        log::info!("Player move: {}, Expected: {}", move_uci, expected_move);
-
-        if move_uci == *expected_move {
-            // Correct move!
-            self.puzzle_solution_index += 1;
-            log::info!(
-                "Correct move! Progress: {}/{}",
-                self.puzzle_solution_index,
-                puzzle.puzzle.solution.len()
-            );
-            
-            // Check if puzzle is complete
-            if self.puzzle_solution_index >= puzzle.puzzle.solution.len() {
-                self.error_message = Some("Puzzle solved! Well done!".to_string());
-                self.current_popup = Some(Popups::PuzzleEndScreen);
-                return true;
-            }
-            
-            // Auto-play the opponent's response (next move in solution)
-            if self.puzzle_solution_index < puzzle.puzzle.solution.len() {
-                let opponent_move_uci = puzzle.puzzle.solution[self.puzzle_solution_index].clone();
-                log::info!("Auto-playing opponent move: {}", opponent_move_uci);
-                
-                // Parse and apply the opponent's move
-                if self.apply_puzzle_opponent_move(&opponent_move_uci) {
-                    self.puzzle_solution_index += 1;
-                    log::info!(
-                        "Opponent move applied. Progress: {}/{}",
-                        self.puzzle_solution_index,
-                        self.puzzle.as_ref().unwrap().puzzle.solution.len()
-                    );
-                    
-                    // Check if that was the last move
-                    if let Some(p) = &self.puzzle {
-                        if self.puzzle_solution_index >= p.puzzle.solution.len() {
-                            self.error_message = Some("Puzzle solved! Well done!".to_string());
-                            self.current_popup = Some(Popups::PuzzleEndScreen);
-
-                            // Submit puzzle completion to Lichess (win: true only if no mistakes were made)
-                            let win = !self.puzzle_has_mistakes;
-                            self.submit_puzzle_completion(win);
-                        }
-                    }
+            if let Some(msg) = message {
+                if is_correct {
+                    // Success message (puzzle solved)
+                    self.error_message = Some(msg);
+                    self.current_popup = Some(Popups::PuzzleEndScreen);
+                } else {
+                    // Error message (wrong move)
+                    self.error_message = Some(msg);
+                    self.current_popup = Some(Popups::Error);
                 }
             }
-            
-            true
-        } else {
-            // Wrong move
-            log::warn!("Wrong move! Expected: {}, Got: {}", expected_move, move_uci);
-            self.error_message = Some(format!("Wrong move! Try again."));
-            self.current_popup = Some(Popups::Error);
-            false
+
+            return is_correct;
         }
+
+        true
     }
 
-    fn apply_puzzle_opponent_move(&mut self, move_uci: &str) -> bool {
-        // Parse UCI move (e.g., "e2e4" or "e7e8q" for promotion)
-        if move_uci.len() < 4 {
-            log::error!("Invalid UCI move: {}", move_uci);
-            return false;
-        }
-
-        let from_str = &move_uci[0..2];
-        let to_str = &move_uci[2..4];
-        
-        let from = match shakmaty::Square::from_ascii(from_str.as_bytes()) {
-            Ok(sq) => sq,
-            Err(e) => {
-                log::error!("Failed to parse from square {}: {}", from_str, e);
-                return false;
-            }
-        };
-        
-        let to = match shakmaty::Square::from_ascii(to_str.as_bytes()) {
-            Ok(sq) => sq,
-            Err(e) => {
-                log::error!("Failed to parse to square {}: {}", to_str, e);
-                return false;
-            }
-        };
-        
-        // Check for promotion (5th character)
-        let promotion = if move_uci.len() == 5 {
-            match move_uci.chars().nth(4) {
-                Some('q') => Some(shakmaty::Role::Queen),
-                Some('r') => Some(shakmaty::Role::Rook),
-                Some('b') => Some(shakmaty::Role::Bishop),
-                Some('n') => Some(shakmaty::Role::Knight),
-                _ => None,
-            }
-        } else {
-            None
-        };
-
-        // Get the piece type at the source square BEFORE executing the move
-        let piece_type_from = self.game.logic.game_board.get_role_at_square(&from);
-
-        // Execute the move
-        if let Some(executed_move) = self.game.logic.game_board.execute_move(from, to, promotion) {
-            // Store the move in history (similar to how opponent moves are stored)
-            if let Some(piece_type) = piece_type_from {
-                self.game
-                    .logic
-                    .game_board
-                    .move_history
-                    .push(shakmaty::Move::Normal {
-                        role: piece_type,
-                        from,
-                        capture: executed_move.capture(),
-                        to,
-                        promotion: executed_move.promotion(),
-                    });
-            } else {
-                // Fallback: store the executed move directly if we can't get piece type
-                self.game.logic.game_board.move_history.push(executed_move);
-            }
-
-            // Switch player turn
-            self.game.logic.switch_player_turn();
-            // Ensure board stays unflipped in puzzle mode
-            if self.puzzle.is_some() {
-                self.game.logic.game_board.is_flipped = false;
-            }
-            log::info!("Opponent move executed successfully and stored in history");
-            true
-        } else {
-            log::error!("Failed to execute opponent move: {}", move_uci);
-            false
-        }
-    }
-
-    pub fn reset_last_puzzle_move(&mut self) {
-        // Undo the last move by removing it from history
-        if !self.game.logic.game_board.move_history.is_empty() {
-            self.game.logic.game_board.move_history.pop();
-            self.game.logic.game_board.position_history.pop();
-            
-            // Reset player turn to match the position
-            self.game.logic.sync_player_turn_with_position();
-
-            // Unselect any selected cell
-            self.game.ui.unselect_cell();
-            
-            log::info!("Reset to previous position");
-        }
-    }
-
-    /// Submit puzzle completion to Lichess API
-    /// Called when puzzle is successfully solved or when a wrong move is made
-    fn submit_puzzle_completion(&mut self, win: bool) {
-        log::info!("submit_puzzle_completion called: win={}", win);
-
-        // Don't submit if we've already submitted this puzzle
-        if self.puzzle_submitted {
-            log::info!("Puzzle result already submitted, skipping duplicate submission");
+    /// Show a hint by selecting the piece that should move next in the puzzle.
+    /// Only works in puzzle mode and when it's the player's turn.
+    pub fn show_puzzle_hint(&mut self) {
+        // Only work in puzzle mode
+        if self.puzzle_game.is_none() {
             return;
         }
 
-        // Only submit if we have a puzzle and a token
-        if let Some(puzzle) = &self.puzzle {
-            if let Some(token) = &self.lichess_token {
-                // Calculate time taken in milliseconds
-                let time_ms = self
-                    .puzzle_start_time
-                    .map(|start| start.elapsed().as_millis() as u32)
-                    .unwrap_or(0);
+        // Only show hint if it's the player's turn and game is in playing state
+        if self.game.logic.game_state != crate::game_logic::game::GameState::Playing {
+            return;
+        }
 
-                let puzzle_id = puzzle.puzzle.id.clone();
-                log::info!(
-                    "Preparing to submit puzzle: ID={}, Win={}, Time={}ms",
-                    puzzle_id,
-                    win,
-                    time_ms
-                );
-
-                let client = crate::lichess::LichessClient::new(token.clone());
-                let puzzle_rating_before = self.puzzle_rating_before;
-
-                // Create a channel to receive Elo change from background thread
-                let (tx, rx) = std::sync::mpsc::channel();
-                self.puzzle_elo_change_receiver = Some(rx);
-
-                // Submit in a separate thread to avoid blocking the UI
-                // After submission, fetch updated profile to calculate Elo change
-                std::thread::spawn(move || {
-                    log::info!("[Thread] Starting puzzle submission...");
-                    match client.submit_puzzle_result(&puzzle_id, win, Some(time_ms)) {
-                        Ok(_) => {
-                            log::info!("[Thread] ✓ Puzzle result submitted successfully!");
-                            
-                            // Wait a bit longer for the rating to update on Lichess's side
-                            std::thread::sleep(std::time::Duration::from_millis(1500));
-                            
-                            // Fetch updated profile to get new puzzle rating
-                            if let Ok(updated_profile) = client.get_user_profile() {
-                                if let Some(perfs) = &updated_profile.perfs {
-                                    if let Some(puzzle_perf) = &perfs.puzzle {
-                                        if let Some(rating_before) = puzzle_rating_before {
-                                            let rating_after = puzzle_perf.rating;
-                                            let elo_change = rating_after as i32 - rating_before as i32;
-                                            log::info!(
-                                                "[Thread] Elo change: {} ({} -> {})",
-                                                elo_change,
-                                                rating_before,
-                                                rating_after
-                                            );
-                                            
-                                            // Send Elo change back to main thread
-                                            let _ = tx.send(elo_change);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        Err(e) => {
-                            log::error!("[Thread] ✗ Failed to submit puzzle result: {}", e);
-                        }
-                    }
-                });
-                log::info!("Spawned thread for puzzle submission");
-
-                // Mark as submitted to prevent duplicate submissions
-                self.puzzle_submitted = true;
-            } else {
-                log::warn!("Cannot submit puzzle: No Lichess token available");
+        // Get the next move's from square
+        if let Some(puzzle_game) = &self.puzzle_game {
+            if let Some(from_square) = puzzle_game.get_next_move_from_square() {
+                // Convert the square to a coord, accounting for board flip
+                use crate::utils::get_coord_from_square;
+                let coord =
+                    get_coord_from_square(Some(from_square), self.game.logic.game_board.is_flipped);
+                
+                // Set cursor to that position
+                self.game.ui.cursor_coordinates = coord;
+                
+                // Try to select the cell (this will validate that it's a valid piece to move)
+                self.game.select_cell();
             }
-        } else {
-            log::warn!("Cannot submit puzzle: No puzzle data available");
         }
     }
 
@@ -966,55 +844,43 @@ impl App {
 
     /// Handles the tick event of the terminal.
     pub fn tick(&mut self) {
-        // Check for Elo change updates from background thread
-        // Only process if we're still in puzzle mode (have a puzzle) to avoid applying
-        // Elo changes from previous puzzles to new puzzles
-        if let Some(ref rx) = self.puzzle_elo_change_receiver {
-            if let Ok(elo_change) = rx.try_recv() {
-                // Only set Elo change if we still have a puzzle (haven't started a new one)
-                if self.puzzle.is_some() {
-                    log::info!("Received Elo change update: {}", elo_change);
-                    self.puzzle_elo_change = Some(elo_change);
-                } else {
-                    log::warn!("Received Elo change {} but puzzle is None, ignoring (likely from previous puzzle)", elo_change);
-                }
-                self.puzzle_elo_change_receiver = None; // Clear receiver after receiving
+        // Handle puzzle logic
+        if let Some(mut puzzle_game) = self.puzzle_game.take() {
+            puzzle_game.check_elo_update();
+
+            if let Some(success_message) =
+                puzzle_game.check_pending_move(&mut self.game, self.lichess_token.clone())
+            {
+                self.error_message = Some(success_message);
+                self.current_popup = Some(Popups::PuzzleEndScreen);
             }
+
+            self.puzzle_game = Some(puzzle_game);
         }
-        
-        // Check if we need to play a pending opponent move in puzzle mode
-        if let Some((move_uci, index_to_advance)) = &self.puzzle_opponent_move_pending {
-            if let Some(start_time) = self.puzzle_opponent_move_time {
-                if start_time.elapsed() >= Duration::from_secs(1) {
-                    // Time has passed, play the opponent move
-                    let move_uci = move_uci.clone();
-                    let index_to_advance = *index_to_advance;
 
-                    // Clear pending move
-                    self.puzzle_opponent_move_pending = None;
-                    self.puzzle_opponent_move_time = None;
+        // Check for opponent moves (Lichess or Multiplayer)
+        // Skip if we're in puzzle mode - puzzles don't use opponents or polling
+        if self.puzzle_game.is_some() {
+            return; // Puzzles have all moves pre-loaded, no need to check for opponent moves
+        }
 
-                    // Apply the opponent move
-                    if self.apply_puzzle_opponent_move(&move_uci) {
-                        // Advance solution_index by the pre-calculated amount
-                        self.puzzle_solution_index += index_to_advance;
-                        log::info!(
-                            "Opponent move applied. Progress: {}/{}",
-                            self.puzzle_solution_index,
-                            self.puzzle.as_ref().unwrap().puzzle.solution.len()
-                        );
+        // Only check if it's actually the opponent's turn to avoid unnecessary work
+        // For Lichess, we need to check here because moves come from polling
+        // For TCP multiplayer, this is handled in main.rs
+        if let Some(opponent) = self.game.logic.opponent.as_ref() {
+            // Check if it's the opponent's turn by comparing player_turn with opponent color
+            // If player_turn == opponent.color, then it's the opponent's turn
+            let is_opponent_turn = self.game.logic.player_turn == opponent.color;
 
-                        // Check if that was the last move
-                        if let Some(p) = &self.puzzle {
-                            if self.puzzle_solution_index >= p.puzzle.solution.len() {
-                                self.error_message = Some("Puzzle solved! Well done!".to_string());
-                                self.current_popup = Some(Popups::PuzzleEndScreen);
-
-                                // Submit puzzle completion to Lichess (win: true only if no mistakes were made)
-                                let win = !self.puzzle_has_mistakes;
-                                self.submit_puzzle_completion(win);
-                            }
-                        }
+            // Only check for Lichess moves here (TCP is handled in main.rs)
+            // Only check when it's actually the opponent's turn
+            if is_opponent_turn {
+                if let Some(crate::game_logic::opponent::OpponentKind::Lichess { .. }) =
+                    opponent.kind
+                {
+                    if self.game.logic.execute_opponent_move() {
+                        self.game.logic.switch_player_turn();
+                        self.check_and_show_game_end();
                     }
                 }
             }
@@ -1103,6 +969,7 @@ impl App {
         // Reset history navigation when a new move is made
         self.game.logic.game_board.history_position_index = None;
         self.game.logic.game_board.original_flip_state = None;
+        self.game.logic.switch_player_turn();
     }
 
     /// Check if bot is currently thinking
@@ -1116,9 +983,12 @@ impl App {
     }
 
     pub fn check_game_end_status(&mut self) {
+        let previous_state = self.game.logic.game_state;
         self.game.logic.update_game_state();
-        if self.game.logic.game_state == GameState::Checkmate
-            || self.game.logic.game_state == GameState::Draw
+        let new_state = self.game.logic.game_state;
+
+        if previous_state != new_state
+            && (new_state == GameState::Checkmate || new_state == GameState::Draw)
         {
             self.show_end_screen();
         }
@@ -1194,16 +1064,7 @@ impl App {
 
     pub fn restart(&mut self) {
         // Clear puzzle state when restarting (for normal games)
-        self.puzzle = None;
-        self.puzzle_solution_index = 0;
-        self.puzzle_opponent_move_pending = None;
-        self.puzzle_opponent_move_time = None;
-        self.puzzle_start_time = None;
-        self.puzzle_has_mistakes = false;
-        self.puzzle_submitted = false;
-        self.puzzle_rating_before = None;
-        self.puzzle_elo_change = None;
-        self.puzzle_elo_change_receiver = None;
+        self.puzzle_game = None;
         let bot = self.game.logic.bot.clone();
         let opponent = self.game.logic.opponent.clone();
         // Preserve skin and display mode
@@ -1334,6 +1195,149 @@ impl App {
         self.game.ui.cursor_down(authorized_positions);
     }
 
+    pub fn process_cell_click(&mut self) {
+        // In Lichess mode, only allow input if it's our turn
+        if self.current_page == Pages::Lichess {
+            if let Some(my_color) = self.selected_color {
+                if self.game.logic.player_turn != my_color {
+                    return;
+                }
+            }
+        }
+
+        // Handle promotion directly (like mouse handler does)
+        if self.game.logic.game_state == GameState::Promotion {
+            // Track if the move was correct (for puzzle mode)
+            let mut move_was_correct = true;
+            
+            // If we have a pending promotion move, validate it now with the selected promotion piece
+            if let Some((from, to)) = self.pending_promotion_move.take() {
+                // Get the promotion piece from the cursor
+                let promotion_char = match self.game.ui.promotion_cursor {
+                    0 => 'q', // Queen
+                    1 => 'r', // Rook
+                    2 => 'b', // Bishop
+                    3 => 'n', // Knight
+                    _ => 'q', // Default to queen
+                };
+
+                // Construct full UCI move with promotion piece
+                let move_uci = format!("{}{}{}", from, to, promotion_char);
+
+                // Validate the puzzle move with the complete UCI
+                if self.puzzle_game.is_some() {
+                    if let Some(mut puzzle_game) = self.puzzle_game.take() {
+                        let (is_correct, message) = puzzle_game.validate_move(
+                            move_uci,
+                            &mut self.game,
+                            self.lichess_token.clone(),
+                        );
+
+                        move_was_correct = is_correct;
+                        self.puzzle_game = Some(puzzle_game);
+
+                        if let Some(msg) = message {
+                            if is_correct {
+                                self.error_message = Some(msg);
+                                self.current_popup = Some(Popups::PuzzleEndScreen);
+                            } else {
+                                self.error_message = Some(msg);
+                                self.current_popup = Some(Popups::Error);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Only handle promotion if the move was correct (or not in puzzle mode)
+            // If incorrect, reset_last_move already removed the move and reset the state
+            if move_was_correct || self.puzzle_game.is_none() {
+                // Don't flip board in puzzle mode
+                let should_flip = self.puzzle_game.is_none();
+                self.game.handle_promotion(should_flip);
+            } else {
+                // Move was incorrect in puzzle mode - ensure game state is reset
+                // reset_last_move should have already handled this, but make sure
+                if self.game.logic.game_state == GameState::Promotion {
+                    self.game.logic.game_state = GameState::Playing;
+                }
+            }
+            
+            self.check_and_show_game_end();
+        } else {
+            // Store move info before execution for puzzle validation
+            let puzzle_move_info = if self.puzzle_game.is_some() && self.game.ui.is_cell_selected()
+            {
+                if let Some(selected_square) = self.game.ui.selected_square {
+                    if let Some(cursor_square) = self.game.ui.cursor_coordinates.to_square() {
+                        let from = flip_square_if_needed(
+                            selected_square,
+                            self.game.logic.game_board.is_flipped,
+                        );
+                        let to = flip_square_if_needed(
+                            cursor_square,
+                            self.game.logic.game_board.is_flipped,
+                        );
+                        Some((from, to))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+
+            self.game.handle_cell_click();
+
+            // Check if the move resulted in a promotion state
+            if self.game.logic.game_state == GameState::Promotion {
+                // Store the move info for later validation after promotion piece is selected
+                if let Some(move_info) = puzzle_move_info {
+                    self.pending_promotion_move = Some(move_info);
+                }
+            } else {
+                // Validate puzzle move after execution (non-promotion moves)
+            if let Some((from, to)) = puzzle_move_info {
+                self.validate_puzzle_move_after_execution(from, to);
+                }
+            }
+
+            // Ensure board stays unflipped in puzzle mode
+            if self.puzzle_game.is_some() {
+                self.game.logic.game_board.is_flipped = false;
+            }
+
+            self.check_and_show_game_end();
+        }
+    }
+
+    pub fn try_mouse_move(&mut self, target_square: shakmaty::Square, coords: Coord) -> bool {
+        if self.game.ui.selected_square.is_none() {
+            return false;
+        }
+
+        let authorized_positions = self.game.logic.game_board.get_authorized_positions(
+            self.game.logic.player_turn,
+            &flip_square_if_needed(
+                self.game.ui.selected_square.unwrap(),
+                self.game.logic.game_board.is_flipped,
+            ),
+        );
+
+        // Check if target square is a valid move destination
+        if authorized_positions.contains(&flip_square_if_needed(
+            target_square,
+            self.game.logic.game_board.is_flipped,
+        )) {
+            self.game.ui.cursor_coordinates = coords;
+            self.process_cell_click();
+            return true;
+        }
+        false
+    }
+
     /// Resets the application state and returns to the home page.
     /// Preserves display mode preference while cleaning up all game state,
     /// bot state, and multiplayer connections.
@@ -1356,16 +1360,7 @@ impl App {
         }
 
         // Clear puzzle state
-        self.puzzle = None;
-        self.puzzle_solution_index = 0;
-        self.puzzle_opponent_move_pending = None;
-        self.puzzle_opponent_move_time = None;
-        self.puzzle_start_time = None;
-        self.puzzle_has_mistakes = false;
-        self.puzzle_submitted = false;
-        self.puzzle_rating_before = None;
-        self.puzzle_elo_change = None;
-        self.puzzle_elo_change_receiver = None;
+        self.puzzle_game = None;
 
         // Reset game completely but preserve display mode and skin preference
         self.game = Game::default();

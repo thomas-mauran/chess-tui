@@ -12,16 +12,16 @@ use crate::{
     game_logic::game::GameState,
     ui::popups::{
         render_color_selection_popup, render_credit_popup, render_end_popup,
-        render_engine_path_error_popup, render_error_popup, render_help_popup,
-        render_promotion_popup, render_enter_game_code_popup, render_puzzle_end_popup,
+        render_engine_path_error_popup, render_enter_game_code_popup, render_error_popup,
+        render_help_popup, render_promotion_popup, render_puzzle_end_popup,
     },
 };
 
+use super::lichess_menu::render_lichess_menu;
+use super::ongoing_games::render_ongoing_games;
 use super::popups::{
     render_enter_multiplayer_ip, render_multiplayer_selection_popup, render_wait_for_other_player,
 };
-use super::lichess_menu::render_lichess_menu;
-use super::ongoing_games::render_ongoing_games;
 use crate::{
     app::App,
     constants::{DisplayMode, Pages, TITLE},
@@ -70,7 +70,7 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
     // Lichess game
     else if app.current_page == Pages::Lichess {
         if app.game.logic.opponent.is_some() {
-             render_game_ui(frame, app, main_area);
+            render_game_ui(frame, app, main_area);
         }
     }
     // Play against bot
@@ -149,12 +149,18 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
             } else {
                 "Puzzle solved! Well done!".to_string()
             };
-            
+
             // Check if we're still waiting for Elo change calculation
-            let is_calculating = app.puzzle_elo_change.is_none() 
-                && app.puzzle_elo_change_receiver.is_some();
-            
-            render_puzzle_end_popup(frame, &message, app.puzzle_elo_change, is_calculating);
+            let (elo_change, is_calculating) = if let Some(puzzle_game) = &app.puzzle_game {
+                (
+                    puzzle_game.elo_change,
+                    puzzle_game.elo_change.is_none() && puzzle_game.elo_change_receiver.is_some(),
+                )
+            } else {
+                (None, false)
+            };
+
+            render_puzzle_end_popup(frame, &message, elo_change, is_calculating);
         }
         _ => {}
     }
@@ -231,7 +237,7 @@ pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
         "Normal game",
         "Multiplayer",
         "Play on Lichess",
-        "Play against a bot",
+        "Play against a bot (local)",
         &display_mode_menu,
         "Help",
         "Credits",
@@ -351,9 +357,21 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
 
     //bottom box for black matetrial
     let white_taken = app.game.logic.game_board.white_taken_pieces();
-    app.game
-        .ui
-        .white_material_render(board_block.inner(right_box_layout[2]), frame, &white_taken);
+    let is_puzzle_mode = app.puzzle_game.is_some();
+    if is_puzzle_mode {
+        app.game.ui.white_material_render_with_puzzle_hint(
+            board_block.inner(right_box_layout[2]),
+            frame,
+            &white_taken,
+            true,
+        );
+    } else {
+        app.game.ui.white_material_render(
+            board_block.inner(right_box_layout[2]),
+            frame,
+            &white_taken,
+        );
+    }
 
     if app.game.logic.game_state == GameState::Promotion {
         render_promotion_popup(frame, app);

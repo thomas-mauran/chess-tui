@@ -248,20 +248,29 @@ fn handle_solo_page_events(app: &mut App, key_event: KeyEvent) {
             app.reset_home();
         }
         KeyCode::Char('n' | 'N') => {
-            // Navigate to next position in history (only if game hasn't ended)
-            if app.game.logic.game_state != GameState::Checkmate
-                && app.game.logic.game_state != GameState::Draw
-            {
-                app.navigate_history_next();
+            // In puzzle mode, 'n' is used for new puzzle (handled in popup)
+            // Otherwise, navigate to next position in history
+            if app.puzzle_game.is_none() {
+                if app.game.logic.game_state != GameState::Checkmate
+                    && app.game.logic.game_state != GameState::Draw
+                {
+                    app.navigate_history_next();
+                }
             }
         }
         KeyCode::Char('p' | 'P') => {
-            // Navigate to previous position in history (only if game hasn't ended)
-            if app.game.logic.game_state != GameState::Checkmate
-                && app.game.logic.game_state != GameState::Draw
-            {
-                app.navigate_history_previous();
+            // Navigate to previous position in history (only if game hasn't ended and not in puzzle mode)
+            if app.puzzle_game.is_none() {
+                if app.game.logic.game_state != GameState::Checkmate
+                    && app.game.logic.game_state != GameState::Draw
+                {
+                    app.navigate_history_previous();
+                }
             }
+        }
+        KeyCode::Char('t' | 'T') if app.puzzle_game.is_some() && app.current_popup.is_none() => {
+            // Show hint in puzzle mode (only when no popup is active)
+            app.show_puzzle_hint();
         }
         _ => chess_inputs(app, key_event), // Delegate chess-specific inputs
     }
@@ -300,56 +309,7 @@ fn chess_inputs(app: &mut App, key_event: KeyEvent) {
         // Select/move piece or confirm action
         KeyCode::Char(' ') | KeyCode::Enter => {
             // In Lichess mode, only allow input if it's our turn
-            if app.current_page == Pages::Lichess {
-                if let Some(my_color) = app.selected_color {
-                    if app.game.logic.player_turn != my_color {
-                        return;
-                    }
-                }
-            }
-
-            // Handle promotion directly (like mouse handler does)
-            if app.game.logic.game_state == GameState::Promotion {
-                app.game.handle_promotion();
-                app.check_and_show_game_end();
-            } else {
-                // Store move info before execution for puzzle validation
-                let puzzle_move_info = if app.puzzle.is_some() && app.game.ui.is_cell_selected() {
-                    if let Some(selected_square) = app.game.ui.selected_square {
-                        if let Some(cursor_square) = app.game.ui.cursor_coordinates.to_square() {
-                            let from = flip_square_if_needed(
-                                selected_square,
-                                app.game.logic.game_board.is_flipped,
-                            );
-                            let to = flip_square_if_needed(
-                                cursor_square,
-                                app.game.logic.game_board.is_flipped,
-                            );
-                            Some((from, to))
-                        } else {
-                            None
-                        }
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                };
-                
-                app.game.handle_cell_click();
-
-                // Validate puzzle move after execution
-                if let Some((from, to)) = puzzle_move_info {
-                    app.validate_puzzle_move_after_execution(from, to);
-                }
-
-                // Ensure board stays unflipped in puzzle mode
-                if app.puzzle.is_some() {
-                    app.game.logic.game_board.is_flipped = false;
-                }
-
-                app.check_and_show_game_end();
-            }
+            app.process_cell_click();
         }
         KeyCode::Char('?') => app.toggle_help_popup(), // Toggle help popup
         KeyCode::Char('s' | 'S') => {
@@ -406,57 +366,6 @@ fn fallback_key_handler(app: &mut App, key_event: KeyEvent) {
     }
 }
 
-/// Helper function to validate and execute a move from a selected square to a target square.
-/// Returns true if the move was executed, false otherwise.
-fn try_execute_move(app: &mut App, target_square: shakmaty::Square, coords: Coord) -> bool {
-    if app.game.ui.selected_square.is_none() {
-        return false;
-    }
-
-    let authorized_positions = app.game.logic.game_board.get_authorized_positions(
-        app.game.logic.player_turn,
-        &flip_square_if_needed(
-            app.game.ui.selected_square.unwrap(),
-            app.game.logic.game_board.is_flipped,
-        ),
-    );
-
-    // Check if target square is a valid move destination
-    if authorized_positions.contains(&flip_square_if_needed(
-        target_square,
-        app.game.logic.game_board.is_flipped,
-    )) {
-        // Store move info before execution for puzzle validation
-        let puzzle_move_info = if app.puzzle.is_some() {
-            let from = flip_square_if_needed(
-                app.game.ui.selected_square.unwrap(),
-                app.game.logic.game_board.is_flipped,
-            );
-            let to = flip_square_if_needed(target_square, app.game.logic.game_board.is_flipped);
-            Some((from, to))
-        } else {
-            None
-        };
-        
-        app.game.ui.cursor_coordinates = coords;
-        app.game.handle_cell_click();
-
-        // Validate puzzle move after execution
-        if let Some((from, to)) = puzzle_move_info {
-            app.validate_puzzle_move_after_execution(from, to);
-        }
-
-        // Ensure board stays unflipped in puzzle mode
-        if app.puzzle.is_some() {
-            app.game.logic.game_board.is_flipped = false;
-        }
-
-        app.check_and_show_game_end();
-        return true;
-    }
-    false
-}
-
 /// Handles mouse click events for piece selection and movement.
 ///
 /// Mouse input is only active during game pages (Solo, Bot, Multiplayer).
@@ -498,7 +407,62 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
                 return Ok(()); // Click outside promotion area
             }
             app.game.ui.promotion_cursor = x as i8;
-            app.game.handle_promotion();
+
+            // Track if the move was correct (for puzzle mode)
+            let mut move_was_correct = true;
+
+            // If we have a pending promotion move, validate it now with the selected promotion piece
+            if let Some((from, to)) = app.pending_promotion_move.take() {
+                // Get the promotion piece from the cursor
+                let promotion_char = match app.game.ui.promotion_cursor {
+                    0 => 'q', // Queen
+                    1 => 'r', // Rook
+                    2 => 'b', // Bishop
+                    3 => 'n', // Knight
+                    _ => 'q', // Default to queen
+                };
+
+                // Construct full UCI move with promotion piece
+                let move_uci = format!("{}{}{}", from, to, promotion_char);
+
+                // Validate the puzzle move with the complete UCI
+                if app.puzzle_game.is_some() {
+                    if let Some(mut puzzle_game) = app.puzzle_game.take() {
+                        let (is_correct, message) = puzzle_game.validate_move(
+                            move_uci,
+                            &mut app.game,
+                            app.lichess_token.clone(),
+                        );
+
+                        move_was_correct = is_correct;
+                        app.puzzle_game = Some(puzzle_game);
+
+                        if let Some(msg) = message {
+                            if is_correct {
+                                app.error_message = Some(msg);
+                                app.current_popup = Some(Popups::PuzzleEndScreen);
+                            } else {
+                                app.error_message = Some(msg);
+                                app.current_popup = Some(Popups::Error);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Only handle promotion if the move was correct (or not in puzzle mode)
+            // If incorrect, reset_last_move already removed the move and reset the state
+            if move_was_correct || app.puzzle_game.is_none() {
+                // Don't flip board in puzzle mode
+                let should_flip = app.puzzle_game.is_none();
+                app.game.handle_promotion(should_flip);
+            } else {
+                // Move was incorrect in puzzle mode - ensure game state is reset
+                // reset_last_move should have already handled this, but make sure
+                if app.game.logic.game_state == GameState::Promotion {
+                    app.game.logic.game_state = GameState::Playing;
+                }
+            }
             // Notify opponent in multiplayer games
             if app.game.logic.opponent.is_some() {
                 app.game.logic.handle_multiplayer_promotion();
@@ -548,7 +512,7 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
                 return Ok(());
             } else {
                 // Piece was selected - try to execute move to empty square
-                try_execute_move(app, square, coords);
+                app.try_mouse_move(square, coords);
             }
         }
         // Handle click on square with a piece
@@ -558,7 +522,7 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
         } else {
             // Clicked on opponent's piece - try to capture if valid
             if app.game.ui.selected_square.is_some() {
-                try_execute_move(app, square, coords);
+                app.try_mouse_move(square, coords);
             }
             // No piece selected and clicked opponent piece - ignore (try_execute_move handles this)
         }
