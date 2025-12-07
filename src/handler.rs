@@ -9,6 +9,7 @@ use crate::{
 use ratatui::crossterm::event::{
     KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
 };
+use shakmaty::{Role, Square};
 
 /// Handles keyboard input events and updates the application state accordingly.
 ///
@@ -159,6 +160,25 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
             KeyCode::Esc | KeyCode::Enter | KeyCode::Char(' ') => {
                 app.current_popup = None;
                 app.error_message = None;
+                // Navigate back to an appropriate page based on current context
+                match app.current_page {
+                    Pages::Lichess | Pages::OngoingGames => {
+                        // If we're on Lichess-related pages, go back to Lichess menu
+                        app.current_page = Pages::LichessMenu;
+                    }
+                    Pages::Multiplayer => {
+                        // If we're on multiplayer, go back to home
+                        app.current_page = Pages::Home;
+                    }
+                    _ => {
+                        // For other pages, stay on current page or go to home
+                        // Only change if we're in a weird state
+                        if app.current_page == Pages::Solo && app.game.logic.opponent.is_some() {
+                            // If we're in solo but have an opponent (shouldn't happen), reset
+                            app.current_page = Pages::Home;
+                        }
+                    }
+                }
             }
             _ => fallback_key_handler(app, key_event),
         },
@@ -198,6 +218,17 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
                 app.lichess_cancellation_token = None;
                 app.current_popup = None;
                 app.current_page = Pages::Home; // Go back to home
+            }
+            _ => fallback_key_handler(app, key_event),
+        },
+        Popups::ResignConfirmation => match key_event.code {
+            KeyCode::Char('y') | KeyCode::Char('Y') | KeyCode::Enter => {
+                app.confirm_resign_game();
+                // Refresh the games list
+                app.fetch_ongoing_games();
+            }
+            KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
+                app.current_popup = None;
             }
             _ => fallback_key_handler(app, key_event),
         },
@@ -290,13 +321,41 @@ fn chess_inputs(app: &mut App, key_event: KeyEvent) {
 
         // Horizontal cursor movement - behavior depends on game state
         KeyCode::Right | KeyCode::Char('l') => match app.game.logic.game_state {
-            GameState::Promotion => app.game.ui.cursor_right_promotion(), // Navigate promotion options
-            GameState::Playing => app.go_right_in_game(),                 // Move cursor on board
+            GameState::Promotion => {
+                // Always allow promotion cursor movement, regardless of turn or page
+                app.game.ui.cursor_right_promotion();
+            }
+            GameState::Playing => {
+                // In Lichess mode, only allow board cursor movement if it's our turn
+                if app.current_page == Pages::Lichess {
+                    if let Some(my_color) = app.selected_color {
+                        if app.game.logic.player_turn == my_color {
+                            app.go_right_in_game();
+                        }
+                    }
+                } else {
+                    app.go_right_in_game();
+                }
+            }
             _ => (),
         },
         KeyCode::Left | KeyCode::Char('h') => match app.game.logic.game_state {
-            GameState::Promotion => app.game.ui.cursor_left_promotion(), // Navigate promotion options
-            GameState::Playing => app.go_left_in_game(),                 // Move cursor on board
+            GameState::Promotion => {
+                // Always allow promotion cursor movement, regardless of turn or page
+                app.game.ui.cursor_left_promotion();
+            }
+            GameState::Playing => {
+                // In Lichess mode, only allow board cursor movement if it's our turn
+                if app.current_page == Pages::Lichess {
+                    if let Some(my_color) = app.selected_color {
+                        if app.game.logic.player_turn == my_color {
+                            app.go_left_in_game();
+                        }
+                    }
+                } else {
+                    app.go_left_in_game();
+                }
+            }
             GameState::Checkmate | GameState::Draw => {
                 // Toggle end screen visibility when game is over
                 if app.current_popup == Some(Popups::EndScreen) {
@@ -389,16 +448,9 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
             return Ok(());
         }
 
-        // In Lichess mode, only allow input if it's our turn
-        if app.current_page == Pages::Lichess {
-            if let Some(my_color) = app.selected_color {
-                if app.game.logic.player_turn != my_color {
-                    return Ok(());
-                }
-            }
-        }
-
         // Handle promotion piece selection via mouse
+        // Note: Promotion state should always allow input, even if turn has switched
+        // because the player needs to select the promotion piece after making the move
         if app.game.logic.game_state == GameState::Promotion {
             // Calculate which promotion option was clicked (0-3 for Queen, Rook, Bishop, Knight)
             let x = (mouse_event.column - app.game.ui.top_x) / app.game.ui.width;
@@ -470,6 +522,15 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
             return Ok(());
         }
 
+        // In Lichess mode, only allow input if it's our turn (but not for promotion, handled above)
+        if app.current_page == Pages::Lichess {
+            if let Some(my_color) = app.selected_color {
+                if app.game.logic.player_turn != my_color {
+                    return Ok(());
+                }
+            }
+        }
+
         // Validate click is within board boundaries
         if mouse_event.column < app.game.ui.top_x || mouse_event.row < app.game.ui.top_y {
             return Ok(());
@@ -517,7 +578,76 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
         }
         // Handle click on square with a piece
         else if piece_color == Some(app.game.logic.player_turn) {
-            // Clicked on own piece - select it
+            // Clicked on own piece
+            // First check if we have a piece selected and this square is a valid move destination
+            if let Some(selected_square) = app.game.ui.selected_square {
+                // Check if this is a castling attempt: king selected, rook clicked
+                let actual_selected =
+                    flip_square_if_needed(selected_square, app.game.logic.game_board.is_flipped);
+                let actual_clicked =
+                    flip_square_if_needed(square, app.game.logic.game_board.is_flipped);
+
+                let selected_role = app
+                    .game
+                    .logic
+                    .game_board
+                    .get_role_at_square(&actual_selected);
+                let clicked_role = app
+                    .game
+                    .logic
+                    .game_board
+                    .get_role_at_square(&actual_clicked);
+
+                // Check if king is selected and rook is clicked
+                if selected_role == Some(Role::King) && clicked_role == Some(Role::Rook) {
+                    // Determine castling destination based on rook position
+                    let castling_dest = match actual_clicked {
+                        Square::H1 => Square::G1, // Kingside for white
+                        Square::A1 => Square::C1, // Queenside for white
+                        Square::H8 => Square::G8, // Kingside for black
+                        Square::A8 => Square::C8, // Queenside for black
+                        _ => {
+                            // Not a castling rook, try normal move
+                            if app.try_mouse_move(square, coords) {
+                                return Ok(());
+                            }
+                            app.game.ui.selected_square = Some(square);
+                            return Ok(());
+                        }
+                    };
+
+                    // Check if castling is legal by checking if destination is in authorized positions
+                    let authorized_positions = app
+                        .game
+                        .logic
+                        .game_board
+                        .get_authorized_positions(app.game.logic.player_turn, &actual_selected);
+
+                    if authorized_positions.contains(&castling_dest) {
+                        // Castling is legal, execute it
+                        let castling_coords = Coord::from_square(flip_square_if_needed(
+                            castling_dest,
+                            app.game.logic.game_board.is_flipped,
+                        ));
+                        if app.try_mouse_move(
+                            flip_square_if_needed(
+                                castling_dest,
+                                app.game.logic.game_board.is_flipped,
+                            ),
+                            castling_coords,
+                        ) {
+                            return Ok(());
+                        }
+                    }
+                }
+
+                // Try normal move first
+                if app.try_mouse_move(square, coords) {
+                    // Move was executed successfully
+                    return Ok(());
+                }
+            }
+            // Otherwise, select the clicked piece
             app.game.ui.selected_square = Some(square);
         } else {
             // Clicked on opponent's piece - try to capture if valid
@@ -541,20 +671,87 @@ fn handle_lichess_menu_page_events(app: &mut App, key_event: KeyEvent) {
             match app.menu_cursor {
                 0 => {
                     // Seek Game
+                    if app.lichess_token.is_none()
+                        || app
+                            .lichess_token
+                            .as_ref()
+                            .map(|t| t.is_empty())
+                            .unwrap_or(true)
+                    {
+                        app.error_message = Some(
+                            "Lichess API token not configured.\n\n".to_string()
+                                + "Please create an API token at:\n"
+                                + "https://lichess.org/account/oauth/token\n\n"
+                                + "Make sure to enable the 'board:play' scope.\n"
+                                + "Then add the token to your config file.",
+                        );
+                        app.current_popup = Some(Popups::Error);
+                        return;
+                    }
                     app.menu_cursor = 0;
                     app.current_page = Pages::Lichess;
                     app.create_lichess_opponent();
                 }
                 1 => {
                     // Puzzle
+                    if app.lichess_token.is_none()
+                        || app
+                            .lichess_token
+                            .as_ref()
+                            .map(|t| t.is_empty())
+                            .unwrap_or(true)
+                    {
+                        app.error_message = Some(
+                            "Lichess API token not configured.\n\n".to_string()
+                                + "Please create an API token at:\n"
+                                + "https://lichess.org/account/oauth/token\n\n"
+                                + "Make sure to enable the 'puzzle:read' scope.\n"
+                                + "Then add the token to your config file.",
+                        );
+                        app.current_popup = Some(Popups::Error);
+                        return;
+                    }
                     app.start_puzzle_mode();
                 }
                 2 => {
                     // My Ongoing Games
+                    if app.lichess_token.is_none()
+                        || app
+                            .lichess_token
+                            .as_ref()
+                            .map(|t| t.is_empty())
+                            .unwrap_or(true)
+                    {
+                        app.error_message = Some(
+                            "Lichess API token not configured.\n\n".to_string()
+                                + "Please create an API token at:\n"
+                                + "https://lichess.org/account/oauth/token\n\n"
+                                + "Then add the token to your config file.",
+                        );
+                        app.current_popup = Some(Popups::Error);
+                        return;
+                    }
                     app.fetch_ongoing_games();
                 }
                 3 => {
                     // Join by Code
+                    if app.lichess_token.is_none()
+                        || app
+                            .lichess_token
+                            .as_ref()
+                            .map(|t| t.is_empty())
+                            .unwrap_or(true)
+                    {
+                        app.error_message = Some(
+                            "Lichess API token not configured.\n\n".to_string()
+                                + "Please create an API token at:\n"
+                                + "https://lichess.org/account/oauth/token\n\n"
+                                + "Make sure to enable the 'board:play' scope.\n"
+                                + "Then add the token to your config file.",
+                        );
+                        app.current_popup = Some(Popups::Error);
+                        return;
+                    }
                     app.current_popup = Some(Popups::EnterGameCode);
                     app.game.ui.prompt.reset();
                 }
@@ -585,6 +782,10 @@ fn handle_ongoing_games_page_events(app: &mut App, key_event: KeyEvent) {
         }
         KeyCode::Enter | KeyCode::Char(' ') => {
             app.select_ongoing_game();
+        }
+        KeyCode::Char('r') | KeyCode::Char('R') => {
+            // Resign game
+            app.show_resign_confirmation();
         }
         KeyCode::Esc | KeyCode::Char('b') => {
             app.menu_cursor = 0;

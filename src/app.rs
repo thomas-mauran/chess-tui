@@ -222,8 +222,9 @@ impl App {
                     }
                 };
 
-                // Seek a game (10+0 for now, maybe configurable later)
-                match client.seek_game(10, 0, cancellation_token, my_id) {
+                // Seek a correspondence game (no timer) since timer isn't implemented yet
+                // Using 0,0 which will trigger the days parameter in seek_game
+                match client.seek_game(0, 0, cancellation_token, my_id) {
                     Ok((game_id, color)) => {
                         let _ = tx.send(Ok((game_id, color)));
                     }
@@ -383,6 +384,41 @@ impl App {
         }
     }
 
+    pub fn show_resign_confirmation(&mut self) {
+        if self.ongoing_games.get(self.menu_cursor as usize).is_some() {
+            self.current_popup = Some(crate::constants::Popups::ResignConfirmation);
+        }
+    }
+
+    pub fn confirm_resign_game(&mut self) {
+        if let Some(game) = self.ongoing_games.get(self.menu_cursor as usize) {
+            let game_id = game.game_id.clone();
+            let opponent_name = game.opponent.username.clone();
+
+            if let Some(token) = &self.lichess_token {
+                let client = crate::lichess::LichessClient::new(token.clone());
+
+                // Resign in a separate thread to avoid blocking
+                let game_id_clone = game_id.clone();
+                std::thread::spawn(move || match client.resign_game(&game_id_clone) {
+                    Ok(_) => {
+                        log::info!("Successfully resigned game: {}", game_id_clone);
+                    }
+                    Err(e) => {
+                        log::error!("Failed to resign game {}: {}", game_id_clone, e);
+                    }
+                });
+
+                self.current_popup = None;
+                log::info!(
+                    "Resignation request sent for game {} vs {}",
+                    game_id,
+                    opponent_name
+                );
+            }
+        }
+    }
+
     pub fn fetch_lichess_user_profile(&mut self) {
         if let Some(token) = &self.lichess_token {
             let client = crate::lichess::LichessClient::new(token.clone());
@@ -399,6 +435,11 @@ impl App {
     }
 
     pub fn select_ongoing_game(&mut self) {
+        log::debug!(
+            "select_ongoing_game called, menu_cursor: {}",
+            self.menu_cursor
+        );
+
         if let Some(game) = self.ongoing_games.get(self.menu_cursor as usize) {
             let game_id = game.game_id.clone();
             let color_str = game.color.clone();
@@ -419,29 +460,67 @@ impl App {
             );
 
             // Fetch moves from board API to build history
+            // Try board API first, then fall back to PGN export API
             let moves_string = if let Some(token) = &self.lichess_token {
                 let client = crate::lichess::LichessClient::new(token.clone());
+
+                // First try board API
                 match client.get_game_state_with_moves(&game_id) {
                     Ok(moves) => {
-                        log::info!("Fetched moves string: {}", moves);
+                        log::info!("Fetched moves from board API");
                         Some(moves)
                     }
                     Err(e) => {
                         log::warn!(
-                            "Failed to fetch moves from board API: {}, will use FEN only",
+                            "Failed to fetch moves from board API: {}, trying PGN export API...",
                             e
                         );
-                        None
+
+                        // Fallback to PGN export API
+                        match client.get_game_pgn(&game_id) {
+                            Ok(pgn) => {
+                                log::info!("Successfully fetched PGN from export API");
+                                // Parse PGN to extract moves in UCI format
+                                match crate::lichess::LichessClient::parse_pgn_moves(&pgn) {
+                                    Ok(uci_moves) => {
+                                        let move_count = uci_moves.split_whitespace().count();
+                                        log::info!(
+                                            "Successfully parsed PGN ({} moves)",
+                                            move_count
+                                        );
+                                        Some(uci_moves)
+                                    }
+                                    Err(parse_err) => {
+                                        log::warn!(
+                                            "Failed to parse PGN moves: {}, will use FEN only",
+                                            parse_err
+                                        );
+                                        None
+                                    }
+                                }
+                            }
+                            Err(pgn_err) => {
+                                log::warn!(
+                                    "Failed to fetch PGN from export API for game {}: {}. This is expected for ongoing games - history will be built from stream.",
+                                    game_id,
+                                    pgn_err
+                                );
+                                None
+                            }
+                        }
                     }
                 }
             } else {
+                log::warn!("No Lichess token available, cannot fetch moves");
                 None
             };
 
             // Parse the FEN to get the current game state
             match shakmaty::fen::Fen::from_ascii(fen.as_bytes()) {
                 Ok(fen_data) => {
-                    match fen_data.into_position(shakmaty::CastlingMode::Standard) {
+                    match fen_data
+                        .into_position::<shakmaty::Chess>(shakmaty::CastlingMode::Standard)
+                    {
                         Ok(position) => {
                             // If we have moves, apply them to build the history
                             if let Some(moves_str) = moves_string {
@@ -459,6 +538,7 @@ impl App {
                                     let mut current_position = shakmaty::Chess::default();
                                     let mut position_history = vec![current_position.clone()];
                                     let mut move_history = Vec::new();
+                                    let mut taken_pieces = Vec::new();
 
                                     // Helper function to parse UCI move
                                     let parse_uci_move = |move_str: &str| -> Option<(
@@ -504,11 +584,20 @@ impl App {
                                     };
 
                                     // Apply each move
+                                    let mut moves_applied = 0;
+                                    let mut moves_failed = 0;
                                     for (i, move_uci) in move_strings.iter().enumerate() {
                                         // Parse UCI move (e.g., "e2e4" or "e7e8q")
                                         if let Some((from, to, promotion)) =
                                             parse_uci_move(move_uci)
                                         {
+                                            // Track captures before executing move
+                                            if let Some(captured_piece) =
+                                                current_position.board().piece_at(to)
+                                            {
+                                                taken_pieces.push(captured_piece);
+                                            }
+
                                             // Find the legal move matching this UCI move
                                             let legal_moves = current_position.legal_moves();
                                             if let Some(chess_move) = legal_moves.iter().find(|m| {
@@ -530,41 +619,152 @@ impl App {
                                                         );
                                                         position_history.push(new_pos.clone());
                                                         current_position = new_pos;
+                                                        moves_applied += 1;
                                                     }
                                                     Err(e) => {
-                                                        log::error!(
-                                                            "Failed to play move {}: {} - {}",
+                                                        log::warn!(
+                                                            "Failed to play move {}: {} - {}. Stopping history reconstruction.",
                                                             i + 1,
                                                             move_uci,
                                                             e
                                                         );
+                                                        moves_failed += 1;
+                                                        // Break here because current_position was consumed by play()
+                                                        // and we can't continue building history
                                                         break;
                                                     }
                                                 }
                                             } else {
-                                                log::error!(
-                                                    "Move {} is not legal: {}",
+                                                log::warn!(
+                                                    "Move {} is not legal: {}. Will use FEN position.",
                                                     i + 1,
                                                     move_uci
                                                 );
-                                                break;
+                                                moves_failed += 1;
+                                                // Don't break - continue to try to apply remaining moves
                                             }
                                         } else {
-                                            log::error!("Failed to parse UCI move: {}", move_uci);
-                                            break;
+                                            log::warn!(
+                                                "Failed to parse UCI move: {}. Skipping.",
+                                                move_uci
+                                            );
+                                            moves_failed += 1;
+                                            // Don't break - continue to try to apply remaining moves
                                         }
                                     }
 
+                                    if moves_failed > 0 {
+                                        log::warn!(
+                                            "Failed to apply {} out of {} moves. History may be incomplete.",
+                                            moves_failed,
+                                            move_strings.len()
+                                        );
+                                    }
+
                                     log::info!(
-                                        "Applied {} moves, built history with {} positions",
-                                        move_history.len(),
-                                        position_history.len()
+                                        "Successfully applied {} moves out of {} total",
+                                        moves_applied,
+                                        move_strings.len()
                                     );
+
+                                    // Validate that position_history has exactly one more element than move_history
+                                    // (initial position + one position after each move)
+                                    if position_history.len() != move_history.len() + 1 {
+                                        log::error!(
+                                            "History length mismatch: {} moves but {} positions (expected {})",
+                                            move_history.len(),
+                                            position_history.len(),
+                                            move_history.len() + 1
+                                        );
+                                    }
+
+                                    // Verify that the final position matches the FEN
+                                    // Compare positions by comparing their FEN strings
+                                    // Use the last position from history (which should match current_position)
+                                    if let Some(final_position_from_moves) = position_history.last()
+                                    {
+                                        let final_fen = shakmaty::fen::Fen::from_position(
+                                            final_position_from_moves.clone(),
+                                            shakmaty::EnPassantMode::Legal,
+                                        );
+                                        let expected_fen = shakmaty::fen::Fen::from_position(
+                                            position.clone(),
+                                            shakmaty::EnPassantMode::Legal,
+                                        );
+
+                                        let final_fen_str = final_fen.to_string();
+                                        let expected_fen_str = expected_fen.to_string();
+
+                                        // Compare FEN strings (ignoring move counters which might differ)
+                                        let final_fen_parts: Vec<&str> =
+                                            final_fen_str.split(' ').collect();
+                                        let expected_fen_parts: Vec<&str> =
+                                            expected_fen_str.split(' ').collect();
+
+                                        let positions_match = final_fen_parts.len() >= 4
+                                            && expected_fen_parts.len() >= 4
+                                            && final_fen_parts[0..4] == expected_fen_parts[0..4];
+
+                                        if !positions_match {
+                                            log::warn!(
+                                                "Final position from moves doesn't match FEN. Final: {}, Expected: {}",
+                                                final_fen_str,
+                                                expected_fen_str
+                                            );
+                                            log::warn!(
+                                                "Using FEN position and rebuilding history from it"
+                                            );
+
+                                            // If positions don't match, use the FEN position as the final position
+                                            // and keep the history we built (it might be incomplete but better than nothing)
+                                            // Replace the last position in history with the FEN position
+                                            if let Some(last_pos) = position_history.last_mut() {
+                                                *last_pos = position.clone();
+                                            } else {
+                                                position_history.push(position.clone());
+                                            }
+                                        } else {
+                                            log::info!(
+                                                "Final position matches FEN - history is correct"
+                                            );
+                                        }
+                                    } else {
+                                        log::warn!(
+                                            "No positions in history, using FEN position only"
+                                        );
+                                        position_history.push(position.clone());
+                                    }
+
+                                    log::info!(
+                                        "Applied {} moves, built history with {} positions, {} captured pieces",
+                                        move_history.len(),
+                                        position_history.len(),
+                                        taken_pieces.len()
+                                    );
+
+                                    // Verify moves can be converted to SAN for debugging
+                                    if !move_history.is_empty() && position_history.len() > 0 {
+                                        // Temporarily set up the board to test SAN conversion
+                                        let temp_position = position_history[0].clone();
+                                        let temp_move = &move_history[0];
+                                        use shakmaty::san::San;
+                                        let test_san =
+                                            San::from_move(&temp_position, temp_move).to_string();
+                                        log::info!("First move SAN test: '{}'", test_san);
+                                    }
 
                                     // Set up the game with the full history
                                     self.game.logic.game_board.position_history = position_history;
                                     self.game.logic.game_board.move_history = move_history;
+                                    self.game.logic.game_board.taken_pieces = taken_pieces;
                                     self.game.logic.game_board.history_position_index = None;
+
+                                    // Log final state to verify history is set
+                                    log::info!(
+                                        "History set: {} moves, {} positions in game_board",
+                                        self.game.logic.game_board.move_history.len(),
+                                        self.game.logic.game_board.position_history.len()
+                                    );
 
                                     // Sync the player turn with the position's turn
                                     self.game.logic.sync_player_turn_with_position();
@@ -573,12 +773,25 @@ impl App {
                                     let initial_move_count =
                                         self.game.logic.game_board.move_history.len();
 
+                                    log::info!(
+                                        "Setting up Lichess game with {} moves in history",
+                                        initial_move_count
+                                    );
+
                                     // Now set up the Lichess connection
                                     self.setup_lichess_game(game_id, color, initial_move_count);
+
+                                    // Log again after setup to ensure history wasn't cleared
+                                    log::info!(
+                                        "After setup_lichess_game: {} moves, {} positions in game_board",
+                                        self.game.logic.game_board.move_history.len(),
+                                        self.game.logic.game_board.position_history.len()
+                                    );
                                 } else {
                                     // No moves, just set up with current position
                                     self.game.logic.game_board.position_history = vec![position];
                                     self.game.logic.game_board.move_history = vec![];
+                                    self.game.logic.game_board.taken_pieces = vec![];
                                     self.game.logic.game_board.history_position_index = None;
                                     self.game.logic.sync_player_turn_with_position();
                                     self.setup_lichess_game(game_id, color, 0);
@@ -587,6 +800,7 @@ impl App {
                                 // No moves available, just set up with current position
                                 self.game.logic.game_board.position_history = vec![position];
                                 self.game.logic.game_board.move_history = vec![];
+                                self.game.logic.game_board.taken_pieces = vec![];
                                 self.game.logic.game_board.history_position_index = None;
                                 self.game.logic.sync_player_turn_with_position();
                                 self.setup_lichess_game(game_id, color, 0);
@@ -820,10 +1034,10 @@ impl App {
                 use crate::utils::get_coord_from_square;
                 let coord =
                     get_coord_from_square(Some(from_square), self.game.logic.game_board.is_flipped);
-                
+
                 // Set cursor to that position
                 self.game.ui.cursor_coordinates = coord;
-                
+
                 // Try to select the cell (this will validate that it's a valid piece to move)
                 self.game.select_cell();
             }
@@ -864,20 +1078,30 @@ impl App {
             return; // Puzzles have all moves pre-loaded, no need to check for opponent moves
         }
 
-        // Only check if it's actually the opponent's turn to avoid unnecessary work
         // For Lichess, we need to check here because moves come from polling
+        // We check regardless of whose turn it is, because moves arrive asynchronously
+        // and the turn state might be out of sync with the actual game state on Lichess
         // For TCP multiplayer, this is handled in main.rs
         if let Some(opponent) = self.game.logic.opponent.as_ref() {
-            // Check if it's the opponent's turn by comparing player_turn with opponent color
-            // If player_turn == opponent.color, then it's the opponent's turn
-            let is_opponent_turn = self.game.logic.player_turn == opponent.color;
-
-            // Only check for Lichess moves here (TCP is handled in main.rs)
-            // Only check when it's actually the opponent's turn
-            if is_opponent_turn {
-                if let Some(crate::game_logic::opponent::OpponentKind::Lichess { .. }) =
-                    opponent.kind
-                {
+            // Always check for Lichess moves - they arrive asynchronously via polling
+            if let Some(crate::game_logic::opponent::OpponentKind::Lichess { .. }) = opponent.kind {
+                // Check if there's a move available in the channel
+                // execute_opponent_move() uses try_recv() which is non-blocking
+                // This may also process status updates (GAME_STATUS messages)
+                let move_executed = self.game.logic.execute_opponent_move();
+                if move_executed {
+                    log::info!("tick(): Opponent move executed, switching turn");
+                    self.game.logic.switch_player_turn();
+                    self.check_and_show_game_end();
+                } else {
+                    // Even if no move was executed, check for game end
+                    // (status updates like draw/checkmate don't execute moves)
+                    self.check_and_show_game_end();
+                }
+            } else {
+                // For TCP multiplayer, only check when it's the opponent's turn
+                let is_opponent_turn = self.game.logic.player_turn == opponent.color;
+                if is_opponent_turn {
                     if self.game.logic.execute_opponent_move() {
                         self.game.logic.switch_player_turn();
                         self.check_and_show_game_end();
@@ -1103,6 +1327,24 @@ impl App {
                 self.current_page = Pages::Multiplayer
             }
             2 => {
+                // Check if Lichess token is configured
+                if self.lichess_token.is_none()
+                    || self
+                        .lichess_token
+                        .as_ref()
+                        .map(|t| t.is_empty())
+                        .unwrap_or(true)
+                {
+                    self.error_message = Some(
+                        "Lichess API token not configured.\n\n".to_string()
+                            + "Please create an API token at:\n"
+                            + "https://lichess.org/account/oauth/token\n\n"
+                            + " Make sure you tick everything.\n"
+                            + "Then run chess tui with the --lichess-token flag.",
+                    );
+                    self.current_popup = Some(Popups::Error);
+                    return;
+                }
                 self.menu_cursor = 0;
                 self.current_page = Pages::LichessMenu;
                 // Fetch user profile when entering Lichess menu
@@ -1196,20 +1438,13 @@ impl App {
     }
 
     pub fn process_cell_click(&mut self) {
-        // In Lichess mode, only allow input if it's our turn
-        if self.current_page == Pages::Lichess {
-            if let Some(my_color) = self.selected_color {
-                if self.game.logic.player_turn != my_color {
-                    return;
-                }
-            }
-        }
-
         // Handle promotion directly (like mouse handler does)
+        // Note: Promotion state should always allow input, even if turn has switched
+        // because the player needs to select the promotion piece after making the move
         if self.game.logic.game_state == GameState::Promotion {
             // Track if the move was correct (for puzzle mode)
             let mut move_was_correct = true;
-            
+
             // If we have a pending promotion move, validate it now with the selected promotion piece
             if let Some((from, to)) = self.pending_promotion_move.take() {
                 // Get the promotion piece from the cursor
@@ -1248,12 +1483,17 @@ impl App {
                     }
                 }
             }
+            // Note: For non-puzzle games (like Lichess), pending_promotion_move may be None,
+            // but we still need to handle the promotion based on the cursor selection.
+            // The move is already in the history, we just need to update it with the selected promotion piece.
 
             // Only handle promotion if the move was correct (or not in puzzle mode)
             // If incorrect, reset_last_move already removed the move and reset the state
             if move_was_correct || self.puzzle_game.is_none() {
-                // Don't flip board in puzzle mode
-                let should_flip = self.puzzle_game.is_none();
+                // Don't flip board in puzzle mode or in multiplayer/Lichess mode
+                let should_flip = self.puzzle_game.is_none()
+                    && self.game.logic.opponent.is_none()
+                    && self.game.logic.bot.is_none();
                 self.game.handle_promotion(should_flip);
             } else {
                 // Move was incorrect in puzzle mode - ensure game state is reset
@@ -1262,9 +1502,18 @@ impl App {
                     self.game.logic.game_state = GameState::Playing;
                 }
             }
-            
+
             self.check_and_show_game_end();
         } else {
+            // In Lichess mode, only allow input if it's our turn (but not for promotion, handled above)
+            if self.current_page == Pages::Lichess {
+                if let Some(my_color) = self.selected_color {
+                    if self.game.logic.player_turn != my_color {
+                        return;
+                    }
+                }
+            }
+
             // Store move info before execution for puzzle validation
             let puzzle_move_info = if self.puzzle_game.is_some() && self.game.ui.is_cell_selected()
             {
@@ -1299,8 +1548,8 @@ impl App {
                 }
             } else {
                 // Validate puzzle move after execution (non-promotion moves)
-            if let Some((from, to)) = puzzle_move_info {
-                self.validate_puzzle_move_after_execution(from, to);
+                if let Some((from, to)) = puzzle_move_info {
+                    self.validate_puzzle_move_after_execution(from, to);
                 }
             }
 
@@ -1376,15 +1625,30 @@ impl App {
     pub fn check_and_show_game_end(&mut self) {
         if self.game.logic.game_board.is_checkmate() {
             self.game.logic.game_state = GameState::Checkmate;
-            self.show_end_screen();
+            // Only show end screen if it's not already shown (user might have dismissed it)
+            if self.current_popup != Some(Popups::EndScreen)
+                && self.current_popup != Some(Popups::PuzzleEndScreen)
+            {
+                self.show_end_screen();
+            }
         } else if self.game.logic.game_board.is_draw() {
             self.game.logic.game_state = GameState::Draw;
-            self.show_end_screen();
+            // Only show end screen if it's not already shown (user might have dismissed it)
+            if self.current_popup != Some(Popups::EndScreen)
+                && self.current_popup != Some(Popups::PuzzleEndScreen)
+            {
+                self.show_end_screen();
+            }
         } else if self.game.logic.game_state == GameState::Checkmate
             || self.game.logic.game_state == GameState::Draw
         {
-            // Game already ended, just show the screen
-            self.show_end_screen();
+            // Game already ended, only show the screen if it's not already shown
+            // (user might have dismissed it with 'H' or 'Esc')
+            if self.current_popup != Some(Popups::EndScreen)
+                && self.current_popup != Some(Popups::PuzzleEndScreen)
+            {
+                self.show_end_screen();
+            }
         }
     }
 

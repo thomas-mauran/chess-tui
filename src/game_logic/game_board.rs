@@ -272,7 +272,43 @@ impl GameBoard {
 
         // Find matching legal move
         let legal_moves = chess.legal_moves();
+        
+        // Check if this looks like a castling move (king moving 2 squares horizontally)
+        let is_potential_castling = {
+            let piece_at_from = chess.board().piece_at(from);
+            if let Some(piece) = piece_at_from {
+                if piece.role == Role::King && piece.color == chess.turn() {
+                    // Check if moving 2 squares horizontally (castling)
+                    let from_file = from.file();
+                    let to_file = to.file();
+                    let from_rank = from.rank();
+                    let to_rank = to.rank();
+                    from_rank == to_rank && (from_file as i8 - to_file as i8).abs() == 2
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        };
+        
+        if is_potential_castling {
+            log::debug!("Detected potential castling move: {} -> {}", from, to);
+            // Log all castling moves available
+            let castling_moves: Vec<_> = legal_moves.iter()
+                .filter(|m| matches!(m, shakmaty::Move::Castle { .. }))
+                .collect();
+            if !castling_moves.is_empty() {
+                for cm in &castling_moves {
+                    log::debug!("  Available castling: {:?} (from: {:?}, to: {})", cm, cm.from(), cm.to());
+                }
+            } else {
+                log::warn!("Castling move {} -> {} requested but no castling moves available", from, to);
+            }
+        }
+        
         let matching_move = legal_moves.iter().find(|m| {
+            // Regular move matching (this will also match castling moves correctly)
             m.from() == Some(from) && m.to() == to && {
                 match (promotion, m.promotion()) {
                     (Some(promo), Some(move_promo)) => promo == move_promo,
@@ -295,11 +331,46 @@ impl GameBoard {
                     Some(shakmaty_move.clone())
                 }
                 Err(e) => {
-                    log::error!("Failed to play move: {}", e);
+                    log::error!("Failed to play move {} -> {}: {}", from, to, e);
                     None
                 }
             }
         } else {
+            // Move not found - check if it's a castling move that needs special handling
+            if is_potential_castling {
+                // Clone chess before using it in the play call
+                let chess_clone = chess.clone();
+                // Try to find castling move from the same square
+                let castling_move = legal_moves.iter().find(|m| {
+                    matches!(m, shakmaty::Move::Castle { .. }) && m.from() == Some(from)
+                });
+                
+                if let Some(castle_move) = castling_move {
+                    log::info!("Found castling move for {} -> {}: {:?} (actual destination: {})", 
+                        from, to, castle_move, castle_move.to());
+                    // Execute the castling move even though destination doesn't match exactly
+                    match chess_clone.play(castle_move) {
+                        Ok(new_chess) => {
+                            self.position_history.push(new_chess);
+                            self.history_position_index = None;
+                            self.original_flip_state = None;
+                            log::info!("Castling move executed successfully: {:?}", castle_move);
+                            return Some(castle_move.clone());
+                        }
+                        Err(e) => {
+                            log::error!("Failed to play castling move: {}", e);
+                        }
+                    }
+                } else {
+                    log::warn!("Castling move {} -> {} requested but no castling available from {}", from, to, from);
+                }
+            }
+            
+            // Log why move wasn't found
+            let piece_at_from = chess.board().piece_at(from);
+            let piece_at_to = chess.board().piece_at(to);
+            log::debug!("Move {} -> {} not found in legal moves. Piece at from: {:?}, piece at to: {:?}, promotion: {:?}, current turn: {:?}", 
+                from, to, piece_at_from, piece_at_to, promotion, chess.turn());
             None
         }
     }

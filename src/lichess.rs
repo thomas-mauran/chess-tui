@@ -296,12 +296,11 @@ impl LichessClient {
         // Use /puzzle/next but add a cache-busting parameter to ensure we get a new puzzle
         // Adding a timestamp parameter forces the server to return a fresh puzzle
         use std::time::{SystemTime, UNIX_EPOCH};
-        let timestamp = SystemTime::now()
+        let _timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_millis();
-        // let url = format!("{}/puzzle/next?t={}", LICHESS_API_URL, timestamp);
-        let url = format!("{}/puzzle/kvNu0", LICHESS_API_URL);
+        let url = format!("{}/puzzle/next?t={}", LICHESS_API_URL, _timestamp);
 
         log::info!("Fetching puzzle from: {}", url);
 
@@ -443,11 +442,31 @@ impl LichessClient {
         my_id: String,
     ) -> Result<(String, Color), Box<dyn Error>> {
         let url = format!("{}/board/seek", LICHESS_API_URL);
-        let params = serde_json::json!({
+
+        // For correspondence games (time=0), use days parameter instead
+        let params = if time == 0 && increment == 0 {
+            // Correspondence game: 3 days per move (standard Lichess correspondence)
+            serde_json::json!({
+                "days": 3,
+                "color": "random"
+            })
+        } else {
+            // Timed game
+            serde_json::json!({
             "time": time,
             "increment": increment,
             "color": "random"
-        });
+            })
+        };
+
+        // Track games we've seen before seeking to detect new games
+        let initial_games = self.get_ongoing_games().unwrap_or_default();
+        let initial_game_ids: std::collections::HashSet<String> =
+            initial_games.iter().map(|g| g.game_id.clone()).collect();
+        log::info!(
+            "Tracking {} existing games before seek",
+            initial_game_ids.len()
+        );
 
         loop {
             if cancellation_token.load(std::sync::atomic::Ordering::Relaxed) {
@@ -466,30 +485,119 @@ impl LichessClient {
                 .json(&params)
                 .send()?;
 
-            if !response.status().is_success() {
-                if response.status() == reqwest::StatusCode::FORBIDDEN {
+            let status = response.status();
+            if !status.is_success() {
+                // Try to get error details from response body
+                let error_text = response.text().unwrap_or_default();
+                log::error!("Seek request failed: {} - {}", status, error_text);
+
+                if status == reqwest::StatusCode::FORBIDDEN {
                     return Err("Token missing permissions. Please generate a new token with 'board:play' scope enabled.".into());
                 }
-                if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
+                if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
                     return Err(
                         "Rate limit exceeded. Please wait a minute before trying again.".into(),
                     );
                 }
-                if response.status() == reqwest::StatusCode::UNAUTHORIZED {
+                if status == reqwest::StatusCode::UNAUTHORIZED {
                     return Err(
                         "Invalid token. Please check your token or generate a new one.".into(),
                     );
                 }
-                return Err(format!("Failed to seek game: {}", response.status()).into());
+                if status == reqwest::StatusCode::BAD_REQUEST {
+                    return Err(format!("Invalid seek parameters: {}. The board/seek endpoint may not support correspondence games (0+0). Try using a longer time control instead.", error_text).into());
+                }
+                return Err(format!("Failed to seek game: {} - {}", status, error_text).into());
             }
 
             log::info!("Connected to seek endpoint. Status: {}", response.status());
             log::debug!("Response headers: {:#?}", response.headers());
 
+            // Start a background thread to poll ongoing games while we read the stream
+            let token_poll = self.token.clone();
+            let initial_game_ids_poll = initial_game_ids.clone();
+            let cancellation_token_poll = cancellation_token.clone();
+            let (game_found_tx, game_found_rx) =
+                std::sync::mpsc::channel::<Result<(String, Color), String>>();
+
+            thread::spawn(move || {
+                log::info!("Starting background polling thread for ongoing games");
+                let poll_client = Client::builder()
+                    .timeout(None)
+                    .http1_only()
+                    .build()
+                    .unwrap_or_else(|_| Client::new());
+
+                loop {
+                    if cancellation_token_poll.load(std::sync::atomic::Ordering::Relaxed) {
+                        break;
+                    }
+
+                    std::thread::sleep(std::time::Duration::from_secs(2)); // Poll every 2 seconds
+
+                    let poll_url = format!("{}/account/playing", LICHESS_API_URL);
+                    match poll_client
+                        .get(&poll_url)
+                        .header(
+                            "User-Agent",
+                            "chess-tui (https://github.com/thomas-mauran/chess-tui)",
+                        )
+                        .bearer_auth(&token_poll)
+                        .send()
+                    {
+                        Ok(response) => {
+                            if response.status().is_success() {
+                                if let Ok(games_response) = response.json::<OngoingGamesResponse>()
+                                {
+                                    // Find a new game that wasn't in our initial list
+                                    for game in games_response.now_playing.iter() {
+                                        if !initial_game_ids_poll.contains(&game.game_id) {
+                                            let color = if game.color == "white" {
+                                                Color::White
+                                            } else {
+                                                Color::Black
+                                            };
+                                            log::info!(
+                                                "Background poll found new game: {} as {:?}",
+                                                game.game_id,
+                                                color
+                                            );
+                                            let _ = game_found_tx
+                                                .send(Ok((game.game_id.clone(), color)));
+                                            return; // Exit thread after finding game
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            log::debug!("Background poll error (non-fatal): {}", e);
+                        }
+                    }
+                }
+            });
+
             let reader = BufReader::new(response);
+            let mut game_id_from_stream: Option<String> = None;
+            let mut empty_line_count = 0;
+
             for line in reader.lines() {
                 if cancellation_token.load(std::sync::atomic::Ordering::Relaxed) {
                     return Err("Seek cancelled".into());
+                }
+
+                // Check if background polling found a game (non-blocking)
+                match game_found_rx.try_recv() {
+                    Ok(result) => {
+                        log::info!("Game found via background polling");
+                        return result.map_err(|e| e.into());
+                    }
+                    Err(std::sync::mpsc::TryRecvError::Empty) => {
+                        // No game found yet, continue reading stream
+                    }
+                    Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                        log::warn!("Background polling thread disconnected");
+                    }
                 }
 
                 log::debug!("Reading line from stream...");
@@ -497,35 +605,178 @@ impl LichessClient {
                 log::debug!("Received raw line: '{}'", line);
 
                 if line.trim().is_empty() {
+                    empty_line_count += 1;
+                    // After every 5 empty lines (10 seconds of keep-alive), check ongoing games
+                    if empty_line_count % 5 == 0 {
+                        log::debug!(
+                            "Checking ongoing games after {} empty lines",
+                            empty_line_count
+                        );
+                        if let Ok(ongoing_games) = self.get_ongoing_games() {
+                            for game in ongoing_games.iter() {
+                                if !initial_game_ids.contains(&game.game_id) {
+                                    let color = if game.color == "white" {
+                                        Color::White
+                                    } else {
+                                        Color::Black
+                                    };
+                                    log::info!(
+                                        "Found new game in ongoing games (during stream): {} as {:?}",
+                                        game.game_id,
+                                        color
+                                    );
+                                    return Ok((game.game_id.clone(), color));
+                                }
+                            }
+                        }
+                    }
                     continue;
                 }
 
+                empty_line_count = 0; // Reset counter on non-empty line
+
                 // The seek endpoint streams game events, starting with gameFull
                 log::info!("Received Lichess event: {}", line);
+
+                // Try to parse as GameEvent first
                 match serde_json::from_str::<GameEvent>(&line) {
                     Ok(event) => {
-                        if let GameEvent::GameFull {
-                            id,
-                            white,
-                            black: _black,
-                            ..
-                        } = event
-                        {
-                            let color = if white.id.as_ref() == Some(&my_id) {
-                                Color::White
-                            } else {
-                                Color::Black
-                            };
-                            return Ok((id, color));
+                        match event {
+                            GameEvent::GameFull {
+                                id,
+                                white,
+                                black: _black,
+                                ..
+                            } => {
+                                let color = if white.id.as_ref() == Some(&my_id) {
+                                    Color::White
+                                } else {
+                                    Color::Black
+                                };
+                                log::info!("Got GameFull event with game ID: {}", id);
+                                return Ok((id, color));
+                            }
+                            GameEvent::GameState(_) => {
+                                // GameState events don't have the game ID, but indicate a game started
+                                log::info!("Received GameState event - game may have started");
+                                // Continue reading to find GameFull or check ongoing games
+                            }
+                            GameEvent::ChatLine => {
+                                // Ignore chat lines
+                                continue;
+                            }
                         }
                     }
                     Err(e) => {
-                        log::error!("Failed to parse event: {} - Error: {}", line, e);
+                        // Try to parse as raw JSON to extract game ID if it's not a standard event
+                        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&line) {
+                            // Check if this JSON has an "id" field (might be gameFull without proper structure)
+                            if let Some(id) = json.get("id").and_then(|v| v.as_str()) {
+                                log::info!("Found game ID in JSON: {}", id);
+                                game_id_from_stream = Some(id.to_string());
+                                // Try to determine color from the JSON
+                                if let Some(white) = json.get("white") {
+                                    if let Some(white_id) = white.get("id").and_then(|v| v.as_str())
+                                    {
+                                        let color = if white_id == my_id {
+                                            Color::White
+                                        } else {
+                                            Color::Black
+                                        };
+                                        return Ok((id.to_string(), color));
+                                    }
+                                }
+                            }
+                        } else {
+                            log::warn!(
+                                "Failed to parse event as GameEvent or JSON: {} - Error: {}",
+                                line,
+                                e
+                            );
+                        }
                     }
                 }
             }
 
-            log::info!("Stream ended without finding a game, retrying in 5s...");
+            // Stream ended - check if we got a game ID from the stream
+            if let Some(game_id) = game_id_from_stream {
+                log::info!(
+                    "Stream ended but we have game ID: {}, checking ongoing games",
+                    game_id
+                );
+                // Check ongoing games to get the color
+                if let Ok(ongoing_games) = self.get_ongoing_games() {
+                    if let Some(game) = ongoing_games.iter().find(|g| g.game_id == game_id) {
+                        let color = if game.color == "white" {
+                            Color::White
+                        } else {
+                            Color::Black
+                        };
+                        log::info!(
+                            "Found game in ongoing games after stream ended: {} as {:?}",
+                            game_id,
+                            color
+                        );
+                        return Ok((game_id, color));
+                    }
+                }
+            }
+
+            // Stream ended without finding a game - check ongoing games for any new game
+            log::info!("Stream ended without gameFull event, checking ongoing games...");
+            if let Ok(ongoing_games) = self.get_ongoing_games() {
+                // Find a new game that wasn't in our initial list
+                for game in ongoing_games.iter() {
+                    if !initial_game_ids.contains(&game.game_id) {
+                        let color = if game.color == "white" {
+                            Color::White
+                        } else {
+                            Color::Black
+                        };
+                        log::info!(
+                            "Found new game in ongoing games: {} as {:?}",
+                            game.game_id,
+                            color
+                        );
+                        return Ok((game.game_id.clone(), color));
+                    }
+                }
+
+                // If no new game found, log for debugging
+                log::debug!("No new games found in ongoing games list");
+            }
+
+            // Poll ongoing games periodically as fallback
+            log::info!("Stream ended, will poll ongoing games as fallback...");
+            for _ in 0..30 {
+                // Poll for up to 30 seconds (30 iterations * 1 second)
+                if cancellation_token.load(std::sync::atomic::Ordering::Relaxed) {
+                    return Err("Seek cancelled".into());
+                }
+
+                std::thread::sleep(std::time::Duration::from_secs(1));
+
+                if let Ok(ongoing_games) = self.get_ongoing_games() {
+                    // Find a new game that wasn't in our initial list
+                    for game in ongoing_games.iter() {
+                        if !initial_game_ids.contains(&game.game_id) {
+                            let color = if game.color == "white" {
+                                Color::White
+                            } else {
+                                Color::Black
+                            };
+                            log::info!(
+                                "Found new game via polling: {} as {:?}",
+                                game.game_id,
+                                color
+                            );
+                            return Ok((game.game_id.clone(), color));
+                        }
+                    }
+                }
+            }
+
+            log::info!("No game found after polling, retrying seek in 5s...");
             std::thread::sleep(std::time::Duration::from_secs(5));
         }
     }
@@ -537,7 +788,20 @@ impl LichessClient {
     ) -> Result<(String, Color), Box<dyn Error>> {
         log::info!("Attempting to join game: {}", game_id);
 
-        // First, try to accept the challenge in case it hasn't been accepted yet
+        // First, try to get the game from ongoing games (for already-started games)
+        if let Ok(ongoing_games) = self.get_ongoing_games() {
+            if let Some(game) = ongoing_games.iter().find(|g| g.game_id == game_id) {
+                let color = if game.color == "white" {
+                    Color::White
+                } else {
+                    Color::Black
+                };
+                log::info!("Found game in ongoing games: {} as {:?}", game_id, color);
+                return Ok((game_id.to_string(), color));
+            }
+        }
+
+        // If not in ongoing games, try to accept the challenge in case it hasn't been accepted yet
         log::info!("Attempting to accept challenge: {}", game_id);
         let accept_url = format!("{}/challenge/{}/accept", LICHESS_API_URL, game_id);
         let accept_response = self
@@ -550,17 +814,21 @@ impl LichessClient {
             .bearer_auth(&self.token)
             .send();
 
-        match accept_response {
+        let challenge_accepted = match accept_response {
             Ok(resp) => {
                 if resp.status().is_success() {
                     log::info!("Successfully accepted challenge");
-                    // Wait a moment for the game to start
-                    std::thread::sleep(std::time::Duration::from_millis(500));
+                    true
+                } else if resp.status() == reqwest::StatusCode::NOT_FOUND {
+                    // Challenge not found - might be a game ID, not a challenge ID
+                    log::info!("Challenge not found, treating as game ID");
+                    false
                 } else {
                     log::info!(
-                        "Challenge accept returned {}, game may already be started",
+                        "Challenge accept returned {}, game may already be started or you created the challenge",
                         resp.status()
                     );
+                    false
                 }
             }
             Err(e) => {
@@ -568,71 +836,175 @@ impl LichessClient {
                     "Failed to accept challenge: {}, will try to stream game anyway",
                     e
                 );
+                false
             }
+        };
+
+        // If we accepted the challenge, wait a bit for the game to start
+        if challenge_accepted {
+            std::thread::sleep(std::time::Duration::from_millis(1000));
         }
 
-        // Now stream the game
-        let url = format!("{}/board/game/{}/stream", LICHESS_API_URL, game_id);
-        let response = self
-            .client
-            .get(&url)
-            .header(
-                "User-Agent",
-                "chess-tui (https://github.com/thomas-mauran/chess-tui)",
-            )
-            .bearer_auth(&self.token)
-            .send()?;
+        // Wait for the game to appear in ongoing games or be streamable
+        // Poll for up to 30 seconds (for challenges that need to be accepted)
+        const MAX_POLL_ATTEMPTS: usize = 30;
+        const POLL_INTERVAL_MS: u64 = 1000;
 
-        if !response.status().is_success() {
-            if response.status() == reqwest::StatusCode::NOT_FOUND {
-                return Err("Game not found or you're not a participant. To join a game: 1) Create a challenge on lichess.org, 2) Copy the game ID while it's active, 3) Paste it here. Or use 'Seek Game' to find an opponent automatically.".into());
-            }
-            if response.status() == reqwest::StatusCode::FORBIDDEN {
-                return Err("Cannot join this game. You may not be a participant.".into());
-            }
-            if response.status() == reqwest::StatusCode::UNAUTHORIZED {
-                return Err("Invalid token. Please check your token or generate a new one.".into());
-            }
-            return Err(format!("Failed to join game: {}", response.status()).into());
-        }
-
-        log::info!("Connected to game stream. Status: {}", response.status());
-
-        let reader = BufReader::new(response);
-        for line in reader.lines() {
-            let line = line?;
-
-            if line.trim().is_empty() {
-                continue;
+        for attempt in 0..MAX_POLL_ATTEMPTS {
+            // Check ongoing games first
+            if let Ok(ongoing_games) = self.get_ongoing_games() {
+                if let Some(game) = ongoing_games.iter().find(|g| g.game_id == game_id) {
+                    let color = if game.color == "white" {
+                        Color::White
+                    } else {
+                        Color::Black
+                    };
+                    log::info!(
+                        "Found game in ongoing games after polling: {} as {:?}",
+                        game_id,
+                        color
+                    );
+                    return Ok((game_id.to_string(), color));
+                }
             }
 
-            log::info!("Received game event: {}", line);
-            match serde_json::from_str::<GameEvent>(&line) {
-                Ok(event) => {
-                    if let GameEvent::GameFull {
-                        id, white, black, ..
-                    } = event
-                    {
-                        // Determine our color based on player IDs
-                        let color = if white.id.as_ref() == Some(&my_id) {
-                            Color::White
-                        } else if black.id.as_ref() == Some(&my_id) {
-                            Color::Black
-                        } else {
-                            return Err("You are not a participant in this game.".into());
-                        };
-
-                        log::info!("Successfully joined game {} as {:?}", id, color);
-                        return Ok((id, color));
+            // Try to stream the game
+            let url = format!("{}/board/game/{}/stream", LICHESS_API_URL, game_id);
+            let response = match self
+                .client
+                .get(&url)
+                .header(
+                    "User-Agent",
+                    "chess-tui (https://github.com/thomas-mauran/chess-tui)",
+                )
+                .bearer_auth(&self.token)
+                .send()
+            {
+                Ok(resp) => {
+                    if !resp.status().is_success() {
+                        if resp.status() == reqwest::StatusCode::NOT_FOUND {
+                            // Game not started yet, continue polling
+                            if attempt < MAX_POLL_ATTEMPTS - 1 {
+                                log::info!(
+                                    "Game not started yet, waiting... (attempt {}/{})",
+                                    attempt + 1,
+                                    MAX_POLL_ATTEMPTS
+                                );
+                                std::thread::sleep(std::time::Duration::from_millis(
+                                    POLL_INTERVAL_MS,
+                                ));
+                                continue;
+                            } else {
+                                return Err("Game not found or hasn't started yet. Make sure the challenge has been accepted by your opponent.".into());
+                            }
+                        }
+                        if resp.status() == reqwest::StatusCode::FORBIDDEN {
+                            return Err(
+                                "Cannot join this game. You may not be a participant.".into()
+                            );
+                        }
+                        if resp.status() == reqwest::StatusCode::UNAUTHORIZED {
+                            return Err(
+                                "Invalid token. Please check your token or generate a new one."
+                                    .into(),
+                            );
+                        }
+                        return Err(format!("Failed to join game: {}", resp.status()).into());
                     }
+                    resp
                 }
                 Err(e) => {
-                    log::error!("Failed to parse event: {} - Error: {}", line, e);
+                    log::warn!("Failed to connect to stream: {}, will retry", e);
+                    if attempt < MAX_POLL_ATTEMPTS - 1 {
+                        std::thread::sleep(std::time::Duration::from_millis(POLL_INTERVAL_MS));
+                        continue;
+                    } else {
+                        return Err(format!("Failed to connect to game stream: {}", e).into());
+                    }
                 }
+            };
+
+            log::info!("Connected to game stream. Status: {}", response.status());
+
+            let reader = BufReader::new(response);
+            let mut line_count = 0;
+            const MAX_LINES: usize = 100; // Limit to prevent infinite loop
+
+            for line in reader.lines() {
+                let line = line?;
+                line_count += 1;
+
+                if line_count > MAX_LINES {
+                    break; // Break inner loop, will retry outer loop
+                }
+
+                if line.trim().is_empty() {
+                    continue;
+                }
+
+                log::info!("Received game event: {}", line);
+                match serde_json::from_str::<GameEvent>(&line) {
+                    Ok(event) => {
+                        if let GameEvent::GameFull {
+                            id, white, black, ..
+                        } = event
+                        {
+                            // Determine our color based on player IDs
+                            let color = if white.id.as_ref() == Some(&my_id) {
+                                Color::White
+                            } else if black.id.as_ref() == Some(&my_id) {
+                                Color::Black
+                            } else {
+                                return Err("You are not a participant in this game.".into());
+                            };
+
+                            log::info!("Successfully joined game {} as {:?}", id, color);
+                            return Ok((id, color));
+                        }
+                        // For already-started games, we might only get GameState events
+                        // In this case, we need to determine color from ongoing games
+                        if let GameEvent::GameState(_) = event {
+                            log::info!("Received GameState event, checking ongoing games");
+                            // Try to get color from ongoing games
+                            if let Ok(ongoing_games) = self.get_ongoing_games() {
+                                if let Some(game) =
+                                    ongoing_games.iter().find(|g| g.game_id == game_id)
+                                {
+                                    let color = if game.color == "white" {
+                                        Color::White
+                                    } else {
+                                        Color::Black
+                                    };
+                                    log::info!(
+                                        "Found game in ongoing games after GameState: {} as {:?}",
+                                        game_id,
+                                        color
+                                    );
+                                    return Ok((game_id.to_string(), color));
+                                }
+                            }
+                            // If we can't determine color, break and retry
+                            break;
+                        }
+                    }
+                    Err(e) => {
+                        log::error!("Failed to parse event: {} - Error: {}", line, e);
+                    }
+                }
+            }
+
+            // If we got here, we didn't get a GameFull event, wait and retry
+            if attempt < MAX_POLL_ATTEMPTS - 1 {
+                log::info!(
+                    "Game not fully started yet, waiting... (attempt {}/{})",
+                    attempt + 1,
+                    MAX_POLL_ATTEMPTS
+                );
+                std::thread::sleep(std::time::Duration::from_millis(POLL_INTERVAL_MS));
             }
         }
 
-        Err("Failed to receive game information from stream.".into())
+        Err("Game not started yet or failed to join. If you created a challenge, make sure your opponent has accepted it. Otherwise, try using 'My Ongoing Games' to join.".into())
     }
 
     /// Get game state with moves from board API
@@ -668,6 +1040,138 @@ impl LichessClient {
         }
 
         Err("No moves found in game state".into())
+    }
+
+    /// Get game PGN from export API
+    /// Uses the /api/games/export/{ids} endpoint to get the game in PGN format
+    /// Returns the PGN string which contains all moves in standard notation
+    pub fn get_game_pgn(&self, game_id: &str) -> Result<String, Box<dyn Error>> {
+        let url = format!("{}/games/export/{}", LICHESS_API_URL, game_id);
+        let response = self
+            .client
+            .get(&url)
+            .header(
+                "User-Agent",
+                "chess-tui (https://github.com/thomas-mauran/chess-tui)",
+            )
+            .bearer_auth(&self.token)
+            .header("Accept", "application/x-chess-pgn")
+            .send()?;
+
+        if !response.status().is_success() {
+            return Err(format!("Failed to get game PGN: {}", response.status()).into());
+        }
+
+        let pgn = response.text()?;
+        Ok(pgn)
+    }
+
+    /// Extract moves from PGN format
+    /// Parses PGN and returns moves in UCI format (space-separated)
+    /// Example PGN: "1. e4 e5 2. Nf3 Nc6" -> "e2e4 e7e5 g1f3 b8c6"
+    pub fn parse_pgn_moves(pgn: &str) -> Result<String, Box<dyn Error>> {
+        use shakmaty::{san::San, Chess, Position};
+
+        // Find the moves section (after the headers, which end with a blank line)
+        let moves_section = pgn
+            .split("\n\n")
+            .nth(1)
+            .ok_or("No moves section found in PGN")?;
+
+        // Parse moves from PGN format
+        // PGN moves look like: "1. e4 e5 2. Nf3 Nc6" or "1. e4 { [%clk 0:03:00] } e5"
+        // We need to extract just the move notation (e4, e5, Nf3, etc.)
+        let mut position = Chess::default();
+        let mut uci_moves = Vec::new();
+
+        // Remove comments and annotations first
+        let mut cleaned = String::new();
+        let mut in_comment = false;
+        let mut in_annotation = false;
+        for ch in moves_section.chars() {
+            match ch {
+                '{' => in_comment = true,
+                '}' if in_comment => in_comment = false,
+                '[' => in_annotation = true,
+                ']' if in_annotation => in_annotation = false,
+                _ if !in_comment && !in_annotation => cleaned.push(ch),
+                _ => {}
+            }
+        }
+
+        // Split by whitespace and process each token
+        for token in cleaned.split_whitespace() {
+            // Skip move numbers (1., 2., etc.) and result markers
+            if token.ends_with('.')
+                || token == "1-0"
+                || token == "0-1"
+                || token == "1/2-1/2"
+                || token == "*"
+            {
+                if token == "1-0" || token == "0-1" || token == "1/2-1/2" || token == "*" {
+                    break; // End of game
+                }
+                continue;
+            }
+
+            // Try to parse as SAN (Standard Algebraic Notation)
+            match San::from_ascii(token.as_bytes()) {
+                Ok(san) => {
+                    // Convert SAN to a move
+                    match san.to_move(&position) {
+                        Ok(chess_move) => {
+                            // Get from and to squares
+                            let from_sq = chess_move.from().unwrap_or_else(|| {
+                                // For castling, extract from the move
+                                match chess_move {
+                                    shakmaty::Move::Castle { king, .. } => king,
+                                    _ => shakmaty::Square::A1, // Should not happen
+                                }
+                            });
+                            let to_sq = chess_move.to();
+
+                            // Convert to UCI format (e.g., "e2e4")
+                            let from_str = format!("{}", from_sq);
+                            let to_str = format!("{}", to_sq);
+                            let promotion = chess_move.promotion().map(|r| match r {
+                                shakmaty::Role::Queen => 'q',
+                                shakmaty::Role::Rook => 'r',
+                                shakmaty::Role::Bishop => 'b',
+                                shakmaty::Role::Knight => 'n',
+                                _ => 'q',
+                            });
+
+                            let uci_move = if let Some(promo) = promotion {
+                                format!("{}{}{}", from_str, to_str, promo)
+                            } else {
+                                format!("{}{}", from_str, to_str)
+                            };
+
+                            uci_moves.push(uci_move);
+
+                            // Apply the move to update position
+                            match position.play(&chess_move) {
+                                Ok(new_pos) => position = new_pos,
+                                Err(e) => {
+                                    log::warn!("Failed to play move {}: {}", token, e);
+                                    break;
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            log::warn!("Failed to convert SAN {} to move: {}", token, e);
+                            // Continue to next move
+                        }
+                    }
+                }
+                Err(_) => {
+                    // Not a valid SAN move, might be a comment or annotation, skip it
+                    continue;
+                }
+            }
+        }
+
+        Ok(uci_moves.join(" "))
     }
 
     /// Poll game state from Lichess API
@@ -752,6 +1256,7 @@ impl LichessClient {
             let mut last_turns: Option<usize> = None;
             let mut last_move_seen: Option<String> = None;
             let mut last_was_player_turn: bool = false;
+            let mut last_status: Option<String> = None;
 
             loop {
                 // Poll every 3 seconds to avoid the 3-60 second delay in the stream
@@ -813,6 +1318,69 @@ impl LichessClient {
                                 // Check if this is a gameFull event (has fen and turns fields)
                                 // The public stream returns fields directly, not nested in "state"
                                 if json.get("fen").is_some() && json.get("turns").is_some() {
+                                    // Check game status for changes (draw, checkmate, etc.)
+                                    let current_status = json
+                                        .get("status")
+                                        .and_then(|s| s.get("name"))
+                                        .and_then(|n| n.as_str())
+                                        .map(|s| s.to_string());
+
+                                    if let Some(ref status) = current_status {
+                                        // Check if status changed to indicate game end (or if this is the first poll)
+                                        let is_status_change = last_status.as_ref() != Some(status);
+
+                                        if is_status_change {
+                                            log::info!(
+                                                "Game status: {:?} -> {:?}",
+                                                last_status,
+                                                status
+                                            );
+
+                                            // Check if the game has ended (or was already ended when we joined)
+                                            match status.as_str() {
+                                                "mate" | "checkmate" => {
+                                                    log::info!("Game ended by checkmate, sending status update");
+                                                    let _ = move_tx_poll
+                                                        .send("GAME_STATUS:checkmate".to_string());
+                                                }
+                                                "draw" | "stalemate" | "repetition"
+                                                | "insufficient" | "fifty" => {
+                                                    log::info!("Game ended by draw ({}), sending status update", status);
+                                                    let _ = move_tx_poll
+                                                        .send("GAME_STATUS:draw".to_string());
+                                                }
+                                                "resign" => {
+                                                    log::info!("Game ended by resignation, sending status update");
+                                                    let _ = move_tx_poll
+                                                        .send("GAME_STATUS:resign".to_string());
+                                                }
+                                                "aborted" => {
+                                                    log::info!(
+                                                        "Game was aborted, sending status update"
+                                                    );
+                                                    let _ = move_tx_poll
+                                                        .send("GAME_STATUS:aborted".to_string());
+                                                }
+                                                "started" => {
+                                                    // Game is still ongoing, no action needed
+                                                    if last_status.is_none() {
+                                                        log::debug!(
+                                                            "Game is ongoing (status: started)"
+                                                        );
+                                                    }
+                                                }
+                                                _ => {
+                                                    log::debug!("Unknown game status: {}", status);
+                                                }
+                                            }
+
+                                            last_status = current_status.clone();
+                                        }
+                                    } else if last_status.is_none() {
+                                        // If we can't get status but haven't seen one yet, log it
+                                        log::debug!("No status field found in poll response");
+                                    }
+
                                     // FIRST: Check for new moves (even if it's now the player's turn)
                                     // Extract turns count on first poll
                                     if last_turns.is_none() {
@@ -825,7 +1393,33 @@ impl LichessClient {
                                                 turns_usize
                                             );
                                             last_turns = Some(turns_usize);
-                                            // Send initial move count
+
+                                            // On first poll, if there are already moves (turns > 0),
+                                            // we need to send the lastMove so it gets applied to the board
+                                            // This handles the case where opponent made first move before we joined
+                                            // IMPORTANT: Send the move BEFORE INIT_MOVES so it's processed first
+                                            // When the move arrives, moves_received will be 1
+                                            // Then INIT_MOVES will set initial_move_count = turns_usize and moves_received = turns_usize
+                                            // So is_historical check will work correctly
+                                            if turns_usize > 0 {
+                                                if let Some(last_move_str) =
+                                                    json.get("lastMove").and_then(|v| v.as_str())
+                                                {
+                                                    let last_move = last_move_str.to_string();
+                                                    log::info!(
+                                                        "First poll detected existing move: {} (turns: {}) - sending before INIT_MOVES",
+                                                        last_move,
+                                                        turns_usize
+                                                    );
+                                                    // Send the move FIRST
+                                                    let last_move_clone = last_move.clone();
+                                                    let _ = move_tx_poll.send(last_move_clone);
+                                                    last_move_seen = Some(last_move);
+                                                }
+                                            }
+
+                                            // Send initial move count AFTER the move (if any)
+                                            // This ensures the move is processed first, then INIT_MOVES updates the counters
                                             let _ = move_tx_poll
                                                 .send(format!("INIT_MOVES:{}", turns_usize));
                                         }
@@ -866,6 +1460,18 @@ impl LichessClient {
                                             };
 
                                             if is_new_move {
+                                                // Debug log for rook moves
+                                                if last_move.len() >= 4 {
+                                                    let from_file =
+                                                        last_move.chars().next().unwrap_or('a');
+                                                    let from_rank =
+                                                        last_move.chars().nth(1).unwrap_or('1');
+                                                    if (from_file == 'a' || from_file == 'h')
+                                                        && (from_rank == '1' || from_rank == '8')
+                                                    {
+                                                        log::info!("ROOK MOVE detected in poll: {} (turns: {:?})", last_move, current_turns);
+                                                    }
+                                                }
                                                 log::info!(
                                                     "Poll detected new move: {} (turns: {:?})",
                                                     last_move,
@@ -1031,13 +1637,35 @@ impl LichessClient {
                                 // This is the initial gameFull event with current state
                                 // Extract turns count to know how many moves to skip
                                 if let Some(turns) = json.get("turns").and_then(|v| v.as_u64()) {
+                                    let turns_usize = turns as usize;
                                     log::info!(
                                         "Received gameFull event with {} turns (half-moves)",
-                                        turns
+                                        turns_usize
                                     );
-                                    // Send a special message to update initial_move_count
-                                    // Format: "INIT_MOVES:<count>"
-                                    let _ = move_tx.send(format!("INIT_MOVES:{}", turns));
+
+                                    // On gameFull event, if there are already moves (turns > 0),
+                                    // we need to send the lastMove so it gets applied to the board
+                                    // This handles the case when joining an ongoing game
+                                    // IMPORTANT: Send the move BEFORE INIT_MOVES so it's processed first
+                                    if turns_usize > 0 {
+                                        // The stream uses "lastMove" field (not "lm")
+                                        if let Some(last_move_str) =
+                                            json.get("lastMove").and_then(|v| v.as_str())
+                                        {
+                                            let last_move = last_move_str.to_string();
+                                            log::info!(
+                                                "Stream gameFull detected existing move: {} (turns: {}) - sending before INIT_MOVES",
+                                                last_move,
+                                                turns_usize
+                                            );
+                                            // Send the move FIRST
+                                            let _ = move_tx.send(last_move);
+                                        }
+                                    }
+
+                                    // Send initial move count AFTER the move (if any)
+                                    // This ensures the move is processed first, then INIT_MOVES updates the counters
+                                    let _ = move_tx.send(format!("INIT_MOVES:{}", turns_usize));
                                 }
                                 log::debug!("Received game info: {}", line);
                             } else {
@@ -1070,6 +1698,33 @@ impl LichessClient {
         if !response.status().is_success() {
             return Err(format!("Failed to make move: {}", response.status()).into());
         }
+        Ok(())
+    }
+
+    /// Resign a game
+    /// Uses the board API endpoint /board/game/{id}/resign
+    pub fn resign_game(&self, game_id: &str) -> Result<(), Box<dyn Error>> {
+        let url = format!("{}/board/game/{}/resign", LICHESS_API_URL, game_id);
+        log::info!("Resigning game: {}", game_id);
+
+        let response = self
+            .client
+            .post(&url)
+            .header(
+                "User-Agent",
+                "chess-tui (https://github.com/thomas-mauran/chess-tui)",
+            )
+            .bearer_auth(&self.token)
+            .send()?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let error_text = response.text().unwrap_or_default();
+            log::error!("Failed to resign game: {} - {}", status, error_text);
+            return Err(format!("Failed to resign game: {} - {}", status, error_text).into());
+        }
+
+        log::info!("Successfully resigned game: {}", game_id);
         Ok(())
     }
 }

@@ -461,13 +461,43 @@ impl UI {
         let last_move_from = last_move.map(|m| m.from()).unwrap();
         let last_move_to = last_move.map(|m| m.to());
 
-        // If the opponent is the same as the last move player, we don't want to show his last move
+        // Check if this is multiplayer mode first (TCP or Lichess)
+        // In multiplayer modes, always show the last move regardless of who made it
         if let Some(opponent) = logic.opponent.as_ref() {
-            if opponent.color == logic.player_turn {
-                return (None, None);
+            // Check if this is multiplayer (TCP or Lichess)
+            let is_multiplayer = matches!(
+                opponent.kind,
+                Some(crate::game_logic::opponent::OpponentKind::Tcp(_))
+                    | Some(crate::game_logic::opponent::OpponentKind::Lichess { .. })
+            );
+
+            if is_multiplayer {
+                // In multiplayer mode (TCP or Lichess), always show the last move
+                return (last_move_from, last_move_to);
             }
         }
 
+        // For bot mode or when position is available, determine who made the last move
+        // After a move, the turn switches, so the last move was made by the opposite color
+        if let Some(position) = logic.game_board.current_position() {
+            let last_move_color = match position.turn() {
+                shakmaty::Color::White => shakmaty::Color::Black,
+                shakmaty::Color::Black => shakmaty::Color::White,
+            };
+
+            // For bot mode: only show opponent's moves
+            if let Some(opponent) = logic.opponent.as_ref() {
+                // If the last move was made by the opponent, show it
+                if last_move_color == opponent.color {
+                    return (last_move_from, last_move_to);
+                } else {
+                    // Last move was made by the player, don't show it
+                    return (None, None);
+                }
+            }
+        }
+
+        // Fallback: show the move if no opponent (solo mode)
         (last_move_from, last_move_to)
     }
 

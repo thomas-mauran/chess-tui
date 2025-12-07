@@ -76,4 +76,5 @@ pub enum Popups {
     Error,
     SeekingLichessGame,
     EnterGameCode,
+    ResignConfirmation,
 }

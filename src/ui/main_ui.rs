@@ -13,6 +13,7 @@ use crate::{
     ui::popups::{
         render_color_selection_popup, render_credit_popup, render_end_popup,
         render_engine_path_error_popup, render_enter_game_code_popup, render_error_popup,
+        render_resign_confirmation_popup,
         render_help_popup, render_promotion_popup, render_puzzle_end_popup,
     },
 };
@@ -141,6 +142,9 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
         }
         Some(Popups::EnterGameCode) => {
             render_enter_game_code_popup(frame, &app.game.ui.prompt);
+        }
+        Some(Popups::ResignConfirmation) => {
+            render_resign_confirmation_popup(frame, app);
         }
         Some(Popups::PuzzleEndScreen) => {
             // Show puzzle completion message
