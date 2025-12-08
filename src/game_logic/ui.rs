@@ -182,7 +182,7 @@ impl UI {
         &self,
         piece_type: Option<Role>,
         piece_color: Option<shakmaty::Color>,
-        square: Rect,
+        _square: Rect,
     ) -> Paragraph<'static> {
         use crate::{
             pieces::{
@@ -231,30 +231,25 @@ impl UI {
                     .alignment(Alignment::Center)
             }
             DisplayMode::ASCII => {
-                let paragraph = if let Some(role) = piece_type {
-                    // Use custom piece to_string methods for ASCII mode
-                    let piece_str = match role {
-                        Role::King => King::to_string(&self.display_mode),
-                        Role::Queen => Queen::to_string(&self.display_mode),
-                        Role::Rook => Rook::to_string(&self.display_mode),
-                        Role::Bishop => Bishop::to_string(&self.display_mode),
-                        Role::Knight => Knight::to_string(&self.display_mode),
-                        Role::Pawn => Pawn::to_string(&self.display_mode),
-                    };
-
-                    match piece_color {
-                        Some(shakmaty::Color::Black) => Paragraph::new(piece_str.to_lowercase()),
-                        Some(shakmaty::Color::White) => {
-                            Paragraph::new(piece_str.to_uppercase().underlined())
-                        }
-                        None => Paragraph::new(piece_str),
-                    }
-                } else {
-                    Paragraph::new(" ")
+                let piece_str = match piece_type {
+                    Some(Role::King) => King::to_string(&self.display_mode),
+                    Some(Role::Queen) => Queen::to_string(&self.display_mode),
+                    Some(Role::Rook) => Rook::to_string(&self.display_mode),
+                    Some(Role::Bishop) => Bishop::to_string(&self.display_mode),
+                    Some(Role::Knight) => Knight::to_string(&self.display_mode),
+                    Some(Role::Pawn) => Pawn::to_string(&self.display_mode),
+                    None => " ",
                 };
 
-                paragraph
-                    .block(Block::new().padding(Padding::vertical(square.height / 2)))
+                let final_piece_str = match piece_color {
+                    Some(shakmaty::Color::Black) => piece_str.to_lowercase(),
+                    Some(shakmaty::Color::White) => piece_str.to_uppercase(),
+                    None => piece_str.to_string(),
+                };
+
+                // Use bright yellow for ASCII pieces to ensure visibility on both black and white squares
+                Paragraph::new(final_piece_str)
+                    .fg(Color::Yellow)
                     .alignment(Alignment::Center)
             }
         }

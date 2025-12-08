@@ -239,11 +239,11 @@ pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
     // Board block representing the full board div
     let menu_items = [
         "Normal game",
-        "Multiplayer",
-        "Play on Lichess",
-        "Play against a bot (local)",
+        "Integrated Multiplayer",
+        "Lichess (External)",
+        "Local Bot",
         &display_mode_menu,
-        "Help",
+        "Help Menu",
         "Credits",
     ];
     let mut menu_body: Vec<Line<'_>> = vec![];
