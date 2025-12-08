@@ -5,7 +5,6 @@ use chess_tui::app::{App, AppResult};
 use chess_tui::config::Config;
 use chess_tui::constants::{home_dir, DisplayMode};
 use chess_tui::event::{Event, EventHandler};
-use chess_tui::game_logic::opponent::wait_for_game_start;
 use chess_tui::handler::{handle_key_events, handle_mouse_events};
 use chess_tui::logging;
 use chess_tui::skin::Skin;
@@ -215,7 +214,6 @@ fn main() -> AppResult<()> {
         if app.check_bot_move() {
             app.check_and_show_game_end();
         }
-
         // Check if Lichess seek is done
         app.check_lichess_seek();
 
