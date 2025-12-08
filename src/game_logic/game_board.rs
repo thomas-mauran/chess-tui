@@ -269,7 +269,7 @@ impl GameBoard {
 
         // Reset board to initial state
         self.reset();
-        
+
         // Start from the initial position
         let mut current_position = self.position_history[0].clone();
         let mut moves_applied = 0;
@@ -285,7 +285,9 @@ impl GameBoard {
                     match uci.to_move(&current_position) {
                         Ok(chess_move) => {
                             // Track captures
-                            if let Some(captured_piece) = current_position.board().piece_at(chess_move.to()) {
+                            if let Some(captured_piece) =
+                                current_position.board().piece_at(chess_move.to())
+                            {
                                 self.taken_pieces.push(captured_piece);
                             }
 
@@ -310,7 +312,9 @@ impl GameBoard {
                         Err(e) => {
                             log::warn!(
                                 "Illegal move {}: {} - {}. Stopping history reconstruction.",
-                                i + 1, move_uci, e
+                                i + 1,
+                                move_uci,
+                                e
                             );
                             moves_failed += 1;
                             break;
@@ -320,7 +324,9 @@ impl GameBoard {
                 Err(e) => {
                     log::warn!(
                         "Failed to parse UCI move {}: {} - {}. Skipping.",
-                        i + 1, move_uci, e
+                        i + 1,
+                        move_uci,
+                        e
                     );
                     moves_failed += 1;
                 }
@@ -347,7 +353,8 @@ impl GameBoard {
                 let final_fen = shakmaty::fen::Fen::from_position(
                     final_position.clone(),
                     shakmaty::EnPassantMode::Legal,
-                ).to_string();
+                )
+                .to_string();
 
                 // Compare FEN strings (ignoring move counters which might differ)
                 let final_fen_parts: Vec<&str> = final_fen.split(' ').collect();
@@ -368,7 +375,9 @@ impl GameBoard {
                     // If positions don't match, use the FEN position as the final position
                     // Try to parse the expected FEN
                     if let Ok(fen) = shakmaty::fen::Fen::from_ascii(fen_str.as_bytes()) {
-                        if let Ok(position) = fen.into_position::<shakmaty::Chess>(shakmaty::CastlingMode::Standard) {
+                        if let Ok(position) =
+                            fen.into_position::<shakmaty::Chess>(shakmaty::CastlingMode::Standard)
+                        {
                             // Replace the last position in history with the FEN position
                             if let Some(last_pos) = self.position_history.last_mut() {
                                 *last_pos = position;
@@ -399,7 +408,7 @@ impl GameBoard {
 
         // Find matching legal move
         let legal_moves = chess.legal_moves();
-        
+
         // Check if this looks like a castling move (king moving 2 squares horizontally)
         let is_potential_castling = {
             let piece_at_from = chess.board().piece_at(from);
@@ -418,22 +427,32 @@ impl GameBoard {
                 false
             }
         };
-        
+
         if is_potential_castling {
             log::debug!("Detected potential castling move: {} -> {}", from, to);
             // Log all castling moves available
-            let castling_moves: Vec<_> = legal_moves.iter()
+            let castling_moves: Vec<_> = legal_moves
+                .iter()
                 .filter(|m| matches!(m, shakmaty::Move::Castle { .. }))
                 .collect();
             if !castling_moves.is_empty() {
                 for cm in &castling_moves {
-                    log::debug!("  Available castling: {:?} (from: {:?}, to: {})", cm, cm.from(), cm.to());
+                    log::debug!(
+                        "  Available castling: {:?} (from: {:?}, to: {})",
+                        cm,
+                        cm.from(),
+                        cm.to()
+                    );
                 }
             } else {
-                log::warn!("Castling move {} -> {} requested but no castling moves available", from, to);
+                log::warn!(
+                    "Castling move {} -> {} requested but no castling moves available",
+                    from,
+                    to
+                );
             }
         }
-        
+
         let matching_move = legal_moves.iter().find(|m| {
             // Regular move matching (this will also match castling moves correctly)
             m.from() == Some(from) && m.to() == to && {
@@ -468,13 +487,18 @@ impl GameBoard {
                 // Clone chess before using it in the play call
                 let chess_clone = chess.clone();
                 // Try to find castling move from the same square
-                let castling_move = legal_moves.iter().find(|m| {
-                    matches!(m, shakmaty::Move::Castle { .. }) && m.from() == Some(from)
-                });
-                
+                let castling_move = legal_moves
+                    .iter()
+                    .find(|m| matches!(m, shakmaty::Move::Castle { .. }) && m.from() == Some(from));
+
                 if let Some(castle_move) = castling_move {
-                    log::info!("Found castling move for {} -> {}: {:?} (actual destination: {})", 
-                        from, to, castle_move, castle_move.to());
+                    log::info!(
+                        "Found castling move for {} -> {}: {:?} (actual destination: {})",
+                        from,
+                        to,
+                        castle_move,
+                        castle_move.to()
+                    );
                     // Execute the castling move even though destination doesn't match exactly
                     match chess_clone.play(castle_move) {
                         Ok(new_chess) => {
@@ -489,10 +513,15 @@ impl GameBoard {
                         }
                     }
                 } else {
-                    log::warn!("Castling move {} -> {} requested but no castling available from {}", from, to, from);
+                    log::warn!(
+                        "Castling move {} -> {} requested but no castling available from {}",
+                        from,
+                        to,
+                        from
+                    );
                 }
             }
-            
+
             // Log why move wasn't found
             let piece_at_from = chess.board().piece_at(from);
             let piece_at_to = chess.board().piece_at(to);

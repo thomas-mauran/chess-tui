@@ -484,7 +484,8 @@ impl LichessClient {
                                             game.game_id,
                                             color
                                         );
-                                        let _ = game_found_tx.send(Ok((game.game_id.clone(), color)));
+                                        let _ =
+                                            game_found_tx.send(Ok((game.game_id.clone(), color)));
                                         return; // Exit thread after finding game
                                     }
                                 }
@@ -1119,12 +1120,12 @@ impl LichessClient {
                             // but we want pure coordinate notation.
                             // However, we can construct it manually or use uci() method if available.
                             // Let's stick to manual construction for control.
-                            
+
                             let from_sq = chess_move.from().unwrap_or(shakmaty::Square::A1); // Fallback should not happen for valid moves
                             let to_sq = chess_move.to();
-                            
+
                             let mut uci_move = format!("{}{}", from_sq, to_sq);
-                            
+
                             if let Some(role) = chess_move.promotion() {
                                 let char = match role {
                                     shakmaty::Role::Queen => 'q',
@@ -1157,7 +1158,7 @@ impl LichessClient {
                 }
             }
         }
-        
+
         Ok(uci_moves.join(" "))
     }
 
@@ -1175,7 +1176,9 @@ impl LichessClient {
                 ']' if in_annotation => in_annotation = false,
                 '(' => in_recursive_annotation += 1,
                 ')' if in_recursive_annotation > 0 => in_recursive_annotation -= 1,
-                _ if !in_comment && !in_annotation && in_recursive_annotation == 0 => cleaned.push(ch),
+                _ if !in_comment && !in_annotation && in_recursive_annotation == 0 => {
+                    cleaned.push(ch)
+                }
                 _ => {}
             }
         }
@@ -1408,8 +1411,8 @@ impl LichessClient {
 
                                             // Send initial move count AFTER the move (if any)
                                             // This ensures the move is processed first, then INIT_MOVES updates the counters
-                                            let _ = move_tx
-                                                .send(format!("INIT_MOVES:{}", turns_usize));
+                                            let _ =
+                                                move_tx.send(format!("INIT_MOVES:{}", turns_usize));
                                         }
                                     } else {
                                         // Check for new moves by comparing turns
@@ -1499,40 +1502,39 @@ impl LichessClient {
                                     }
 
                                     // AFTER checking for moves, check whose turn it is to decide if we should continue polling
-                                    let is_player_turn =
-                                        if let Some(player_color) = player_color {
-                                            // Check from the "player" field in the gameFull event
-                                            if let Some(player) =
-                                                json.get("player").and_then(|v| v.as_str())
-                                            {
-                                                let current_turn = if player == "white" {
+                                    let is_player_turn = if let Some(player_color) = player_color {
+                                        // Check from the "player" field in the gameFull event
+                                        if let Some(player) =
+                                            json.get("player").and_then(|v| v.as_str())
+                                        {
+                                            let current_turn = if player == "white" {
+                                                Color::White
+                                            } else {
+                                                Color::Black
+                                            };
+                                            current_turn == player_color
+                                        } else if let Some(fen) =
+                                            json.get("fen").and_then(|v| v.as_str())
+                                        {
+                                            // Parse FEN to get whose turn it is (2nd field: active color)
+                                            let fen_parts: Vec<&str> =
+                                                fen.split_whitespace().collect();
+                                            if fen_parts.len() > 1 {
+                                                let active_color = if fen_parts[1] == "w" {
                                                     Color::White
                                                 } else {
                                                     Color::Black
                                                 };
-                                                current_turn == player_color
-                                            } else if let Some(fen) =
-                                                json.get("fen").and_then(|v| v.as_str())
-                                            {
-                                                // Parse FEN to get whose turn it is (2nd field: active color)
-                                                let fen_parts: Vec<&str> =
-                                                    fen.split_whitespace().collect();
-                                                if fen_parts.len() > 1 {
-                                                    let active_color = if fen_parts[1] == "w" {
-                                                        Color::White
-                                                    } else {
-                                                        Color::Black
-                                                    };
-                                                    active_color == player_color
-                                                } else {
-                                                    false // Can't determine, poll anyway
-                                                }
+                                                active_color == player_color
                                             } else {
                                                 false // Can't determine, poll anyway
                                             }
                                         } else {
-                                            false // No player color info, poll anyway
-                                        };
+                                            false // Can't determine, poll anyway
+                                        }
+                                    } else {
+                                        false // No player color info, poll anyway
+                                    };
 
                                     // Update last_was_player_turn for next poll cycle
                                     last_was_player_turn = is_player_turn;
@@ -1566,11 +1568,7 @@ impl LichessClient {
         });
     }
 
-    fn spawn_streaming_thread(
-        &self,
-        game_id: String,
-        move_tx: Sender<String>,
-    ) {
+    fn spawn_streaming_thread(&self, game_id: String, move_tx: Sender<String>) {
         let client = self.client.clone();
         let url = format!("{}/stream/game/{}", LICHESS_API_URL, game_id);
 
@@ -1697,7 +1695,12 @@ impl LichessClient {
             return Ok(());
         }
 
-        self.spawn_polling_thread(game_id.clone(), move_tx.clone(), player_color, player_move_rx);
+        self.spawn_polling_thread(
+            game_id.clone(),
+            move_tx.clone(),
+            player_color,
+            player_move_rx,
+        );
         self.spawn_streaming_thread(game_id, move_tx);
 
         Ok(())
@@ -1753,7 +1756,7 @@ mod tests {
         let input = "1. e4 { comment } e5 [ %clk 0:05:00 ] 2. Nf3 ( 2. Nc3 )";
         // Note: The function preserves spaces, so we might have extra spaces
         let cleaned = LichessClient::clean_pgn_string(input);
-        
+
         // Check that comments and annotations are removed
         assert!(!cleaned.contains("{"));
         assert!(!cleaned.contains("}"));
@@ -1764,12 +1767,12 @@ mod tests {
         assert!(!cleaned.contains("comment"));
         assert!(!cleaned.contains("%clk"));
         assert!(!cleaned.contains("Nc3"));
-        
+
         assert!(cleaned.contains("1. e4"));
         assert!(cleaned.contains("e5"));
         assert!(cleaned.contains("2. Nf3"));
     }
-    
+
     #[test]
     fn test_clean_pgn_nested() {
         let input = "1. e4 { comment { nested } } e5";

@@ -559,7 +559,11 @@ impl GameLogic {
         Self::process_live_move(opponent, &mut self.game_board, &opponent_move)
     }
 
-    fn process_live_move(opponent: &mut Opponent, game_board: &mut GameBoard, move_str: &str) -> bool {
+    fn process_live_move(
+        opponent: &mut Opponent,
+        game_board: &mut GameBoard,
+        move_str: &str,
+    ) -> bool {
         log::info!("Executing opponent move: {}", move_str);
 
         // Parse move string
@@ -592,10 +596,7 @@ impl GameLogic {
             .any(|m| m.from() == Some(from) && m.to() == to);
 
         if move_already_played {
-            log::warn!(
-                "Move {} already in history, skipping duplicate",
-                move_str
-            );
+            log::warn!("Move {} already in history, skipping duplicate", move_str);
             return false;
         }
 
@@ -604,7 +605,14 @@ impl GameLogic {
         // This handles the case when joining an ongoing game where history wasn't set up correctly
         let history_is_empty = game_board.move_history.is_empty();
         if history_is_empty && opponent.moves_received <= opponent.initial_move_count {
-            return Self::handle_forced_historical_move(game_board, move_str, from, to, promotion_piece, piece_type_from);
+            return Self::handle_forced_historical_move(
+                game_board,
+                move_str,
+                from,
+                to,
+                promotion_piece,
+                piece_type_from,
+            );
         }
 
         // For castling moves, also check if any castling move has been played
@@ -651,8 +659,7 @@ impl GameLogic {
             color_at_dest
         );
 
-        let executed_move = game_board
-            .execute_standard_move(from, to, promotion_piece);
+        let executed_move = game_board.execute_standard_move(from, to, promotion_piece);
 
         // Store in history (use visual coordinates for history)
         if let Some(move_to_store) = executed_move {
@@ -720,7 +727,11 @@ impl GameLogic {
         }
     }
 
-    fn handle_opponent_control_message(opponent: &mut Opponent, game_state: &mut GameState, message: &str) -> bool {
+    fn handle_opponent_control_message(
+        opponent: &mut Opponent,
+        game_state: &mut GameState,
+        message: &str,
+    ) -> bool {
         // Check if this is a control message to update initial_move_count
         if message.starts_with("INIT_MOVES:") {
             if let Some(count_str) = message.strip_prefix("INIT_MOVES:") {
@@ -771,7 +782,11 @@ impl GameLogic {
         false
     }
 
-    fn handle_historical_move(opponent: &mut Opponent, game_board: &mut GameBoard, move_str: &str) -> bool {
+    fn handle_historical_move(
+        opponent: &mut Opponent,
+        game_board: &mut GameBoard,
+        move_str: &str,
+    ) -> bool {
         // Handle historical moves - when joining an ongoing game, the stream replays all moves
         // If move_history is empty, we need to populate it from the stream
         // Otherwise, we skip historical moves since we've already set up the board
@@ -807,8 +822,7 @@ impl GameLogic {
             // History is already populated (ongoing game), so moves are historical if:
             // 1. moves_received <= initial_move_count (within historical range), OR
             // 2. The move is already in the history (duplicate detection)
-            opponent.moves_received <= opponent.initial_move_count
-                || move_already_in_history
+            opponent.moves_received <= opponent.initial_move_count || move_already_in_history
         };
 
         log::debug!("Move processing: move={}, moves_received={}, initial_move_count={}, is_historical={}, history_is_empty={}", 
@@ -827,9 +841,7 @@ impl GameLogic {
                 // Ensure we have at least the initial position in position_history
                 if game_board.position_history.is_empty() {
                     log::warn!("position_history is empty! Initializing with starting position.");
-                    game_board
-                        .position_history
-                        .push(shakmaty::Chess::default());
+                    game_board.position_history.push(shakmaty::Chess::default());
                 }
 
                 // Parse and apply the move to build history
@@ -850,9 +862,7 @@ impl GameLogic {
                     }
 
                     // Execute the move to update the board state (this updates position_history)
-                    let executed_move =
-                        game_board
-                            .execute_standard_move(from, to, promotion_piece);
+                    let executed_move = game_board.execute_standard_move(from, to, promotion_piece);
 
                     if let Some(move_to_store) = executed_move {
                         // Add to move_history
@@ -936,21 +946,25 @@ impl GameLogic {
             }
             return true; // Treated as a historical move (handled or skipped)
         }
-        
+
         false // Not a historical move
     }
 
-    fn handle_forced_historical_move(game_board: &mut GameBoard, move_str: &str, from: Square, to: Square, promotion_piece: Option<Role>, piece_type_from: Option<Role>) -> bool {
+    fn handle_forced_historical_move(
+        game_board: &mut GameBoard,
+        move_str: &str,
+        from: Square,
+        to: Square,
+        promotion_piece: Option<Role>,
+        piece_type_from: Option<Role>,
+    ) -> bool {
         log::info!(
             "Move {} should be historical but history is empty. Attempting to add to history.",
             move_str
         );
 
         // Try to execute the move first
-        if let Some(executed_move) =
-            game_board
-                .execute_standard_move(from, to, promotion_piece)
-        {
+        if let Some(executed_move) = game_board.execute_standard_move(from, to, promotion_piece) {
             // Move executed successfully, add to history
             let piece_type = piece_type_from
                 .or_else(|| game_board.get_role_at_square(&to))

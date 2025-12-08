@@ -433,15 +433,18 @@ impl App {
                             log::error!("Failed to resign game {}: {}", game_id_clone, e);
                         }
                     }
-                    
+
                     // Wait 500ms for the resignation to be processed on Lichess servers
                     std::thread::sleep(std::time::Duration::from_millis(500));
-                    
+
                     // Fetch updated ongoing games list
                     let client = crate::lichess::LichessClient::new(token_clone);
                     match client.get_ongoing_games() {
                         Ok(games) => {
-                            log::info!("Refreshed ongoing games list after resignation, found {} games", games.len());
+                            log::info!(
+                                "Refreshed ongoing games list after resignation, found {} games",
+                                games.len()
+                            );
                             // Note: We can't directly update app.ongoing_games from this thread
                             // The UI will need to poll or we need a channel to send the update
                         }
@@ -452,10 +455,10 @@ impl App {
                 });
 
                 self.current_popup = None;
-                
+
                 // Immediately refetch ongoing games in the main thread
                 self.fetch_ongoing_games();
-                
+
                 log::info!(
                     "Resignation request sent for game {} vs {}",
                     game_id,
@@ -564,8 +567,11 @@ impl App {
             // If we have moves, apply them to build the history
             if let Some(ref moves_str) = moves_string {
                 if !moves_str.trim().is_empty() {
-                    self.game.logic.game_board.reconstruct_history(moves_str, Some(&fen));
-                    
+                    self.game
+                        .logic
+                        .game_board
+                        .reconstruct_history(moves_str, Some(&fen));
+
                     // Sync the player turn with the position's turn
                     self.game.logic.sync_player_turn_with_position();
 
@@ -588,7 +594,9 @@ impl App {
             log::info!("No moves available, setting up game from FEN: {}", fen);
             match shakmaty::fen::Fen::from_ascii(fen.as_bytes()) {
                 Ok(fen_data) => {
-                    match fen_data.into_position::<shakmaty::Chess>(shakmaty::CastlingMode::Standard) {
+                    match fen_data
+                        .into_position::<shakmaty::Chess>(shakmaty::CastlingMode::Standard)
+                    {
                         Ok(position) => {
                             self.game.logic.game_board.position_history = vec![position];
                             self.game.logic.game_board.move_history = vec![];

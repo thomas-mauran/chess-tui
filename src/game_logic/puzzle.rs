@@ -49,7 +49,7 @@ impl PuzzleGame {
 
         if is_correct {
             self.solution_index += 1;
-            
+
             // Check if puzzle is complete
             if self.solution_index >= self.puzzle.puzzle.solution.len() {
                 let win = !self.has_mistakes;
@@ -63,7 +63,7 @@ impl PuzzleGame {
                 self.opponent_move_pending = Some((opponent_move_uci, 1));
                 self.opponent_move_time = Some(Instant::now());
             }
-            
+
             (true, None)
         } else {
             // Wrong move
@@ -80,7 +80,7 @@ impl PuzzleGame {
             game.logic.game_board.position_history.pop();
             game.logic.sync_player_turn_with_position();
             game.ui.unselect_cell();
-            
+
             // Reset game state to Playing if it was Promotion
             if game.logic.game_state == crate::game_logic::game::GameState::Promotion {
                 game.logic.game_state = crate::game_logic::game::GameState::Playing;
@@ -88,7 +88,11 @@ impl PuzzleGame {
         }
     }
 
-    pub fn check_pending_move(&mut self, game: &mut Game, lichess_token: Option<String>) -> Option<String> {
+    pub fn check_pending_move(
+        &mut self,
+        game: &mut Game,
+        lichess_token: Option<String>,
+    ) -> Option<String> {
         if let Some((move_uci, index_to_advance)) = &self.opponent_move_pending {
             if let Some(start_time) = self.opponent_move_time {
                 if start_time.elapsed() >= Duration::from_secs(1) {
@@ -100,7 +104,7 @@ impl PuzzleGame {
 
                     if self.apply_opponent_move(&move_uci, game) {
                         self.solution_index += index_to_advance;
-                        
+
                         if self.solution_index >= self.puzzle.puzzle.solution.len() {
                             let win = !self.has_mistakes;
                             self.submit_completion(win, lichess_token);
@@ -147,13 +151,16 @@ impl PuzzleGame {
 
         if let Some(executed_move) = game.logic.game_board.execute_move(from, to, promotion) {
             if let Some(piece_type) = piece_type_from {
-                game.logic.game_board.move_history.push(shakmaty::Move::Normal {
-                    role: piece_type,
-                    from,
-                    capture: executed_move.capture(),
-                    to,
-                    promotion: executed_move.promotion(),
-                });
+                game.logic
+                    .game_board
+                    .move_history
+                    .push(shakmaty::Move::Normal {
+                        role: piece_type,
+                        from,
+                        capture: executed_move.capture(),
+                        to,
+                        promotion: executed_move.promotion(),
+                    });
             } else {
                 game.logic.game_board.move_history.push(executed_move);
             }
@@ -172,7 +179,8 @@ impl PuzzleGame {
         }
 
         if let Some(token) = token {
-            let time_ms = self.start_time
+            let time_ms = self
+                .start_time
                 .map(|start| start.elapsed().as_millis() as u32)
                 .unwrap_or(0);
 
@@ -184,7 +192,10 @@ impl PuzzleGame {
             self.elo_change_receiver = Some(rx);
 
             std::thread::spawn(move || {
-                if client.submit_puzzle_result(&puzzle_id, win, Some(time_ms)).is_ok() {
+                if client
+                    .submit_puzzle_result(&puzzle_id, win, Some(time_ms))
+                    .is_ok()
+                {
                     std::thread::sleep(Duration::from_millis(1500));
                     if let Ok(updated_profile) = client.get_user_profile() {
                         if let Some(perfs) = &updated_profile.perfs {
@@ -223,7 +234,7 @@ impl PuzzleGame {
 
         // Get the next move in the solution
         let next_move_uci = &self.puzzle.puzzle.solution[self.solution_index];
-        
+
         // UCI format: "e2e4" (from square + to square) or "e7e8q" (with promotion)
         if next_move_uci.len() < 4 {
             return None;
@@ -231,7 +242,7 @@ impl PuzzleGame {
 
         // Extract the "from" square (first 2 characters)
         let from_str = &next_move_uci[0..2];
-        
+
         // Parse the square
         match Square::from_ascii(from_str.as_bytes()) {
             Ok(square) => Some(square),

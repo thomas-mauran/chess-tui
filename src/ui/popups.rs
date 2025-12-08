@@ -63,16 +63,27 @@ pub fn render_resign_confirmation_popup(frame: &mut Frame, app: &App) {
 
     let text = vec![
         Line::from(""),
-        Line::from(format!("Are you sure you want to resign {}?", opponent_name))
-            .alignment(Alignment::Center),
+        Line::from(format!(
+            "Are you sure you want to resign {}?",
+            opponent_name
+        ))
+        .alignment(Alignment::Center),
         Line::from(""),
         Line::from("This action cannot be undone.").alignment(Alignment::Center),
         Line::from(""),
         Line::from(""),
         Line::from(vec![
-            Span::styled("Y", Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "Y",
+                Style::default()
+                    .fg(Color::Green)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::raw("es / "),
-            Span::styled("N", Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "N",
+                Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
+            ),
             Span::raw("o"),
         ])
         .alignment(Alignment::Center),
@@ -168,7 +179,12 @@ pub fn render_end_popup(frame: &mut Frame, sentence: &str, is_multiplayer: bool)
 }
 
 // This renders a popup for puzzle completion
-pub fn render_puzzle_end_popup(frame: &mut Frame, sentence: &str, elo_change: Option<i32>, is_calculating: bool) {
+pub fn render_puzzle_end_popup(
+    frame: &mut Frame,
+    sentence: &str,
+    elo_change: Option<i32>,
+    is_calculating: bool,
+) {
     let block = Block::default()
         .title("Puzzle Complete")
         .title_alignment(Alignment::Center)
@@ -189,7 +205,7 @@ pub fn render_puzzle_end_popup(frame: &mut Frame, sentence: &str, elo_change: Op
                 .add_modifier(Modifier::BOLD),
         ),
     ];
-    
+
     // Add Elo change if available, or show calculating message
     if let Some(change) = elo_change {
         text.push(Line::from(""));
@@ -213,7 +229,7 @@ pub fn render_puzzle_end_popup(frame: &mut Frame, sentence: &str, elo_change: Op
                 .style(Style::default().fg(Color::Cyan)),
         );
     }
-    
+
     text.extend(vec![
         Line::from(""),
         Line::from(""),
@@ -405,7 +421,9 @@ pub fn render_help_popup(frame: &mut Frame, app: &crate::app::App) {
             " cursor".into(),
         ]));
         text.push(Line::from(""));
-        text.push(Line::from("T: Show hint (select the piece to move)".yellow()));
+        text.push(Line::from(
+            "T: Show hint (select the piece to move)".yellow(),
+        ));
         text.push(Line::from(""));
     } else {
         text.push(Line::from(vec![

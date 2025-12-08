@@ -242,13 +242,16 @@ fn main() -> AppResult<()> {
         if let Some(opponent) = app.game.logic.opponent.as_ref() {
             // Check if it's the opponent's turn: if player_turn == opponent.color, it's opponent's turn
             let is_opponent_turn = app.game.logic.player_turn == opponent.color;
-            
+
             // Only check for TCP multiplayer moves here (Lichess is handled in tick())
             // Check both the turn and the flag for TCP multiplayer
             if is_opponent_turn && opponent.opponent_will_move {
                 // Check if it's TCP (not Lichess) - Lichess is handled in tick()
-                let is_tcp = matches!(opponent.kind, Some(chess_tui::game_logic::opponent::OpponentKind::Tcp(_)));
-                
+                let is_tcp = matches!(
+                    opponent.kind,
+                    Some(chess_tui::game_logic::opponent::OpponentKind::Tcp(_))
+                );
+
                 if is_tcp {
                     tui.draw(&mut app)?;
 
@@ -316,7 +319,7 @@ fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResu
     if config.selected_skin_name.is_none() {
         config.selected_skin_name = Some("Default".to_string());
     }
-    
+
     // Always update Lichess token if provided via command line
     if let Some(token) = &args.lichess_token {
         config.lichess_token = Some(token.clone());
