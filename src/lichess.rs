@@ -1256,7 +1256,7 @@ impl LichessClient {
                 // Check if we received a signal that the player made a move
                 // This resets the skip flag so we poll again (opponent's turn now)
                 if let Some(ref rx) = player_move_rx {
-                    if let Ok(_) = rx.try_recv() {
+                    if rx.try_recv().is_ok() {
                         log::debug!("Player made a move, resetting polling skip flag");
                         last_was_player_turn = false;
                         // Continue to poll immediately to check for opponent's response

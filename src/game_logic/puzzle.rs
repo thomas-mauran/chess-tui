@@ -244,9 +244,6 @@ impl PuzzleGame {
         let from_str = &next_move_uci[0..2];
 
         // Parse the square
-        match Square::from_ascii(from_str.as_bytes()) {
-            Ok(square) => Some(square),
-            Err(_) => None,
-        }
+        Square::from_ascii(from_str.as_bytes()).ok()
     }
 }

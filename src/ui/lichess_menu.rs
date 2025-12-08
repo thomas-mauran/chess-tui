@@ -54,12 +54,10 @@ pub fn render_lichess_menu(frame: &mut Frame, app: &App) {
         .split(content_chunks[1]);
 
     // Menu options
-    let menu_items = vec![
-        ("Seek Game", "Find a random opponent"),
+    let menu_items = [("Seek Game", "Find a random opponent"),
         ("Puzzle", "Play a puzzle"),
         ("My Ongoing Games", "View and join your current games"),
-        ("Join by Code", "Enter a game code to join"),
-    ];
+        ("Join by Code", "Enter a game code to join")];
 
     let mut menu_lines = vec![Line::from("")];
 
@@ -395,7 +393,7 @@ fn render_rating_graph(
 
         if !data.is_empty() {
             // Round up max_rating to nearest 100 for better visualization
-            max_rating = ((max_rating + 99) / 100) * 100;
+            max_rating = max_rating.div_ceil(100) * 100;
 
             let bar_chart = BarChart::default()
                 .block(

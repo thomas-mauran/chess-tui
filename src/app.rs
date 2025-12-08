@@ -305,7 +305,7 @@ impl App {
                     // Extract ID from URL like "https://lichess.org/O8uBDzKS"
                     game_code
                         .split('/')
-                        .last()
+                        .next_back()
                         .unwrap_or(&game_code)
                         .to_string()
                 } else {
@@ -928,11 +928,9 @@ impl App {
             } else {
                 // For TCP multiplayer, only check when it's the opponent's turn
                 let is_opponent_turn = self.game.logic.player_turn == opponent.color;
-                if is_opponent_turn {
-                    if self.game.logic.execute_opponent_move() {
-                        self.game.logic.switch_player_turn();
-                        self.check_and_show_game_end();
-                    }
+                if is_opponent_turn && self.game.logic.execute_opponent_move() {
+                    self.game.logic.switch_player_turn();
+                    self.check_and_show_game_end();
                 }
             }
         }
