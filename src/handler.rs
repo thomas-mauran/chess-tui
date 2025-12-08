@@ -284,13 +284,19 @@ fn handle_solo_page_events(app: &mut App, key_event: KeyEvent) {
         KeyCode::Char('n' | 'N') => {
             // In puzzle mode, 'n' is used for new puzzle (handled in popup)
             // Otherwise, navigate to next position in history
-            if app.puzzle_game.is_none() && app.game.logic.game_state != GameState::Checkmate && app.game.logic.game_state != GameState::Draw {
+            if app.puzzle_game.is_none()
+                && app.game.logic.game_state != GameState::Checkmate
+                && app.game.logic.game_state != GameState::Draw
+            {
                 app.navigate_history_next();
             }
         }
         KeyCode::Char('p' | 'P') => {
             // Navigate to previous position in history (only if game hasn't ended and not in puzzle mode)
-            if app.puzzle_game.is_none() && app.game.logic.game_state != GameState::Checkmate && app.game.logic.game_state != GameState::Draw {
+            if app.puzzle_game.is_none()
+                && app.game.logic.game_state != GameState::Checkmate
+                && app.game.logic.game_state != GameState::Draw
+            {
                 app.navigate_history_previous();
             }
         }
