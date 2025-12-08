@@ -255,6 +255,133 @@ impl GameBoard {
             .collect()
     }
 
+    /// Reconstruct game history from a string of space-separated UCI moves
+    /// Optionally verifies against an expected final FEN
+    pub fn reconstruct_history(&mut self, moves_str: &str, expected_fen: Option<&str>) {
+        if moves_str.trim().is_empty() {
+            return;
+        }
+
+        log::info!(
+            "Reconstructing history from {} moves",
+            moves_str.split_whitespace().count()
+        );
+
+        // Reset board to initial state
+        self.reset();
+        
+        // Start from the initial position
+        let mut current_position = self.position_history[0].clone();
+        let mut moves_applied = 0;
+        let mut moves_failed = 0;
+
+        // Parse moves string (space-separated UCI moves)
+        let move_strings: Vec<&str> = moves_str.split_whitespace().collect();
+
+        for (i, move_uci) in move_strings.iter().enumerate() {
+            // Parse UCI move using shakmaty
+            match move_uci.parse::<shakmaty::uci::UciMove>() {
+                Ok(uci) => {
+                    match uci.to_move(&current_position) {
+                        Ok(chess_move) => {
+                            // Track captures
+                            if let Some(captured_piece) = current_position.board().piece_at(chess_move.to()) {
+                                self.taken_pieces.push(captured_piece);
+                            }
+
+                            // Apply the move
+                            match current_position.play(&chess_move) {
+                                Ok(new_pos) => {
+                                    self.move_history.push(chess_move);
+                                    self.position_history.push(new_pos.clone());
+                                    current_position = new_pos;
+                                    moves_applied += 1;
+                                }
+                                Err(e) => {
+                                    log::warn!(
+                                        "Failed to play move {}: {} - {}. Stopping history reconstruction.",
+                                        i + 1, move_uci, e
+                                    );
+                                    moves_failed += 1;
+                                    break;
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            log::warn!(
+                                "Illegal move {}: {} - {}. Stopping history reconstruction.",
+                                i + 1, move_uci, e
+                            );
+                            moves_failed += 1;
+                            break;
+                        }
+                    }
+                }
+                Err(e) => {
+                    log::warn!(
+                        "Failed to parse UCI move {}: {} - {}. Skipping.",
+                        i + 1, move_uci, e
+                    );
+                    moves_failed += 1;
+                }
+            }
+        }
+
+        if moves_failed > 0 {
+            log::warn!(
+                "Failed to apply {} out of {} moves. History may be incomplete.",
+                moves_failed,
+                move_strings.len()
+            );
+        }
+
+        log::info!(
+            "Successfully applied {} moves out of {} total",
+            moves_applied,
+            move_strings.len()
+        );
+
+        // Verify that the final position matches the expected FEN
+        if let Some(fen_str) = expected_fen {
+            if let Some(final_position) = self.position_history.last() {
+                let final_fen = shakmaty::fen::Fen::from_position(
+                    final_position.clone(),
+                    shakmaty::EnPassantMode::Legal,
+                ).to_string();
+
+                // Compare FEN strings (ignoring move counters which might differ)
+                let final_fen_parts: Vec<&str> = final_fen.split(' ').collect();
+                let expected_fen_parts: Vec<&str> = fen_str.split(' ').collect();
+
+                let positions_match = final_fen_parts.len() >= 4
+                    && expected_fen_parts.len() >= 4
+                    && final_fen_parts[0..4] == expected_fen_parts[0..4];
+
+                if !positions_match {
+                    log::warn!(
+                        "Final position from moves doesn't match FEN. Final: {}, Expected: {}",
+                        final_fen,
+                        fen_str
+                    );
+                    log::warn!("Using FEN position and rebuilding history from it");
+
+                    // If positions don't match, use the FEN position as the final position
+                    // Try to parse the expected FEN
+                    if let Ok(fen) = shakmaty::fen::Fen::from_ascii(fen_str.as_bytes()) {
+                        if let Ok(position) = fen.into_position::<shakmaty::Chess>(shakmaty::CastlingMode::Standard) {
+                            // Replace the last position in history with the FEN position
+                            if let Some(last_pos) = self.position_history.last_mut() {
+                                *last_pos = position;
+                            }
+                        }
+                    }
+                } else {
+                    log::info!("Final position matches FEN - history is correct");
+                }
+            }
+        }
+    }
+
     /// Execute a move on the board
     /// Returns the executed Move if successful, None if illegal
     pub fn execute_move(

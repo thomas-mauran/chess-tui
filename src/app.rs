@@ -397,19 +397,42 @@ impl App {
 
             if let Some(token) = &self.lichess_token {
                 let client = crate::lichess::LichessClient::new(token.clone());
+                let token_clone = token.clone();
 
                 // Resign in a separate thread to avoid blocking
                 let game_id_clone = game_id.clone();
-                std::thread::spawn(move || match client.resign_game(&game_id_clone) {
-                    Ok(_) => {
-                        log::info!("Successfully resigned game: {}", game_id_clone);
+                std::thread::spawn(move || {
+                    match client.resign_game(&game_id_clone) {
+                        Ok(_) => {
+                            log::info!("Successfully resigned game: {}", game_id_clone);
+                        }
+                        Err(e) => {
+                            log::error!("Failed to resign game {}: {}", game_id_clone, e);
+                        }
                     }
-                    Err(e) => {
-                        log::error!("Failed to resign game {}: {}", game_id_clone, e);
+                    
+                    // Wait 500ms for the resignation to be processed on Lichess servers
+                    std::thread::sleep(std::time::Duration::from_millis(500));
+                    
+                    // Fetch updated ongoing games list
+                    let client = crate::lichess::LichessClient::new(token_clone);
+                    match client.get_ongoing_games() {
+                        Ok(games) => {
+                            log::info!("Refreshed ongoing games list after resignation, found {} games", games.len());
+                            // Note: We can't directly update app.ongoing_games from this thread
+                            // The UI will need to poll or we need a channel to send the update
+                        }
+                        Err(e) => {
+                            log::error!("Failed to refresh ongoing games after resignation: {}", e);
+                        }
                     }
                 });
 
                 self.current_popup = None;
+                
+                // Immediately refetch ongoing games in the main thread
+                self.fetch_ongoing_games();
+                
                 log::info!(
                     "Resignation request sent for game {} vs {}",
                     game_id,
@@ -515,309 +538,53 @@ impl App {
                 None
             };
 
-            // Parse the FEN to get the current game state
+            // If we have moves, apply them to build the history
+            if let Some(ref moves_str) = moves_string {
+                if !moves_str.trim().is_empty() {
+                    self.game.logic.game_board.reconstruct_history(moves_str, Some(&fen));
+                    
+                    // Sync the player turn with the position's turn
+                    self.game.logic.sync_player_turn_with_position();
+
+                    // Calculate initial move count (number of half-moves)
+                    let initial_move_count = self.game.logic.game_board.move_history.len();
+
+                    log::info!(
+                        "Setting up Lichess game with {} moves in history",
+                        initial_move_count
+                    );
+
+                    // Now set up the Lichess connection
+                    self.setup_lichess_game(game_id, color, initial_move_count);
+                    return;
+                }
+            }
+
+            // Fallback: No moves available or empty moves string
+            // Set up with FEN position directly
+            log::info!("No moves available, setting up game from FEN: {}", fen);
             match shakmaty::fen::Fen::from_ascii(fen.as_bytes()) {
                 Ok(fen_data) => {
-                    match fen_data
-                        .into_position::<shakmaty::Chess>(shakmaty::CastlingMode::Standard)
-                    {
+                    match fen_data.into_position::<shakmaty::Chess>(shakmaty::CastlingMode::Standard) {
                         Ok(position) => {
-                            // If we have moves, apply them to build the history
-                            if let Some(moves_str) = moves_string {
-                                if !moves_str.trim().is_empty() {
-                                    log::info!(
-                                        "Applying {} moves to build history",
-                                        moves_str.split_whitespace().count()
-                                    );
-
-                                    // Parse moves string (space-separated UCI moves)
-                                    let move_strings: Vec<&str> =
-                                        moves_str.split_whitespace().collect();
-
-                                    // Start from the initial position
-                                    let mut current_position = shakmaty::Chess::default();
-                                    let mut position_history = vec![current_position.clone()];
-                                    let mut move_history = Vec::new();
-                                    let mut taken_pieces = Vec::new();
-
-                                    // Helper function to parse UCI move
-                                    let parse_uci_move = |move_str: &str| -> Option<(
-                                        shakmaty::Square,
-                                        shakmaty::Square,
-                                        Option<shakmaty::Role>,
-                                    )> {
-                                        if move_str.len() < 4 {
-                                            return None;
-                                        }
-
-                                        let mut chars = move_str.chars();
-                                        let from_file_char = chars.next()?;
-                                        let from_rank_char = chars.next()?;
-                                        let to_file_char = chars.next()?;
-                                        let to_rank_char = chars.next()?;
-
-                                        // Parse promotion piece if present (5th character)
-                                        let promotion_piece: Option<shakmaty::Role> =
-                                            if move_str.len() == 5 {
-                                                match move_str.chars().nth(4)? {
-                                                    'q' => Some(shakmaty::Role::Queen),
-                                                    'r' => Some(shakmaty::Role::Rook),
-                                                    'b' => Some(shakmaty::Role::Bishop),
-                                                    'n' => Some(shakmaty::Role::Knight),
-                                                    _ => None,
-                                                }
-                                            } else {
-                                                None
-                                            };
-
-                                        let from_str =
-                                            format!("{}{}", from_file_char, from_rank_char);
-                                        let to_str = format!("{}{}", to_file_char, to_rank_char);
-
-                                        let from =
-                                            shakmaty::Square::from_ascii(from_str.as_bytes())
-                                                .ok()?;
-                                        let to =
-                                            shakmaty::Square::from_ascii(to_str.as_bytes()).ok()?;
-
-                                        Some((from, to, promotion_piece))
-                                    };
-
-                                    // Apply each move
-                                    let mut moves_applied = 0;
-                                    let mut moves_failed = 0;
-                                    for (i, move_uci) in move_strings.iter().enumerate() {
-                                        // Parse UCI move (e.g., "e2e4" or "e7e8q")
-                                        if let Some((from, to, promotion)) =
-                                            parse_uci_move(move_uci)
-                                        {
-                                            // Track captures before executing move
-                                            if let Some(captured_piece) =
-                                                current_position.board().piece_at(to)
-                                            {
-                                                taken_pieces.push(captured_piece);
-                                            }
-
-                                            // Find the legal move matching this UCI move
-                                            let legal_moves = current_position.legal_moves();
-                                            if let Some(chess_move) = legal_moves.iter().find(|m| {
-                                                m.from() == Some(from)
-                                                    && m.to() == to
-                                                    && m.promotion() == promotion
-                                            }) {
-                                                // Store the move
-                                                move_history.push(chess_move.clone());
-
-                                                // Apply the move
-                                                match current_position.play(chess_move) {
-                                                    Ok(new_pos) => {
-                                                        log::debug!(
-                                                            "Applied move {}: {} -> position {}",
-                                                            i + 1,
-                                                            move_uci,
-                                                            i + 2
-                                                        );
-                                                        position_history.push(new_pos.clone());
-                                                        current_position = new_pos;
-                                                        moves_applied += 1;
-                                                    }
-                                                    Err(e) => {
-                                                        log::warn!(
-                                                            "Failed to play move {}: {} - {}. Stopping history reconstruction.",
-                                                            i + 1,
-                                                            move_uci,
-                                                            e
-                                                        );
-                                                        moves_failed += 1;
-                                                        // Break here because current_position was consumed by play()
-                                                        // and we can't continue building history
-                                                        break;
-                                                    }
-                                                }
-                                            } else {
-                                                log::warn!(
-                                                    "Move {} is not legal: {}. Will use FEN position.",
-                                                    i + 1,
-                                                    move_uci
-                                                );
-                                                moves_failed += 1;
-                                                // Don't break - continue to try to apply remaining moves
-                                            }
-                                        } else {
-                                            log::warn!(
-                                                "Failed to parse UCI move: {}. Skipping.",
-                                                move_uci
-                                            );
-                                            moves_failed += 1;
-                                            // Don't break - continue to try to apply remaining moves
-                                        }
-                                    }
-
-                                    if moves_failed > 0 {
-                                        log::warn!(
-                                            "Failed to apply {} out of {} moves. History may be incomplete.",
-                                            moves_failed,
-                                            move_strings.len()
-                                        );
-                                    }
-
-                                    log::info!(
-                                        "Successfully applied {} moves out of {} total",
-                                        moves_applied,
-                                        move_strings.len()
-                                    );
-
-                                    // Validate that position_history has exactly one more element than move_history
-                                    // (initial position + one position after each move)
-                                    if position_history.len() != move_history.len() + 1 {
-                                        log::error!(
-                                            "History length mismatch: {} moves but {} positions (expected {})",
-                                            move_history.len(),
-                                            position_history.len(),
-                                            move_history.len() + 1
-                                        );
-                                    }
-
-                                    // Verify that the final position matches the FEN
-                                    // Compare positions by comparing their FEN strings
-                                    // Use the last position from history (which should match current_position)
-                                    if let Some(final_position_from_moves) = position_history.last()
-                                    {
-                                        let final_fen = shakmaty::fen::Fen::from_position(
-                                            final_position_from_moves.clone(),
-                                            shakmaty::EnPassantMode::Legal,
-                                        );
-                                        let expected_fen = shakmaty::fen::Fen::from_position(
-                                            position.clone(),
-                                            shakmaty::EnPassantMode::Legal,
-                                        );
-
-                                        let final_fen_str = final_fen.to_string();
-                                        let expected_fen_str = expected_fen.to_string();
-
-                                        // Compare FEN strings (ignoring move counters which might differ)
-                                        let final_fen_parts: Vec<&str> =
-                                            final_fen_str.split(' ').collect();
-                                        let expected_fen_parts: Vec<&str> =
-                                            expected_fen_str.split(' ').collect();
-
-                                        let positions_match = final_fen_parts.len() >= 4
-                                            && expected_fen_parts.len() >= 4
-                                            && final_fen_parts[0..4] == expected_fen_parts[0..4];
-
-                                        if !positions_match {
-                                            log::warn!(
-                                                "Final position from moves doesn't match FEN. Final: {}, Expected: {}",
-                                                final_fen_str,
-                                                expected_fen_str
-                                            );
-                                            log::warn!(
-                                                "Using FEN position and rebuilding history from it"
-                                            );
-
-                                            // If positions don't match, use the FEN position as the final position
-                                            // and keep the history we built (it might be incomplete but better than nothing)
-                                            // Replace the last position in history with the FEN position
-                                            if let Some(last_pos) = position_history.last_mut() {
-                                                *last_pos = position.clone();
-                                            } else {
-                                                position_history.push(position.clone());
-                                            }
-                                        } else {
-                                            log::info!(
-                                                "Final position matches FEN - history is correct"
-                                            );
-                                        }
-                                    } else {
-                                        log::warn!(
-                                            "No positions in history, using FEN position only"
-                                        );
-                                        position_history.push(position.clone());
-                                    }
-
-                                    log::info!(
-                                        "Applied {} moves, built history with {} positions, {} captured pieces",
-                                        move_history.len(),
-                                        position_history.len(),
-                                        taken_pieces.len()
-                                    );
-
-                                    // Verify moves can be converted to SAN for debugging
-                                    if !move_history.is_empty() && position_history.len() > 0 {
-                                        // Temporarily set up the board to test SAN conversion
-                                        let temp_position = position_history[0].clone();
-                                        let temp_move = &move_history[0];
-                                        use shakmaty::san::San;
-                                        let test_san =
-                                            San::from_move(&temp_position, temp_move).to_string();
-                                        log::info!("First move SAN test: '{}'", test_san);
-                                    }
-
-                                    // Set up the game with the full history
-                                    self.game.logic.game_board.position_history = position_history;
-                                    self.game.logic.game_board.move_history = move_history;
-                                    self.game.logic.game_board.taken_pieces = taken_pieces;
-                                    self.game.logic.game_board.history_position_index = None;
-
-                                    // Log final state to verify history is set
-                                    log::info!(
-                                        "History set: {} moves, {} positions in game_board",
-                                        self.game.logic.game_board.move_history.len(),
-                                        self.game.logic.game_board.position_history.len()
-                                    );
-
-                                    // Sync the player turn with the position's turn
-                                    self.game.logic.sync_player_turn_with_position();
-
-                                    // Calculate initial move count (number of half-moves)
-                                    let initial_move_count =
-                                        self.game.logic.game_board.move_history.len();
-
-                                    log::info!(
-                                        "Setting up Lichess game with {} moves in history",
-                                        initial_move_count
-                                    );
-
-                                    // Now set up the Lichess connection
-                                    self.setup_lichess_game(game_id, color, initial_move_count);
-
-                                    // Log again after setup to ensure history wasn't cleared
-                                    log::info!(
-                                        "After setup_lichess_game: {} moves, {} positions in game_board",
-                                        self.game.logic.game_board.move_history.len(),
-                                        self.game.logic.game_board.position_history.len()
-                                    );
-                                } else {
-                                    // No moves, just set up with current position
-                                    self.game.logic.game_board.position_history = vec![position];
-                                    self.game.logic.game_board.move_history = vec![];
-                                    self.game.logic.game_board.taken_pieces = vec![];
-                                    self.game.logic.game_board.history_position_index = None;
-                                    self.game.logic.sync_player_turn_with_position();
-                                    self.setup_lichess_game(game_id, color, 0);
-                                }
-                            } else {
-                                // No moves available, just set up with current position
-                                self.game.logic.game_board.position_history = vec![position];
-                                self.game.logic.game_board.move_history = vec![];
-                                self.game.logic.game_board.taken_pieces = vec![];
-                                self.game.logic.game_board.history_position_index = None;
-                                self.game.logic.sync_player_turn_with_position();
-                                self.setup_lichess_game(game_id, color, 0);
-                            }
+                            self.game.logic.game_board.position_history = vec![position];
+                            self.game.logic.game_board.move_history = vec![];
+                            self.game.logic.game_board.taken_pieces = vec![];
+                            self.game.logic.game_board.history_position_index = None;
+                            self.game.logic.sync_player_turn_with_position();
+                            self.setup_lichess_game(game_id, color, 0);
                         }
                         Err(e) => {
                             log::error!("Failed to parse FEN position: {}", e);
-                            self.error_message =
-                                Some(format!("Failed to load game position: {}", e));
-                            self.current_popup = Some(crate::constants::Popups::Error);
+                            self.error_message = Some(format!("Failed to parse FEN: {}", e));
+                            self.current_popup = Some(Popups::Error);
                         }
                     }
                 }
                 Err(e) => {
-                    log::error!("Failed to parse FEN: {}", e);
-                    self.error_message = Some(format!("Failed to parse game state: {}", e));
-                    self.current_popup = Some(crate::constants::Popups::Error);
+                    log::error!("Failed to parse FEN string: {}", e);
+                    self.error_message = Some(format!("Failed to parse FEN: {}", e));
+                    self.current_popup = Some(Popups::Error);
                 }
             }
         }

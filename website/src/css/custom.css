@@ -74,3 +74,8 @@ footer.footer a:hover {
 .header-github-link img {
   vertical-align: middle;
 }
+
+/* Hide the burger menu (sidebar toggle button) */
+.navbar__sidebar-toggle {
+  display: none !important;
+}

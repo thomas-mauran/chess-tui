@@ -206,6 +206,7 @@ pub struct Perf {
     pub prog: Option<i32>,
 }
 
+#[derive(Clone)]
 pub struct LichessClient {
     token: String,
     client: Client,
@@ -434,6 +435,70 @@ impl LichessClient {
         Ok(activities)
     }
 
+    fn spawn_seek_background_poll(
+        &self,
+        initial_game_ids: std::collections::HashSet<String>,
+        cancellation_token: std::sync::Arc<std::sync::atomic::AtomicBool>,
+        game_found_tx: Sender<Result<(String, Color), String>>,
+    ) {
+        let token = self.token.clone();
+
+        thread::spawn(move || {
+            log::info!("Starting background polling thread for ongoing games");
+            let poll_client = Client::builder()
+                .timeout(None)
+                .http1_only()
+                .build()
+                .unwrap_or_else(|_| Client::new());
+
+            loop {
+                if cancellation_token.load(std::sync::atomic::Ordering::Relaxed) {
+                    break;
+                }
+
+                std::thread::sleep(std::time::Duration::from_secs(2)); // Poll every 2 seconds
+
+                let poll_url = format!("{}/account/playing", LICHESS_API_URL);
+                match poll_client
+                    .get(&poll_url)
+                    .header(
+                        "User-Agent",
+                        "chess-tui (https://github.com/thomas-mauran/chess-tui)",
+                    )
+                    .bearer_auth(&token)
+                    .send()
+                {
+                    Ok(response) => {
+                        if response.status().is_success() {
+                            if let Ok(games_response) = response.json::<OngoingGamesResponse>() {
+                                // Find a new game that wasn't in our initial list
+                                for game in games_response.now_playing.iter() {
+                                    if !initial_game_ids.contains(&game.game_id) {
+                                        let color = if game.color == "white" {
+                                            Color::White
+                                        } else {
+                                            Color::Black
+                                        };
+                                        log::info!(
+                                            "Background poll found new game: {} as {:?}",
+                                            game.game_id,
+                                            color
+                                        );
+                                        let _ = game_found_tx.send(Ok((game.game_id.clone(), color)));
+                                        return; // Exit thread after finding game
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        log::debug!("Background poll error (non-fatal): {}", e);
+                    }
+                }
+            }
+        });
+    }
+
     pub fn seek_game(
         &self,
         time: u32,
@@ -514,68 +579,14 @@ impl LichessClient {
             log::debug!("Response headers: {:#?}", response.headers());
 
             // Start a background thread to poll ongoing games while we read the stream
-            let token_poll = self.token.clone();
-            let initial_game_ids_poll = initial_game_ids.clone();
-            let cancellation_token_poll = cancellation_token.clone();
             let (game_found_tx, game_found_rx) =
                 std::sync::mpsc::channel::<Result<(String, Color), String>>();
 
-            thread::spawn(move || {
-                log::info!("Starting background polling thread for ongoing games");
-                let poll_client = Client::builder()
-                    .timeout(None)
-                    .http1_only()
-                    .build()
-                    .unwrap_or_else(|_| Client::new());
-
-                loop {
-                    if cancellation_token_poll.load(std::sync::atomic::Ordering::Relaxed) {
-                        break;
-                    }
-
-                    std::thread::sleep(std::time::Duration::from_secs(2)); // Poll every 2 seconds
-
-                    let poll_url = format!("{}/account/playing", LICHESS_API_URL);
-                    match poll_client
-                        .get(&poll_url)
-                        .header(
-                            "User-Agent",
-                            "chess-tui (https://github.com/thomas-mauran/chess-tui)",
-                        )
-                        .bearer_auth(&token_poll)
-                        .send()
-                    {
-                        Ok(response) => {
-                            if response.status().is_success() {
-                                if let Ok(games_response) = response.json::<OngoingGamesResponse>()
-                                {
-                                    // Find a new game that wasn't in our initial list
-                                    for game in games_response.now_playing.iter() {
-                                        if !initial_game_ids_poll.contains(&game.game_id) {
-                                            let color = if game.color == "white" {
-                                                Color::White
-                                            } else {
-                                                Color::Black
-                                            };
-                                            log::info!(
-                                                "Background poll found new game: {} as {:?}",
-                                                game.game_id,
-                                                color
-                                            );
-                                            let _ = game_found_tx
-                                                .send(Ok((game.game_id.clone(), color)));
-                                            return; // Exit thread after finding game
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        Err(e) => {
-                            log::debug!("Background poll error (non-fatal): {}", e);
-                        }
-                    }
-                }
-            });
+            self.spawn_seek_background_poll(
+                initial_game_ids.clone(),
+                cancellation_token.clone(),
+                game_found_tx,
+            );
 
             let reader = BufReader::new(response);
             let mut game_id_from_stream: Option<String> = None;
@@ -1078,26 +1089,9 @@ impl LichessClient {
             .nth(1)
             .ok_or("No moves section found in PGN")?;
 
-        // Parse moves from PGN format
-        // PGN moves look like: "1. e4 e5 2. Nf3 Nc6" or "1. e4 { [%clk 0:03:00] } e5"
-        // We need to extract just the move notation (e4, e5, Nf3, etc.)
+        let cleaned = Self::clean_pgn_string(moves_section);
         let mut position = Chess::default();
         let mut uci_moves = Vec::new();
-
-        // Remove comments and annotations first
-        let mut cleaned = String::new();
-        let mut in_comment = false;
-        let mut in_annotation = false;
-        for ch in moves_section.chars() {
-            match ch {
-                '{' => in_comment = true,
-                '}' if in_comment => in_comment = false,
-                '[' => in_annotation = true,
-                ']' if in_annotation => in_annotation = false,
-                _ if !in_comment && !in_annotation => cleaned.push(ch),
-                _ => {}
-            }
-        }
 
         // Split by whitespace and process each token
         for token in cleaned.split_whitespace() {
@@ -1120,32 +1114,27 @@ impl LichessClient {
                     // Convert SAN to a move
                     match san.to_move(&position) {
                         Ok(chess_move) => {
-                            // Get from and to squares
-                            let from_sq = chess_move.from().unwrap_or_else(|| {
-                                // For castling, extract from the move
-                                match chess_move {
-                                    shakmaty::Move::Castle { king, .. } => king,
-                                    _ => shakmaty::Square::A1, // Should not happen
-                                }
-                            });
-                            let to_sq = chess_move.to();
-
                             // Convert to UCI format (e.g., "e2e4")
-                            let from_str = format!("{}", from_sq);
-                            let to_str = format!("{}", to_sq);
-                            let promotion = chess_move.promotion().map(|r| match r {
-                                shakmaty::Role::Queen => 'q',
-                                shakmaty::Role::Rook => 'r',
-                                shakmaty::Role::Bishop => 'b',
-                                shakmaty::Role::Knight => 'n',
-                                _ => 'q',
-                            });
-
-                            let uci_move = if let Some(promo) = promotion {
-                                format!("{}{}{}", from_str, to_str, promo)
-                            } else {
-                                format!("{}{}", from_str, to_str)
-                            };
+                            // shakmaty::Move implements Display which gives UCI format for some variants,
+                            // but we want pure coordinate notation.
+                            // However, we can construct it manually or use uci() method if available.
+                            // Let's stick to manual construction for control.
+                            
+                            let from_sq = chess_move.from().unwrap_or(shakmaty::Square::A1); // Fallback should not happen for valid moves
+                            let to_sq = chess_move.to();
+                            
+                            let mut uci_move = format!("{}{}", from_sq, to_sq);
+                            
+                            if let Some(role) = chess_move.promotion() {
+                                let char = match role {
+                                    shakmaty::Role::Queen => 'q',
+                                    shakmaty::Role::Rook => 'r',
+                                    shakmaty::Role::Bishop => 'b',
+                                    shakmaty::Role::Knight => 'n',
+                                    _ => 'q',
+                                };
+                                uci_move.push(char);
+                            }
 
                             uci_moves.push(uci_move);
 
@@ -1160,18 +1149,37 @@ impl LichessClient {
                         }
                         Err(e) => {
                             log::warn!("Failed to convert SAN {} to move: {}", token, e);
-                            // Continue to next move
                         }
                     }
                 }
                 Err(_) => {
-                    // Not a valid SAN move, might be a comment or annotation, skip it
-                    continue;
+                    // Not a valid SAN, skip
                 }
             }
         }
-
+        
         Ok(uci_moves.join(" "))
+    }
+
+    fn clean_pgn_string(input: &str) -> String {
+        let mut cleaned = String::new();
+        let mut in_comment = false;
+        let mut in_annotation = false;
+        let mut in_recursive_annotation = 0; // Handle nested parentheses if any (though PGN usually uses {} and [])
+
+        for ch in input.chars() {
+            match ch {
+                '{' => in_comment = true,
+                '}' if in_comment => in_comment = false,
+                '[' => in_annotation = true,
+                ']' if in_annotation => in_annotation = false,
+                '(' => in_recursive_annotation += 1,
+                ')' if in_recursive_annotation > 0 => in_recursive_annotation -= 1,
+                _ if !in_comment && !in_annotation && in_recursive_annotation == 0 => cleaned.push(ch),
+                _ => {}
+            }
+        }
+        cleaned
     }
 
     /// Poll game state from Lichess API
@@ -1219,39 +1227,19 @@ impl LichessClient {
         })
     }
 
-    pub fn stream_game(
+    fn spawn_polling_thread(
         &self,
         game_id: String,
         move_tx: Sender<String>,
         player_color: Option<Color>,
         player_move_rx: Option<Receiver<()>>,
-    ) -> Result<(), Box<dyn Error>> {
-        let url = format!("{}/stream/game/{}", LICHESS_API_URL, game_id);
+    ) {
         let client = self.client.clone();
-
-        // Start polling thread (checks every 3 seconds)
-        // NOTE: This polling is ONLY for Lichess multiplayer games.
-        // This function (stream_game) is only called from setup_lichess_game(),
-        // which is only used for Lichess games, not TCP multiplayer or other modes.
-        let game_id_poll = game_id.clone();
-        let move_tx_poll = move_tx.clone();
-        let client_poll = self.client.clone();
-        let _token_poll = self.token.clone();
-        let player_color_poll = player_color;
-        let player_move_rx_poll = player_move_rx;
-
-        // Verify we have a valid game_id (safety check - should always be true for Lichess)
-        if game_id_poll.is_empty() {
-            log::warn!(
-                "Cannot start polling: empty game_id (this should not happen for Lichess games)"
-            );
-            return Ok(());
-        }
 
         thread::spawn(move || {
             log::info!(
                 "Starting polling thread for Lichess game {} (polling every 3 seconds)",
-                game_id_poll
+                game_id
             );
             let mut last_turns: Option<usize> = None;
             let mut last_move_seen: Option<String> = None;
@@ -1264,7 +1252,7 @@ impl LichessClient {
 
                 // Check if we received a signal that the player made a move
                 // This resets the skip flag so we poll again (opponent's turn now)
-                if let Some(ref rx) = player_move_rx_poll {
+                if let Some(ref rx) = player_move_rx {
                     if let Ok(_) = rx.try_recv() {
                         log::debug!("Player made a move, resetting polling skip flag");
                         last_was_player_turn = false;
@@ -1278,12 +1266,12 @@ impl LichessClient {
                     continue;
                 }
 
-                log::debug!("Polling game {}...", game_id_poll);
+                log::debug!("Polling game {}...", game_id);
 
                 // Use public stream endpoint to get current game state with moves
                 // We'll connect, read the first line (gameFull event), then close
-                let poll_url = format!("{}/stream/game/{}", LICHESS_API_URL, game_id_poll);
-                match client_poll
+                let poll_url = format!("{}/stream/game/{}", LICHESS_API_URL, game_id);
+                match client
                     .get(&poll_url)
                     .header(
                         "User-Agent",
@@ -1299,7 +1287,7 @@ impl LichessClient {
                             log::warn!("Poll failed with status: {}", status);
                             // If game not found or ended, stop polling
                             if status == reqwest::StatusCode::NOT_FOUND {
-                                log::info!("Game {} not found, stopping poll", game_id_poll);
+                                log::info!("Game {} not found, stopping poll", game_id);
                                 break;
                             }
                             continue;
@@ -1340,25 +1328,25 @@ impl LichessClient {
                                             match status.as_str() {
                                                 "mate" | "checkmate" => {
                                                     log::info!("Game ended by checkmate, sending status update");
-                                                    let _ = move_tx_poll
+                                                    let _ = move_tx
                                                         .send("GAME_STATUS:checkmate".to_string());
                                                 }
                                                 "draw" | "stalemate" | "repetition"
                                                 | "insufficient" | "fifty" => {
                                                     log::info!("Game ended by draw ({}), sending status update", status);
-                                                    let _ = move_tx_poll
+                                                    let _ = move_tx
                                                         .send("GAME_STATUS:draw".to_string());
                                                 }
                                                 "resign" => {
                                                     log::info!("Game ended by resignation, sending status update");
-                                                    let _ = move_tx_poll
+                                                    let _ = move_tx
                                                         .send("GAME_STATUS:resign".to_string());
                                                 }
                                                 "aborted" => {
                                                     log::info!(
                                                         "Game was aborted, sending status update"
                                                     );
-                                                    let _ = move_tx_poll
+                                                    let _ = move_tx
                                                         .send("GAME_STATUS:aborted".to_string());
                                                 }
                                                 "started" => {
@@ -1413,14 +1401,14 @@ impl LichessClient {
                                                     );
                                                     // Send the move FIRST
                                                     let last_move_clone = last_move.clone();
-                                                    let _ = move_tx_poll.send(last_move_clone);
+                                                    let _ = move_tx.send(last_move_clone);
                                                     last_move_seen = Some(last_move);
                                                 }
                                             }
 
                                             // Send initial move count AFTER the move (if any)
                                             // This ensures the move is processed first, then INIT_MOVES updates the counters
-                                            let _ = move_tx_poll
+                                            let _ = move_tx
                                                 .send(format!("INIT_MOVES:{}", turns_usize));
                                         }
                                     } else {
@@ -1477,7 +1465,7 @@ impl LichessClient {
                                                     last_move,
                                                     current_turns
                                                 );
-                                                let _ = move_tx_poll.send(last_move.clone());
+                                                let _ = move_tx.send(last_move.clone());
                                                 last_move_seen = Some(last_move.clone());
 
                                                 // Update turns if available
@@ -1512,7 +1500,7 @@ impl LichessClient {
 
                                     // AFTER checking for moves, check whose turn it is to decide if we should continue polling
                                     let is_player_turn =
-                                        if let Some(player_color) = player_color_poll {
+                                        if let Some(player_color) = player_color {
                                             // Check from the "player" field in the gameFull event
                                             if let Some(player) =
                                                 json.get("player").and_then(|v| v.as_str())
@@ -1574,10 +1562,18 @@ impl LichessClient {
                     }
                 }
             }
-            log::info!("Polling thread ended for game {}", game_id_poll);
+            log::info!("Polling thread ended for game {}", game_id);
         });
+    }
 
-        // Also keep the stream for initial connection and other events
+    fn spawn_streaming_thread(
+        &self,
+        game_id: String,
+        move_tx: Sender<String>,
+    ) {
+        let client = self.client.clone();
+        let url = format!("{}/stream/game/{}", LICHESS_API_URL, game_id);
+
         thread::spawn(move || {
             log::info!("Starting game stream thread for game {}", game_id);
             let response = match client
@@ -1684,6 +1680,25 @@ impl LichessClient {
             }
             log::info!("Game stream thread ended for {}", game_id);
         });
+    }
+
+    pub fn stream_game(
+        &self,
+        game_id: String,
+        move_tx: Sender<String>,
+        player_color: Option<Color>,
+        player_move_rx: Option<Receiver<()>>,
+    ) -> Result<(), Box<dyn Error>> {
+        // Verify we have a valid game_id (safety check - should always be true for Lichess)
+        if game_id.is_empty() {
+            log::warn!(
+                "Cannot start polling: empty game_id (this should not happen for Lichess games)"
+            );
+            return Ok(());
+        }
+
+        self.spawn_polling_thread(game_id.clone(), move_tx.clone(), player_color, player_move_rx);
+        self.spawn_streaming_thread(game_id, move_tx);
 
         Ok(())
     }
@@ -1726,5 +1741,42 @@ impl LichessClient {
 
         log::info!("Successfully resigned game: {}", game_id);
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_clean_pgn_string() {
+        let input = "1. e4 { comment } e5 [ %clk 0:05:00 ] 2. Nf3 ( 2. Nc3 )";
+        // Note: The function preserves spaces, so we might have extra spaces
+        let cleaned = LichessClient::clean_pgn_string(input);
+        
+        // Check that comments and annotations are removed
+        assert!(!cleaned.contains("{"));
+        assert!(!cleaned.contains("}"));
+        assert!(!cleaned.contains("["));
+        assert!(!cleaned.contains("]"));
+        assert!(!cleaned.contains("("));
+        assert!(!cleaned.contains(")"));
+        assert!(!cleaned.contains("comment"));
+        assert!(!cleaned.contains("%clk"));
+        assert!(!cleaned.contains("Nc3"));
+        
+        assert!(cleaned.contains("1. e4"));
+        assert!(cleaned.contains("e5"));
+        assert!(cleaned.contains("2. Nf3"));
+    }
+    
+    #[test]
+    fn test_clean_pgn_nested() {
+        let input = "1. e4 { comment { nested } } e5";
+        let cleaned = LichessClient::clean_pgn_string(input);
+        assert!(!cleaned.contains("comment"));
+        assert!(!cleaned.contains("nested"));
+        assert!(cleaned.contains("1. e4"));
+        assert!(cleaned.contains("e5"));
     }
 }

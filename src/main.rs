@@ -224,12 +224,17 @@ fn main() -> AppResult<()> {
 
         if let Some(opponent) = app.game.logic.opponent.as_mut() {
             if !opponent.game_started {
-                if let Err(e) = wait_for_game_start(opponent) {
-                    log::error!("Error waiting for game start: {}", e);
-                    // Handle error
-                } else {
-                    opponent.game_started = true;
-                    app.current_popup = None;
+                match wait_for_game_start(opponent) {
+                    Ok(true) => {
+                        opponent.game_started = true;
+                        app.current_popup = None;
+                    }
+                    Ok(false) => {
+                        // Still waiting, do nothing
+                    }
+                    Err(e) => {
+                        log::error!("Error waiting for game start: {}", e);
+                    }
                 }
             }
         }
@@ -314,10 +319,9 @@ fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResu
         config.selected_skin_name = Some("Default".to_string());
     }
     
-    if config.lichess_token.is_none() {
-        if let Some(token) = &args.lichess_token {
-            config.lichess_token = Some(token.clone());
-        }
+    // Always update Lichess token if provided via command line
+    if let Some(token) = &args.lichess_token {
+        config.lichess_token = Some(token.clone());
     }
 
     // Update bot_depth if provided via command line

@@ -542,9 +542,188 @@ impl GameLogic {
             return false;
         }
 
+        // Handle control messages (INIT_MOVES, GAME_STATUS)
+        if Self::handle_opponent_control_message(opponent, &mut self.game_state, &opponent_move) {
+            return false;
+        }
+
+        // Increment moves received counter
+        opponent.moves_received += 1;
+
+        // Handle historical moves
+        if Self::handle_historical_move(opponent, &mut self.game_board, &opponent_move) {
+            return false;
+        }
+
+        // Process live move
+        Self::process_live_move(opponent, &mut self.game_board, &opponent_move)
+    }
+
+    fn process_live_move(opponent: &mut Opponent, game_board: &mut GameBoard, move_str: &str) -> bool {
+        log::info!("Executing opponent move: {}", move_str);
+
+        // Parse move string
+        let (from, to, promotion_piece) = match Self::parse_opponent_move_string(move_str) {
+            Some(m) => m,
+            None => {
+                log::error!("Failed to parse opponent move: {}", move_str);
+                return false;
+            }
+        };
+
+        // Get the piece type at the source square to store it in history
+        let piece_type_from = game_board.get_role_at_square(&from);
+        let piece_color_from = game_board.get_piece_color_at_square(&from);
+
+        // Debug log for rook moves
+        if piece_type_from == Some(shakmaty::Role::Rook) {
+            log::info!(
+                "ROOK MOVE detected: {} -> {} (move string: {})",
+                from,
+                to,
+                move_str
+            );
+        }
+
+        // Check if move is already in history (duplicate detection)
+        let move_already_played = game_board
+            .move_history
+            .iter()
+            .any(|m| m.from() == Some(from) && m.to() == to);
+
+        if move_already_played {
+            log::warn!(
+                "Move {} already in history, skipping duplicate",
+                move_str
+            );
+            return false;
+        }
+
+        // Special case: If history is empty but this move should be historical (based on initial_move_count),
+        // try to add it to history even if execution fails
+        // This handles the case when joining an ongoing game where history wasn't set up correctly
+        let history_is_empty = game_board.move_history.is_empty();
+        if history_is_empty && opponent.moves_received <= opponent.initial_move_count {
+            return Self::handle_forced_historical_move(game_board, move_str, from, to, promotion_piece, piece_type_from);
+        }
+
+        // For castling moves, also check if any castling move has been played
+        if piece_type_from == Some(shakmaty::Role::King) {
+            let is_potential_castling = {
+                let from_file = from.file();
+                let to_file = to.file();
+                let from_rank = from.rank();
+                let to_rank = to.rank();
+                from_rank == to_rank && (from_file as i8 - to_file as i8).abs() == 2
+            };
+
+            if is_potential_castling {
+                log::info!(
+                    "CASTLING MOVE detected: {} -> {} (move string: {})",
+                    from,
+                    to,
+                    move_str
+                );
+                // Check if castling has already been played by checking if king has moved
+                let king_has_moved = game_board.move_history.iter().any(|m| {
+                    m.from() == Some(from) // King has moved from its starting square
+                });
+                if king_has_moved {
+                    log::warn!(
+                        "King has already moved from {}, castling not possible",
+                        from
+                    );
+                }
+            }
+        }
+
+        // Log current board state for debugging
+        log::debug!("Before move execution - from: {}, to: {}, piece: {:?}, color: {:?}, current turn: {:?}", 
+            from, to, piece_type_from, piece_color_from, game_board.position_ref().turn());
+
+        // Check if there's a piece at the destination
+        let piece_at_dest = game_board.get_role_at_square(&to);
+        let color_at_dest = game_board.get_piece_color_at_square(&to);
+        log::debug!(
+            "Destination square {} has piece: {:?}, color: {:?}",
+            to,
+            piece_at_dest,
+            color_at_dest
+        );
+
+        let executed_move = game_board
+            .execute_standard_move(from, to, promotion_piece);
+
+        // Store in history (use visual coordinates for history)
+        if let Some(move_to_store) = executed_move {
+            // Debug log for rook moves execution
+            if piece_type_from == Some(shakmaty::Role::Rook) {
+                log::info!(
+                    "ROOK MOVE executed successfully: {:?} (from: {}, to: {})",
+                    move_to_store,
+                    from,
+                    to
+                );
+            }
+            // If the move was executed successfully, we can stop waiting for the opponent
+            opponent.opponent_will_move = false;
+
+            if let Some(piece_type) = piece_type_from {
+                game_board.move_history.push(Move::Normal {
+                    role: piece_type,
+                    from,
+                    capture: move_to_store.capture(),
+                    to,
+                    promotion: move_to_store.promotion(),
+                });
+            }
+            true
+        } else {
+            // Detailed error logging
+            if piece_type_from == Some(shakmaty::Role::Rook) {
+                log::error!(
+                    "ROOK MOVE failed to execute: {} (from: {}, to: {})",
+                    move_str,
+                    from,
+                    to
+                );
+            }
+
+            // Check why the move failed
+            let legal_moves = game_board.position_ref().legal_moves();
+            let matching_moves: Vec<_> = legal_moves
+                .iter()
+                .filter(|m| m.from() == Some(from))
+                .collect();
+
+            log::error!(
+                "Move {} failed - piece at {}: {:?}, legal moves from {}: {} (showing first 5)",
+                move_str,
+                from,
+                piece_type_from,
+                from,
+                matching_moves.len()
+            );
+            if !matching_moves.is_empty() {
+                for m in matching_moves.iter().take(5) {
+                    log::error!("  Legal move: {:?} -> {}", m.from(), m.to());
+                }
+            }
+
+            log::warn!(
+                "Failed to execute move on board: {} (from: {}, to: {})",
+                move_str,
+                from,
+                to
+            );
+            false
+        }
+    }
+
+    fn handle_opponent_control_message(opponent: &mut Opponent, game_state: &mut GameState, message: &str) -> bool {
         // Check if this is a control message to update initial_move_count
-        if opponent_move.starts_with("INIT_MOVES:") {
-            if let Some(count_str) = opponent_move.strip_prefix("INIT_MOVES:") {
+        if message.starts_with("INIT_MOVES:") {
+            if let Some(count_str) = message.strip_prefix("INIT_MOVES:") {
                 if let Ok(count) = count_str.parse::<usize>() {
                     log::info!("Updating initial_move_count to {} (turns from stream), current moves_received: {}", count, opponent.moves_received);
                     opponent.initial_move_count = count;
@@ -556,51 +735,52 @@ impl GameLogic {
                     }
                 }
             }
-            return false; // Don't execute this as a move
+            return true;
         }
 
         // Check if this is a game status update from Lichess (draw, checkmate, etc.)
-        if opponent_move.starts_with("GAME_STATUS:") {
-            if let Some(status_str) = opponent_move.strip_prefix("GAME_STATUS:") {
+        if message.starts_with("GAME_STATUS:") {
+            if let Some(status_str) = message.strip_prefix("GAME_STATUS:") {
                 log::info!("Received game status update from Lichess: {}", status_str);
                 match status_str {
                     "checkmate" => {
                         log::info!("Game ended by checkmate - updating game state");
-                        self.game_state = GameState::Checkmate;
+                        *game_state = GameState::Checkmate;
                     }
                     "draw" | "stalemate" | "repetition" | "insufficient" | "fifty" => {
                         log::info!("Game ended by draw ({}) - updating game state", status_str);
-                        self.game_state = GameState::Draw;
+                        *game_state = GameState::Draw;
                     }
                     "resign" => {
                         log::info!("Game ended by resignation - updating game state");
                         // Resignation is treated as checkmate for the winner
-                        self.game_state = GameState::Checkmate;
+                        *game_state = GameState::Checkmate;
                     }
                     "aborted" => {
                         log::info!("Game was aborted - updating game state");
-                        self.game_state = GameState::Draw;
+                        *game_state = GameState::Draw;
                     }
                     _ => {
                         log::warn!("Unknown game status: {}", status_str);
                     }
                 }
             }
-            return false; // Don't execute this as a move
+            return true;
         }
 
-        // Increment moves received counter
-        opponent.moves_received += 1;
+        false
+    }
 
+    fn handle_historical_move(opponent: &mut Opponent, game_board: &mut GameBoard, move_str: &str) -> bool {
         // Handle historical moves - when joining an ongoing game, the stream replays all moves
         // If move_history is empty, we need to populate it from the stream
         // Otherwise, we skip historical moves since we've already set up the board
-        let history_is_empty = self.game_board.move_history.is_empty();
+        let history_is_empty = game_board.move_history.is_empty();
 
         // For ongoing games with populated history, check if the move is already in history
         let move_already_in_history = if !history_is_empty {
-            if let Some((from, to, _)) = Self::parse_opponent_move_string(&opponent_move) {
-                self.game_board
+            if let Some((from, to, _)) = Self::parse_opponent_move_string(move_str) {
+                game_board
                     .move_history
                     .iter()
                     .any(|m| m.from() == Some(from) && m.to() == to)
@@ -620,21 +800,19 @@ impl GameLogic {
                 // Joining ongoing game - all moves should be historical until history is built
                 true
             } else {
-                // New game - only first move is historical
-                opponent.moves_received <= 1
+                // New game - moves are live
+                false
             }
         } else {
             // History is already populated (ongoing game), so moves are historical if:
             // 1. moves_received <= initial_move_count (within historical range), OR
-            // 2. initial_move_count is 0 and this is the first move (for new games), OR
-            // 3. The move is already in the history (duplicate detection)
+            // 2. The move is already in the history (duplicate detection)
             opponent.moves_received <= opponent.initial_move_count
-                || (opponent.initial_move_count == 0 && opponent.moves_received == 1)
                 || move_already_in_history
         };
 
         log::debug!("Move processing: move={}, moves_received={}, initial_move_count={}, is_historical={}, history_is_empty={}", 
-            opponent_move, opponent.moves_received, opponent.initial_move_count, is_historical, history_is_empty);
+            move_str, opponent.moves_received, opponent.initial_move_count, is_historical, history_is_empty);
 
         if is_historical {
             if history_is_empty {
@@ -643,23 +821,23 @@ impl GameLogic {
                     "Building history from stream move {}/{}: {}",
                     opponent.moves_received,
                     opponent.initial_move_count,
-                    opponent_move
+                    move_str
                 );
 
                 // Ensure we have at least the initial position in position_history
-                if self.game_board.position_history.is_empty() {
+                if game_board.position_history.is_empty() {
                     log::warn!("position_history is empty! Initializing with starting position.");
-                    self.game_board
+                    game_board
                         .position_history
                         .push(shakmaty::Chess::default());
                 }
 
                 // Parse and apply the move to build history
                 if let Some((from, to, promotion_piece)) =
-                    Self::parse_opponent_move_string(&opponent_move)
+                    Self::parse_opponent_move_string(move_str)
                 {
                     // Get the piece type at the source square
-                    let piece_type_from = self.game_board.get_role_at_square(&from);
+                    let piece_type_from = game_board.get_role_at_square(&from);
 
                     // Debug log for rook moves in history
                     if piece_type_from == Some(shakmaty::Role::Rook) {
@@ -667,19 +845,19 @@ impl GameLogic {
                             "ROOK MOVE in history: {} -> {} (move string: {})",
                             from,
                             to,
-                            opponent_move
+                            move_str
                         );
                     }
 
                     // Execute the move to update the board state (this updates position_history)
                     let executed_move =
-                        self.game_board
+                        game_board
                             .execute_standard_move(from, to, promotion_piece);
 
                     if let Some(move_to_store) = executed_move {
                         // Add to move_history
                         if let Some(piece_type) = piece_type_from {
-                            self.game_board.move_history.push(Move::Normal {
+                            game_board.move_history.push(Move::Normal {
                                 role: piece_type,
                                 from,
                                 capture: move_to_store.capture(),
@@ -689,28 +867,28 @@ impl GameLogic {
                             if piece_type == shakmaty::Role::Rook {
                                 log::info!(
                                     "ROOK MOVE added to history (now {} moves, {} positions)",
-                                    self.game_board.move_history.len(),
-                                    self.game_board.position_history.len()
+                                    game_board.move_history.len(),
+                                    game_board.position_history.len()
                                 );
                             } else {
                                 log::info!(
                                     "Added historical move to history (now {} moves, {} positions)",
-                                    self.game_board.move_history.len(),
-                                    self.game_board.position_history.len()
+                                    game_board.move_history.len(),
+                                    game_board.position_history.len()
                                 );
                             }
                         }
                     } else {
                         // Move failed to execute - check if board is already in post-move state
                         // (i.e., the piece is at the destination, meaning the move was already played)
-                        let piece_type_to = self.game_board.get_role_at_square(&to);
+                        let piece_type_to = game_board.get_role_at_square(&to);
 
                         if piece_type_from.is_none() && piece_type_to.is_some() {
                             // No piece at source, but piece at destination - move was already played
                             // Work backwards: the piece at 'to' came from 'from'
                             log::info!(
                                 "Move {} already applied to board (piece at {} but not at {}). Adding to history by working backwards.",
-                                opponent_move, to, from
+                                move_str, to, from
                             );
 
                             // Get the piece that moved (it's at the destination)
@@ -723,29 +901,29 @@ impl GameLogic {
                                     to,
                                     promotion: promotion_piece,
                                 };
-                                self.game_board.move_history.push(historical_move);
+                                game_board.move_history.push(historical_move);
 
                                 log::info!(
                                     "Added historical move {} to history by working backwards (now {} moves, {} positions)",
-                                    opponent_move,
-                                    self.game_board.move_history.len(),
-                                    self.game_board.position_history.len()
+                                    move_str,
+                                    game_board.move_history.len(),
+                                    game_board.position_history.len()
                                 );
                             }
                         } else {
                             if piece_type_from == Some(shakmaty::Role::Rook) {
                                 log::error!(
                                     "ROOK MOVE failed to execute in history: {} (from: {}, to: {})",
-                                    opponent_move,
+                                    move_str,
                                     from,
                                     to
                                 );
                             }
-                            log::warn!("Failed to execute historical move: {}", opponent_move);
+                            log::warn!("Failed to execute historical move: {}", move_str);
                         }
                     }
                 } else {
-                    log::warn!("Failed to parse historical move: {}", opponent_move);
+                    log::warn!("Failed to parse historical move: {}", move_str);
                 }
             } else {
                 // History is already populated (ongoing game), skip this historical move
@@ -753,220 +931,67 @@ impl GameLogic {
                     "Skipping historical move {}/{}: {} (history already populated)",
                     opponent.moves_received,
                     opponent.initial_move_count,
-                    opponent_move
+                    move_str
                 );
             }
-            return false; // Don't treat as a new move
+            return true; // Treated as a historical move (handled or skipped)
         }
+        
+        false // Not a historical move
+    }
 
-        log::info!("Executing opponent move: {}", opponent_move);
-
-        // Parse move string
-        let (from, to, promotion_piece) = match Self::parse_opponent_move_string(&opponent_move) {
-            Some(m) => m,
-            None => {
-                log::error!("Failed to parse opponent move: {}", opponent_move);
-                return false;
-            }
-        };
-
-        // Get the piece type at the source square to store it in history
-        let piece_type_from = self.game_board.get_role_at_square(&from);
-        let piece_color_from = self.game_board.get_piece_color_at_square(&from);
-
-        // Debug log for rook moves
-        if piece_type_from == Some(shakmaty::Role::Rook) {
-            log::info!(
-                "ROOK MOVE detected: {} -> {} (move string: {})",
-                from,
-                to,
-                opponent_move
-            );
-        }
-
-        // Check if move is already in history (duplicate detection)
-        let move_already_played = self
-            .game_board
-            .move_history
-            .iter()
-            .any(|m| m.from() == Some(from) && m.to() == to);
-
-        if move_already_played {
-            log::warn!(
-                "Move {} already in history, skipping duplicate",
-                opponent_move
-            );
-            return false;
-        }
-
-        // Special case: If history is empty but this move should be historical (based on initial_move_count),
-        // try to add it to history even if execution fails
-        // This handles the case when joining an ongoing game where history wasn't set up correctly
-        if history_is_empty && opponent.moves_received <= opponent.initial_move_count {
-            log::info!(
-                "Move {} should be historical but history is empty. Attempting to add to history.",
-                opponent_move
-            );
-
-            // Try to execute the move first
-            if let Some(executed_move) =
-                self.game_board
-                    .execute_standard_move(from, to, promotion_piece)
-            {
-                // Move executed successfully, add to history
-                let piece_type = piece_type_from
-                    .or_else(|| self.game_board.get_role_at_square(&to))
-                    .unwrap_or(shakmaty::Role::Pawn); // Fallback to pawn if we can't determine
-
-                self.game_board.move_history.push(Move::Normal {
-                    role: piece_type,
-                    from,
-                    capture: executed_move.capture(),
-                    to,
-                    promotion: executed_move.promotion(),
-                });
-                log::info!(
-                    "Added historical move {} to history (now {} moves)",
-                    opponent_move,
-                    self.game_board.move_history.len()
-                );
-                return false; // Don't treat as a new move
-            } else {
-                // Move failed to execute, but we know it should be historical
-                // Try to add it to history anyway by using the piece at destination
-                let piece_at_to = self.game_board.get_role_at_square(&to);
-                if let Some(role) = piece_at_to.or(piece_type_from) {
-                    // Create a move object - best-effort reconstruction
-                    let reconstructed_move = Move::Normal {
-                        role,
-                        from,
-                        capture: None, // We don't know if it was a capture
-                        to,
-                        promotion: promotion_piece,
-                    };
-                    self.game_board.move_history.push(reconstructed_move);
-                    log::warn!(
-                        "Failed to execute historical move {}, but added to history anyway (reconstructed, now {} moves)",
-                        opponent_move,
-                        self.game_board.move_history.len()
-                    );
-                    return false; // Don't treat as a new move
-                }
-            }
-        }
-
-        // For castling moves, also check if any castling move has been played
-        if piece_type_from == Some(shakmaty::Role::King) {
-            let is_potential_castling = {
-                let from_file = from.file();
-                let to_file = to.file();
-                let from_rank = from.rank();
-                let to_rank = to.rank();
-                from_rank == to_rank && (from_file as i8 - to_file as i8).abs() == 2
-            };
-
-            if is_potential_castling {
-                log::info!(
-                    "CASTLING MOVE detected: {} -> {} (move string: {})",
-                    from,
-                    to,
-                    opponent_move
-                );
-                // Check if castling has already been played by checking if king has moved
-                let king_has_moved = self.game_board.move_history.iter().any(|m| {
-                    m.from() == Some(from) // King has moved from its starting square
-                });
-                if king_has_moved {
-                    log::warn!(
-                        "King has already moved from {}, castling not possible",
-                        from
-                    );
-                }
-            }
-        }
-
-        // Log current board state for debugging
-        log::debug!("Before move execution - from: {}, to: {}, piece: {:?}, color: {:?}, current turn: {:?}", 
-            from, to, piece_type_from, piece_color_from, self.game_board.position_ref().turn());
-
-        // Check if there's a piece at the destination
-        let piece_at_dest = self.game_board.get_role_at_square(&to);
-        let color_at_dest = self.game_board.get_piece_color_at_square(&to);
-        log::debug!(
-            "Destination square {} has piece: {:?}, color: {:?}",
-            to,
-            piece_at_dest,
-            color_at_dest
+    fn handle_forced_historical_move(game_board: &mut GameBoard, move_str: &str, from: Square, to: Square, promotion_piece: Option<Role>, piece_type_from: Option<Role>) -> bool {
+        log::info!(
+            "Move {} should be historical but history is empty. Attempting to add to history.",
+            move_str
         );
 
-        let executed_move = self
-            .game_board
-            .execute_standard_move(from, to, promotion_piece);
+        // Try to execute the move first
+        if let Some(executed_move) =
+            game_board
+                .execute_standard_move(from, to, promotion_piece)
+        {
+            // Move executed successfully, add to history
+            let piece_type = piece_type_from
+                .or_else(|| game_board.get_role_at_square(&to))
+                .unwrap_or(shakmaty::Role::Pawn); // Fallback to pawn if we can't determine
 
-        // Store in history (use visual coordinates for history)
-        if let Some(move_to_store) = executed_move {
-            // Debug log for rook moves execution
-            if piece_type_from == Some(shakmaty::Role::Rook) {
-                log::info!(
-                    "ROOK MOVE executed successfully: {:?} (from: {}, to: {})",
-                    move_to_store,
-                    from,
-                    to
-                );
-            }
-            // If the move was executed successfully, we can stop waiting for the opponent
-            opponent.opponent_will_move = false;
-
-            if let Some(piece_type) = piece_type_from {
-                self.game_board.move_history.push(Move::Normal {
-                    role: piece_type,
-                    from,
-                    capture: move_to_store.capture(),
-                    to,
-                    promotion: move_to_store.promotion(),
-                });
-            }
-            true
+            game_board.move_history.push(Move::Normal {
+                role: piece_type,
+                from,
+                capture: executed_move.capture(),
+                to,
+                promotion: executed_move.promotion(),
+            });
+            log::info!(
+                "Added historical move {} to history (now {} moves)",
+                move_str,
+                game_board.move_history.len()
+            );
+            return false; // Don't treat as a new move
         } else {
-            // Detailed error logging
-            if piece_type_from == Some(shakmaty::Role::Rook) {
-                log::error!(
-                    "ROOK MOVE failed to execute: {} (from: {}, to: {})",
-                    opponent_move,
+            // Move failed to execute, but we know it should be historical
+            // Try to add it to history anyway by using the piece at destination
+            let piece_at_to = game_board.get_role_at_square(&to);
+            if let Some(role) = piece_at_to.or(piece_type_from) {
+                // Create a move object - best-effort reconstruction
+                let reconstructed_move = Move::Normal {
+                    role,
                     from,
-                    to
+                    capture: None, // We don't know if it was a capture
+                    to,
+                    promotion: promotion_piece,
+                };
+                game_board.move_history.push(reconstructed_move);
+                log::warn!(
+                    "Failed to execute historical move {}, but added to history anyway (reconstructed, now {} moves)",
+                    move_str,
+                    game_board.move_history.len()
                 );
+                return false; // Don't treat as a new move
             }
-
-            // Check why the move failed
-            let legal_moves = self.game_board.position_ref().legal_moves();
-            let matching_moves: Vec<_> = legal_moves
-                .iter()
-                .filter(|m| m.from() == Some(from))
-                .collect();
-
-            log::error!(
-                "Move {} failed - piece at {}: {:?}, legal moves from {}: {} (showing first 5)",
-                opponent_move,
-                from,
-                piece_type_from,
-                from,
-                matching_moves.len()
-            );
-            if !matching_moves.is_empty() {
-                for m in matching_moves.iter().take(5) {
-                    log::error!("  Legal move: {:?} -> {}", m.from(), m.to());
-                }
-            }
-
-            log::warn!(
-                "Failed to execute move on board: {} (from: {}, to: {})",
-                opponent_move,
-                from,
-                to
-            );
-            false
         }
+        false
     }
 
     pub fn handle_multiplayer_promotion(&mut self) {

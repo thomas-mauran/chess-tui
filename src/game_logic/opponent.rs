@@ -125,6 +125,12 @@ impl Opponent {
                 opponent_will_move
             );
 
+            // Set stream to non-blocking mode
+            if let Err(e) = stream.set_nonblocking(true) {
+                log::error!("Failed to set stream to non-blocking: {}", e);
+                return Err(format!("Failed to set stream to non-blocking: {}", e));
+            }
+
             Ok(Opponent {
                 kind: Some(OpponentKind::Tcp(stream)),
                 opponent_will_move,
@@ -239,7 +245,7 @@ impl Opponent {
                         Ok(response.to_string())
                     }
                     Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                        log::debug!("Socket not ready, would block");
+                        // Socket not ready, return empty string
                         Ok(String::new())
                     }
                     Err(e) => {
@@ -274,22 +280,29 @@ pub fn get_color_from_stream(mut stream: &TcpStream) -> Result<Color, String> {
     }
 }
 
-pub fn wait_for_game_start(opponent: &mut Opponent) -> Result<(), String> {
+pub fn wait_for_game_start(opponent: &mut Opponent) -> Result<bool, String> {
     match &mut opponent.kind {
         Some(OpponentKind::Tcp(stream)) => {
             let mut buffer = [0; NETWORK_BUFFER_SIZE];
             match stream.read(&mut buffer) {
                 Ok(bytes_read) => {
+                    if bytes_read == 0 {
+                        return Ok(false);
+                    }
                     let response = String::from_utf8_lossy(&buffer[..bytes_read]).to_string();
                     match response.as_str() {
-                        "s" => Ok(()),
+                        "s" => Ok(true),
                         _ => Err("Failed to get start signal from stream".to_string()),
                     }
+                }
+                Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                    // Still waiting
+                    Ok(false)
                 }
                 Err(e) => Err(format!("Failed to read start signal from stream: {}", e)),
             }
         }
-        Some(OpponentKind::Lichess { .. }) => Ok(()), // Lichess game starts immediately
+        Some(OpponentKind::Lichess { .. }) => Ok(true), // Lichess game starts immediately
         None => Err("No opponent connected".to_string()),
     }
 }
