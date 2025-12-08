@@ -5,7 +5,7 @@ use crate::game_logic::coord::Coord;
 use crate::game_logic::game::Game;
 use crate::game_logic::game::GameState;
 use crate::game_logic::opponent::wait_for_game_start;
-use crate::game_logic::opponent::Opponent;
+use crate::game_logic::opponent::{Opponent, OpponentKind};
 use crate::game_logic::puzzle::PuzzleGame;
 use crate::lichess::LichessClient;
 use crate::server::game_server::GameServer;
@@ -188,15 +188,44 @@ impl App {
                     self.game_start_rx = Some(start_rx);
 
                     // Create a separate thread that checks in background if the game can start
-                    let stream_clone = opponent.stream.as_ref().unwrap().try_clone().unwrap();
-                    std::thread::spawn(move || {
-                        match wait_for_game_start(&stream_clone) {
-                            Ok(()) => {
-                                let _ = start_tx.send(());
+                    // Extract TcpStream from OpponentKind if it's a TCP connection
+                    if let Some(OpponentKind::Tcp(stream)) = &mut opponent.kind {
+                        let stream_clone = match stream.try_clone() {
+                            Ok(s) => s,
+                            Err(e) => {
+                                log::error!("Failed to clone stream: {}", e);
+                                return;
                             }
-                            Err(e) => log::warn!("Failed to start hosted game: {}", e),
                         };
-                    });
+                        std::thread::spawn(move || {
+                            // Create a temporary Opponent with the cloned stream to pass to wait_for_game_start
+                            let mut temp_opponent = Opponent {
+                                kind: Some(OpponentKind::Tcp(stream_clone)),
+                                opponent_will_move: false,
+                                color: Color::White,
+                                game_started: false,
+                                initial_move_count: 0,
+                                moves_received: 0,
+                            };
+                            // Poll repeatedly until game starts
+                            loop {
+                                match wait_for_game_start(&mut temp_opponent) {
+                                    Ok(true) => {
+                                        let _ = start_tx.send(());
+                                        break;
+                                    }
+                                    Ok(false) => {
+                                        // Still waiting, sleep a bit and check again
+                                        std::thread::sleep(std::time::Duration::from_millis(100));
+                                    }
+                                    Err(e) => {
+                                        log::warn!("Failed to start hosted game: {}", e);
+                                        break;
+                                    }
+                                }
+                            }
+                        });
+                    }
                 } else {
                     log::info!("Setting up client (non-host) player");
                     self.selected_color = Some(opponent.color.other());
@@ -1089,7 +1118,7 @@ impl App {
 
         // Close the socket
         if let Some(mut opponent) = self.game.logic.opponent.take() {
-            if let Some(stream) = opponent.stream.take() {
+            if let Some(OpponentKind::Tcp(stream)) = opponent.kind.take() {
                 let _ = stream.shutdown(std::net::Shutdown::Both);
             }
         }

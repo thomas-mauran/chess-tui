@@ -128,7 +128,7 @@ pub fn render_error_popup(frame: &mut Frame, error_message: &str) {
 }
 
 // This renders a popup for a promotion
-pub fn render_end_popup(frame: &mut Frame, sentence: &str, is_multiplayer: bool) {
+pub fn render_end_popup(frame: &mut Frame, sentence: &str, _is_multiplayer: bool) {
     let block = Block::default()
         .title("Game Over")
         .title_alignment(Alignment::Center)
