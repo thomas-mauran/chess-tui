@@ -1,0 +1,12 @@
+name: Build and push Docker image on release
+
+on:
+  release:
+    types: [ published ]
+
+jobs:
+  docker_push:
+    name: Build & push Docker image
+    uses: ./.github/workflows/docker_push.yml
+    with:
+      image-tags: ${{ github.event.release.tag_name }}
