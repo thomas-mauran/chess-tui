@@ -54,12 +54,12 @@ mod tests {
         game.logic.execute_move(Square::D8, Square::H4);
 
         // Update game state
-        game.handle_cell_click(); // This triggers update_game_state internally if we were clicking, but we can call it directly or simulate the flow
-                                  // Actually Game::update_game_state is private, but handle_cell_click calls it.
-                                  // However, execute_move doesn't auto-update game_state.
-                                  // We need to check if we can access update_game_state or if we need to simulate a click.
-                                  // Looking at Game impl, update_game_state is private.
-                                  // But we can check the board state directly.
+        game.handle_cell_click(None); // This triggers update_game_state internally if we were clicking, but we can call it directly or simulate the flow
+                                      // Actually Game::update_game_state is private, but handle_cell_click calls it.
+                                      // However, execute_move doesn't auto-update game_state.
+                                      // We need to check if we can access update_game_state or if we need to simulate a click.
+                                      // Looking at Game impl, update_game_state is private.
+                                      // But we can check the board state directly.
 
         assert!(game.logic.game_board.is_checkmate());
     }

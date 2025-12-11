@@ -193,19 +193,14 @@ impl Game {
                         // For Lichess games, signal the polling thread that player made a move
                         // This resets the polling skip flag so polling resumes for opponent's turn
                         if let Some(crate::game_logic::opponent::OpponentKind::Lichess {
-                            player_move_tx,
+                            player_move_tx: Some(ref tx),
                             ..
                         }) = &opponent.kind
                         {
-                            if let Some(ref tx) = player_move_tx {
-                                if let Err(e) = tx.send(()) {
-                                    log::warn!(
-                                        "Failed to signal player move to polling thread: {}",
-                                        e
-                                    );
-                                } else {
-                                    log::debug!("Signaled polling thread that player made a move");
-                                }
+                            if let Err(e) = tx.send(()) {
+                                log::warn!("Failed to signal player move to polling thread: {}", e);
+                            } else {
+                                log::debug!("Signaled polling thread that player made a move");
                             }
                         }
                     } else {
@@ -1043,15 +1038,15 @@ impl GameLogic {
 
         // For Lichess games, signal the polling thread that player made a move
         // This resets the polling skip flag so polling resumes for opponent's turn
-        if let Some(crate::game_logic::opponent::OpponentKind::Lichess { player_move_tx, .. }) =
-            &opponent.kind
+        if let Some(crate::game_logic::opponent::OpponentKind::Lichess {
+            player_move_tx: Some(ref tx),
+            ..
+        }) = &opponent.kind
         {
-            if let Some(ref tx) = player_move_tx {
-                if let Err(e) = tx.send(()) {
-                    log::warn!("Failed to signal player move to polling thread: {}", e);
-                } else {
-                    log::debug!("Signaled polling thread that player made a move (promotion)");
-                }
+            if let Err(e) = tx.send(()) {
+                log::warn!("Failed to signal player move to polling thread: {}", e);
+            } else {
+                log::debug!("Signaled polling thread that player made a move (promotion)");
             }
         }
     }
