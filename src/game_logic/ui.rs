@@ -460,11 +460,7 @@ impl UI {
         // In multiplayer modes, always show the last move regardless of who made it
         if let Some(opponent) = logic.opponent.as_ref() {
             // Check if this is multiplayer (TCP or Lichess)
-            let is_multiplayer = matches!(
-                opponent.kind,
-                Some(crate::game_logic::opponent::OpponentKind::Tcp(_))
-                    | Some(crate::game_logic::opponent::OpponentKind::Lichess { .. })
-            );
+            let is_multiplayer = opponent.is_tcp_multiplayer() || opponent.is_lichess();
 
             if is_multiplayer {
                 // In multiplayer mode (TCP or Lichess), always show the last move

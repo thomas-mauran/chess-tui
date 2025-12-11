@@ -1351,11 +1351,21 @@ impl App {
 
             self.check_and_show_game_end();
         } else {
-            // In Lichess mode, only allow input if it's our turn (but not for promotion, handled above)
-            if self.current_page == Pages::Lichess {
+            // In multiplayer/Lichess mode, only allow input if it's our turn (but not for promotion, handled above)
+            if self.current_page == Pages::Multiplayer || self.current_page == Pages::Lichess {
                 if let Some(my_color) = self.selected_color {
-                    if self.game.logic.player_turn != my_color {
-                        return;
+                    // For TCP multiplayer, additional check is done in handle_cell_click
+                    // For Lichess, we need to check here
+                    if self.current_page == Pages::Lichess {
+                        if self.game.logic.player_turn != my_color {
+                            return;
+                        }
+                    } else if let Some(opponent) = &self.game.logic.opponent {
+                        // For TCP multiplayer, check if it's our turn
+                        if opponent.is_tcp_multiplayer() && self.game.logic.player_turn != my_color
+                        {
+                            return;
+                        }
                     }
                 }
             }
@@ -1384,7 +1394,7 @@ impl App {
                 None
             };
 
-            self.game.handle_cell_click();
+            self.game.handle_cell_click(self.selected_color);
 
             // Check if the move resulted in a promotion state
             if self.game.logic.game_state == GameState::Promotion {

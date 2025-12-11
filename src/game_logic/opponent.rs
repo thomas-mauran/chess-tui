@@ -80,6 +80,16 @@ impl Opponent {
         }
     }
 
+    /// Check if this opponent is a TCP multiplayer connection
+    pub fn is_tcp_multiplayer(&self) -> bool {
+        matches!(self.kind, Some(OpponentKind::Tcp(_)))
+    }
+
+    /// Check if this opponent is a Lichess connection
+    pub fn is_lichess(&self) -> bool {
+        matches!(self.kind, Some(OpponentKind::Lichess { .. }))
+    }
+
     pub fn new(addr: String, color: Option<Color>) -> Result<Opponent, String> {
         log::info!(
             "Creating new opponent with addr: {} and color: {:?}",

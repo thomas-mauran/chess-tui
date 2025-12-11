@@ -94,7 +94,19 @@ impl Game {
     }
 
     // Methods to select a cell on the board
-    pub fn handle_cell_click(&mut self) {
+    pub fn handle_cell_click(&mut self, player_color: Option<shakmaty::Color>) {
+        // In TCP multiplayer mode, check if it's the player's turn
+        if let Some(opponent) = &self.logic.opponent {
+            if opponent.is_tcp_multiplayer() {
+                if let Some(my_color) = player_color {
+                    // Player can only move when it's their turn
+                    if self.logic.player_turn != my_color {
+                        return;
+                    }
+                }
+            }
+        }
+
         // If we are viewing history and making a move, truncate history at this point
         if let Some(history_index) = self.logic.game_board.history_position_index {
             self.logic.game_board.truncate_history_at(history_index);
@@ -257,17 +269,18 @@ impl Game {
         };
         let actual_square = flip_square_if_needed(square, self.logic.game_board.is_flipped);
 
-        // Check if there is a piece on the cell or if the cells is the right color
+        // Check if there is a piece on the cell and if it's the right color
+        let piece_color = self
+            .logic
+            .game_board
+            .get_piece_color_at_square(&actual_square);
+
         if self
             .logic
             .game_board
             .get_role_at_square(&actual_square)
             .is_none()
-            || self
-                .logic
-                .game_board
-                .get_piece_color_at_square(&actual_square)
-                != Some(self.logic.player_turn)
+            || piece_color != Some(self.logic.player_turn)
         {
             return;
         }

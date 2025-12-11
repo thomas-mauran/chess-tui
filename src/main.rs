@@ -221,8 +221,20 @@ fn main() -> AppResult<()> {
         // Check if game ended
         app.check_game_end_status();
 
+        // Check if hosting player received game start signal from background thread
+        if let Some(ref game_start_rx) = app.game_start_rx {
+            if let Ok(()) = game_start_rx.try_recv() {
+                if let Some(opponent) = app.game.logic.opponent.as_mut() {
+                    log::info!("Host received game start signal, starting game");
+                    opponent.game_started = true;
+                    app.current_popup = None;
+                }
+            }
+        }
+
+        // For non-hosting players, check directly on the stream
         if let Some(opponent) = app.game.logic.opponent.as_mut() {
-            if !opponent.game_started {
+            if !opponent.game_started && app.game_start_rx.is_none() {
                 match wait_for_game_start(opponent) {
                     Ok(true) => {
                         opponent.game_started = true;
@@ -248,12 +260,7 @@ fn main() -> AppResult<()> {
             // Check both the turn and the flag for TCP multiplayer
             if is_opponent_turn && opponent.opponent_will_move {
                 // Check if it's TCP (not Lichess) - Lichess is handled in tick()
-                let is_tcp = matches!(
-                    opponent.kind,
-                    Some(chess_tui::game_logic::opponent::OpponentKind::Tcp(_))
-                );
-
-                if is_tcp {
+                if opponent.is_tcp_multiplayer() {
                     tui.draw(&mut app)?;
 
                     if !app.game.logic.game_board.is_checkmate()
