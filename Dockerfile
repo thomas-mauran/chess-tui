@@ -1,13 +1,29 @@
 # 1. This tells docker to use the Rust official image
 FROM rust:1.87 as builder
 
-# 2. Copy the files in your machine to the Docker image
-COPY ./ ./
+# 2. Copy dependency files first for better layer caching
+COPY Cargo.toml Cargo.lock ./
 
-# Build your program for release
+# 3. Create a dummy src directory to cache dependencies
+RUN mkdir src && echo "fn main() {}" > src/main.rs && \
+    cargo build --release && \
+    rm -rf src
+
+# 4. Copy the actual source code
+COPY src/ ./src/
+
+# 5. Build your program for release
 RUN cargo build --release
 
 FROM debian:bookworm-slim AS runner
+
+# Install SSL libraries required by reqwest
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    libssl3 \
+    ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
 COPY --from=builder /target/release/chess-tui /usr/bin/chess-tui
 
 ENTRYPOINT [ "/usr/bin/chess-tui" ]

@@ -1,0 +1,44 @@
+# Website directory - not needed for the Rust binary
+website/
+
+# GitHub workflows and CI/CD files
+.github/
+
+# Examples and demo files
+examples/
+
+# Test files
+tests/
+
+# Documentation
+*.md
+CONTRIBUTING.md
+LICENSE
+
+# Git files
+.git/
+.gitignore
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts (will be generated in container)
+target/
+
+# Other project files not needed for build
+cargo-generate.toml
+render_demos.sh
+*.gif
+*.tape
+
+# Docker files themselves
+Dockerfile
+.dockerignore
