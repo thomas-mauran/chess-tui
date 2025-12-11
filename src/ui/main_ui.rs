@@ -216,6 +216,12 @@ pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
         format!("Skin: {skin_name}")
     };
 
+    // Determine the "sound" text
+    let sound_menu = {
+        let sound_status = if app.sound_enabled { "On" } else { "Off" };
+        format!("Sound: {sound_status}")
+    };
+
     // Menu items with descriptions
     let menu_items: Vec<(&str, &str)> = vec![
         ("Local game", "Practice mode - play against yourself"),
@@ -223,12 +229,13 @@ pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
         ("Lichess Online", "Play on Lichess.org"),
         ("Play Bot", "Challenge a chess engine"),
         (&display_mode_menu, "Change display theme"),
+        (&sound_menu, "Toggle sound effects"),
         ("Help", "View keyboard shortcuts and controls"),
         ("About", "Project information and credits"),
     ];
 
-    // Menu has 7 items, each takes 3 lines (item + description/empty + spacing), plus padding
-    const MENU_HEIGHT: u16 = 7 * 3 + 4;
+    // Menu has 8 items, each takes 3 lines (item + description/empty + spacing), plus padding
+    const MENU_HEIGHT: u16 = 8 * 3 + 4;
 
     let main_layout_horizontal = Layout::default()
         .direction(Direction::Vertical)

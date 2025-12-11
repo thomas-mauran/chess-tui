@@ -258,8 +258,8 @@ fn handle_page_input(app: &mut App, key_event: KeyEvent) {
 /// Supports navigation through menu items and selection.
 fn handle_home_page_events(app: &mut App, key_event: KeyEvent) {
     match key_event.code {
-        KeyCode::Up | KeyCode::Char('k') => app.menu_cursor_up(Pages::variant_count() as u8),
-        KeyCode::Down | KeyCode::Char('j') => app.menu_cursor_down(Pages::variant_count() as u8),
+        KeyCode::Up | KeyCode::Char('k') => app.menu_cursor_up(8), // 8 menu items: Local game, Multiplayer, Lichess, Bot, Skin, Sound, Help, About
+        KeyCode::Down | KeyCode::Char('j') => app.menu_cursor_down(8), // 8 menu items
         // If on skin selection menu item (index 3), use left/right to cycle skins
         KeyCode::Left | KeyCode::Char('h') if app.menu_cursor == 3 => {
             app.cycle_skin_backward();

@@ -8,6 +8,7 @@ pub struct Config {
     pub bot_depth: Option<u8>,
     pub selected_skin_name: Option<String>,
     pub lichess_token: Option<String>,
+    pub sound_enabled: Option<bool>,
 }
 
 impl Default for Config {
@@ -19,6 +20,7 @@ impl Default for Config {
             bot_depth: Some(10),
             selected_skin_name: Some("Default".to_string()),
             lichess_token: None,
+            sound_enabled: Some(true),
         }
     }
 }

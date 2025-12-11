@@ -51,6 +51,9 @@ fn main() -> AppResult<()> {
     // Create an application.
     let mut app = App::default();
 
+    // Initialize global sound state from app default
+    chess_tui::sound::set_sound_enabled(app.sound_enabled);
+
     // We store the chess engine path if there is one
     if let Ok(content) = fs::read_to_string(config_path) {
         if content.trim().is_empty() {
@@ -84,6 +87,11 @@ fn main() -> AppResult<()> {
             // Add lichess token handling
             if let Some(lichess_token) = config.lichess_token {
                 app.lichess_token = Some(lichess_token);
+            }
+            // Add sound enabled handling
+            if let Some(sound_enabled) = config.sound_enabled {
+                app.sound_enabled = sound_enabled;
+                chess_tui::sound::set_sound_enabled(sound_enabled);
             }
         }
     } else {
@@ -326,6 +334,9 @@ fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResu
     }
     if config.selected_skin_name.is_none() {
         config.selected_skin_name = Some("Default".to_string());
+    }
+    if config.sound_enabled.is_none() {
+        config.sound_enabled = Some(true);
     }
 
     // Always update Lichess token if provided via command line
