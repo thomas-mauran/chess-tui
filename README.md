@@ -64,6 +64,20 @@ If you want to install the game with your favorite package manager, you can find
   <h3>Play the black pieces</h3>
   <img src="./examples/play_against_black_bot.gif" alt="Play against a chess engine as black" />
 </details>
+<details>
+  <summary>Lichess Integration</summary>
+  <p>Play online on Lichess directly from your terminal! Features include:</p>
+  <ul>
+    <li><strong>Seek Games:</strong> Find opponents for correspondence games (3 days per move)</li>
+    <li><strong>Join by ID:</strong> Join specific games using a game code</li>
+    <li><strong>Ongoing Games:</strong> View and resume all your active Lichess games</li>
+    <li><strong>Puzzles:</strong> Solve rated chess puzzles to improve your skills</li>
+    <li><strong>Profile Stats:</strong> View your ratings, game statistics, and performance charts</li>
+  </ul>
+  <p>To use Lichess features, you need an API token. Get one at <a href="https://lichess.org/account/oauth/token">lichess.org/account/oauth/token</a> and configure it with:</p>
+  <pre><code>chess-tui -l YOUR_LICHESS_TOKEN_HERE</code></pre>
+</details>
+
 
 ### Connect a chess engine
 
@@ -102,6 +116,9 @@ log_level = "Off"
 
 # Bot thinking depth for chess engine (1-255, default: 10)
 bot_depth = 10
+
+# Lichess API token for online features
+lichess_token = "YOUR_LICHESS_TOKEN_HERE"
 ```
 
 #### Configuration Options:
@@ -120,6 +137,9 @@ bot_depth = 10
 - **bot_depth**: Controls how deep the chess engine thinks (1-255, default: 10)
   - Higher values make the bot stronger but slower
   - Lower values make the bot faster but weaker
+- **lichess_token**: Your Lichess API token for online features
+  - Get your token at [lichess.org/account/oauth/token](https://lichess.org/account/oauth/token)
+  - Can also be set via command line: `chess-tui -l your_token_here`
 
 The config file is automatically created when you first run chess-tui. You can manually edit it to customize your experience.
 

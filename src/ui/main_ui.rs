@@ -2,8 +2,8 @@ use ratatui::{
     layout::{Constraint, Direction, Layout},
     prelude::{Alignment, Rect},
     style::{Color, Modifier, Style, Stylize},
-    text::Line,
-    widgets::{Block, Paragraph},
+    text::{Line, Span},
+    widgets::{Block, Borders, Paragraph},
     Frame,
 };
 
@@ -12,11 +12,14 @@ use crate::{
     game_logic::game::GameState,
     ui::popups::{
         render_color_selection_popup, render_credit_popup, render_end_popup,
-        render_engine_path_error_popup, render_error_popup, render_help_popup,
-        render_promotion_popup,
+        render_engine_path_error_popup, render_enter_game_code_popup, render_error_popup,
+        render_help_popup, render_promotion_popup, render_puzzle_end_popup,
+        render_resign_confirmation_popup,
     },
 };
 
+use super::lichess_menu::render_lichess_menu;
+use super::ongoing_games::render_ongoing_games;
 use super::popups::{
     render_enter_multiplayer_ip, render_multiplayer_selection_popup, render_wait_for_other_player,
 };
@@ -65,6 +68,12 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
             }
         }
     }
+    // Lichess game
+    else if app.current_page == Pages::Lichess {
+        if app.game.logic.opponent.is_some() {
+            render_game_ui(frame, app, main_area);
+        }
+    }
     // Play against bot
     else if app.current_page == Pages::Bot {
         if app
@@ -80,6 +89,14 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
         } else {
             render_game_ui(frame, app, main_area);
         }
+    }
+    // Lichess menu
+    else if app.current_page == Pages::LichessMenu {
+        render_lichess_menu(frame, app);
+    }
+    // Ongoing games list
+    else if app.current_page == Pages::OngoingGames {
+        render_ongoing_games(frame, app);
     }
     // Render menu
     else {
@@ -111,6 +128,43 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
             if let Some(ref error_msg) = app.error_message {
                 render_error_popup(frame, error_msg);
             }
+        }
+        Some(Popups::SeekingLichessGame) => {
+            let popup_area = centered_rect(60, 20, main_area);
+            let block = Block::default()
+                .title("Lichess")
+                .borders(Borders::ALL)
+                .style(Style::default().bg(Color::DarkGray));
+            let paragraph = Paragraph::new("Seeking a game on Lichess...\n(Press 'Esc' to cancel)")
+                .block(block)
+                .alignment(Alignment::Center);
+            frame.render_widget(paragraph, popup_area);
+        }
+        Some(Popups::EnterGameCode) => {
+            render_enter_game_code_popup(frame, &app.game.ui.prompt);
+        }
+        Some(Popups::ResignConfirmation) => {
+            render_resign_confirmation_popup(frame, app);
+        }
+        Some(Popups::PuzzleEndScreen) => {
+            // Show puzzle completion message
+            let message = if let Some(ref error_msg) = app.error_message {
+                error_msg.clone()
+            } else {
+                "Puzzle solved! Well done!".to_string()
+            };
+
+            // Check if we're still waiting for Elo change calculation
+            let (elo_change, is_calculating) = if let Some(puzzle_game) = &app.puzzle_game {
+                (
+                    puzzle_game.elo_change,
+                    puzzle_game.elo_change.is_none() && puzzle_game.elo_change_receiver.is_some(),
+                )
+            } else {
+                (None, false)
+            };
+
+            render_puzzle_end_popup(frame, &message, elo_change, is_calculating);
         }
         _ => {}
     }
@@ -147,13 +201,40 @@ pub fn render_cell(frame: &mut Frame, square: Rect, color: Color, modifier: Opti
 
 // Method to render the home menu and the options
 pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
+    // Determine the "skin" text
+    let display_mode_menu = {
+        let skin_name = match app.game.ui.display_mode {
+            DisplayMode::DEFAULT => "Default",
+            DisplayMode::ASCII => "ASCII",
+            DisplayMode::CUSTOM => app.game.ui.skin.name.as_str(),
+        };
+        format!("Skin: {skin_name}")
+    };
+
+    // Menu items with descriptions
+    let menu_items: Vec<(&str, &str)> = vec![
+        ("Local game", "Practice mode - play against yourself"),
+        ("Multiplayer", "Play with friends over network"),
+        ("Lichess Online", "Play on Lichess.org"),
+        ("Play Bot", "Challenge a chess engine"),
+        (&display_mode_menu, "Change display theme"),
+        ("Help", "View keyboard shortcuts and controls"),
+        ("About", "Project information and credits"),
+    ];
+
+    // Menu has 7 items, each takes 3 lines (item + description/empty + spacing), plus padding
+    const MENU_HEIGHT: u16 = 7 * 3 + 4;
+
     let main_layout_horizontal = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
             [
-                Constraint::Ratio(1, 5),
-                Constraint::Ratio(1, 5),
-                Constraint::Ratio(3, 5),
+                Constraint::Ratio(1, 5),         // Title
+                Constraint::Length(1),           // Subtitle
+                Constraint::Min(0),              // Flexible space above menu
+                Constraint::Length(MENU_HEIGHT), // Menu (fixed height)
+                Constraint::Min(0),              // Flexible space below menu
+                Constraint::Ratio(1, 10),        // Footer/hints
             ]
             .as_ref(),
         )
@@ -165,50 +246,75 @@ pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
         .block(Block::default());
     frame.render_widget(title_paragraph, main_layout_horizontal[0]);
 
-    // Board block representing the full board div
-    let text: Vec<Line<'_>> = vec![Line::from(""), Line::from("A chess game made in 🦀")];
-    let sub_title = Paragraph::new(text)
+    // Subtitle
+    let sub_title = Paragraph::new("A chess game made in 🦀")
         .alignment(Alignment::Center)
         .block(Block::default());
     frame.render_widget(sub_title, main_layout_horizontal[1]);
 
-    // Determine the "skin" text
-    let display_mode_menu = {
-        let skin_name = match app.game.ui.display_mode {
-            DisplayMode::DEFAULT => "Default",
-            DisplayMode::ASCII => "ASCII",
-            DisplayMode::CUSTOM => app.game.ui.skin.name.as_str(),
-        };
-        format!("Skin: {skin_name}")
-    };
+    // Menu area (centered in the middle section)
+    let menu_area = main_layout_horizontal[3];
 
-    // Board block representing the full board div
-    let menu_items = [
-        "Normal game",
-        "Multiplayer",
-        "Play against a bot",
-        &display_mode_menu,
-        "Help",
-        "Credits",
-    ];
-    let mut menu_body: Vec<Line<'_>> = vec![];
+    // Render menu items
+    let mut menu_lines: Vec<Line<'_>> = vec![];
 
-    for (i, menu_item) in menu_items.iter().enumerate() {
-        menu_body.push(Line::from(""));
-        let mut text = if app.menu_cursor == i as u8 {
-            "> ".to_string()
+    for (i, (item, description)) in menu_items.iter().enumerate() {
+        let is_selected = app.menu_cursor == i as u8;
+
+        // Create styled menu item
+        let item_style = if is_selected {
+            Style::default()
+                .fg(Color::Black)
+                .bg(Color::LightBlue)
+                .add_modifier(Modifier::BOLD)
         } else {
-            String::new()
+            Style::default().fg(Color::White)
         };
-        text.push_str(menu_item);
-        menu_body.push(Line::from(text));
+
+        // Menu item line with indicator
+        let indicator = if is_selected { "▶ " } else { "  " };
+        let item_text = format!("{}{}", indicator, item);
+        menu_lines.push(Line::from(vec![Span::styled(item_text, item_style)]));
+
+        // Description line (only for selected item to save space)
+        if is_selected {
+            menu_lines.push(Line::from(vec![Span::styled(
+                format!("   {}", description),
+                Style::default()
+                    .fg(Color::Gray)
+                    .add_modifier(Modifier::ITALIC),
+            )]));
+        } else {
+            menu_lines.push(Line::from(""));
+        }
+
+        // Add spacing between menu items
+        menu_lines.push(Line::from(""));
     }
 
-    let sub_title = Paragraph::new(menu_body)
-        .bold()
+    let menu_paragraph = Paragraph::new(menu_lines)
         .alignment(Alignment::Center)
         .block(Block::default());
-    frame.render_widget(sub_title, main_layout_horizontal[2]);
+    frame.render_widget(menu_paragraph, menu_area);
+
+    // Footer with keyboard hints
+    let footer_text = vec![
+        Line::from(""),
+        Line::from(vec![
+            Span::styled("Navigation: ", Style::default().fg(Color::Gray)),
+            Span::styled("↑/k ", Style::default().fg(Color::Yellow)),
+            Span::styled("↓/j ", Style::default().fg(Color::Yellow)),
+            Span::styled("| Select: ", Style::default().fg(Color::Gray)),
+            Span::styled("Enter/Space", Style::default().fg(Color::Yellow)),
+            Span::styled(" | Help: ", Style::default().fg(Color::Gray)),
+            Span::styled("?", Style::default().fg(Color::Yellow)),
+        ]),
+    ];
+
+    let footer = Paragraph::new(footer_text)
+        .alignment(Alignment::Center)
+        .block(Block::default());
+    frame.render_widget(footer, main_layout_horizontal[5]);
 }
 
 // Method to render the game board and handle game popups
@@ -306,9 +412,21 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
 
     //bottom box for black matetrial
     let white_taken = app.game.logic.game_board.white_taken_pieces();
-    app.game
-        .ui
-        .white_material_render(board_block.inner(right_box_layout[2]), frame, &white_taken);
+    let is_puzzle_mode = app.puzzle_game.is_some();
+    if is_puzzle_mode {
+        app.game.ui.white_material_render_with_puzzle_hint(
+            board_block.inner(right_box_layout[2]),
+            frame,
+            &white_taken,
+            true,
+        );
+    } else {
+        app.game.ui.white_material_render(
+            board_block.inner(right_box_layout[2]),
+            frame,
+            &white_taken,
+        );
+    }
 
     if app.game.logic.game_state == GameState::Promotion {
         render_promotion_popup(frame, app);
@@ -326,16 +444,28 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
         };
 
         if app.current_popup == Some(Popups::EndScreen) {
-            render_end_popup(
-                frame,
-                &format!("{string_color} Won !!!"),
-                app.game.logic.opponent.is_some(),
-            );
+            // Check if it's Lichess multiplayer (restart not available in Lichess)
+            let is_lichess = app
+                .game
+                .logic
+                .opponent
+                .as_ref()
+                .map(|opp| opp.is_lichess())
+                .unwrap_or(false);
+            render_end_popup(frame, &format!("{string_color} Won !!!"), is_lichess);
         }
     }
 
     if app.game.logic.game_state == GameState::Draw && app.current_popup == Some(Popups::EndScreen)
     {
-        render_end_popup(frame, "That's a draw", app.game.logic.opponent.is_some());
+        // Check if it's Lichess multiplayer (restart not available in Lichess)
+        let is_lichess = app
+            .game
+            .logic
+            .opponent
+            .as_ref()
+            .map(|opp| opp.is_lichess())
+            .unwrap_or(false);
+        render_end_popup(frame, "That's a draw", is_lichess);
     }
 }

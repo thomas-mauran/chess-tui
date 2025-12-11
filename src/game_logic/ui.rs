@@ -182,7 +182,7 @@ impl UI {
         &self,
         piece_type: Option<Role>,
         piece_color: Option<shakmaty::Color>,
-        square: Rect,
+        _square: Rect,
     ) -> Paragraph<'static> {
         use crate::{
             pieces::{
@@ -231,30 +231,25 @@ impl UI {
                     .alignment(Alignment::Center)
             }
             DisplayMode::ASCII => {
-                let paragraph = if let Some(role) = piece_type {
-                    // Use custom piece to_string methods for ASCII mode
-                    let piece_str = match role {
-                        Role::King => King::to_string(&self.display_mode),
-                        Role::Queen => Queen::to_string(&self.display_mode),
-                        Role::Rook => Rook::to_string(&self.display_mode),
-                        Role::Bishop => Bishop::to_string(&self.display_mode),
-                        Role::Knight => Knight::to_string(&self.display_mode),
-                        Role::Pawn => Pawn::to_string(&self.display_mode),
-                    };
-
-                    match piece_color {
-                        Some(shakmaty::Color::Black) => Paragraph::new(piece_str.to_lowercase()),
-                        Some(shakmaty::Color::White) => {
-                            Paragraph::new(piece_str.to_uppercase().underlined())
-                        }
-                        None => Paragraph::new(piece_str),
-                    }
-                } else {
-                    Paragraph::new(" ")
+                let piece_str = match piece_type {
+                    Some(Role::King) => King::to_string(&self.display_mode),
+                    Some(Role::Queen) => Queen::to_string(&self.display_mode),
+                    Some(Role::Rook) => Rook::to_string(&self.display_mode),
+                    Some(Role::Bishop) => Bishop::to_string(&self.display_mode),
+                    Some(Role::Knight) => Knight::to_string(&self.display_mode),
+                    Some(Role::Pawn) => Pawn::to_string(&self.display_mode),
+                    None => " ",
                 };
 
-                paragraph
-                    .block(Block::new().padding(Padding::vertical(square.height / 2)))
+                let final_piece_str = match piece_color {
+                    Some(shakmaty::Color::Black) => piece_str.to_lowercase(),
+                    Some(shakmaty::Color::White) => piece_str.to_uppercase(),
+                    None => piece_str.to_string(),
+                };
+
+                // Use bright yellow for ASCII pieces to ensure visibility on both black and white squares
+                Paragraph::new(final_piece_str)
+                    .fg(Color::Yellow)
                     .alignment(Alignment::Center)
             }
         }
@@ -363,6 +358,55 @@ impl UI {
         frame.render_widget(help_paragraph, right_panel_layout[1]);
     }
 
+    /// Method to render the white material with puzzle hint support
+    pub fn white_material_render_with_puzzle_hint(
+        &self,
+        area: Rect,
+        frame: &mut Frame,
+        white_taken_pieces: &[Role],
+        is_puzzle_mode: bool,
+    ) {
+        let white_block = Block::default()
+            .title("White material")
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(WHITE))
+            .border_type(BorderType::Rounded);
+
+        let mut pieces: String = String::new();
+
+        for piece in white_taken_pieces {
+            let utf_icon_white = role_to_utf_enum(piece, Some(shakmaty::Color::Black));
+
+            pieces.push_str(&format!("{utf_icon_white} "));
+        }
+        let white_material_paragraph = Paragraph::new(pieces)
+            .alignment(Alignment::Center)
+            .add_modifier(Modifier::BOLD);
+
+        let height = area.height;
+
+        let right_panel_layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(height - 1), Constraint::Length(1)].as_ref())
+            .split(area);
+        frame.render_widget(white_block.clone(), right_panel_layout[0]);
+        frame.render_widget(
+            white_material_paragraph,
+            white_block.inner(right_panel_layout[0]),
+        );
+        // Bottom paragraph help text - show puzzle hint if in puzzle mode
+        let text = if is_puzzle_mode {
+            vec![Line::from("Press T for hint | ? for help").alignment(Alignment::Center)]
+        } else {
+            vec![Line::from("Press ? for help").alignment(Alignment::Center)]
+        };
+
+        let help_paragraph = Paragraph::new(text)
+            .block(Block::new())
+            .alignment(Alignment::Center);
+        frame.render_widget(help_paragraph, right_panel_layout[1]);
+    }
+
     /// Method to render the black material
     pub fn black_material_render(
         &self,
@@ -412,13 +456,39 @@ impl UI {
         let last_move_from = last_move.map(|m| m.from()).unwrap();
         let last_move_to = last_move.map(|m| m.to());
 
-        // If the opponent is the same as the last move player, we don't want to show his last move
+        // Check if this is multiplayer mode first (TCP or Lichess)
+        // In multiplayer modes, always show the last move regardless of who made it
         if let Some(opponent) = logic.opponent.as_ref() {
-            if opponent.color == logic.player_turn {
-                return (None, None);
+            // Check if this is multiplayer (TCP or Lichess)
+            let is_multiplayer = opponent.is_tcp_multiplayer() || opponent.is_lichess();
+
+            if is_multiplayer {
+                // In multiplayer mode (TCP or Lichess), always show the last move
+                return (last_move_from, last_move_to);
             }
         }
 
+        // For bot mode or when position is available, determine who made the last move
+        // After a move, the turn switches, so the last move was made by the opposite color
+        if let Some(position) = logic.game_board.current_position() {
+            let last_move_color = match position.turn() {
+                shakmaty::Color::White => shakmaty::Color::Black,
+                shakmaty::Color::Black => shakmaty::Color::White,
+            };
+
+            // For bot mode: only show opponent's moves
+            if let Some(opponent) = logic.opponent.as_ref() {
+                // If the last move was made by the opponent, show it
+                if last_move_color == opponent.color {
+                    return (last_move_from, last_move_to);
+                } else {
+                    // Last move was made by the player, don't show it
+                    return (None, None);
+                }
+            }
+        }
+
+        // Fallback: show the move if no opponent (solo mode)
         (last_move_from, last_move_to)
     }
 

@@ -45,6 +45,60 @@ pub fn render_engine_path_error_popup(frame: &mut Frame) {
     frame.render_widget(paragraph, area);
 }
 
+// This renders a confirmation popup for resigning a game
+pub fn render_resign_confirmation_popup(frame: &mut Frame, app: &App) {
+    let block = Block::default()
+        .title("Resign Game")
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .padding(Padding::horizontal(1))
+        .border_style(Style::default().fg(WHITE));
+    let area = centered_rect(50, 30, frame.area());
+
+    let opponent_name = if let Some(game) = app.ongoing_games.get(app.menu_cursor as usize) {
+        format!("vs {}", game.opponent.username)
+    } else {
+        "this game".to_string()
+    };
+
+    let text = vec![
+        Line::from(""),
+        Line::from(format!(
+            "Are you sure you want to resign {}?",
+            opponent_name
+        ))
+        .alignment(Alignment::Center),
+        Line::from(""),
+        Line::from("This action cannot be undone.").alignment(Alignment::Center),
+        Line::from(""),
+        Line::from(""),
+        Line::from(vec![
+            Span::styled(
+                "Y",
+                Style::default()
+                    .fg(Color::Green)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw("es / "),
+            Span::styled(
+                "N",
+                Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
+            ),
+            Span::raw("o"),
+        ])
+        .alignment(Alignment::Center),
+    ];
+
+    let paragraph = Paragraph::new(text)
+        .block(block.clone())
+        .alignment(Alignment::Left)
+        .wrap(Wrap { trim: true });
+
+    frame.render_widget(Clear, area); //this clears out the background
+    frame.render_widget(block, area);
+    frame.render_widget(paragraph, area);
+}
+
 // This renders a generic error popup with a custom message
 pub fn render_error_popup(frame: &mut Frame, error_message: &str) {
     let block = Block::default()
@@ -74,7 +128,7 @@ pub fn render_error_popup(frame: &mut Frame, error_message: &str) {
 }
 
 // This renders a popup for a promotion
-pub fn render_end_popup(frame: &mut Frame, sentence: &str, is_multiplayer: bool) {
+pub fn render_end_popup(frame: &mut Frame, sentence: &str, is_lichess: bool) {
     let block = Block::default()
         .title("Game Over")
         .title_alignment(Alignment::Center)
@@ -86,7 +140,7 @@ pub fn render_end_popup(frame: &mut Frame, sentence: &str, is_multiplayer: bool)
     let area = centered_rect(50, 50, frame.area());
 
     // Create styled text with better formatting
-    let text = vec![
+    let mut text = vec![
         Line::from(""),
         Line::from(""),
         Line::from(sentence).alignment(Alignment::Center).style(
@@ -102,17 +156,109 @@ pub fn render_end_popup(frame: &mut Frame, sentence: &str, is_multiplayer: bool)
         Line::from("Press `H` to hide this screen")
             .alignment(Alignment::Center)
             .style(Style::default().fg(Color::LightBlue)),
-        Line::from(""),
-        Line::from(if is_multiplayer {
-            "Press `B` to go back to the menu"
-        } else {
-            "Press `R` to restart a new game"
-        })
-        .alignment(Alignment::Center)
-        .style(Style::default().fg(Color::LightGreen)),
-        Line::from(""),
-        Line::from(""),
     ];
+
+    // Only show restart option for non-Lichess games (Lichess games can't be restarted)
+    if !is_lichess {
+        text.push(Line::from(""));
+        text.push(
+            Line::from("Press `R` to restart a new game")
+                .alignment(Alignment::Center)
+                .style(Style::default().fg(Color::LightGreen)),
+        );
+    }
+
+    text.push(Line::from(""));
+    text.push(
+        Line::from("Press `B` to go back to the menu")
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(Color::LightCyan)),
+    );
+    text.push(Line::from(""));
+    text.push(Line::from(""));
+
+    let paragraph = Paragraph::new(text)
+        .block(block.clone())
+        .alignment(Alignment::Center)
+        .wrap(Wrap { trim: true });
+
+    frame.render_widget(Clear, area); //this clears out the background
+    frame.render_widget(block, area);
+    frame.render_widget(paragraph, area);
+}
+
+// This renders a popup for puzzle completion
+pub fn render_puzzle_end_popup(
+    frame: &mut Frame,
+    sentence: &str,
+    elo_change: Option<i32>,
+    is_calculating: bool,
+) {
+    let block = Block::default()
+        .title("Puzzle Complete")
+        .title_alignment(Alignment::Center)
+        .borders(Borders::ALL)
+        .border_type(BorderType::Double)
+        .padding(Padding::horizontal(2))
+        .border_style(Style::default().fg(Color::Yellow))
+        .style(Style::default().bg(Color::DarkGray));
+    let area = centered_rect(50, 50, frame.area());
+
+    // Create styled text with better formatting
+    let mut text = vec![
+        Line::from(""),
+        Line::from(""),
+        Line::from(sentence).alignment(Alignment::Center).style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
+    ];
+
+    // Add Elo change if available, or show calculating message
+    if let Some(change) = elo_change {
+        text.push(Line::from(""));
+        let (change_text, color) = if change > 0 {
+            (format!("+{} Elo", change), Color::Green)
+        } else if change < 0 {
+            (format!("{} Elo", change), Color::Red)
+        } else {
+            ("+0 Elo".to_string(), Color::Yellow)
+        };
+        text.push(
+            Line::from(change_text)
+                .alignment(Alignment::Center)
+                .style(Style::default().fg(color).add_modifier(Modifier::BOLD)),
+        );
+    } else if is_calculating {
+        text.push(Line::from(""));
+        text.push(
+            Line::from("Calculating Elo change...")
+                .alignment(Alignment::Center)
+                .style(Style::default().fg(Color::Cyan)),
+        );
+    }
+
+    text.extend(vec![
+        Line::from(""),
+        Line::from(""),
+        Line::from("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            .style(Style::default().fg(Color::Gray)),
+        Line::from(""),
+        Line::from("Press `H` or `Esc` to hide this screen")
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(Color::LightBlue)),
+        Line::from(""),
+        Line::from("Press `N` for a new puzzle")
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(Color::LightGreen)),
+        Line::from(""),
+        Line::from("Press `B` to go back to the menu")
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(Color::LightCyan)),
+        Line::from(""),
+        Line::from(""),
+    ]);
 
     let paragraph = Paragraph::new(text)
         .block(block.clone())
@@ -269,16 +415,35 @@ pub fn render_help_popup(frame: &mut Frame, app: &crate::app::App) {
 
     // Check if we're playing against a bot (history navigation only in solo mode)
     let is_solo_mode = app.game.logic.bot.is_none() && app.game.logic.opponent.is_none();
+    let is_puzzle_mode = app.puzzle_game.is_some();
 
     let mut text = vec![
         Line::from("Game controls:".underlined().bold()),
         Line::from(""),
-        Line::from(vec![
+    ];
+
+    // In puzzle mode, 'h' is for hint, not left movement
+    if is_puzzle_mode {
+        text.push(Line::from(vec![
+            "← ↑/k ↓/j →/l: Use these keys or the mouse to move the ".into(),
+            "blue".blue(),
+            " cursor".into(),
+        ]));
+        text.push(Line::from(""));
+        text.push(Line::from(
+            "T: Show hint (select the piece to move)".yellow(),
+        ));
+        text.push(Line::from(""));
+    } else {
+        text.push(Line::from(vec![
             "←/h ↑/k ↓/j →/l: Use these keys or the mouse to move the ".into(),
             "blue".blue(),
             " cursor".into(),
-        ]),
-        Line::from(""),
+        ]));
+        text.push(Line::from(""));
+    }
+
+    text.extend(vec![
         Line::from("`Ctrl` '+' or '-': Zoom in or out to adjust pieces sizes"),
         Line::from("(Might differ in certain terminals)"),
         Line::from(""),
@@ -292,10 +457,10 @@ pub fn render_help_popup(frame: &mut Frame, app: &crate::app::App) {
         Line::from(""),
         Line::from("s: Cycle through available skins"),
         Line::from(""),
-    ];
+    ]);
 
-    // Only show history navigation controls in solo mode (not against bot)
-    if is_solo_mode {
+    // Only show history navigation controls in solo mode (not against bot or puzzle)
+    if is_solo_mode && !is_puzzle_mode {
         text.push(Line::from("P: Navigate to previous position in history"));
         text.push(Line::from(""));
         text.push(Line::from("N: Navigate to next position in history"));
@@ -546,6 +711,48 @@ pub fn render_enter_multiplayer_ip(frame: &mut Frame, prompt: &Prompt) {
         Line::from(""),
         Line::from(""),
         Line::from("Press `Esc` to close the popup.").alignment(Alignment::Center),
+    ];
+
+    let paragraph = Paragraph::new(text)
+        .block(block.clone())
+        .alignment(Alignment::Left)
+        .wrap(Wrap { trim: true });
+
+    frame.set_cursor_position(Position::new(
+        // Draw the cursor at the current position in the input field.
+        // This position is can be controlled via the left and right arrow key
+        area.x + prompt.character_index as u16 + 2,
+        // Move one line down, from the border to the input line
+        area.y + 3,
+    ));
+
+    frame.render_widget(Clear, area); //this clears out the background
+    frame.render_widget(block, area);
+    frame.render_widget(paragraph, area);
+}
+
+// This renders a popup allowing us to enter a game code to join a Lichess game
+pub fn render_enter_game_code_popup(frame: &mut Frame, prompt: &Prompt) {
+    let block = Block::default()
+        .title("Join Lichess Game")
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .padding(Padding::horizontal(1))
+        .border_style(Style::default().fg(WHITE));
+    let area = centered_rect(50, 30, frame.area());
+
+    let current_input = prompt.input.as_str();
+
+    let text = vec![
+        Line::from("Enter game ID or URL:").alignment(Alignment::Center),
+        Line::from(""),
+        Line::from(current_input),
+        Line::from(""),
+        Line::from(""),
+        Line::from("You can paste the full URL or just the game ID."),
+        Line::from("Note: You must be a participant in the game."),
+        Line::from(""),
+        Line::from("Press `Esc` to cancel.").alignment(Alignment::Center),
     ];
 
     let paragraph = Paragraph::new(text)

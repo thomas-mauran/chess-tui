@@ -37,6 +37,12 @@ impl Prompt {
         self.character_index = 0;
     }
 
+    pub fn reset(&mut self) {
+        self.input.clear();
+        self.message.clear();
+        self.reset_cursor();
+    }
+
     pub fn submit_message(&mut self) {
         self.message = self.input.clone();
         self.input.clear();

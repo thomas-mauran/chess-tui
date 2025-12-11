@@ -5,6 +5,7 @@ use chess_tui::app::{App, AppResult};
 use chess_tui::config::Config;
 use chess_tui::constants::{home_dir, DisplayMode};
 use chess_tui::event::{Event, EventHandler};
+use chess_tui::game_logic::opponent::wait_for_game_start;
 use chess_tui::handler::{handle_key_events, handle_mouse_events};
 use chess_tui::logging;
 use chess_tui::skin::Skin;
@@ -26,6 +27,9 @@ struct Args {
     /// Bot thinking depth for chess engine (1-255)
     #[arg(short, long, default_value = "10")]
     depth: u8,
+    /// Lichess API token
+    #[arg(short, long)]
+    lichess_token: Option<String>,
 }
 
 fn main() -> AppResult<()> {
@@ -76,6 +80,10 @@ fn main() -> AppResult<()> {
             // Add selected skin name handling
             if let Some(selected_skin_name) = config.selected_skin_name {
                 app.selected_skin_name = selected_skin_name;
+            }
+            // Add lichess token handling
+            if let Some(lichess_token) = config.lichess_token {
+                app.lichess_token = Some(lichess_token);
             }
         }
     } else {
@@ -150,6 +158,11 @@ fn main() -> AppResult<()> {
     // Command line depth argument takes precedence over configuration file
     app.bot_depth = args.depth;
 
+    // Command line lichess token takes precedence over configuration file
+    if let Some(token) = &args.lichess_token {
+        app.lichess_token = Some(token.clone());
+    }
+
     // Setup logging
     if let Err(e) = logging::setup_logging(&folder_path, &app.log_level) {
         eprintln!("Failed to initialize logging: {}", e);
@@ -200,27 +213,67 @@ fn main() -> AppResult<()> {
 
         // Check if bot move is ready
         if app.check_bot_move() {
-            app.game.switch_player_turn();
+            app.check_and_show_game_end();
+        }
+        // Check if Lichess seek is done
+        app.check_lichess_seek();
 
-            // need to be centralised
-            app.check_game_end_status();
+        // Check if game ended
+        app.check_game_end_status();
+
+        // Check if hosting player received game start signal from background thread
+        if let Some(ref game_start_rx) = app.game_start_rx {
+            if let Ok(()) = game_start_rx.try_recv() {
+                if let Some(opponent) = app.game.logic.opponent.as_mut() {
+                    log::info!("Host received game start signal, starting game");
+                    opponent.game_started = true;
+                    app.current_popup = None;
+                }
+            }
         }
 
-        // If it's the opponent turn and the game started, wait for the opponent to move
+        // For non-hosting players, check directly on the stream
         if let Some(opponent) = app.game.logic.opponent.as_mut() {
-            if opponent.game_started && opponent.opponent_will_move {
-                tui.draw(&mut app)?;
-
-                if !app.game.logic.game_board.is_checkmate()
-                    && !app.game.logic.game_board.is_draw()
-                    && app.game.logic.execute_opponent_move()
-                {
-                    app.game.switch_player_turn();
+            if !opponent.game_started && app.game_start_rx.is_none() {
+                match wait_for_game_start(opponent) {
+                    Ok(true) => {
+                        opponent.game_started = true;
+                        app.current_popup = None;
+                    }
+                    Ok(false) => {
+                        // Still waiting, do nothing
+                    }
+                    Err(e) => {
+                        log::error!("Error waiting for game start: {}", e);
+                    }
                 }
+            }
+        }
 
-                // need to be centralised
-                app.check_game_end_status();
-                tui.draw(&mut app)?;
+        // If it's the opponent turn, wait for the opponent to move
+        // Only check when it's actually the opponent's turn to avoid unnecessary work
+        if let Some(opponent) = app.game.logic.opponent.as_ref() {
+            // Check if it's the opponent's turn: if player_turn == opponent.color, it's opponent's turn
+            let is_opponent_turn = app.game.logic.player_turn == opponent.color;
+
+            // Only check for TCP multiplayer moves here (Lichess is handled in tick())
+            // Check both the turn and the flag for TCP multiplayer
+            if is_opponent_turn && opponent.opponent_will_move {
+                // Check if it's TCP (not Lichess) - Lichess is handled in tick()
+                if opponent.is_tcp_multiplayer() {
+                    tui.draw(&mut app)?;
+
+                    if !app.game.logic.game_board.is_checkmate()
+                        && !app.game.logic.game_board.is_draw()
+                        && app.game.logic.execute_opponent_move()
+                    {
+                        app.game.switch_player_turn();
+                    }
+
+                    // need to be centralised
+                    app.check_game_end_status();
+                    tui.draw(&mut app)?;
+                }
             }
         }
     }
@@ -275,6 +328,11 @@ fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResu
         config.selected_skin_name = Some("Default".to_string());
     }
 
+    // Always update Lichess token if provided via command line
+    if let Some(token) = &args.lichess_token {
+        config.lichess_token = Some(token.clone());
+    }
+
     // Update bot_depth if provided via command line
     if args.depth != 10 {
         config.bot_depth = Some(args.depth);
@@ -313,6 +371,7 @@ mod tests {
         let args = Args {
             engine_path: "test_engine_path".to_string(),
             depth: 10,
+            lichess_token: None,
         };
 
         let home_dir = home_dir().expect("Failed to get home directory");

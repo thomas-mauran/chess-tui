@@ -1,43 +1,41 @@
-import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
+import type { SidebarsConfig } from "@docusaurus/plugin-content-docs";
 
 const sidebars: SidebarsConfig = {
   tutorialSidebar: [
-    'intro',
+    "intro",
     {
-      type: 'category',
-      label: 'Installation', 
-      items: ['Installation/Packaging status', 'Installation/Binary', 'Installation/Cargo', 'Installation/Build from source', 'Installation/NetBSD', 'Installation/Arch Linux', 'Installation/NixOS', 'Installation/Docker'], 
+      type: "category",
+      label: "Installation",
+      items: ["Installation/Packaging status", "Installation/Binary", "Installation/Cargo", "Installation/Build from source", "Installation/NetBSD", "Installation/Arch Linux", "Installation/NixOS", "Installation/Docker"],
     },
     {
-      type: 'category',
-      label: 'Configuration',
+      type: "category",
+      label: "Configuration",
+      items: ["Configuration/configuration-intro", "Configuration/display", "Configuration/skins", "Configuration/logging", "Configuration/engine", "Configuration/bot"],
+    },
+    {
+      type: "category",
+      label: "Multiplayer",
+      items: ["Multiplayer/Local multiplayer", "Multiplayer/Online multiplayer"],
+    },
+    {
+      type: "category",
+      label: "Lichess",
+      items: ["Lichess/features", "Lichess/setup"],
+    },
+    {
+      type: "category",
+      label: "Code Architecture",
       items: [
-        'Configuration/configuration-intro',
-        'Configuration/display',
-        'Configuration/skins',
-        'Configuration/logging',
-        'Configuration/engine',
-        'Configuration/bot',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Multiplayer', 
-      items: ['Multiplayer/Local multiplayer', 'Multiplayer/Online multiplayer'], 
-    },
-    {
-      type: 'category',
-      label: 'Code Architecture',
-      items: [
-        'Code Architecture/Intro',
-        'Code Architecture/Game',
-        'Code Architecture/Pieces',
-        'Code Architecture/App',
-        'Code Architecture/GameLogic',
-        'Code Architecture/GameBoard',
-        'Code Architecture/UI',
-        'Code Architecture/Bot',
-        'Code Architecture/Opponent',
+        "Code Architecture/Intro",
+        "Code Architecture/Game",
+        "Code Architecture/Pieces",
+        "Code Architecture/App",
+        "Code Architecture/GameLogic",
+        "Code Architecture/GameBoard",
+        "Code Architecture/UI",
+        "Code Architecture/Bot",
+        "Code Architecture/Opponent",
       ],
     },
   ],

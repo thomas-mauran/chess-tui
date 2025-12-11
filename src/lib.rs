@@ -32,3 +32,6 @@ pub mod config;
 
 // Skin
 pub mod skin;
+
+// Lichess
+pub mod lichess;
