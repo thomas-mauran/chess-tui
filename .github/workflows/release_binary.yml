@@ -23,6 +23,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         name: Install the Rust toolchain
+        # note: would require setting `targets` if `matrix.target` wasn't host-default
 
       - uses: Swatinem/rust-cache@v2
         name: Use cached dependencies and artifacts
@@ -39,9 +40,7 @@ jobs:
           cp "target/${{ matrix.target }}/release/$EXE_NAME" .
           tar -czvf "$TAR_NAME" ./chess-tui
         shell: bash # needed for windows
-        name: |
-          Create tar file containing the binary
-          Set TAR_NAME from tag and platform
+        name: Set TAR_NAME from tag and platform, create tar file containing the binary
 
       - uses: softprops/action-gh-release@v2
         name: Upload binary to release
