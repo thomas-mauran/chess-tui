@@ -2,7 +2,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout},
     prelude::{Alignment, Rect},
     style::{Color, Modifier, Style, Stylize},
-    text::Line,
+    text::{Line, Span},
     widgets::{Block, Borders, Paragraph},
     Frame,
 };
@@ -201,13 +201,40 @@ pub fn render_cell(frame: &mut Frame, square: Rect, color: Color, modifier: Opti
 
 // Method to render the home menu and the options
 pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
+    // Determine the "skin" text
+    let display_mode_menu = {
+        let skin_name = match app.game.ui.display_mode {
+            DisplayMode::DEFAULT => "Default",
+            DisplayMode::ASCII => "ASCII",
+            DisplayMode::CUSTOM => app.game.ui.skin.name.as_str(),
+        };
+        format!("Skin: {skin_name}")
+    };
+
+    // Menu items with descriptions
+    let menu_items: Vec<(&str, &str)> = vec![
+        ("Local game", "Practice mode - play against yourself"),
+        ("Multiplayer", "Play with friends over network"),
+        ("Lichess Online", "Play on Lichess.org"),
+        ("Play Bot", "Challenge a chess engine"),
+        (&display_mode_menu, "Change display theme"),
+        ("Help", "View keyboard shortcuts and controls"),
+        ("About", "Project information and credits"),
+    ];
+
+    // Menu has 7 items, each takes 3 lines (item + description/empty + spacing), plus padding
+    const MENU_HEIGHT: u16 = 7 * 3 + 4;
+
     let main_layout_horizontal = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
             [
-                Constraint::Ratio(1, 5),
-                Constraint::Ratio(1, 5),
-                Constraint::Ratio(3, 5),
+                Constraint::Ratio(1, 5),         // Title
+                Constraint::Length(1),           // Subtitle
+                Constraint::Min(0),              // Flexible space above menu
+                Constraint::Length(MENU_HEIGHT), // Menu (fixed height)
+                Constraint::Min(0),              // Flexible space below menu
+                Constraint::Ratio(1, 10),        // Footer/hints
             ]
             .as_ref(),
         )
@@ -219,51 +246,75 @@ pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
         .block(Block::default());
     frame.render_widget(title_paragraph, main_layout_horizontal[0]);
 
-    // Board block representing the full board div
-    let text: Vec<Line<'_>> = vec![Line::from(""), Line::from("A chess game made in 🦀")];
-    let sub_title = Paragraph::new(text)
+    // Subtitle
+    let sub_title = Paragraph::new("A chess game made in 🦀")
         .alignment(Alignment::Center)
         .block(Block::default());
     frame.render_widget(sub_title, main_layout_horizontal[1]);
 
-    // Determine the "skin" text
-    let display_mode_menu = {
-        let skin_name = match app.game.ui.display_mode {
-            DisplayMode::DEFAULT => "Default",
-            DisplayMode::ASCII => "ASCII",
-            DisplayMode::CUSTOM => app.game.ui.skin.name.as_str(),
-        };
-        format!("Skin: {skin_name}")
-    };
+    // Menu area (centered in the middle section)
+    let menu_area = main_layout_horizontal[3];
 
-    // Board block representing the full board div
-    let menu_items = [
-        "Normal game",
-        "Integrated Multiplayer",
-        "Lichess (External)",
-        "Local Bot",
-        &display_mode_menu,
-        "Help Menu",
-        "Credits",
-    ];
-    let mut menu_body: Vec<Line<'_>> = vec![];
+    // Render menu items
+    let mut menu_lines: Vec<Line<'_>> = vec![];
 
-    for (i, menu_item) in menu_items.iter().enumerate() {
-        menu_body.push(Line::from(""));
-        let mut text = if app.menu_cursor == i as u8 {
-            "> ".to_string()
+    for (i, (item, description)) in menu_items.iter().enumerate() {
+        let is_selected = app.menu_cursor == i as u8;
+
+        // Create styled menu item
+        let item_style = if is_selected {
+            Style::default()
+                .fg(Color::Black)
+                .bg(Color::LightBlue)
+                .add_modifier(Modifier::BOLD)
         } else {
-            String::new()
+            Style::default().fg(Color::White)
         };
-        text.push_str(menu_item);
-        menu_body.push(Line::from(text));
+
+        // Menu item line with indicator
+        let indicator = if is_selected { "▶ " } else { "  " };
+        let item_text = format!("{}{}", indicator, item);
+        menu_lines.push(Line::from(vec![Span::styled(item_text, item_style)]));
+
+        // Description line (only for selected item to save space)
+        if is_selected {
+            menu_lines.push(Line::from(vec![Span::styled(
+                format!("   {}", description),
+                Style::default()
+                    .fg(Color::Gray)
+                    .add_modifier(Modifier::ITALIC),
+            )]));
+        } else {
+            menu_lines.push(Line::from(""));
+        }
+
+        // Add spacing between menu items
+        menu_lines.push(Line::from(""));
     }
 
-    let sub_title = Paragraph::new(menu_body)
-        .bold()
+    let menu_paragraph = Paragraph::new(menu_lines)
         .alignment(Alignment::Center)
         .block(Block::default());
-    frame.render_widget(sub_title, main_layout_horizontal[2]);
+    frame.render_widget(menu_paragraph, menu_area);
+
+    // Footer with keyboard hints
+    let footer_text = vec![
+        Line::from(""),
+        Line::from(vec![
+            Span::styled("Navigation: ", Style::default().fg(Color::Gray)),
+            Span::styled("↑/k ", Style::default().fg(Color::Yellow)),
+            Span::styled("↓/j ", Style::default().fg(Color::Yellow)),
+            Span::styled("| Select: ", Style::default().fg(Color::Gray)),
+            Span::styled("Enter/Space", Style::default().fg(Color::Yellow)),
+            Span::styled(" | Help: ", Style::default().fg(Color::Gray)),
+            Span::styled("?", Style::default().fg(Color::Yellow)),
+        ]),
+    ];
+
+    let footer = Paragraph::new(footer_text)
+        .alignment(Alignment::Center)
+        .block(Block::default());
+    frame.render_widget(footer, main_layout_horizontal[5]);
 }
 
 // Method to render the game board and handle game popups
