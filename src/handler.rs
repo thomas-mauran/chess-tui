@@ -117,12 +117,14 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
         // End screen popup - shown when game ends (checkmate or draw)
         Popups::EndScreen => match key_event.code {
             KeyCode::Char('h') | KeyCode::Char('H') => {
-                // Hide the end screen (game state remains)
+                // Hide the end screen (can be toggled back with H when not in popup)
                 app.current_popup = None;
+                app.end_screen_dismissed = true;
             }
             KeyCode::Esc => {
-                // Also allow Esc to hide the end screen
+                // Also allow Esc to hide the end screen and mark as dismissed
                 app.current_popup = None;
+                app.end_screen_dismissed = true;
             }
             KeyCode::Char('r') | KeyCode::Char('R') => {
                 // Restart the game (only for non-multiplayer games)
@@ -359,9 +361,17 @@ fn chess_inputs(app: &mut App, key_event: KeyEvent) {
             }
             GameState::Checkmate | GameState::Draw => {
                 // Toggle end screen visibility when game is over
+                // If popup is shown, hide it; if hidden and dismissed, show it again
                 if app.current_popup == Some(Popups::EndScreen) {
+                    // Hide the end screen
                     app.current_popup = None;
+                    app.end_screen_dismissed = true;
+                } else if app.end_screen_dismissed {
+                    // Show the end screen again if it was dismissed (toggle back)
+                    app.end_screen_dismissed = false;
+                    app.show_end_screen();
                 } else {
+                    // Show the end screen if it hasn't been shown yet
                     app.show_end_screen();
                 }
             }

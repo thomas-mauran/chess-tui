@@ -128,7 +128,7 @@ pub fn render_error_popup(frame: &mut Frame, error_message: &str) {
 }
 
 // This renders a popup for a promotion
-pub fn render_end_popup(frame: &mut Frame, sentence: &str, _is_multiplayer: bool) {
+pub fn render_end_popup(frame: &mut Frame, sentence: &str, is_lichess: bool) {
     let block = Block::default()
         .title("Game Over")
         .title_alignment(Alignment::Center)
@@ -140,7 +140,7 @@ pub fn render_end_popup(frame: &mut Frame, sentence: &str, _is_multiplayer: bool
     let area = centered_rect(50, 50, frame.area());
 
     // Create styled text with better formatting
-    let text = vec![
+    let mut text = vec![
         Line::from(""),
         Line::from(""),
         Line::from(sentence).alignment(Alignment::Center).style(
@@ -156,17 +156,26 @@ pub fn render_end_popup(frame: &mut Frame, sentence: &str, _is_multiplayer: bool
         Line::from("Press `H` to hide this screen")
             .alignment(Alignment::Center)
             .style(Style::default().fg(Color::LightBlue)),
-        Line::from(""),
-        Line::from("Press `R` to restart a new game")
-            .alignment(Alignment::Center)
-            .style(Style::default().fg(Color::LightGreen)),
-        Line::from(""),
+    ];
+
+    // Only show restart option for non-Lichess games (Lichess games can't be restarted)
+    if !is_lichess {
+        text.push(Line::from(""));
+        text.push(
+            Line::from("Press `R` to restart a new game")
+                .alignment(Alignment::Center)
+                .style(Style::default().fg(Color::LightGreen)),
+        );
+    }
+
+    text.push(Line::from(""));
+    text.push(
         Line::from("Press `B` to go back to the menu")
             .alignment(Alignment::Center)
             .style(Style::default().fg(Color::LightCyan)),
-        Line::from(""),
-        Line::from(""),
-    ];
+    );
+    text.push(Line::from(""));
+    text.push(Line::from(""));
 
     let paragraph = Paragraph::new(text)
         .block(block.clone())

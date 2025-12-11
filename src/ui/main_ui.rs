@@ -444,16 +444,28 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
         };
 
         if app.current_popup == Some(Popups::EndScreen) {
-            render_end_popup(
-                frame,
-                &format!("{string_color} Won !!!"),
-                app.game.logic.opponent.is_some(),
-            );
+            // Check if it's Lichess multiplayer (restart not available in Lichess)
+            let is_lichess = app
+                .game
+                .logic
+                .opponent
+                .as_ref()
+                .map(|opp| opp.is_lichess())
+                .unwrap_or(false);
+            render_end_popup(frame, &format!("{string_color} Won !!!"), is_lichess);
         }
     }
 
     if app.game.logic.game_state == GameState::Draw && app.current_popup == Some(Popups::EndScreen)
     {
-        render_end_popup(frame, "That's a draw", app.game.logic.opponent.is_some());
+        // Check if it's Lichess multiplayer (restart not available in Lichess)
+        let is_lichess = app
+            .game
+            .logic
+            .opponent
+            .as_ref()
+            .map(|opp| opp.is_lichess())
+            .unwrap_or(false);
+        render_end_popup(frame, "That's a draw", is_lichess);
     }
 }

@@ -76,6 +76,8 @@ pub struct App {
     pub pending_promotion_move: Option<(shakmaty::Square, shakmaty::Square)>,
     /// Lichess user profile (username, ratings, etc.)
     pub lichess_user_profile: Option<crate::lichess::UserProfile>,
+    /// Track if the end screen was dismissed by the user (to prevent re-showing)
+    pub end_screen_dismissed: bool,
 }
 
 impl Default for App {
@@ -105,6 +107,7 @@ impl Default for App {
             puzzle_game: None,
             pending_promotion_move: None,
             lichess_user_profile: None,
+            end_screen_dismissed: false,
         }
     }
 }
@@ -1135,6 +1138,7 @@ impl App {
     pub fn restart(&mut self) {
         // Clear puzzle state when restarting (for normal games)
         self.puzzle_game = None;
+        self.end_screen_dismissed = false;
         let bot = self.game.logic.bot.clone();
         let opponent = self.game.logic.opponent.clone();
         // Preserve skin and display mode
@@ -1241,6 +1245,7 @@ impl App {
         self.hosting = None;
         self.host_ip = None;
         self.menu_cursor = 0;
+        self.end_screen_dismissed = false;
         self.chess_engine_path = None;
         self.bot_depth = 10;
         self.loaded_skin = loaded_skin;
@@ -1450,6 +1455,7 @@ impl App {
         // Preserve display mode and skin preference
         let display_mode = self.game.ui.display_mode;
         let current_skin = self.game.ui.skin.clone();
+        self.end_screen_dismissed = false;
 
         // Reset game-related state
         self.selected_color = None;
@@ -1471,6 +1477,7 @@ impl App {
         self.game = Game::default();
         self.game.ui.display_mode = display_mode;
         self.game.ui.skin = current_skin;
+        self.end_screen_dismissed = false;
         self.current_page = Pages::Home;
         self.current_popup = None;
         self.loaded_skin = self.loaded_skin.clone();
@@ -1481,17 +1488,19 @@ impl App {
     pub fn check_and_show_game_end(&mut self) {
         if self.game.logic.game_board.is_checkmate() {
             self.game.logic.game_state = GameState::Checkmate;
-            // Only show end screen if it's not already shown (user might have dismissed it)
+            // Only show end screen if it's not already shown and not dismissed
             if self.current_popup != Some(Popups::EndScreen)
                 && self.current_popup != Some(Popups::PuzzleEndScreen)
+                && !self.end_screen_dismissed
             {
                 self.show_end_screen();
             }
         } else if self.game.logic.game_board.is_draw() {
             self.game.logic.game_state = GameState::Draw;
-            // Only show end screen if it's not already shown (user might have dismissed it)
+            // Only show end screen if it's not already shown and not dismissed
             if self.current_popup != Some(Popups::EndScreen)
                 && self.current_popup != Some(Popups::PuzzleEndScreen)
+                && !self.end_screen_dismissed
             {
                 self.show_end_screen();
             }
@@ -1502,9 +1511,13 @@ impl App {
             // (user might have dismissed it with 'H' or 'Esc')
             if self.current_popup != Some(Popups::EndScreen)
                 && self.current_popup != Some(Popups::PuzzleEndScreen)
+                && !self.end_screen_dismissed
             {
                 self.show_end_screen();
             }
+        } else {
+            // Game is no longer ended, reset the dismissed flag
+            self.end_screen_dismissed = false;
         }
     }
 
