@@ -171,8 +171,8 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
                         // If we're on Lichess-related pages, go back to Lichess menu
                         app.current_page = Pages::LichessMenu;
                     }
-                    Pages::Multiplayer => {
-                        // If we're on multiplayer, go back to home
+                    Pages::Multiplayer | Pages::Bot => {
+                        // If we're on multiplayer or bot page, go back to home
                         app.current_page = Pages::Home;
                     }
                     _ => {

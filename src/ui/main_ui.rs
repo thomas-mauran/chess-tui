@@ -12,9 +12,8 @@ use crate::{
     game_logic::game::GameState,
     ui::popups::{
         render_color_selection_popup, render_credit_popup, render_end_popup,
-        render_engine_path_error_popup, render_enter_game_code_popup, render_error_popup,
-        render_help_popup, render_promotion_popup, render_puzzle_end_popup,
-        render_resign_confirmation_popup,
+        render_enter_game_code_popup, render_error_popup, render_help_popup,
+        render_promotion_popup, render_puzzle_end_popup, render_resign_confirmation_popup,
     },
 };
 
@@ -81,7 +80,13 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
             .as_ref()
             .is_none_or(|path| path.is_empty())
         {
-            render_engine_path_error_popup(frame);
+            app.error_message = Some(
+                "Chess engine path not configured.\n\n".to_string()
+                    + "To configure the chess engine path, use the -e argument when running chess-tui.\n\n"
+                    + "Example:\n"
+                    + "chess-tui -e /opt/homebrew/opt/stockfish",
+            );
+            app.current_popup = Some(Popups::Error);
         } else if app.selected_color.is_none() {
             app.current_popup = Some(Popups::ColorSelection);
         } else if app.game.logic.bot.is_none() {
