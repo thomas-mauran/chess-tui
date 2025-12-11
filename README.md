@@ -76,6 +76,8 @@ If you want to install the game with your favorite package manager, you can find
   </ul>
   <p>To use Lichess features, you need an API token. Get one at <a href="https://lichess.org/account/oauth/token">lichess.org/account/oauth/token</a> and configure it with:</p>
   <pre><code>chess-tui -l YOUR_LICHESS_TOKEN_HERE</code></pre>
+  <img src="./examples/lichess-menu.gif" alt="Lichess menu" />
+
 </details>
 
 

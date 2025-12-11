@@ -1,5 +1,7 @@
 # Features
 
+![Lichess menu](../../static/gif/lichess-menu.gif)
+
 Once authenticated, you can access the Lichess menu from the main screen. Here are the available features:
 
 ## User Profile
