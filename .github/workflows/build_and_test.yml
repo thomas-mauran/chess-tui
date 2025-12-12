@@ -3,6 +3,7 @@ name: Cargo Build & Test
 on:
   pull_request:
   workflow_call:
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
@@ -10,18 +11,24 @@ env:
 jobs:
   build_and_test:
     name: Rust project - latest
-    runs-on: ubuntu-latest
     strategy:
       matrix:
         toolchain:
           - stable
           - beta
           - nightly
+        os:
+          - macos-latest
+          - ubuntu-latest
+          - ubuntu-24.04-arm
+          - windows-latest
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
       - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
         continue-on-error: true
-      - run: cargo build --verbose
+      - run: cargo check --verbose
         continue-on-error: true
       - run: cargo test --verbose
         continue-on-error: true
