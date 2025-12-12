@@ -2,50 +2,69 @@ name: Upload binary to published release
 
 on:
   release:
-    types: [published]
+    types: [ published ]
 
 jobs:
   build-and-upload-binary:
     name: Build and Upload Binary to release
     strategy:
-      matrix: 
+      matrix:
         include:
-          - { os: "macos-latest", target: "aarch64-apple-darwin" }
-          - { os: "ubuntu-latest", target: "x86_64-unknown-linux-gnu" }
-          - { os: "ubuntu-24.04-arm", target: "aarch64-unknown-linux-gnu" }
-          - { os: "windows-latest", target: "x86_64-pc-windows-msvc", ext: ".exe" }
+        - { os: "macos-latest", target: "aarch64-apple-darwin" }
+        - { os: "ubuntu-latest", target: "x86_64-unknown-linux-gnu" }
+        - { os: "ubuntu-24.04-arm", target: "aarch64-unknown-linux-gnu" }
+        - { os: "windows-latest", target: "x86_64-pc-windows-msvc", ext: ".exe" }
     runs-on: ${{ matrix.os }}
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-        name: Checkout project
+    - uses: actions/checkout@v4
+      name: Checkout project
 
-      - uses: dtolnay/rust-toolchain@stable
-        name: Install the Rust toolchain
-        # note: would require setting `targets` if `matrix.target` wasn't host-default
+    - uses: dtolnay/rust-toolchain@stable
+      name: Install the Rust toolchain
+      # note: would require setting `targets` if `matrix.target` wasn't host-default
 
-      - uses: Swatinem/rust-cache@v2
-        name: Use cached dependencies and artifacts
+    - name: Install ALSA development libraries (Linux/Unix only)
+      if: runner.os == 'Linux' || runner.os == 'Unix'
+      run: |
+        if command -v apt-get &> /dev/null; then
+          sudo apt-get update && sudo apt-get install -y libasound2-dev
+        elif command -v dnf &> /dev/null; then
+          sudo dnf install -y alsa-lib-devel
+        elif command -v yum &> /dev/null; then
+          sudo yum install -y alsa-lib-devel
+        elif command -v pacman &> /dev/null; then
+          sudo pacman -S --noconfirm alsa-lib
+        elif command -v zypper &> /dev/null; then
+          sudo zypper install -y alsa-devel
+        elif command -v pkg_add &> /dev/null; then
+          sudo pkg_add alsa-lib || pkg_add alsa-lib
+        else
+          echo "Unknown package manager, skipping ALSA installation"
+        fi
 
-      - run: cargo build --release --target ${{ matrix.target }}
-        name: Build release binary
+    - uses: Swatinem/rust-cache@v2
+      name: Use cached dependencies and artifacts
 
-      - run: |
-          TAG=${{ github.event.release.tag_name }}
-          TAR_NAME="chess-tui-$TAG-${{ matrix.target }}.tar.gz"
-          echo "TAR_NAME=$TAR_NAME" >> $GITHUB_ENV
+    - run: cargo build --release --target ${{ matrix.target }}
+      name: Build release binary
 
-          EXE_NAME="chess-tui${{ matrix.ext }}"
-          cp "target/${{ matrix.target }}/release/$EXE_NAME" .
-          tar -czvf "$TAR_NAME" ./chess-tui
-        shell: bash # needed for windows
-        name: Set TAR_NAME from tag and platform, create tar file containing the binary
+    - run: |
+        TAG=${{ github.event.release.tag_name }}
+        TAR_NAME="chess-tui-$TAG-${{ matrix.target }}.tar.gz"
+        echo "TAR_NAME=$TAR_NAME" >> $GITHUB_ENV
 
-      - uses: softprops/action-gh-release@v2
-        name: Upload binary to release
-        if: github.ref_type == 'tag'
-        with:
-          files: ${{ env.TAR_NAME }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        EXE_NAME="chess-tui${{ matrix.ext }}"
+        cp "target/${{ matrix.target }}/release/$EXE_NAME" .
+        tar -czvf "$TAR_NAME" ./chess-tui
+      shell: bash # needed for windows
+      name: Set TAR_NAME from tag and platform, create tar file containing the binary
+
+    - uses: softprops/action-gh-release@v2
+      name: Upload binary to release
+      if: github.ref_type == 'tag'
+      with:
+        files: ${{ env.TAR_NAME }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

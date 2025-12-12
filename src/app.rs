@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::constants::config_dir;
 use crate::constants::{DisplayMode, Pages, Popups, NETWORK_PORT, SLEEP_DURATION_LONG_MS};
 use crate::game_logic::bot::Bot;
 use crate::game_logic::coord::Coord;
@@ -11,7 +12,6 @@ use crate::lichess::LichessClient;
 use crate::server::game_server::GameServer;
 use crate::skin::Skin;
 use crate::utils::flip_square_if_needed;
-use dirs::home_dir;
 use log::LevelFilter;
 use shakmaty::{Color, Move, Position};
 use std::error;
@@ -78,6 +78,8 @@ pub struct App {
     pub lichess_user_profile: Option<crate::lichess::UserProfile>,
     /// Track if the end screen was dismissed by the user (to prevent re-showing)
     pub end_screen_dismissed: bool,
+    /// Whether sound effects are enabled
+    pub sound_enabled: bool,
 }
 
 impl Default for App {
@@ -108,6 +110,7 @@ impl Default for App {
             pending_promotion_move: None,
             lichess_user_profile: None,
             end_screen_dismissed: false,
+            sound_enabled: true,
         }
     }
 }
@@ -1022,6 +1025,9 @@ impl App {
         self.game.logic.game_board.history_position_index = None;
         self.game.logic.game_board.original_flip_state = None;
         self.game.logic.switch_player_turn();
+
+        // Play move sound
+        crate::sound::play_move_sound();
     }
 
     /// Check if bot is currently thinking
@@ -1052,6 +1058,7 @@ impl App {
         } else {
             self.menu_cursor = l - 1;
         }
+        crate::sound::play_menu_nav_sound();
     }
     pub fn menu_cursor_right(&mut self, l: u8) {
         if self.menu_cursor < l - 1 {
@@ -1059,6 +1066,7 @@ impl App {
         } else {
             self.menu_cursor = 0;
         }
+        crate::sound::play_menu_nav_sound();
     }
     pub fn menu_cursor_left(&mut self, l: u8) {
         if self.menu_cursor > 0 {
@@ -1066,6 +1074,7 @@ impl App {
         } else {
             self.menu_cursor = l - 1;
         }
+        crate::sound::play_menu_nav_sound();
     }
     pub fn menu_cursor_down(&mut self, l: u8) {
         if self.menu_cursor < l - 1 {
@@ -1073,6 +1082,7 @@ impl App {
         } else {
             self.menu_cursor = 0;
         }
+        crate::sound::play_menu_nav_sound();
     }
 
     pub fn color_selection(&mut self) {
@@ -1209,15 +1219,21 @@ impl App {
                 self.cycle_skin();
                 self.update_config();
             }
-            5 => self.toggle_help_popup(),
-            6 => self.current_page = Pages::Credit,
+            5 => {
+                // Toggle sound
+                self.sound_enabled = !self.sound_enabled;
+                crate::sound::set_sound_enabled(self.sound_enabled);
+                self.update_config();
+            }
+            6 => self.toggle_help_popup(),
+            7 => self.current_page = Pages::Credit,
             _ => {}
         }
     }
 
     pub fn update_config(&self) {
-        let home_dir = home_dir().expect("Could not get home directory");
-        let config_path = home_dir.join(".config/chess-tui/config.toml");
+        let config_dir = config_dir().unwrap();
+        let config_path = config_dir.join("chess-tui/config.toml");
         let mut config: Config = match fs::read_to_string(&config_path) {
             Ok(content) => toml::from_str(&content).unwrap_or_default(),
             Err(_) => Config::default(),
@@ -1228,6 +1244,7 @@ impl App {
         config.bot_depth = Some(self.bot_depth);
         config.selected_skin_name = Some(self.selected_skin_name.clone());
         config.lichess_token = self.lichess_token.clone();
+        config.sound_enabled = Some(self.sound_enabled);
 
         if let Ok(mut file) = File::create(&config_path) {
             let toml_string = toml::to_string(&config).unwrap_or_default();
@@ -1545,6 +1562,7 @@ impl App {
         // Move to next skin (wrap around)
         let next_index = (current_index + 1) % self.available_skins.len();
         self.apply_skin_by_index(next_index);
+        crate::sound::play_menu_nav_sound();
     }
 
     /// Cycles through available skins backward.
@@ -1568,6 +1586,7 @@ impl App {
             current_index - 1
         };
         self.apply_skin_by_index(prev_index);
+        crate::sound::play_menu_nav_sound();
     }
 
     /// Applies a skin by its index in the available_skins vector.

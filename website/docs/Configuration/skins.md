@@ -10,7 +10,13 @@ Chess-tui supports custom color skins that allow you to personalize the appearan
 
 ## File Location
 
-Skins are configured in a JSON file located at `~/.config/chess-tui/skins.json`. This file contains an array of skin definitions.
+Skins are configured in a JSON file located at `CONFIG_DIR/chess-tui/skins.json`. This file contains an array of skin definitions.
+
+CONFIG_DIR is typically:
+- Linux: $XDG_CONFIG_HOME or $HOME/.config
+- macOS: $HOME/Library/Application Support
+- Windows: `%APPDATA%` (Roaming AppData folder)
+
 
 ## Using Skins
 

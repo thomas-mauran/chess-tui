@@ -5,6 +5,7 @@ on:
   workflow_call:
   workflow_dispatch:
 
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -14,21 +15,39 @@ jobs:
     strategy:
       matrix:
         toolchain:
-          - stable
-          - beta
-          - nightly
+        - stable
+        - beta
+        - nightly
         os:
-          - macos-latest
-          - ubuntu-latest
-          - ubuntu-24.04-arm
-          - windows-latest
+        - macos-latest
+        - ubuntu-latest
+        - ubuntu-24.04-arm
+        - windows-latest
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: Swatinem/rust-cache@v2
-      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
-        continue-on-error: true
-      - run: cargo check --verbose
-        continue-on-error: true
-      - run: cargo test --verbose
-        continue-on-error: true
+    - uses: actions/checkout@v4
+    - uses: Swatinem/rust-cache@v2
+    - name: Install ALSA development libraries (Linux/Unix only)
+      if: runner.os == 'Linux' || runner.os == 'Unix'
+      run: |
+        if command -v apt-get &> /dev/null; then
+          sudo apt-get update && sudo apt-get install -y libasound2-dev
+        elif command -v dnf &> /dev/null; then
+          sudo dnf install -y alsa-lib-devel
+        elif command -v yum &> /dev/null; then
+          sudo yum install -y alsa-lib-devel
+        elif command -v pacman &> /dev/null; then
+          sudo pacman -S --noconfirm alsa-lib
+        elif command -v zypper &> /dev/null; then
+          sudo zypper install -y alsa-devel
+        elif command -v pkg_add &> /dev/null; then
+          sudo pkg_add alsa-lib || pkg_add alsa-lib
+        else
+          echo "Unknown package manager, skipping ALSA installation"
+        fi
+    - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
+      continue-on-error: true
+    - run: cargo check --verbose
+      continue-on-error: true
+    - run: cargo test --verbose
+      continue-on-error: true

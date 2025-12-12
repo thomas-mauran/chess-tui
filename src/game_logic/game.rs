@@ -377,6 +377,9 @@ impl GameLogic {
         // Reset history navigation when a new move is made
         self.game_board.history_position_index = None;
         self.game_board.original_flip_state = None;
+
+        // Play move sound
+        crate::sound::play_move_sound();
     }
 
     // Method to promote a pawn
@@ -442,6 +445,9 @@ impl GameLogic {
         let role_to = self.game_board.get_role_at_square(&to);
 
         if let Some(executed_move) = self.game_board.execute_shakmaty_move(from, to) {
+            // Play move sound
+            crate::sound::play_move_sound();
+
             // We increment the consecutive_non_pawn_or_capture if the piece type is a pawn or if there is no capture
             self.game_board
                 .increment_consecutive_non_pawn_or_capture(role_from, role_to);
@@ -692,6 +698,9 @@ impl GameLogic {
                     promotion: move_to_store.promotion(),
                 });
             }
+
+            // Play move sound
+            crate::sound::play_move_sound();
             true
         } else {
             // Detailed error logging

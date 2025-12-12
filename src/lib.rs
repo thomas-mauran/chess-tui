@@ -35,3 +35,6 @@ pub mod skin;
 
 // Lichess
 pub mod lichess;
+
+// Sound effects
+pub mod sound;

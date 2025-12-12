@@ -27,7 +27,12 @@ chess-tui -l YOUR_LICHESS_TOKEN_HERE
 
 ### 2. Configuration File
 
-You can manually add the token to your configuration file located at `~/.config/chess-tui/config.toml`.
+You can manually add the token to your configuration file located at `CONFIG_HOME/chess-tui/config.toml`.
+
+CONFIG_HOME is typically:
+- Linux: $XDG_CONFIG_HOME or $HOME/.config
+- macOS: $HOME/Library/Application Support
+- Windows: `%APPDATA%` (Roaming AppData folder)
 
 ```toml
 lichess_token = "YOUR_LICHESS_TOKEN_HERE"

@@ -16,7 +16,12 @@ The `App` struct manages:
 - **Bot move computation** - background threads for async bot thinking
 - **Multiplayer server setup** - opponent connections and game server
 - **Menu navigation** - user input handling and page transitions
-- **Configuration file management** - `~/.config/chess-tui/config.toml`
+- **Configuration file management** - `CONFIG_DIR/chess-tui/config.toml`
+
+CONFIG_DIR is typically:
+- Linux: $XDG_CONFIG_HOME or $HOME/.config
+- macOS: $HOME/Library/Application Support
+- Windows: `%APPDATA%` (Roaming AppData folder)
 
 ## Key Fields
 

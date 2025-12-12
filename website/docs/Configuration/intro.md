@@ -6,7 +6,12 @@ sidebar_position: 1
 
 # Configuration
 
-Chess-tui can be configured through the configuration file located at `~/.config/chess-tui/config.toml`. Additionally, custom color skins can be configured in `~/.config/chess-tui/skins.json`. This section covers all available configuration options.
+Chess-tui can be configured through the configuration file located at `CONFIG_DIR/chess-tui/config.toml`. Additionally, custom color skins can be configured in `CONFIG_DIR/chess-tui/skins.json`. This section covers all available configuration options.
+
+CONFIG_DIR is typically:
+- Linux: $XDG_CONFIG_HOME or $HOME/.config
+- macOS: $HOME/Library/Application Support
+- Windows: `%APPDATA%` (Roaming AppData folder)
 
 ## Command Line Options
 
@@ -30,7 +35,7 @@ Command line options take precedence over configuration file values.
 The configuration file is automatically created when you first run chess-tui. You can modify it manually to customize your experience:
 
 ```toml
-# ~/.config/chess-tui/config.toml
+# CONFIG_DIR/chess-tui/config.toml
 
 # Display mode: "DEFAULT" or "ASCII"
 display_mode = "DEFAULT"
@@ -44,3 +49,8 @@ log_level = "OFF"
 # Bot thinking depth for chess engine (1-255, default: 10)
 bot_depth = 10
 ``` 
+
+CONFIG_DIR is typically:
+- Linux: $XDG_CONFIG_HOME or $HOME/.config
+- macOS: $HOME/Library/Application Support
+- Windows: `%APPDATA%` (Roaming AppData folder)

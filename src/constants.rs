@@ -39,10 +39,10 @@ impl fmt::Display for DisplayMode {
     }
 }
 
-pub fn home_dir() -> Result<PathBuf, &'static str> {
-    match dirs::home_dir() {
+pub fn config_dir() -> Result<PathBuf, &'static str> {
+    match dirs::config_dir() {
         Some(dir) => Ok(dir),
-        None => Err("Could not get home directory"),
+        None => Err("Could not get config directory"),
     }
 }
 

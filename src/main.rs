@@ -3,7 +3,7 @@ extern crate chess_tui;
 
 use chess_tui::app::{App, AppResult};
 use chess_tui::config::Config;
-use chess_tui::constants::{home_dir, DisplayMode};
+use chess_tui::constants::{config_dir, DisplayMode};
 use chess_tui::event::{Event, EventHandler};
 use chess_tui::game_logic::opponent::wait_for_game_start;
 use chess_tui::handler::{handle_key_events, handle_mouse_events};
@@ -41,15 +41,24 @@ fn main() -> AppResult<()> {
     // Parse the cli arguments
     let args = Args::parse();
 
-    let home_dir = home_dir()?;
-    let folder_path = home_dir.join(".config/chess-tui");
-    let config_path = home_dir.join(".config/chess-tui/config.toml");
+    let config_dir = config_dir()?;
+    let folder_path = config_dir.join("chess-tui");
+    let config_path = config_dir.join("chess-tui/config.toml");
 
     // Create the configuration file
     config_create(&args, &folder_path, &config_path)?;
 
     // Create an application.
     let mut app = App::default();
+
+    // Check audio availability and disable sound if not available (e.g., in Docker)
+    let audio_available = chess_tui::sound::check_audio_availability();
+    if !audio_available {
+        // Automatically disable sound if audio is not available
+        app.sound_enabled = false;
+    }
+    // Initialize global sound state from app default
+    chess_tui::sound::set_sound_enabled(app.sound_enabled);
 
     // We store the chess engine path if there is one
     if let Ok(content) = fs::read_to_string(config_path) {
@@ -85,6 +94,11 @@ fn main() -> AppResult<()> {
             if let Some(lichess_token) = config.lichess_token {
                 app.lichess_token = Some(lichess_token);
             }
+            // Add sound enabled handling
+            if let Some(sound_enabled) = config.sound_enabled {
+                app.sound_enabled = sound_enabled;
+                chess_tui::sound::set_sound_enabled(sound_enabled);
+            }
         }
     } else {
         println!("Error reading the file or the file does not exist");
@@ -95,7 +109,7 @@ fn main() -> AppResult<()> {
     app.available_skins.push(Skin::ascii_display_mode());
 
     // Load all available skins from skins.json
-    let skins_path = home_dir.join(".config/chess-tui/skins.json");
+    let skins_path = config_dir.join("chess-tui/skins.json");
 
     // Create skins.json if it doesn't exist
     if !skins_path.exists() {
@@ -327,6 +341,9 @@ fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResu
     if config.selected_skin_name.is_none() {
         config.selected_skin_name = Some("Default".to_string());
     }
+    if config.sound_enabled.is_none() {
+        config.sound_enabled = Some(true);
+    }
 
     // Always update Lichess token if provided via command line
     if let Some(token) = &args.lichess_token {
@@ -374,9 +391,9 @@ mod tests {
             lichess_token: None,
         };
 
-        let home_dir = home_dir().expect("Failed to get home directory");
-        let folder_path = home_dir.join(".test/chess-tui");
-        let config_path = home_dir.join(".test/chess-tui/config.toml");
+        let config_dir = config_dir().unwrap();
+        let folder_path = config_dir.join(".test/chess-tui");
+        let config_path = config_dir.join(".test/chess-tui/config.toml");
 
         let result = config_create(&args, &folder_path, &config_path);
 
