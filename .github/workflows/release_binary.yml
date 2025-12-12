@@ -7,7 +7,14 @@ on:
 jobs:
   build-and-upload-binary:
     name: Build and Upload Binary to release
-    runs-on: ubuntu-latest
+    strategy:
+      matrix: 
+        include:
+          - { os: "macos-latest", target: "aarch64-apple-darwin" }
+          - { os: "ubuntu-latest", target: "x86_64-unknown-linux-gnu" }
+          - { os: "ubuntu-24.04-arm", target: "aarch64-unknown-linux-gnu" }
+          - { os: "windows-latest", target: "x86_64-pc-windows-msvc", ext: ".exe" }
+    runs-on: ${{ matrix.os }}
     permissions:
       contents: write
     steps:
@@ -16,6 +23,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         name: Install the Rust toolchain
+        # note: would require setting `targets` if `matrix.target` wasn't host-default
 
       - name: Install ALSA development libraries
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev
@@ -23,20 +31,19 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         name: Use cached dependencies and artifacts
 
-      - run: cargo build --release
+      - run: cargo build --release --target ${{ matrix.target }}
         name: Build release binary
 
       - run: |
           TAG=${{ github.event.release.tag_name }}
-          PLATFORM=$(cargo -vV | grep '^host:' | awk '{print $2}')
-          TAR_NAME=chess-tui-$TAG-$PLATFORM.tar.gz
+          TAR_NAME="chess-tui-$TAG-${{ matrix.target }}.tar.gz"
           echo "TAR_NAME=$TAR_NAME" >> $GITHUB_ENV
-        name: Set TAR_NAME from tag and platform
 
-      - run: |
-          cp target/release/chess-tui .
-          tar -czvf $TAR_NAME ./chess-tui
-        name: Create tar file containing the binary
+          EXE_NAME="chess-tui${{ matrix.ext }}"
+          cp "target/${{ matrix.target }}/release/$EXE_NAME" .
+          tar -czvf "$TAR_NAME" ./chess-tui
+        shell: bash # needed for windows
+        name: Set TAR_NAME from tag and platform, create tar file containing the binary
 
       - uses: softprops/action-gh-release@v2
         name: Upload binary to release
