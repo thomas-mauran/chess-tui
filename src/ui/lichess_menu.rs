@@ -81,13 +81,11 @@ pub fn render_lichess_menu(frame: &mut Frame, app: &App) {
                     .bg(Color::White)
                     .add_modifier(Modifier::BOLD)
             }
+        } else if is_disconnect {
+            // Unselected disconnect option - red text
+            Style::default().fg(Color::Red)
         } else {
-            if is_disconnect {
-                // Unselected disconnect option - red text
-                Style::default().fg(Color::Red)
-            } else {
-                Style::default().fg(Color::White)
-            }
+            Style::default().fg(Color::White)
         };
 
         let prefix = if is_selected { "► " } else { "  " };
