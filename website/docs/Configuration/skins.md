@@ -15,7 +15,7 @@ Skins are configured in a JSON file located at `CONFIG_DIR/chess-tui/skins.json`
 CONFIG_DIR is typically:
 - Linux: $XDG_CONFIG_HOME or $HOME/.config
 - macOS: $HOME/Library/Application Support
-- Windows: {FOLDERID_RoamingAppData}
+- Windows: `%APPDATA%` (Roaming AppData folder)
 
 
 ## Using Skins

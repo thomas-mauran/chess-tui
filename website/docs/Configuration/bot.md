@@ -20,7 +20,7 @@ bot_depth = 10
 CONFIG_DIR is typically:
 - Linux: $XDG_CONFIG_HOME or $HOME/.config
 - macOS: $HOME/Library/Application Support
-- Windows: {FOLDERID_RoamingAppData}
+- Windows: `%APPDATA%` (Roaming AppData folder)
 
 ### Command Line Override
 

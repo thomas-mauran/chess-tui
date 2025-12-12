@@ -32,7 +32,7 @@ You can manually add the token to your configuration file located at `CONFIG_HOM
 CONFIG_HOME is typically:
 - Linux: $XDG_CONFIG_HOME or $HOME/.config
 - macOS: $HOME/Library/Application Support
-- Windows: {FOLDERID_RoamingAppData}
+- Windows: `%APPDATA%` (Roaming AppData folder)
 
 ```toml
 lichess_token = "YOUR_LICHESS_TOKEN_HERE"
