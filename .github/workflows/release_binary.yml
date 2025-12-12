@@ -25,9 +25,24 @@ jobs:
       name: Install the Rust toolchain
       # note: would require setting `targets` if `matrix.target` wasn't host-default
 
-    - name: Install ALSA development libraries (Linux only)
-      if: matrix.os == 'ubuntu-latest' || matrix.os == 'ubuntu-24.04-arm'
-      run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+    - name: Install ALSA development libraries (Linux/Unix only)
+      if: runner.os == 'Linux' || runner.os == 'Unix'
+      run: |
+        if command -v apt-get &> /dev/null; then
+          sudo apt-get update && sudo apt-get install -y libasound2-dev
+        elif command -v dnf &> /dev/null; then
+          sudo dnf install -y alsa-lib-devel
+        elif command -v yum &> /dev/null; then
+          sudo yum install -y alsa-lib-devel
+        elif command -v pacman &> /dev/null; then
+          sudo pacman -S --noconfirm alsa-lib
+        elif command -v zypper &> /dev/null; then
+          sudo zypper install -y alsa-devel
+        elif command -v pkg_add &> /dev/null; then
+          sudo pkg_add alsa-lib || pkg_add alsa-lib
+        else
+          echo "Unknown package manager, skipping ALSA installation"
+        fi
 
     - uses: Swatinem/rust-cache@v2
       name: Use cached dependencies and artifacts
