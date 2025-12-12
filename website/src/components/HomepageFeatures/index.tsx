@@ -21,7 +21,7 @@ const FeatureList: FeatureItem[] = [
     description: (
       <>
         Chess TUI allows you to play chess with a friend on the same computer.
-        Games over the network are a work in progress.
+        Play against your friends over the network.
       </>
     ),
   },
@@ -29,7 +29,7 @@ const FeatureList: FeatureItem[] = [
     title: 'Lichess Integration 🌐',
     description: (
       <>
-        This is a work in progress. You will soon be able to play online on Lichess.
+        Play against lichess players directly from your terminal.
       </>
     ),
   },
