@@ -218,7 +218,11 @@ pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
 
     // Determine the "sound" text
     let sound_menu = {
-        let sound_status = if app.sound_enabled { "On" } else { "Off" };
+        let sound_status = if app.sound_enabled {
+            "On 🔊"
+        } else {
+            "Off 🔇"
+        };
         format!("Sound: {sound_status}")
     };
 
