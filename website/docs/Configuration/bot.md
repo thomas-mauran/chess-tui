@@ -10,12 +10,17 @@ Chess-tui allows you to configure the behavior of the computer opponent (bot) wh
 
 ## Configuration
 
-Bot settings can be configured in the `~/.config/chess-tui/config.toml` file:
+Bot settings can be configured in the `CONFIG_DIR/chess-tui/config.toml` file:
 
 ```toml
 # Bot thinking depth for chess engine (1-255, default: 10)
 bot_depth = 10
 ```
+
+CONFIG_DIR is typically:
+- Linux: $XDG_CONFIG_HOME or $HOME/.config
+- macOS: $HOME/Library/Application Support
+- Windows: {FOLDERID_RoamingAppData}
 
 ### Command Line Override
 

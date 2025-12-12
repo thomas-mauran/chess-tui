@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::constants::config_dir;
 use crate::constants::{DisplayMode, Pages, Popups, NETWORK_PORT, SLEEP_DURATION_LONG_MS};
 use crate::game_logic::bot::Bot;
 use crate::game_logic::coord::Coord;
@@ -11,7 +12,6 @@ use crate::lichess::LichessClient;
 use crate::server::game_server::GameServer;
 use crate::skin::Skin;
 use crate::utils::flip_square_if_needed;
-use dirs::home_dir;
 use log::LevelFilter;
 use shakmaty::{Color, Move, Position};
 use std::error;
@@ -1232,8 +1232,8 @@ impl App {
     }
 
     pub fn update_config(&self) {
-        let home_dir = home_dir().expect("Could not get home directory");
-        let config_path = home_dir.join(".config/chess-tui/config.toml");
+        let config_dir = config_dir().unwrap();
+        let config_path = config_dir.join("chess-tui/config.toml");
         let mut config: Config = match fs::read_to_string(&config_path) {
             Ok(content) => toml::from_str(&content).unwrap_or_default(),
             Err(_) => Config::default(),

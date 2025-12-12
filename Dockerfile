@@ -31,6 +31,11 @@ RUN apt-get update && \
     ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
+# Configure ALSA to use a null device to suppress error messages when no audio hardware is available
+# This prevents ALSA from spamming stderr with errors in Docker containers
+RUN echo 'pcm.!default { type null }' > /etc/asound.conf && \
+    echo 'ctl.!default { type null }' >> /etc/asound.conf
+
 COPY --from=builder /target/release/chess-tui /usr/bin/chess-tui
 
 ENTRYPOINT [ "/usr/bin/chess-tui" ]

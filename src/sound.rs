@@ -3,6 +3,18 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 // Global sound enabled state
 static SOUND_ENABLED: AtomicBool = AtomicBool::new(true);
+// Track if audio is actually available (checked at startup)
+static AUDIO_AVAILABLE: AtomicBool = AtomicBool::new(true);
+
+/// Check if audio is available and update the availability state
+/// This should be called at startup to detect if we're in an environment without audio (e.g., Docker)
+pub fn check_audio_availability() -> bool {
+    // Try to create an output stream
+    // Note: ALSA may print errors to stderr, but we handle the failure gracefully
+    let available = OutputStream::try_default().is_ok();
+    AUDIO_AVAILABLE.store(available, Ordering::Relaxed);
+    available
+}
 
 /// Set whether sounds are enabled
 pub fn set_sound_enabled(enabled: bool) {
@@ -11,7 +23,7 @@ pub fn set_sound_enabled(enabled: bool) {
 
 /// Get whether sounds are enabled
 pub fn is_sound_enabled() -> bool {
-    SOUND_ENABLED.load(Ordering::Relaxed)
+    SOUND_ENABLED.load(Ordering::Relaxed) && AUDIO_AVAILABLE.load(Ordering::Relaxed)
 }
 
 /// Plays a move sound when a chess piece is moved.

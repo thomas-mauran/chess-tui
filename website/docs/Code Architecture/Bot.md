@@ -80,7 +80,12 @@ The bot requires a UCI-compatible chess engine, such as:
 
 The engine path is configured via:
 - Command line argument: `--engine-path`
-- Configuration file: `~/.config/chess-tui/config.toml`
+- Configuration file: `CONFIG_DIR/chess-tui/config.toml`
+
+CONFIG_DIR is typically:
+- Linux: $XDG_CONFIG_HOME or $HOME/.config
+- macOS: $HOME/Library/Application Support
+- Windows: {FOLDERID_RoamingAppData}
 
 ## Configuration
 

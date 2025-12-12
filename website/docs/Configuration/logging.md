@@ -10,11 +10,16 @@ Chess-tui includes a configurable logging system that can help with debugging an
 
 ## Configuration
 
-Logging can be configured in the `~/.config/chess-tui/config.toml` file. The log level can be set using the `log_level` option:
+Logging can be configured in the `CONFIG_DIR/chess-tui/config.toml` file. The log level can be set using the `log_level` option:
 
 ```toml
 log_level = "INFO"  # Default is "OFF"
 ```
+
+CONFIG_DIR is typically:
+- Linux: $XDG_CONFIG_HOME or $HOME/.config
+- macOS: $HOME/Library/Application Support
+- Windows: {FOLDERID_RoamingAppData}
 
 ### Available Log Levels
 
@@ -29,7 +34,7 @@ log_level = "INFO"  # Default is "OFF"
 
 When logging is enabled, log files are stored in:
 ```
-~/.config/chess-tui/logs/
+CONFIG_DIR/chess-tui/logs/
 ```
 
 Each log file is named with a timestamp:
