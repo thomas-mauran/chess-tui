@@ -74,7 +74,9 @@ pub enum Popups {
     EndScreen,
     PuzzleEndScreen,
     Error,
+    Success,
     SeekingLichessGame,
     EnterGameCode,
+    EnterLichessToken,
     ResignConfirmation,
 }
