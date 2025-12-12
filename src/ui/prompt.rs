@@ -51,7 +51,8 @@ impl Prompt {
 
     pub fn enter_char(&mut self, new_char: char) {
         let index = self.byte_index();
-        if index < 40 {
+        // Increased limit to 200 to accommodate long API tokens (Lichess tokens can be 100+ chars)
+        if index < 200 {
             self.input.insert(index, new_char);
             self.move_cursor_right();
         }

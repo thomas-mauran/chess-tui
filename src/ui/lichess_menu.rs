@@ -59,20 +59,35 @@ pub fn render_lichess_menu(frame: &mut Frame, app: &App) {
         ("Puzzle", "Play a puzzle"),
         ("My Ongoing Games", "View and join your current games"),
         ("Join by Code", "Enter a game code to join"),
+        ("Disconnect", "Remove Lichess token and logout"),
     ];
 
     let mut menu_lines = vec![Line::from("")];
 
     for (idx, (option, description)) in menu_items.iter().enumerate() {
         let is_selected = app.menu_cursor == idx as u8;
+        let is_disconnect = idx == 4; // Disconnect is the 5th option (index 4)
 
         let style = if is_selected {
-            Style::default()
-                .fg(Color::Black)
-                .bg(Color::White)
-                .add_modifier(Modifier::BOLD)
+            if is_disconnect {
+                // Selected disconnect option - red background with white text
+                Style::default()
+                    .fg(Color::White)
+                    .bg(Color::Red)
+                    .add_modifier(Modifier::BOLD)
+            } else {
+                Style::default()
+                    .fg(Color::Black)
+                    .bg(Color::White)
+                    .add_modifier(Modifier::BOLD)
+            }
         } else {
-            Style::default().fg(Color::White)
+            if is_disconnect {
+                // Unselected disconnect option - red text
+                Style::default().fg(Color::Red)
+            } else {
+                Style::default().fg(Color::White)
+            }
         };
 
         let prefix = if is_selected { "► " } else { "  " };

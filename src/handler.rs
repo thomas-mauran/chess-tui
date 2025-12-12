@@ -187,6 +187,33 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
             }
             _ => fallback_key_handler(app, key_event),
         },
+        // Success popup - displays success messages
+        Popups::Success => match key_event.code {
+            KeyCode::Esc | KeyCode::Enter | KeyCode::Char(' ') => {
+                app.current_popup = None;
+                app.error_message = None;
+                // Navigate back to an appropriate page based on current context
+                match app.current_page {
+                    Pages::Lichess | Pages::OngoingGames => {
+                        // If we're on Lichess-related pages, go back to Lichess menu
+                        app.current_page = Pages::LichessMenu;
+                    }
+                    Pages::Multiplayer | Pages::Bot => {
+                        // If we're on multiplayer or bot page, go back to home
+                        app.current_page = Pages::Home;
+                    }
+                    _ => {
+                        // For other pages, stay on current page or go to home
+                        // Only change if we're in a weird state
+                        if app.current_page == Pages::Solo && app.game.logic.opponent.is_some() {
+                            // If we're in solo but have an opponent (shouldn't happen), reset
+                            app.current_page = Pages::Home;
+                        }
+                    }
+                }
+            }
+            _ => fallback_key_handler(app, key_event),
+        },
         Popups::EnterGameCode => match key_event.code {
             KeyCode::Enter => {
                 // Submit the entered game code
@@ -214,6 +241,30 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
             }
             _ => fallback_key_handler(app, key_event),
         },
+        Popups::EnterLichessToken => match key_event.code {
+            KeyCode::Enter => {
+                // Submit the entered token
+                app.game.ui.prompt.submit_message();
+                let token = app.game.ui.prompt.message.clone().trim().to_string();
+
+                if !token.is_empty() {
+                    // Save and validate the token
+                    app.save_and_validate_lichess_token(token);
+                } else {
+                    // No token entered, return to previous page
+                    app.current_popup = None;
+                }
+            }
+            KeyCode::Char(to_insert) => app.game.ui.prompt.enter_char(to_insert),
+            KeyCode::Backspace => app.game.ui.prompt.delete_char(),
+            KeyCode::Left => app.game.ui.prompt.move_cursor_left(),
+            KeyCode::Right => app.game.ui.prompt.move_cursor_right(),
+            KeyCode::Esc => {
+                // Cancel token entry
+                app.current_popup = None;
+            }
+            _ => fallback_key_handler(app, key_event),
+        },
         Popups::SeekingLichessGame => match key_event.code {
             KeyCode::Esc => {
                 if let Some(token) = &app.lichess_cancellation_token {
@@ -229,8 +280,7 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
         Popups::ResignConfirmation => match key_event.code {
             KeyCode::Char('y') | KeyCode::Char('Y') | KeyCode::Enter => {
                 app.confirm_resign_game();
-                // Refresh the games list
-                app.fetch_ongoing_games();
+                // fetch_ongoing_games() is already called in confirm_resign_game()
             }
             KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
                 app.current_popup = None;
@@ -675,8 +725,8 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
 /// Supports navigation through menu items and selection.
 fn handle_lichess_menu_page_events(app: &mut App, key_event: KeyEvent) {
     match key_event.code {
-        KeyCode::Up | KeyCode::Char('k') => app.menu_cursor_up(4), // 4 menu options
-        KeyCode::Down | KeyCode::Char('j') => app.menu_cursor_down(4),
+        KeyCode::Up | KeyCode::Char('k') => app.menu_cursor_up(5), // 5 menu options
+        KeyCode::Down | KeyCode::Char('j') => app.menu_cursor_down(5),
         KeyCode::Char(' ') | KeyCode::Enter => {
             // Handle menu selection
             match app.menu_cursor {
@@ -689,14 +739,10 @@ fn handle_lichess_menu_page_events(app: &mut App, key_event: KeyEvent) {
                             .map(|t| t.is_empty())
                             .unwrap_or(true)
                     {
-                        app.error_message = Some(
-                            "Lichess API token not configured.\n\n".to_string()
-                                + "Please create an API token at:\n"
-                                + "https://lichess.org/account/oauth/token\n\n"
-                                + "Make sure to enable the 'board:play' scope.\n"
-                                + "Then add the token to your config file.",
-                        );
-                        app.current_popup = Some(Popups::Error);
+                        // Open interactive token entry popup
+                        app.current_popup = Some(Popups::EnterLichessToken);
+                        app.game.ui.prompt.reset();
+                        app.game.ui.prompt.message = "Enter your Lichess API token:".to_string();
                         return;
                     }
                     app.menu_cursor = 0;
@@ -712,14 +758,10 @@ fn handle_lichess_menu_page_events(app: &mut App, key_event: KeyEvent) {
                             .map(|t| t.is_empty())
                             .unwrap_or(true)
                     {
-                        app.error_message = Some(
-                            "Lichess API token not configured.\n\n".to_string()
-                                + "Please create an API token at:\n"
-                                + "https://lichess.org/account/oauth/token\n\n"
-                                + "Make sure to enable the 'puzzle:read' scope.\n"
-                                + "Then add the token to your config file.",
-                        );
-                        app.current_popup = Some(Popups::Error);
+                        // Open interactive token entry popup
+                        app.current_popup = Some(Popups::EnterLichessToken);
+                        app.game.ui.prompt.reset();
+                        app.game.ui.prompt.message = "Enter your Lichess API token:".to_string();
                         return;
                     }
                     app.start_puzzle_mode();
@@ -733,13 +775,10 @@ fn handle_lichess_menu_page_events(app: &mut App, key_event: KeyEvent) {
                             .map(|t| t.is_empty())
                             .unwrap_or(true)
                     {
-                        app.error_message = Some(
-                            "Lichess API token not configured.\n\n".to_string()
-                                + "Please create an API token at:\n"
-                                + "https://lichess.org/account/oauth/token\n\n"
-                                + "Then add the token to your config file.",
-                        );
-                        app.current_popup = Some(Popups::Error);
+                        // Open interactive token entry popup
+                        app.current_popup = Some(Popups::EnterLichessToken);
+                        app.game.ui.prompt.reset();
+                        app.game.ui.prompt.message = "Enter your Lichess API token:".to_string();
                         return;
                     }
                     app.fetch_ongoing_games();
@@ -753,18 +792,18 @@ fn handle_lichess_menu_page_events(app: &mut App, key_event: KeyEvent) {
                             .map(|t| t.is_empty())
                             .unwrap_or(true)
                     {
-                        app.error_message = Some(
-                            "Lichess API token not configured.\n\n".to_string()
-                                + "Please create an API token at:\n"
-                                + "https://lichess.org/account/oauth/token\n\n"
-                                + "Make sure to enable the 'board:play' scope.\n"
-                                + "Then add the token to your config file.",
-                        );
-                        app.current_popup = Some(Popups::Error);
+                        // Open interactive token entry popup
+                        app.current_popup = Some(Popups::EnterLichessToken);
+                        app.game.ui.prompt.reset();
+                        app.game.ui.prompt.message = "Enter your Lichess API token:".to_string();
                         return;
                     }
                     app.current_popup = Some(Popups::EnterGameCode);
                     app.game.ui.prompt.reset();
+                }
+                4 => {
+                    // Disconnect
+                    app.disconnect_lichess();
                 }
                 _ => {}
             }

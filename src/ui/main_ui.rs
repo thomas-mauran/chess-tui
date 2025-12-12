@@ -12,8 +12,9 @@ use crate::{
     game_logic::game::GameState,
     ui::popups::{
         render_color_selection_popup, render_credit_popup, render_end_popup,
-        render_enter_game_code_popup, render_error_popup, render_help_popup,
-        render_promotion_popup, render_puzzle_end_popup, render_resign_confirmation_popup,
+        render_enter_game_code_popup, render_enter_lichess_token_popup, render_error_popup,
+        render_help_popup, render_promotion_popup, render_puzzle_end_popup,
+        render_resign_confirmation_popup, render_success_popup,
     },
 };
 
@@ -134,6 +135,11 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
                 render_error_popup(frame, error_msg);
             }
         }
+        Some(Popups::Success) => {
+            if let Some(ref success_msg) = app.error_message {
+                render_success_popup(frame, success_msg);
+            }
+        }
         Some(Popups::SeekingLichessGame) => {
             let popup_area = centered_rect(60, 20, main_area);
             let block = Block::default()
@@ -147,6 +153,9 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
         }
         Some(Popups::EnterGameCode) => {
             render_enter_game_code_popup(frame, &app.game.ui.prompt);
+        }
+        Some(Popups::EnterLichessToken) => {
+            render_enter_lichess_token_popup(frame, &app.game.ui.prompt);
         }
         Some(Popups::ResignConfirmation) => {
             render_resign_confirmation_popup(frame, app);

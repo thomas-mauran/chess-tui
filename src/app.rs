@@ -491,6 +491,13 @@ impl App {
 
                 self.current_popup = None;
 
+                // Show success message
+                self.error_message = Some(format!(
+                    "Game resigned successfully!\n\nYou have resigned the game vs {}.\n\n The game list will be updated shortly.",
+                    opponent_name
+                ));
+                self.current_popup = Some(Popups::Success);
+
                 // Immediately refetch ongoing games in the main thread
                 self.fetch_ongoing_games();
 
@@ -1195,14 +1202,10 @@ impl App {
                         .map(|t| t.is_empty())
                         .unwrap_or(true)
                 {
-                    self.error_message = Some(
-                        "Lichess API token not configured.\n\n".to_string()
-                            + "Please create an API token at:\n"
-                            + "https://lichess.org/account/oauth/token\n\n"
-                            + " Make sure you tick everything.\n"
-                            + "Then run chess tui with the --lichess-token flag.",
-                    );
-                    self.current_popup = Some(Popups::Error);
+                    // Open interactive token entry popup
+                    self.current_popup = Some(Popups::EnterLichessToken);
+                    self.game.ui.prompt.reset();
+                    self.game.ui.prompt.message = "Enter your Lichess API token:".to_string();
                     return;
                 }
                 self.menu_cursor = 0;
@@ -1252,6 +1255,66 @@ impl App {
                 log::error!("Failed to write config: {}", e);
             }
         }
+    }
+
+    pub fn save_and_validate_lichess_token(&mut self, token: String) {
+        // First, try to validate the token by fetching the user profile
+        let client = crate::lichess::LichessClient::new(token.clone());
+        match client.get_user_profile() {
+            Ok(profile) => {
+                // Token is valid, save it
+                self.lichess_token = Some(token);
+                self.lichess_user_profile = Some(profile.clone());
+
+                // Save to config file
+                self.update_config();
+
+                // Navigate to Lichess menu if we're on Home page, otherwise stay on current page
+                if self.current_page == Pages::Home {
+                    self.current_page = Pages::LichessMenu;
+                }
+
+                // Close the popup and show success message
+                self.current_popup = None;
+                self.error_message = Some(format!(
+                    "Lichess token saved successfully!\n\n Logged in as: {}\n\n You can now use all Lichess features.",
+                    profile.username
+                ));
+                self.current_popup = Some(Popups::Success);
+            }
+            Err(e) => {
+                // Token is invalid, show error
+                self.error_message = Some(format!(
+                    "Invalid Lichess token.\n\nError: {}\n\n Please check your token and try again.\n\n Follow the documentation: https://thomas-mauran.github.io/chess-tui/docs/Lichess/setup",
+                    e
+                ));
+                self.current_popup = Some(Popups::Error);
+            }
+        }
+    }
+
+    pub fn disconnect_lichess(&mut self) {
+        // Clear the token
+        self.lichess_token = Some(String::new());
+
+        // Clear user profile
+        self.lichess_user_profile = None;
+
+        // Clear ongoing games
+        self.ongoing_games.clear();
+
+        // Save to config file
+        self.update_config();
+
+        // Navigate back to home menu
+        self.current_page = Pages::Home;
+        self.menu_cursor = 0;
+
+        // Show success message
+        self.error_message = Some(
+            "Disconnected from Lichess successfully!\n\n Your token has been removed.\n\n You can reconnect anytime from the Lichess menu.".to_string()
+        );
+        self.current_popup = Some(Popups::Success);
     }
 
     pub fn reset(&mut self) {
