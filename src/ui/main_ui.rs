@@ -27,6 +27,7 @@ use crate::{
     app::App,
     constants::{DisplayMode, Pages, TITLE},
 };
+use std::path::Path;
 
 /// Renders the user interface widgets.
 pub fn render(app: &mut App, frame: &mut Frame<'_>) {
@@ -76,6 +77,7 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
     }
     // Play against bot
     else if app.current_page == Pages::Bot {
+        // Check if engine path is configured
         if app
             .chess_engine_path
             .as_ref()
@@ -83,17 +85,45 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
         {
             app.error_message = Some(
                 "Chess engine path not configured.\n\n".to_string()
-                    + "To configure the chess engine path, use the -e argument when running chess-tui.\n\n"
+                    + "To configure the chess engine follow the documentation: https://thomas-mauran.github.io/chess-tui/docs/Configuration/bot\n\n"
                     + "Example:\n"
-                    + "chess-tui -e /opt/homebrew/opt/stockfish",
+                    + "chess-tui -e /opt/homebrew/opt/stockfish\n"
+                    + " or execute the script: ./scripts/install-stockfish.sh\n"
+                    + "to install stockfish automatically and set it as the chess engine path \n"
             );
             app.current_popup = Some(Popups::Error);
-        } else if app.selected_color.is_none() {
-            app.current_popup = Some(Popups::ColorSelection);
-        } else if app.game.logic.bot.is_none() {
-            app.bot_setup();
-        } else {
-            render_game_ui(frame, app, main_area);
+        }
+        // Check if engine path exists and is a valid file
+        else if let Some(engine_path) = &app.chess_engine_path {
+            let path = Path::new(engine_path);
+            if !path.exists() || !path.is_file() {
+                app.error_message = Some(
+                    format!(
+                        "Chess engine path is invalid.\n\n\
+                        The configured path does not exist or is not a file:\n\
+                        {}\n\n\
+                        Please check the path and update it in your configuration.\n\n\
+                        To configure the chess engine follow the documentation: https://thomas-mauran.github.io/chess-tui/docs/Configuration/bot\n\n\
+                        Example:\n\
+                        chess-tui -e /opt/homebrew/bin/stockfish\n\
+                        or execute the script: ./scripts/install-stockfish.sh\n\
+                        to install stockfish automatically and set it as the chess engine path",
+                        engine_path
+                    )
+                );
+                app.current_popup = Some(Popups::Error);
+            }
+        }
+
+        // If we passed all validation checks, proceed with bot setup
+        if app.current_popup != Some(Popups::Error) {
+            if app.selected_color.is_none() {
+                app.current_popup = Some(Popups::ColorSelection);
+            } else if app.game.logic.bot.is_none() {
+                app.bot_setup();
+            } else {
+                render_game_ui(frame, app, main_area);
+            }
         }
     }
     // Lichess menu

@@ -80,13 +80,21 @@ pub fn render_error_popup(frame: &mut Frame, error_message: &str) {
         .border_style(Style::default().fg(Color::Red));
     let area = centered_rect(50, 30, frame.area());
 
-    let text = vec![
-        Line::from(""),
-        Line::from(error_message).alignment(Alignment::Center),
-        Line::from(""),
+    // Split the error message by newlines and create a Line for each part
+    let mut text = vec![Line::from("")];
+
+    for line in error_message.split('\n') {
+        if !line.is_empty() {
+            text.push(Line::from(line).alignment(Alignment::Center));
+        } else {
+            text.push(Line::from(""));
+        }
+    }
+
+    text.extend(vec![
         Line::from(""),
         Line::from("Press `Esc` or `Enter` to close.").alignment(Alignment::Center),
-    ];
+    ]);
 
     let paragraph = Paragraph::new(text)
         .block(block.clone())
@@ -108,13 +116,21 @@ pub fn render_success_popup(frame: &mut Frame, success_message: &str) {
         .border_style(Style::default().fg(Color::Green));
     let area = centered_rect(50, 30, frame.area());
 
-    let text = vec![
-        Line::from(""),
-        Line::from(success_message).alignment(Alignment::Center),
-        Line::from(""),
+    // Split the success message by newlines and create a Line for each part
+    let mut text = vec![Line::from("")];
+
+    for line in success_message.split('\n') {
+        if !line.is_empty() {
+            text.push(Line::from(line).alignment(Alignment::Center));
+        } else {
+            text.push(Line::from(""));
+        }
+    }
+
+    text.extend(vec![
         Line::from(""),
         Line::from("Press `Esc` or `Enter` to close.").alignment(Alignment::Center),
-    ];
+    ]);
 
     let paragraph = Paragraph::new(text)
         .block(block.clone())

@@ -67,3 +67,11 @@ Very high depth values (20+) can cause the engine to think for a very long time,
 ## Related Configuration
 
 The bot also requires a chess engine to be configured. See [Chess Engine Configuration](./engine.md) for details on setting up your UCI-compatible chess engine.
+
+:::tip Quick Setup
+The easiest way to get started is using the automatic installation script:
+```bash
+./scripts/install-stockfish.sh
+```
+This will install Stockfish and configure it automatically. See the [Chess Engine Configuration](./engine.md) page for more details.
+:::

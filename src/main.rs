@@ -345,6 +345,11 @@ fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResu
         config.sound_enabled = Some(true);
     }
 
+    // Always update engine_path if provided via command line (command line takes precedence)
+    if !args.engine_path.is_empty() {
+        config.engine_path = Some(args.engine_path.clone());
+    }
+
     // Always update Lichess token if provided via command line
     if let Some(token) = &args.lichess_token {
         config.lichess_token = Some(token.clone());
