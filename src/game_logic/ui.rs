@@ -778,10 +778,28 @@ impl UI {
             .split(area);
 
         for (i, file) in files.iter().enumerate() {
-            let label = Paragraph::new(*file)
-                .alignment(Alignment::Center)
-                .style(Style::default().fg(Color::Gray));
-            frame.render_widget(label, layout[i]);
+            let file_area = layout[i];
+            // Add minimal top padding to keep letters close to the board
+            // Put most padding at the bottom for slight vertical centering
+            let top_padding = if file_area.height > 2 { 1 } else { 0 };
+            let bottom_padding = file_area.height.saturating_sub(1 + top_padding);
+
+            // Create text with minimal top padding
+            let mut lines: Vec<Line> = Vec::new();
+            for _ in 0..top_padding {
+                lines.push(Line::from(""));
+            }
+            lines.push(
+                Line::from(*file)
+                    .alignment(Alignment::Center)
+                    .style(Style::default().fg(Color::Gray)),
+            );
+            for _ in 0..bottom_padding {
+                lines.push(Line::from(""));
+            }
+
+            let label = Paragraph::new(lines);
+            frame.render_widget(label, file_area);
         }
     }
 }
