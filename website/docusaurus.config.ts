@@ -38,6 +38,8 @@ const config: Config = {
         },
         blog: {
           showReadingTime: true,
+          blogSidebarCount: 'ALL',
+          blogSidebarTitle: 'Recent posts',
           feedOptions: {
             type: ['rss', 'atom'],
             xslt: true,
