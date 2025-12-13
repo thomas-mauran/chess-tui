@@ -22,6 +22,7 @@ Down @0.3s
 Down @0.3s
 Down @0.3s
 Down @0.3s
+Down @0.3s
 Space @0.3s
 Sleep 1.5s
 
