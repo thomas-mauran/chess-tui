@@ -1,0 +1,96 @@
+name: Generate Blog Post from Release
+
+on:
+  release:
+    types: [ published ]
+
+jobs:
+  generate-blog-post:
+    name: Generate Blog Post
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+
+    - name: Extract release information
+      id: release-info
+      run: |
+        TAG_NAME="${{ github.event.release.tag_name }}"
+        RELEASE_DATE="${{ github.event.release.published_at }}"
+        RELEASE_BODY="${{ github.event.release.body }}"
+
+        # Extract version number from tag (remove 'v' prefix if present)
+        VERSION="${TAG_NAME#v}"
+
+        # Format date as YYYY-MM-DD
+        DATE=$(echo "$RELEASE_DATE" | cut -d'T' -f1)
+
+        # Extract title from release body (first non-empty line that looks like a title)
+        # Or use tag name as fallback
+        TITLE=$(echo "$RELEASE_BODY" | grep -E "^#+\s+" | head -n 1 | sed 's/^#\+\s*//' || echo "Release $VERSION")
+
+        # If title is empty or just whitespace, use tag name
+        if [ -z "$TITLE" ] || [ "$TITLE" = "" ]; then
+          TITLE="Release $VERSION"
+        fi
+
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "date=$DATE" >> $GITHUB_OUTPUT
+        echo "title=$TITLE" >> $GITHUB_OUTPUT
+        echo "body<<EOF" >> $GITHUB_OUTPUT
+        echo "$RELEASE_BODY" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Generate blog post
+      run: |
+        node scripts/generate-blog-post.js \
+          "${{ steps.release-info.outputs.version }}" \
+          "${{ steps.release-info.outputs.date }}" \
+          "${{ steps.release-info.outputs.title }}" \
+          "${{ steps.release-info.outputs.body }}"
+
+    - name: Create branch and commit blog post
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+
+        BRANCH_NAME="docs/release-${{ steps.release-info.outputs.version }}-blog-post"
+        git checkout -b "$BRANCH_NAME"
+
+        git add website/blog/*.md
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+          exit 0
+        else
+          git commit -m "docs: add blog post for release ${{ steps.release-info.outputs.version }}"
+          git push -u origin "$BRANCH_NAME"
+        fi
+
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v6
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        branch: docs/release-${{ steps.release-info.outputs.version }}-blog-post
+        base: main
+        title: "docs: Add blog post for release ${{ steps.release-info.outputs.version }}"
+        body: |
+          This PR was automatically created by the release workflow.
+
+          It adds a blog post for release **${{ steps.release-info.outputs.version }}**.
+
+          Please review and merge when ready.
+        labels: |
+          documentation
+          automated
+        delete-branch: true

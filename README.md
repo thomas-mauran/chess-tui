@@ -56,7 +56,7 @@ For installation via package managers or other methods, see the [Installation Gu
 ```bash
 chess-tui -e /path/to/engine
 ```
-See [Engine Configuration](https://thomas-mauran.github.io/chess-tui/docs/Configuration/engine) for details.
+See [Bot Configuration](https://thomas-mauran.github.io/chess-tui/docs/Configuration/bot) for details.
 
 **Configure Lichess:**
 ```bash
@@ -70,7 +70,6 @@ See [Lichess Setup](https://thomas-mauran.github.io/chess-tui/docs/Lichess/setup
 
 - [Installation Guide](https://thomas-mauran.github.io/chess-tui/docs/Installation/Packaging%20status)
 - [Configuration](https://thomas-mauran.github.io/chess-tui/docs/Configuration/configuration-intro)
-- in-app: press `?`
 - [Lichess Features](https://thomas-mauran.github.io/chess-tui/docs/Lichess/features)
 - [Multiplayer Guide](https://thomas-mauran.github.io/chess-tui/docs/Multiplayer/Local%20multiplayer)
 
