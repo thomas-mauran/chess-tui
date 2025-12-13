@@ -9,6 +9,13 @@
   --ifm-color-primary-lightest: #f2e6d1; /* Lightest shade, cream-colored */
   --ifm-code-font-size: 95%;
   --docusaurus-highlighted-code-line-bg: rgba(62, 62, 62, 0.1); /* Highlighted code line background */
+  --ifm-background-color: #faf9f6; /* Light mode background - warm off-white */
+}
+
+/* Light mode specific colors */
+html[data-theme='light'] {
+  --ifm-background-color: #faf9f6; /* Warm off-white instead of pure white */
+  --ifm-color-primary: #3e3e3e;
 }
 
 /* Dark mode specific colors */
@@ -78,4 +85,32 @@ footer.footer a:hover {
 /* Hide the burger menu (sidebar toggle button) */
 .navbar__sidebar-toggle {
   display: none !important;
+}
+
+/* Hide the mobile navigation burger menu */
+.navbar__toggle,
+button.navbar__toggle,
+.navbar__brand > button {
+  display: none !important;
+}
+
+/* Ensure main page background is theme-aware */
+html[data-theme='light'] {
+  --ifm-background-color: #faf9f6; /* Warm off-white */
+}
+
+html[data-theme='light'] body {
+  background-color: var(--ifm-background-color);
+}
+
+html[data-theme='light'] main {
+  background-color: var(--ifm-background-color);
+}
+
+html[data-theme='light'] .hero--primary {
+  background-color: var(--ifm-background-color) !important;
+}
+
+html[data-theme='light'] .hero {
+  background-color: var(--ifm-background-color);
 }

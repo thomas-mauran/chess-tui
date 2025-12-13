@@ -12,9 +12,9 @@ function HomepageHeader() {
   return (
     <header className={clsx('hero hero--primary', styles.heroBanner)}>
       <div className="container">
-          <Heading as="h1" className={styles.hero__title}>
+          {/* <Heading as="h1" className={styles.hero__title}>
             {siteConfig.title}
-          </Heading>
+          </Heading> */}
         <img
           className={styles.featureGif}
           src={require('@site/static/gif/demo-two-player.gif').default}

@@ -8,7 +8,73 @@ sidebar_position: 5
 
 Chess-tui allows you to configure the behavior of the computer opponent (bot) when playing against a chess engine.
 
-## Configuration
+## Chess Engine Setup
+
+Before you can play against a bot, you need to configure a UCI-compatible chess engine.
+
+### Quick Setup (Recommended) ⭐
+
+The easiest way to set up a chess engine is using the automatic installation script for Stockfish:
+
+```bash
+./scripts/install-stockfish.sh
+```
+
+This script will:
+- Detect your operating system (macOS, Linux)
+- Install Stockfish using the appropriate package manager
+- Automatically configure the engine path in your chess-tui config file
+- Work on macOS (Homebrew), Debian/Ubuntu (apt), Fedora (dnf), and Arch Linux (pacman)
+
+After running the script, you can immediately start playing against the bot - no manual configuration needed!
+
+### Manual Engine Configuration
+
+If you prefer to install the engine manually or use a different engine, you can configure it yourself.
+
+#### Configuration File
+
+Set the path to your chess engine in the configuration file:
+
+```toml
+engine_path = "/path/to/your/engine"
+```
+
+#### Command Line Configuration
+
+You can also set the engine path via command line:
+
+```bash
+chess-tui -e /path/to/your/engine
+```
+
+Or with the long form:
+
+```bash
+chess-tui --engine-path /path/to/your/engine
+```
+
+The path will be automatically saved to your configuration file for future use.
+
+### Supported Engines
+
+Any UCI-compatible chess engine should work. Some popular options include:
+- **Stockfish** - Popular open-source engine (recommended)
+- **Leela Chess Zero** - Neural network engine
+- **Komodo** - Commercial engine
+
+:::note
+The engine path must point to a valid UCI-compatible chess engine executable. If not configured correctly, the bot play option will be disabled.
+:::
+
+### Common Engine Paths
+
+Common Stockfish installation paths:
+- **macOS (Homebrew)**: `/opt/homebrew/bin/stockfish` or `/usr/local/bin/stockfish`
+- **Linux (apt)**: `/usr/bin/stockfish`
+- **Linux (dnf/pacman)**: `/usr/bin/stockfish`
+
+## Bot Configuration
 
 Bot settings can be configured in the `CONFIG_DIR/chess-tui/config.toml` file:
 
@@ -64,14 +130,22 @@ For casual play, a depth of 8-12 is usually sufficient. For serious analysis or 
 Very high depth values (20+) can cause the engine to think for a very long time, especially in complex positions. Use these values only when you have plenty of time and want maximum playing strength.
 :::
 
-## Related Configuration
+## Verifying Your Setup
 
-The bot also requires a chess engine to be configured. See [Chess Engine Configuration](./engine.md) for details on setting up your UCI-compatible chess engine.
+To verify your engine is configured correctly:
 
-:::tip Quick Setup
-The easiest way to get started is using the automatic installation script:
-```bash
-./scripts/install-stockfish.sh
-```
-This will install Stockfish and configure it automatically. See the [Chess Engine Configuration](./engine.md) page for more details.
-:::
+1. Launch `chess-tui`
+2. Navigate to the **"Play Bot"** menu option
+3. If your engine path is valid, you'll be able to select your color and start playing
+4. If there's an issue, you'll see an error message with instructions
+
+## Troubleshooting
+
+### Engine Path Not Found
+
+If you see an error that the engine path is invalid:
+
+1. **Check the path**: Make sure the path points to an actual executable file
+2. **Verify permissions**: Ensure the file is executable (`chmod +x /path/to/engine`)
+3. **Test manually**: Try running the engine from the command line to verify it works
+4. **Use the install script**: If using Stockfish, try the automatic installation script
