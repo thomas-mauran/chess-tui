@@ -19,55 +19,63 @@ Down @0.3s
 Down @0.3s
 Down @0.3s
 Space @0.3s
-Sleep 0.5s
+Sleep 1.2s
 Space @0.3s
-Sleep 0.5s
+Sleep 1.2s
 
 Down @0.3s
 Down @0.3s
 Space @0.3s
+Sleep 1.2s
 Space @0.3s
-Sleep 0.1s
+Sleep 1.2s
 
 Down @0.3s
 Space @0.3s
+Sleep 1.2s
 Space @0.3s
-Sleep 0.1s
+Sleep 1.2s
 
 Up @0.3s
 Space @0.3s
+Sleep 1.2s
 Space @0.3s
-Sleep 0.1s
-
-Up @0.3s
-Left @0.3s
-Space @0.3s
-Space @0.3s
-Sleep 0.1s
+Sleep 1.2s
 
 Up @0.3s
 Left @0.3s
 Space @0.3s
+Sleep 1.2s
+Space @0.3s
+Sleep 1.2s
+
+Up @0.3s
+Left @0.3s
+Space @0.3s
+Sleep 1.2s
 Right @0.3s
 Space @0.3s
-Sleep 0.1s
+Sleep 1.2s
 
 Left @0.3s
 Down @0.3s
 Space @0.3s
-Sleep 0.5s
+Sleep 1.2s
 Space @0.3s
+Sleep 1.2s
 
 Left @0.3s
 Space @0.3s
-Sleep 0.5s
+Sleep 1.2s
 Space @0.3s
+Sleep 1.2s
 
 Left @0.3s
 Up @0.3s
 Space @0.3s
-Sleep 0.5s
+Sleep 1.2s
 Space @0.3s
+Sleep 1.2s
 
 Sleep 1.5s
 Type "h"

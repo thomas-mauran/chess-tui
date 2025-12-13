@@ -29,50 +29,51 @@ Sleep 1.5s
 Down @0.3s
 Down @0.3s
 Space @0.3s
-Sleep 0.8s
+Sleep 1.2s
 Space @0.3s
 
-Sleep 0.8s
+Sleep 1.2s
 Left @0.3s
 Space @0.3s
-Sleep 0.8s
+Sleep 1.2s
 Space @0.3s
 
+Sleep 1.2s
 Down @0.3s
 Space @0.3s
-Sleep 0.8s
+Sleep 1.2s
 Space @0.3s
-Sleep 0.8s
+Sleep 1.2s
 
 Right @0.3s
 Right @0.3s
 Right @0.3s
 Space @0.3s
-Sleep 0.8s
+Sleep 1.2s
 Space @0.3s
-Sleep 0.8s
+Sleep 1.2s
 
 Left @0.3s
 Space @0.3s
-Sleep 0.8s
+Sleep 1.2s
 Right @0.3s
 Right @0.3s
 Space @0.3s
-Sleep 0.8s
+Sleep 1.2s
 
 Up @0.3s
 Right @0.3s
 Right @0.3s
 Space @0.3s
-Sleep 0.8s
+Sleep 1.2s
 Space @0.3s
-Sleep 0.8s
+Sleep 1.2s
 
 
 Up @0.3s
 Up @0.3s
 Up @0.3s
 Space @0.3s
-Sleep 0.8s
+Sleep 1.2s
 Space @0.3s
-Sleep 0.8s
+Sleep 1.2s
