@@ -137,7 +137,6 @@ Once you've configured your token, you can verify it's working:
 ## Troubleshooting
 
 ### Token Not Working
-
 If you're having issues with your token:
 
 1. **Check token validity**: Make sure you copied the entire token correctly.

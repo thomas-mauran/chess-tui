@@ -21,11 +21,21 @@
   text-align: center;
 }
 
+/* Light mode subtitle color */
+html[data-theme='light'] .hero__subtitle {
+  color: #1a1a1a;
+}
+
 .heroBanner {
   padding: 4rem 0;
   text-align: center;
   position: relative;
   overflow: hidden;
+}
+
+/* Ensure hero background is theme-aware */
+html[data-theme='light'] .heroBanner {
+  background-color: var(--ifm-background-color);
 }
 
 @media screen and (max-width: 996px) {
@@ -42,7 +52,7 @@
 
 .featureGif {
   border-radius: 5px;
-  max-width: 70%;
+  max-width: 60%;
   height: auto;
   display: inline-block;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.8);

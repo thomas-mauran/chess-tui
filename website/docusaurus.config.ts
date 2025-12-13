@@ -6,7 +6,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
   title: 'Chess TUI',
-  tagline: 'A rusty chess game in your terminal 🦀',
+  tagline: 'Play chess from your terminal 🦀',
   favicon: 'img/favicon.ico',
 
   // Set the production url of your site here
