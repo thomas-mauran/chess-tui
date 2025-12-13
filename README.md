@@ -2,7 +2,7 @@
 <h1>chess-tui</h1>
 Play chess from your terminal 🦀
 
-![board](./examples/play_against_white_bot.gif)
+![board](./examples/ratatui.gif)
 
 <div>
 
