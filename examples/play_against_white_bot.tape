@@ -1,4 +1,4 @@
-Output play_against_white_bot.gif
+Output examples/play_against_white_bot.gif
 
 Require echo
 
@@ -12,7 +12,7 @@ Set Height 1300
 Set WindowBar Colorful
 Set WindowBarSize 40
 
-Type "cargo run" Sleep 500ms  Enter
+Type "cargo run" Sleep 1s  Enter
 
 Sleep 2s
 Down @0.3s
@@ -27,30 +27,49 @@ Down @0.3s
 Down @0.3s
 Space @0.3s
 Space @0.3s
+Sleep 0.1s
 
 Down @0.3s
 Space @0.3s
 Space @0.3s
+Sleep 0.1s
 
 Up @0.3s
 Space @0.3s
 Space @0.3s
+Sleep 0.1s
 
 Up @0.3s
 Left @0.3s
 Space @0.3s
 Space @0.3s
+Sleep 0.1s
 
 Up @0.3s
 Left @0.3s
 Space @0.3s
 Right @0.3s
 Space @0.3s
+Sleep 0.1s
 
 Left @0.3s
 Down @0.3s
 Space @0.3s
 Sleep 0.5s
 Space @0.3s
+
+Left @0.3s
+Space @0.3s
+Sleep 0.5s
+Space @0.3s
+
+Left @0.3s
+Up @0.3s
+Space @0.3s
+Sleep 0.5s
+Space @0.3s
+
+Sleep 1.5s
+Type "h"
 
 Sleep 5s

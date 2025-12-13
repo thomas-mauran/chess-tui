@@ -1,4 +1,4 @@
-Output demo-two-player.gif
+Output examples/demo-two-player.gif
 
 Require echo
 

@@ -1,4 +1,4 @@
-Output helper.gif
+Output examples/helper.gif
 
 Require echo
 

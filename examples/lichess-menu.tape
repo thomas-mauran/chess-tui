@@ -1,4 +1,4 @@
-Output lichess-menu.gif
+Output examples/lichess-menu.gif
 
 Require echo
 
