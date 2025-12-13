@@ -7,6 +7,9 @@ on:
 jobs:
   docker_push:
     name: Build & push Docker image
+    permissions:
+      packages: write
+      contents: read
     uses: ./.github/workflows/docker_push.yml
     with:
       image-tags: ${{ github.event.release.tag_name }}
