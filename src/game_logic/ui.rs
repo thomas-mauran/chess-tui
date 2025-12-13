@@ -735,10 +735,32 @@ impl UI {
 
         // Render labels starting from index 1 (after top border)
         for (i, rank) in ranks.iter().enumerate() {
-            let label = Paragraph::new(*rank)
-                .alignment(Alignment::Center)
-                .style(Style::default().fg(Color::Gray));
-            frame.render_widget(label, layout[i + 1]);
+            let rank_area = layout[i + 1];
+            // Calculate vertical padding to center the text
+            // Add empty lines above and below to center the number vertically
+            let top_padding = if rank_area.height > 1 {
+                (rank_area.height - 1) / 2
+            } else {
+                0
+            };
+            let bottom_padding = rank_area.height.saturating_sub(1 + top_padding);
+
+            // Create text with empty lines for vertical centering
+            let mut lines: Vec<Line> = Vec::new();
+            for _ in 0..top_padding {
+                lines.push(Line::from(""));
+            }
+            lines.push(
+                Line::from(*rank)
+                    .alignment(Alignment::Center)
+                    .style(Style::default().fg(Color::Gray)),
+            );
+            for _ in 0..bottom_padding {
+                lines.push(Line::from(""));
+            }
+
+            let label = Paragraph::new(lines);
+            frame.render_widget(label, rank_area);
         }
     }
 
