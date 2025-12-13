@@ -353,6 +353,7 @@ pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
     frame.render_widget(menu_paragraph, menu_area);
 
     // Footer with keyboard hints
+    let version = env!("CARGO_PKG_VERSION");
     let footer_text = vec![
         Line::from(""),
         Line::from(vec![
@@ -364,6 +365,9 @@ pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
             Span::styled(" | Help: ", Style::default().fg(Color::Gray)),
             Span::styled("?", Style::default().fg(Color::Yellow)),
         ]),
+        Line::from(format!("Version: {}", version))
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(Color::Gray)),
     ];
 
     let footer = Paragraph::new(footer_text)
