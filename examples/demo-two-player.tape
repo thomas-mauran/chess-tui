@@ -14,7 +14,7 @@ Set WindowBarSize 40
 
 Type "cargo run" Sleep 500ms  Enter
 
-Sleep 0.5s
+Sleep 0.7s
 Down @0.3s
 Down @0.3s
 Down @0.3s
@@ -29,51 +29,50 @@ Sleep 1.5s
 Down @0.3s
 Down @0.3s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
 Space @0.3s
 
-Sleep 1.2s
+Sleep 0.7s
 Left @0.3s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
 Space @0.3s
 
-Sleep 1.2s
 Down @0.3s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
 
 Right @0.3s
 Right @0.3s
 Right @0.3s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
 
 Left @0.3s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
 Right @0.3s
 Right @0.3s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
 
 Up @0.3s
 Right @0.3s
 Right @0.3s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
 
 
 Up @0.3s
 Up @0.3s
 Up @0.3s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s

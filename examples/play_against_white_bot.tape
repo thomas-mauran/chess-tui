@@ -12,70 +12,70 @@ Set Height 1300
 Set WindowBar Colorful
 Set WindowBarSize 40
 
-Type "cargo run" Sleep 1s  Enter
+Type "cargo run" Sleep 0.7s  Enter
 
 Sleep 2s
 Down @0.3s
 Down @0.3s
 Down @0.3s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
 
 Down @0.3s
 Down @0.3s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
 
 Down @0.3s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
 
 Up @0.3s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
 Space @0.3s
-Sleep 1.2s
-
-Up @0.3s
-Left @0.3s
-Space @0.3s
-Sleep 1.2s
-Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
 
 Up @0.3s
 Left @0.3s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
+Space @0.3s
+Sleep 0.7s
+
+Up @0.3s
+Left @0.3s
+Space @0.3s
+Sleep 0.7s
 Right @0.3s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
 
 Left @0.3s
 Down @0.3s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
 
 Left @0.3s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
 
 Left @0.3s
 Up @0.3s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
 
 Sleep 1.5s
 Type "h"

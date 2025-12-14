@@ -19,38 +19,38 @@ Down @0.3s
 Down @0.3s
 Down @0.3s
 Space @0.3s
-Sleep 1s
+Sleep 0.7s
 
 Right @0.3s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
 
 Down @0.3s
 Down @0.3s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
 Space @0.3s
 
-Sleep 1.2s
+Sleep 0.7s
 Right @0.3s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
 Space @0.3s
 
-Sleep 1.2s
+Sleep 0.7s
 Right @0.3s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
 Space @0.3s
 
-Sleep 1.2s
+Sleep 0.7s
 Left @0.3s
 Left @0.3s
 Left @0.3s
 Left @0.3s
 Left @0.3s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
 Space @0.3s
-Sleep 1.2s
+Sleep 0.7s
 
