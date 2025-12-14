@@ -23,19 +23,20 @@ pub enum PieceSize {
 
 impl PieceSize {
     /// Determine the appropriate piece size based on cell dimensions
-    pub fn from_dimensions(width: u16, height: u16) -> Self {
-        // If width or height is less than 3, use small (1x1)
+    pub fn from_dimensions(height: u16) -> Self {
+        // If height is less than 3, use small (1x1)
         if height < 3 {
             return PieceSize::Small;
         }
-        // If width or height is less than 5, use compact (simple 2-line)
+        // If height is less than 4, use compact (simple 2-line)
         if height < 4 {
             return PieceSize::Compact;
         }
+        // If height is less than 5, use extended (3-4 lines)
         if height < 5 {
             return PieceSize::Extended;
         }
-        // If width or height is less than 7, use extended (3-4 lines)
+        // If height is less than 7, use large multi-line art
         if height < 7 {
             return PieceSize::Large;
         }

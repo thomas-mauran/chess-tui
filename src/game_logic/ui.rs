@@ -192,7 +192,7 @@ impl UI {
         };
 
         // Determine piece size based on available cell dimensions
-        let piece_size = PieceSize::from_dimensions(square.width, square.height);
+        let piece_size = PieceSize::from_dimensions(square.height);
 
         match self.display_mode {
             DisplayMode::DEFAULT => {

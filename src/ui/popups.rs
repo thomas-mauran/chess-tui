@@ -342,10 +342,7 @@ pub fn render_promotion_popup(frame: &mut Frame, app: &mut App) {
     app.game.ui.height = inner_popup_layout_horizontal[0].height;
 
     let display_mode = &app.game.ui.display_mode;
-    let piece_size = PieceSize::from_dimensions(
-        inner_popup_layout_horizontal[0].width,
-        inner_popup_layout_horizontal[0].height,
-    );
+    let piece_size = PieceSize::from_dimensions(inner_popup_layout_horizontal[0].height);
     let piece_color = Some(app.game.logic.player_turn);
 
     let queen_p = Paragraph::new(Queen::to_string(display_mode, piece_size, piece_color))
@@ -568,10 +565,7 @@ pub fn render_color_selection_popup(frame: &mut Frame, app: &App) {
         .split(inner_popup_layout_vertical[1]);
 
     let display_mode = &app.game.ui.display_mode;
-    let piece_size = PieceSize::from_dimensions(
-        inner_popup_layout_horizontal[0].width,
-        inner_popup_layout_horizontal[0].height,
-    );
+    let piece_size = PieceSize::from_dimensions(inner_popup_layout_horizontal[0].height);
 
     let white_pawn = Paragraph::new(Pawn::to_string(
         display_mode,
