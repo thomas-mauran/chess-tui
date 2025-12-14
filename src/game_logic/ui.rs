@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     constants::{DisplayMode, BLACK, WHITE},
-    pieces::role_to_utf_enum,
+    pieces::{role_to_utf_enum, PieceSize},
     skin::Skin,
     ui::{main_ui::render_cell, prompt::Prompt},
     utils::{flip_square_if_needed, get_coord_from_square, get_square_from_coord},
@@ -182,7 +182,7 @@ impl UI {
         &self,
         piece_type: Option<Role>,
         piece_color: Option<shakmaty::Color>,
-        _square: Rect,
+        square: Rect,
     ) -> Paragraph<'static> {
         use crate::{
             pieces::{
@@ -191,18 +191,33 @@ impl UI {
             utils::color_to_ratatui_enum,
         };
 
+        // Determine piece size based on available cell dimensions
+        let piece_size = PieceSize::from_dimensions(square.width, square.height);
+
         match self.display_mode {
             DisplayMode::DEFAULT => {
                 let color_enum = color_to_ratatui_enum(piece_color);
 
                 let piece_str = match piece_type {
-                    Some(Role::King) => King::to_string(&self.display_mode),
-                    Some(Role::Queen) => Queen::to_string(&self.display_mode),
-                    Some(Role::Rook) => Rook::to_string(&self.display_mode),
-                    Some(Role::Bishop) => Bishop::to_string(&self.display_mode),
-                    Some(Role::Knight) => Knight::to_string(&self.display_mode),
-                    Some(Role::Pawn) => Pawn::to_string(&self.display_mode),
-                    None => " ",
+                    Some(Role::King) => {
+                        King::to_string(&self.display_mode, piece_size, piece_color)
+                    }
+                    Some(Role::Queen) => {
+                        Queen::to_string(&self.display_mode, piece_size, piece_color)
+                    }
+                    Some(Role::Rook) => {
+                        Rook::to_string(&self.display_mode, piece_size, piece_color)
+                    }
+                    Some(Role::Bishop) => {
+                        Bishop::to_string(&self.display_mode, piece_size, piece_color)
+                    }
+                    Some(Role::Knight) => {
+                        Knight::to_string(&self.display_mode, piece_size, piece_color)
+                    }
+                    Some(Role::Pawn) => {
+                        Pawn::to_string(&self.display_mode, piece_size, piece_color)
+                    }
+                    None => " ".to_string(),
                 };
 
                 Paragraph::new(piece_str)
@@ -217,13 +232,25 @@ impl UI {
                 };
 
                 let piece_str = match piece_type {
-                    Some(Role::King) => King::to_string(&self.display_mode),
-                    Some(Role::Queen) => Queen::to_string(&self.display_mode),
-                    Some(Role::Rook) => Rook::to_string(&self.display_mode),
-                    Some(Role::Bishop) => Bishop::to_string(&self.display_mode),
-                    Some(Role::Knight) => Knight::to_string(&self.display_mode),
-                    Some(Role::Pawn) => Pawn::to_string(&self.display_mode),
-                    None => " ",
+                    Some(Role::King) => {
+                        King::to_string(&self.display_mode, piece_size, piece_color)
+                    }
+                    Some(Role::Queen) => {
+                        Queen::to_string(&self.display_mode, piece_size, piece_color)
+                    }
+                    Some(Role::Rook) => {
+                        Rook::to_string(&self.display_mode, piece_size, piece_color)
+                    }
+                    Some(Role::Bishop) => {
+                        Bishop::to_string(&self.display_mode, piece_size, piece_color)
+                    }
+                    Some(Role::Knight) => {
+                        Knight::to_string(&self.display_mode, piece_size, piece_color)
+                    }
+                    Some(Role::Pawn) => {
+                        Pawn::to_string(&self.display_mode, piece_size, piece_color)
+                    }
+                    None => " ".to_string(),
                 };
 
                 Paragraph::new(piece_str)
@@ -232,19 +259,31 @@ impl UI {
             }
             DisplayMode::ASCII => {
                 let piece_str = match piece_type {
-                    Some(Role::King) => King::to_string(&self.display_mode),
-                    Some(Role::Queen) => Queen::to_string(&self.display_mode),
-                    Some(Role::Rook) => Rook::to_string(&self.display_mode),
-                    Some(Role::Bishop) => Bishop::to_string(&self.display_mode),
-                    Some(Role::Knight) => Knight::to_string(&self.display_mode),
-                    Some(Role::Pawn) => Pawn::to_string(&self.display_mode),
-                    None => " ",
+                    Some(Role::King) => {
+                        King::to_string(&self.display_mode, piece_size, piece_color)
+                    }
+                    Some(Role::Queen) => {
+                        Queen::to_string(&self.display_mode, piece_size, piece_color)
+                    }
+                    Some(Role::Rook) => {
+                        Rook::to_string(&self.display_mode, piece_size, piece_color)
+                    }
+                    Some(Role::Bishop) => {
+                        Bishop::to_string(&self.display_mode, piece_size, piece_color)
+                    }
+                    Some(Role::Knight) => {
+                        Knight::to_string(&self.display_mode, piece_size, piece_color)
+                    }
+                    Some(Role::Pawn) => {
+                        Pawn::to_string(&self.display_mode, piece_size, piece_color)
+                    }
+                    None => " ".to_string(),
                 };
 
                 let final_piece_str = match piece_color {
                     Some(shakmaty::Color::Black) => piece_str.to_lowercase(),
                     Some(shakmaty::Color::White) => piece_str.to_uppercase(),
-                    None => piece_str.to_string(),
+                    None => piece_str,
                 };
 
                 // Use bright yellow for ASCII pieces to ensure visibility on both black and white squares
