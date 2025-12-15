@@ -20,6 +20,7 @@ jobs:
         - nightly
         os:
         - macos-latest
+        - macos-15-intel
         - ubuntu-latest
         - ubuntu-24.04-arm
         - windows-latest
