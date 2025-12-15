@@ -16,6 +16,13 @@ Chess-tui is a simple chess game you can play from your terminal. It supports lo
 
 ### Quick Install
 
+**Homebrew:**
+```bash
+brew install thomas-mauran/tap/chess-tui
+chess-tui
+```
+
+**Cargo:**
 ```bash
 cargo install chess-tui
 chess-tui
