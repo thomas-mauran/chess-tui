@@ -61,7 +61,14 @@ For installation via package managers or other methods, see the [Installation Gu
 
 **Connect a chess engine:**
 ```bash
+# Simple engine path
 chess-tui -e /path/to/engine
+
+# Engine with command-line arguments (e.g., GNU Chess with UCI mode)
+chess-tui -e "/opt/homebrew/bin/gnuchess --uci"
+
+# Stockfish example
+chess-tui -e /opt/homebrew/bin/stockfish
 ```
 See [Bot Configuration](https://thomas-mauran.github.io/chess-tui/docs/Configuration/bot) for details.
 

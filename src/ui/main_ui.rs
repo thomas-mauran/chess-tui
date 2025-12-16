@@ -95,7 +95,9 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
         }
         // Check if engine path exists and is a valid file
         else if let Some(engine_path) = &app.chess_engine_path {
-            let path = Path::new(engine_path);
+            // Extract just the command path (first part before any arguments)
+            let command_path = engine_path.split_whitespace().next().unwrap_or(engine_path);
+            let path = Path::new(command_path);
             if !path.exists() || !path.is_file() {
                 app.error_message = Some(
                     format!(
@@ -108,7 +110,7 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
                         chess-tui -e /opt/homebrew/bin/stockfish\n\
                         or execute the script: ./scripts/install-stockfish.sh\n\
                         to install stockfish automatically and set it as the chess engine path",
-                        engine_path
+                        command_path
                     )
                 );
                 app.current_popup = Some(Popups::Error);
