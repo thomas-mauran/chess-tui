@@ -38,3 +38,24 @@ lto = true
 codegen-units = 1
 opt-level = "z"
 strip = true
+
+[package.metadata.deb]
+# Configuration for cargo-deb (alternative packaging method)
+# Install with: cargo install cargo-deb
+# Build with: cargo deb
+maintainer = "Thomas Mauran <thomas.mauran@example.com>"
+copyright = "2023-2025, Thomas Mauran"
+license-file = ["LICENSE"]
+extended-description = """\
+Chess-tui is a simple chess game you can play from your terminal.
+It supports:
+- Local 2 players mode
+- Online multiplayer
+- Playing against any UCI compatible chess engine
+- Lichess integration
+- Custom skins
+- And more!
+"""
+section = "games"
+priority = "optional"
+depends = "$auto"
