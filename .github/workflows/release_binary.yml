@@ -68,3 +68,43 @@ jobs:
         files: ${{ env.TAR_NAME }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-and-upload-deb:
+    name: Build and Upload Debian package
+    runs-on: ubuntu-latest
+    needs: build-and-upload-binary
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v4
+      name: Checkout project
+
+    - uses: dtolnay/rust-toolchain@stable
+      name: Install the Rust toolchain
+
+    - name: Install Debian packaging dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          devscripts \
+          debhelper \
+          dh-cargo \
+          libssl-dev \
+          pkg-config
+
+    - name: Build Debian package
+      run: ./scripts/build-deb.sh dh-cargo
+
+    - name: Find generated .deb
+      id: find_deb
+      run: |
+        DEB_PATH=$(ls -1 ../chess-tui_*.deb | head -n 1)
+        echo "deb_path=$DEB_PATH" >> "$GITHUB_OUTPUT"
+
+    - uses: softprops/action-gh-release@v2
+      name: Upload .deb to release
+      if: github.ref_type == 'tag'
+      with:
+        files: ${{ steps.find_deb.outputs.deb_path }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

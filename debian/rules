@@ -1,0 +1,19 @@
+#!/usr/bin/make -f
+# See debhelper(7) (uncomment to enable)
+# export DH_VERBOSE = 1
+
+%:
+	dh $@ --buildsystem=cargo
+
+# Note: dh-cargo will handle the build and install automatically
+# If you need custom build steps, uncomment and modify below:
+
+# override_dh_auto_build:
+# 	dh_auto_build -- cargo build --release
+
+# override_dh_auto_install:
+# 	dh_auto_install
+
+# override_dh_auto_test:
+# 	# Run tests if needed
+# 	dh_auto_test

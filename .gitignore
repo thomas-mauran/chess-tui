@@ -16,3 +16,17 @@ target/
 .vscode/
 
 .DS_Store
+
+# Debian packaging artifacts
+debian/.debhelper/
+debian/files
+debian/substvars
+debian/*.substvars
+debian/*.log
+debian/chess-tui/
+*.deb
+*.dsc
+*.changes
+*.buildinfo
+*.tar.gz
+*.tar.xz

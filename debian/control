@@ -1,0 +1,28 @@
+Source: chess-tui
+Section: games
+Priority: optional
+Maintainer: Thomas Mauran <thomas.mauran@example.com>
+Build-Depends: debhelper-compat (= 13),
+               dh-cargo,
+               cargo,
+               rustc,
+               libssl-dev,
+               pkg-config
+Standards-Version: 4.6.2
+Homepage: https://github.com/thomas-mauran/chess-tui
+Vcs-Browser: https://github.com/thomas-mauran/chess-tui
+Vcs-Git: https://github.com/thomas-mauran/chess-tui.git
+Rules-Requires-Root: no
+
+Package: chess-tui
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Play chess from your terminal
+ Chess-tui is a simple chess game you can play from your terminal.
+ It supports:
+  - Local 2 players mode
+  - Online multiplayer
+  - Playing against any UCI compatible chess engine
+  - Lichess integration
+  - Custom skins
+  - And more!
