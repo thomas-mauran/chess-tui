@@ -898,6 +898,9 @@ impl App {
 
     /// Handles the tick event of the terminal.
     pub fn tick(&mut self) {
+        // Update cursor blink state (used to flicker the cursor cell when a piece is selected)
+        self.game.ui.update_cursor_blink();
+
         // Handle puzzle logic
         if let Some(mut puzzle_game) = self.puzzle_game.take() {
             puzzle_game.check_elo_update();

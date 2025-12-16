@@ -44,6 +44,10 @@ pub struct UI {
     pub prompt: Prompt,
     // The skin of the game
     pub skin: Skin,
+    /// Internal flag used to implement a manual blink/flicker for the cursor cell
+    pub cursor_blink_visible: bool,
+    /// Counter to control how often the cursor blink toggles (in ticks)
+    pub cursor_blink_counter: u8,
 }
 
 impl Default for UI {
@@ -62,6 +66,8 @@ impl Default for UI {
             display_mode: DisplayMode::DEFAULT,
             prompt: Prompt::new(),
             skin: Skin::default(),
+            cursor_blink_visible: true,
+            cursor_blink_counter: 0,
         }
     }
 }
@@ -78,6 +84,27 @@ impl UI {
         self.width = 0;
         self.height = 0;
         self.mouse_used = false;
+        self.cursor_blink_visible = true;
+        self.cursor_blink_counter = 0;
+    }
+
+    /// Update the cursor blink state. This is called from the global tick handler.
+    /// When a piece is selected, the cursor cell will toggle visibility every few ticks.
+    pub fn update_cursor_blink(&mut self) {
+        if self.is_cell_selected() {
+            // Number of ticks between visibility toggles (higher = slower blink)
+            const BLINK_INTERVAL_TICKS: u8 = 2;
+
+            self.cursor_blink_counter = self.cursor_blink_counter.wrapping_add(1);
+            if self.cursor_blink_counter >= BLINK_INTERVAL_TICKS {
+                self.cursor_blink_visible = !self.cursor_blink_visible;
+                self.cursor_blink_counter = 0;
+            }
+        } else {
+            // Ensure cursor is always visible when nothing is selected
+            self.cursor_blink_visible = true;
+            self.cursor_blink_counter = 0;
+        }
     }
 
     /// Check if a cell has been selected
@@ -671,6 +698,10 @@ impl UI {
                 if i == self.cursor_coordinates.row
                     && j == self.cursor_coordinates.col
                     && !self.mouse_used
+                    // When a piece is selected, only draw the cursor cell on "visible" ticks
+                    // so that it appears to flicker. On "hidden" ticks, we let the other
+                    // branches below (selected cell, available moves, etc.) handle the cell.
+                    && (!self.is_cell_selected() || self.cursor_blink_visible)
                 {
                     let cursor_color = match self.display_mode {
                         DisplayMode::CUSTOM => self.skin.cursor_color,
