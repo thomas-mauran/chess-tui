@@ -22,6 +22,12 @@ brew install thomas-mauran/tap/chess-tui
 chess-tui
 ```
 
+**Debian/Ubuntu:**
+```bash
+DEB_URL=$(curl -s "https://api.github.com/repos/thomas-mauran/chess-tui/releases/latest" | jq -r '.assets[] | select(.name | endswith(".deb")) | .browser_download_url') && curl -LO "$DEB_URL" && sudo dpkg -i "$(basename "$DEB_URL")" && sudo apt-get install -f
+chess-tui
+```
+
 **Cargo:**
 ```bash
 cargo install chess-tui
