@@ -43,7 +43,7 @@ strip = true
 # Configuration for cargo-deb (alternative packaging method)
 # Install with: cargo install cargo-deb
 # Build with: cargo deb
-maintainer = "Thomas Mauran <thomas.mauran@example.com>"
+maintainer = "Thomas Mauran <thomasmauran@yahoo.com>"
 copyright = "2023-2025, Thomas Mauran"
 license-file = ["LICENSE"]
 extended-description = """\

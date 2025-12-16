@@ -60,20 +60,33 @@ jobs:
           "${{ steps.release-info.outputs.title }}" \
           "${{ steps.release-info.outputs.body }}"
 
+    - name: Configure Git
+      run: |
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
     - name: Create branch and commit blog post
       id: commit
       run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
+        # Ensure we're on main and up to date
+        git checkout main
+        git pull origin main
 
         BRANCH_NAME="docs/release-${{ steps.release-info.outputs.version }}-blog-post"
         git checkout -b "$BRANCH_NAME"
 
+        # Only add blog post files, explicitly avoid workflow files
         git add website/blog/*.md
+
+        # Check if there are any staged changes
         if git diff --staged --quiet; then
           echo "No changes to commit"
           echo "has_changes=false" >> $GITHUB_OUTPUT
         else
+          # Verify we're only committing blog files
+          STAGED_FILES=$(git diff --staged --name-only)
+          echo "Staged files: $STAGED_FILES"
+          
           git commit -m "docs: add blog post for release ${{ steps.release-info.outputs.version }}"
           git push -u origin "$BRANCH_NAME"
           echo "has_changes=true" >> $GITHUB_OUTPUT

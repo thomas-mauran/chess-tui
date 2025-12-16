@@ -1,6 +1,0 @@
-chess-tui (2.1.0-1) unstable; urgency=medium
-
-  * Initial Debian package release
-  * Version 2.1.0
-
- -- Thomas Mauran <thomas.mauran@example.com>  Mon, 01 Jan 2024 12:00:00 +0000

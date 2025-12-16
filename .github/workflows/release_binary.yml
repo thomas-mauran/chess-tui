@@ -83,23 +83,22 @@ jobs:
     - uses: dtolnay/rust-toolchain@stable
       name: Install the Rust toolchain
 
-    - name: Install Debian packaging dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          devscripts \
-          debhelper \
-          dh-cargo \
-          libssl-dev \
-          pkg-config
+    - name: Install ALSA development libraries
+      run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+
+    - name: Install cargo-deb
+      run: cargo install cargo-deb
+
+    - uses: Swatinem/rust-cache@v2
+      name: Use cached dependencies and artifacts
 
     - name: Build Debian package
-      run: ./scripts/build-deb.sh dh-cargo
+      run: cargo deb
 
     - name: Find generated .deb
       id: find_deb
       run: |
-        DEB_PATH=$(ls -1 ../chess-tui_*.deb | head -n 1)
+        DEB_PATH=$(find target/debian -name "*.deb" | head -n 1)
         echo "deb_path=$DEB_PATH" >> "$GITHUB_OUTPUT"
 
     - uses: softprops/action-gh-release@v2
