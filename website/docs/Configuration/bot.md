@@ -45,13 +45,18 @@ engine_path = "/path/to/your/engine"
 You can also set the engine path via command line:
 
 ```bash
+# Simple path
 chess-tui -e /path/to/your/engine
+
+# Path with command-line arguments (e.g., GNU Chess)
+chess-tui -e "/opt/homebrew/bin/gnuchess --uci"
 ```
 
 Or with the long form:
 
 ```bash
 chess-tui --engine-path /path/to/your/engine
+chess-tui --engine-path "/opt/homebrew/bin/gnuchess --uci"
 ```
 
 The path will be automatically saved to your configuration file for future use.
@@ -60,6 +65,7 @@ The path will be automatically saved to your configuration file for future use.
 
 Any UCI-compatible chess engine should work. Some popular options include:
 - **Stockfish** - Popular open-source engine (recommended)
+- **GNU Chess** - Classic chess engine (requires `--uci` flag)
 - **Leela Chess Zero** - Neural network engine
 - **Komodo** - Commercial engine
 
@@ -67,12 +73,35 @@ Any UCI-compatible chess engine should work. Some popular options include:
 The engine path must point to a valid UCI-compatible chess engine executable. If not configured correctly, the bot play option will be disabled.
 :::
 
+### Engines Requiring Command-Line Arguments
+
+Some chess engines require command-line arguments to enable UCI mode. For example, GNU Chess requires the `--uci` flag. You can specify these arguments directly in the engine path:
+
+**Command Line:**
+```bash
+chess-tui -e "/opt/homebrew/bin/gnuchess --uci"
+```
+
+**Configuration File:**
+```toml
+engine_path = "/opt/homebrew/bin/gnuchess --uci"
+```
+
+:::tip
+When using quotes in the command line, use double quotes to ensure the entire path and arguments are treated as a single value. In the configuration file, quotes are not needed.
+:::
+
 ### Common Engine Paths
 
-Common Stockfish installation paths:
+**Stockfish:**
 - **macOS (Homebrew)**: `/opt/homebrew/bin/stockfish` or `/usr/local/bin/stockfish`
 - **Linux (apt)**: `/usr/bin/stockfish`
 - **Linux (dnf/pacman)**: `/usr/bin/stockfish`
+
+**GNU Chess (requires `--uci` flag):**
+- **macOS (Homebrew)**: `/opt/homebrew/bin/gnuchess --uci` or `/usr/local/bin/gnuchess --uci`
+- **Linux (apt)**: `/usr/bin/gnuchess --uci`
+- **Linux (dnf/pacman)**: `/usr/bin/gnuchess --uci`
 
 ## Bot Configuration
 
@@ -149,3 +178,23 @@ If you see an error that the engine path is invalid:
 2. **Verify permissions**: Ensure the file is executable (`chmod +x /path/to/engine`)
 3. **Test manually**: Try running the engine from the command line to verify it works
 4. **Use the install script**: If using Stockfish, try the automatic installation script
+
+### Engine Not Responding
+
+If the engine path is valid but the engine doesn't respond during gameplay:
+
+1. **Check UCI compatibility**: Ensure your engine supports the UCI protocol
+2. **Add required flags**: Some engines (like GNU Chess) require command-line arguments to enable UCI mode:
+   ```bash
+   chess-tui -e "/opt/homebrew/bin/gnuchess --uci"
+   ```
+3. **Test UCI mode**: Test the engine manually in UCI mode:
+   ```bash
+   echo "uci" | /path/to/engine --uci
+   ```
+   You should see `uciok` in the response
+4. **Check logs**: Enable logging to see detailed error messages:
+   ```bash
+   chess-tui -e /path/to/engine
+   # Then check logs in CONFIG_DIR/chess-tui/logs/
+   ```

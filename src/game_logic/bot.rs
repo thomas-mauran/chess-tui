@@ -27,7 +27,21 @@ impl Bot {
     }
 
     pub fn get_move(&self, fen: &str) -> UciMove {
-        let mut process = Command::new(&self.engine_path)
+        // Parse engine_path to support command-line arguments
+        // Split by spaces, treating first part as command and rest as args
+        let parts: Vec<&str> = self.engine_path.split_whitespace().collect();
+        let (command, args) = if parts.is_empty() {
+            (self.engine_path.as_str(), &[] as &[&str])
+        } else {
+            (parts[0], &parts[1..])
+        };
+
+        let mut cmd = Command::new(command);
+        if !args.is_empty() {
+            cmd.args(args);
+        }
+
+        let mut process = cmd
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped())
             .spawn()
