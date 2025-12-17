@@ -54,7 +54,7 @@ jobs:
 
     - name: Generate blog post
       run: |
-        node scripts/generate-blog-post.js \
+        node scripts/blog-scripts/generate-blog-post.js \
           "${{ steps.release-info.outputs.version }}" \
           "${{ steps.release-info.outputs.date }}" \
           "${{ steps.release-info.outputs.title }}" \

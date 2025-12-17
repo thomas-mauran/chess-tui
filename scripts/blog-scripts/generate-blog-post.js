@@ -107,10 +107,16 @@ function parseReleaseBody(body) {
     });
     
     // Convert @username to GitHub links (but not if already a link)
-    processedLine = processedLine.replace(/@(\w+)/g, (match, username) => {
-      const before = processedLine.substring(0, processedLine.indexOf(match));
-      const after = processedLine.substring(processedLine.indexOf(match) + match.length);
-      if (before.includes('[') || after.includes(']')) {
+    // Match @ followed by word characters and hyphens, but not if inside a markdown link
+    processedLine = processedLine.replace(/@([a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?)/g, (match, username, offset) => {
+      const before = processedLine.substring(0, offset);
+      const after = processedLine.substring(offset + match.length);
+      // Don't convert if already inside a markdown link
+      if (before.includes('[') && !before.includes(']') || after.includes(']') && !after.includes('[')) {
+        return match;
+      }
+      // Don't convert if it's part of a URL
+      if (before.match(/https?:\/\/[^\s]*$/) || after.match(/^[^\s]*github\.com/)) {
         return match;
       }
       return `[@${username}](https://github.com/${username})`;
