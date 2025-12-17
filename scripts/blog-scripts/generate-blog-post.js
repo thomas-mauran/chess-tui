@@ -23,8 +23,9 @@ const formattedDate = dateObj.toLocaleDateString('en-US', {
   day: 'numeric' 
 });
 
-// Generate filename
-const filename = `website/blog/${date}-release-${version}.md`;
+// Generate filename using absolute path
+const blogDir = path.join(__dirname, '..', '..', 'website', 'blog');
+const filename = path.join(blogDir, `${date}-release-${version}.md`);
 
 // Parse release body and convert to blog format
 function parseReleaseBody(body) {
@@ -134,6 +135,11 @@ function parseReleaseBody(body) {
   return sections.join('\n\n');
 }
 
+// Extract H1 heading (just "Release X.X.X" without description)
+const h1Heading = title.includes(' - ') 
+  ? title.substring(0, title.indexOf(' - '))
+  : title;
+
 // Generate blog post content
 const blogContent = `---
 title: ${title}
@@ -144,7 +150,7 @@ tags:
   - release
 ---
 
-# ${title}
+# ${h1Heading}
 
 **Released:** ${formattedDate}
 
@@ -158,6 +164,11 @@ For the complete list of changes, see the [full changelog](https://github.com/th
 
 [View on GitHub](https://github.com/thomas-mauran/chess-tui/releases/tag/${version})
 `;
+
+// Ensure blog directory exists
+if (!fs.existsSync(blogDir)) {
+  fs.mkdirSync(blogDir, { recursive: true });
+}
 
 // Write file
 fs.writeFileSync(filename, blogContent, 'utf8');

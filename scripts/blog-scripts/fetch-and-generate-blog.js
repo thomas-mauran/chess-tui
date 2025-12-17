@@ -31,8 +31,37 @@ https.get(API_URL, {
       // Extract information
       const version = release.tag_name.replace(/^v/, '');
       const date = release.published_at.split('T')[0];
-      const title = release.name || `Release ${version}`;
       const body = release.body || '';
+      
+      // Extract title with better fallback logic
+      let title = release.name;
+      
+      // If name is empty, whitespace, or just the version number, try to extract from body
+      if (!title || title.trim() === '' || title.trim() === version || title.trim() === `v${version}`) {
+        // Try to extract title from release body (look for markdown headers)
+        // Skip common section headers that aren't good titles
+        const skipHeaders = ["What's Changed", "What's New", "Contributors", "New Contributors", "Full Changelog"];
+        const bodyLines = body.split('\n');
+        for (const line of bodyLines) {
+          const trimmed = line.trim();
+          // Look for markdown headers (# Title or ## Title)
+          if (trimmed.match(/^#+\s+.+$/)) {
+            const extractedTitle = trimmed.replace(/^#+\s+/, '').trim();
+            // Skip if it's a common section header
+            if (!skipHeaders.includes(extractedTitle)) {
+              title = extractedTitle;
+              break;
+            }
+          }
+        }
+      }
+      
+      // Final fallback
+      if (!title || title.trim() === '' || title.trim() === version || title.trim() === `v${version}`) {
+        title = `Release ${version}`;
+      } else {
+        title = title.trim();
+      }
 
       // Call the generate-blog-post script
       const generateScript = path.join(__dirname, 'generate-blog-post.js');

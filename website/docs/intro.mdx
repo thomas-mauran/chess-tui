@@ -10,7 +10,7 @@ import Logo from '/img/logo.png';
   <div style={{ flex: '1' }}>
     ### Welcome to the chess-tui documentation!
 
-    Chess TUI is a terminal chess game written in [Rust](https://www.rust-lang.org/). It is a simple and easy-to-use chess game that you can play in your terminal.
+    Chess-tui is a simple chess game you can play from your terminal. It supports local 2 players mode, online multiplayer, playing against any UCI compatible chess engine, Lichess integration, custom skins and more!
 
     This documentation will guide you through the different features of the game, how to install it, and the code architecture of the project if you want to contribute.
   </div>
@@ -19,36 +19,47 @@ import Logo from '/img/logo.png';
   </div>
 </div>
 
-:::warning Disclaimer
-This project is still in development and some features may not be available yet.
-:::
+## Quick Install
 
-## Quick install
+**Homebrew:**
+```bash
+brew install thomas-mauran/tap/chess-tui
+```
 
+**Debian/Ubuntu:**
+```bash
+DEB_URL=$(curl -s "https://api.github.com/repos/thomas-mauran/chess-tui/releases/latest" | jq -r '.assets[] | select(.name | endswith(".deb")) | .browser_download_url') && curl -LO "$DEB_URL" && sudo dpkg -i "$(basename "$DEB_URL")" && sudo apt-get install -f
+```
+
+**Cargo:**
 ```bash
 cargo install chess-tui
 ```
 
-**Then run the game with:**
-```bash
-chess-tui
-```
-
-You can find a more detailed installation guide with your favorite package manager in the [Installation](/docs/Installation/Cargo) section.
+For installation via package managers or other methods, see the [Installation Guide](/docs/Installation/Packaging%20status).
 
 ## Game Controls
 
 ### Basic Controls
 
-- **Arrow keys** or **h/j/k/l**: Move the cursor
-- **Space** or **Enter**: Select/move a piece
-- **Esc**: Deselect a piece or close popups
+- **Arrow keys** or **h/j/k/l**: Move the cursor (you can also use the mouse)
+- **Space**: Select a piece
+- **Esc**: Deselect a piece or hide popups
 - **?**: Show help menu with all controls
 - **q**: Quit the game
-- **b**: Return to home menu
+- **b**: Go to the home menu / reset the game
 - **s**: Cycle through available skins
-- **r**: Restart the current game
-- **p**: Navigate to the previous position in history (go back in time)
-- **n**: Navigate to the next position in history (go forward in time)
+- **r**: Restart the current game (solo mode only)
+- **p/P**: Navigate to previous position in history (solo mode only, not in puzzle mode)
+- **n/N**: Navigate to next position in history (solo mode only, not in puzzle mode)
+- **t/T**: Show hint in puzzle mode (select the piece to move)
+- **Ctrl +** or **Ctrl -**: Zoom in or out to adjust piece sizes (may differ in certain terminals)
+
+### Color Codes
+
+- **Blue cell**: Your cursor
+- **Green cell**: Selected piece
+- **Purple cell**: The king is getting checked
+- **Grey cell**: Available cells for the selected piece
 
 Press **?** during gameplay to see all available controls in the help menu.

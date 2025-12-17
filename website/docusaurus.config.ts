@@ -7,7 +7,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 const config: Config = {
   title: 'Chess TUI',
   tagline: 'Play chess from your terminal 🦀',
-  favicon: 'img/favicon.ico',
+  favicon: 'img/logo.png',
 
   // Set the production url of your site here
   url: 'https://thomas-mauran.github.io',
@@ -59,6 +59,11 @@ const config: Config = {
 
   themeConfig: {
     image: 'img/social-card.png',
+    prism: {
+      theme: prismThemes.github,
+      darkTheme: prismThemes.dracula,
+      additionalLanguages: ['bash', 'toml'],
+    },
     navbar: {
       title: 'Chess-tui',
       logo: {
