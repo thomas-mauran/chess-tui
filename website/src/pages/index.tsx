@@ -17,7 +17,7 @@ function HomepageHeader() {
           </Heading> */}
         <img
           className={styles.featureGif}
-          src={require('@site/static/gif/demo-two-player.gif').default}
+          src={require('@site/static/gif/play_against_white_bot.gif').default}
           alt="Demo"
           role="img"
         />
