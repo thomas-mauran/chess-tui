@@ -67,3 +67,4 @@ docker run --rm -it ghcr.io/thomas-mauran/chess-tui:${tag}`}</code>
     </>
   );
 }
+
