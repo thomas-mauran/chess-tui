@@ -33,13 +33,14 @@ struct Args {
 }
 
 fn main() -> AppResult<()> {
-    // Used to enable mouse capture
+    // Parse the cli arguments first (this will handle --version and exit early if needed)
+    let args = Args::parse();
+
+    // Used to enable mouse capture (only after we know we're running the TUI)
     ratatui::crossterm::execute!(
         std::io::stdout(),
         ratatui::crossterm::event::EnableMouseCapture
     )?;
-    // Parse the cli arguments
-    let args = Args::parse();
 
     let config_dir = config_dir()?;
     let folder_path = config_dir.join("chess-tui");
