@@ -5,6 +5,40 @@
   width: 100%;
 }
 
+@media screen and (max-width: 996px) {
+  .features {
+    padding: 1.5rem 0;
+  }
+  
+  /* Ensure features stack properly on mobile */
+  .features .container .row {
+    margin: 0;
+  }
+  
+  .features .container .row > div {
+    margin-bottom: 2rem;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .features {
+    padding: 1rem 0;
+  }
+  
+  .features .container .row > div {
+    margin-bottom: 1.5rem;
+    padding: 0 1rem; /* Add horizontal padding */
+  }
+  
+  .features .container .row > div h3 {
+    font-size: 1.2rem; /* Slightly smaller headings on mobile */
+  }
+  
+  .features .container .row > div p {
+    font-size: 0.9rem; /* Slightly smaller text on mobile */
+  }
+}
+
 .featureGif {
   max-width: 100%; /* Ensure the image doesn't overflow its container */
   height: auto; /* Maintain aspect ratio */

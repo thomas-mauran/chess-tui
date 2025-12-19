@@ -1,8 +1,7 @@
 ---
 title: The Lichess Integration - A Deep Dive into Challenges, Solutions, and Future Plans
 authors:
-  - name: Thomas Mauran
-    url: https://github.com/thomas-mauran
+  - thomas-mauran
 tags:
   - lichess
   - integration

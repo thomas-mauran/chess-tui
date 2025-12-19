@@ -14,11 +14,36 @@
   text-align: center;
 }
 
+@media screen and (max-width: 996px) {
+  .hero__title {
+    font-size: 2rem; /* Smaller on mobile */
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .hero__title {
+    font-size: 1.5rem; /* Even smaller on very small screens */
+  }
+}
+
 .hero__subtitle {
   font-size: 1.5rem; /* Adjust size as needed */
   font-weight: bold;
   color: #ebedf0;
   text-align: center;
+}
+
+@media screen and (max-width: 996px) {
+  .hero__subtitle {
+    font-size: 1.2rem; /* Smaller on mobile */
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .hero__subtitle {
+    font-size: 1rem; /* Even smaller on very small screens */
+    padding: 0 1rem; /* Add horizontal padding */
+  }
 }
 
 /* Light mode subtitle color */
@@ -40,7 +65,13 @@ html[data-theme='light'] .heroBanner {
 
 @media screen and (max-width: 996px) {
   .heroBanner {
-    padding: 2rem;
+    padding: 2rem 1rem; /* Less padding on mobile */
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .heroBanner {
+    padding: 1.5rem 0.5rem; /* Even less padding on very small screens */
   }
 }
 
@@ -48,6 +79,18 @@ html[data-theme='light'] .heroBanner {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0 1rem; /* Add horizontal padding on mobile */
+}
+
+@media screen and (max-width: 480px) {
+  .buttons {
+    padding: 0 0.5rem;
+  }
+  
+  .buttons .button {
+    font-size: 0.9rem; /* Slightly smaller button text on mobile */
+    padding: 0.6rem 1.2rem; /* Adjust button padding */
+  }
 }
 
 .featureGif {
@@ -56,5 +99,18 @@ html[data-theme='light'] .heroBanner {
   height: auto;
   display: inline-block;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.8);
+}
+
+@media screen and (max-width: 996px) {
+  .featureGif {
+    max-width: 85%; /* Larger on tablet */
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .featureGif {
+    max-width: 95%; /* Almost full width on mobile */
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.6); /* Lighter shadow on mobile */
+  }
 }
 

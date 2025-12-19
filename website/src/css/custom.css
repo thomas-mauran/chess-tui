@@ -82,16 +82,32 @@ footer.footer a:hover {
   vertical-align: middle;
 }
 
-/* Hide the burger menu (sidebar toggle button) */
-.navbar__sidebar-toggle {
-  display: none !important;
+/* Make GitHub badge responsive on mobile */
+@media screen and (max-width: 996px) {
+  .header-github-link img {
+    max-height: 20px; /* Smaller badge on mobile */
+  }
 }
 
-/* Hide the mobile navigation burger menu */
-.navbar__toggle,
-button.navbar__toggle,
-.navbar__brand > button {
-  display: none !important;
+@media screen and (max-width: 480px) {
+  .header-github-link {
+    display: none; /* Hide GitHub badge on very small screens to save space */
+  }
+}
+
+/* Hide the burger menu (sidebar toggle button) - only on desktop */
+@media screen and (min-width: 997px) {
+  .navbar__sidebar-toggle {
+    display: none !important;
+  }
+}
+
+/* Show mobile navigation burger menu on mobile */
+@media screen and (max-width: 996px) {
+  .navbar__toggle,
+  button.navbar__toggle {
+    display: flex !important;
+  }
 }
 
 /* Ensure main page background is theme-aware */
@@ -113,4 +129,94 @@ html[data-theme='light'] .hero--primary {
 
 html[data-theme='light'] .hero {
   background-color: var(--ifm-background-color);
+}
+
+/* Intro page header layout */
+.intro-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+}
+
+.intro-content {
+  flex: 1;
+  order: 1;
+}
+
+.intro-logo {
+  margin-left: 20px;
+  flex-shrink: 0;
+  order: 2;
+}
+
+/* Stack logo above content on mobile */
+@media screen and (max-width: 996px) {
+  .intro-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .intro-logo {
+    margin-left: 0;
+    margin-bottom: 1.5rem;
+    order: 1; /* Logo first on mobile */
+  }
+  
+  .intro-content {
+    width: 100%;
+    order: 2; /* Content second on mobile */
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .intro-logo img {
+    width: 150px; /* Smaller logo on very small screens */
+    height: auto;
+  }
+  
+  .intro-logo {
+    margin-bottom: 1rem;
+  }
+}
+
+/* General mobile improvements */
+@media screen and (max-width: 996px) {
+  /* Improve navbar on mobile */
+  .navbar__items {
+    flex-wrap: wrap;
+  }
+  
+  /* Better spacing for navbar items on mobile */
+  .navbar__item {
+    margin: 0.25rem 0;
+  }
+  
+  /* Ensure container doesn't overflow on mobile */
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  /* Even tighter spacing on very small screens */
+  .container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  
+  /* Improve navbar brand on mobile */
+  .navbar__brand {
+    font-size: 1rem;
+  }
+  
+  /* Better table responsiveness in docs */
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 }

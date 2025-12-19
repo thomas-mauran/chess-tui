@@ -6,16 +6,16 @@ sidebar_position: 1
 
 import Logo from '/img/logo.png';
 
-<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-  <div style={{ flex: '1' }}>
+<div className="intro-header">
+  <div className="intro-logo">
+    <img src={Logo} alt="logo" width="200" />
+  </div>
+  <div className="intro-content">
     ### Welcome to the chess-tui documentation!
 
     Chess-tui is a simple chess game you can play from your terminal. It supports local 2 players mode, online multiplayer, playing against any UCI compatible chess engine, Lichess integration, custom skins and more!
 
     This documentation will guide you through the different features of the game, how to install it, and the code architecture of the project if you want to contribute.
-  </div>
-  <div style={{ marginLeft: '20px' }}>
-    <img src={Logo} alt="logo" width="200" />
   </div>
 </div>
 
