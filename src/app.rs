@@ -352,8 +352,8 @@ impl App {
                 match result {
                     Ok((game_id, color)) => {
                         log::info!("Found Lichess game: {} with color {:?}", game_id, color);
-                        // For new games from seek, initial_move_count is 0
-                        self.setup_lichess_game(game_id, color, 0);
+                        // Use the helper function to set up the game with state
+                        self.setup_lichess_game_with_state(game_id, color, None);
                     }
                     Err(e) => {
                         log::error!("Failed to seek Lichess game: {}", e);
@@ -363,6 +363,105 @@ impl App {
                 }
             }
         }
+    }
+
+    /// Setup a Lichess game by fetching FEN and setting up board state
+    /// This handles the common logic for joining games (by code or from ongoing games list)
+    fn setup_lichess_game_with_state(
+        &mut self,
+        game_id: String,
+        color: Color,
+        initial_fen: Option<String>,
+    ) -> bool {
+        // Try to get FEN if not provided
+        let mut fen = initial_fen;
+
+        // If not provided, try to get FEN from ongoing games if available
+        if fen.is_none() {
+            fen = self
+                .ongoing_games
+                .iter()
+                .find(|g| g.game_id == game_id)
+                .map(|g| g.fen.clone());
+        }
+
+        // If still not found, try fetching ongoing games to get FEN
+        if fen.is_none() {
+            if let Some(token) = &self.lichess_token {
+                let client = crate::lichess::LichessClient::new(token.clone());
+                if let Ok(ongoing_games) = client.get_ongoing_games() {
+                    fen = ongoing_games
+                        .iter()
+                        .find(|g| g.game_id == game_id)
+                        .map(|g| g.fen.clone());
+                }
+            }
+        }
+
+        // If we have FEN, set up board from FEN
+        // Also try to get turn count to set initial_move_count correctly
+        if let Some(ref fen_str) = fen {
+            log::info!("Setting up game from FEN: {}", fen_str);
+
+            // Try to get turn count from public API to set initial_move_count correctly
+            // This ensures the last move shows in green immediately when joining
+            // We already have the FEN, so we only need the turn count
+            let mut initial_move_count = 0;
+            if let Some(token) = &self.lichess_token {
+                let client = crate::lichess::LichessClient::new(token.clone());
+                match client.get_game_turn_count(&game_id) {
+                    Ok(turns) => {
+                        initial_move_count = turns;
+                        log::info!(
+                            "Got turn count from API: {} (half-moves)",
+                            initial_move_count
+                        );
+                    }
+                    Err(e) => {
+                        log::warn!(
+                            "Failed to get turn count: {} (last move may not show immediately)",
+                            e
+                        );
+                    }
+                }
+            }
+
+            match shakmaty::fen::Fen::from_ascii(fen_str.as_bytes()) {
+                Ok(fen_data) => {
+                    match fen_data
+                        .into_position::<shakmaty::Chess>(shakmaty::CastlingMode::Standard)
+                    {
+                        Ok(position) => {
+                            self.game.logic.game_board.position_history = vec![position];
+                            self.game.logic.game_board.move_history = vec![];
+                            self.game.logic.game_board.taken_pieces = vec![];
+                            self.game.logic.game_board.history_position_index = None;
+                            self.game.logic.sync_player_turn_with_position();
+                            self.setup_lichess_game(game_id, color, initial_move_count);
+                            return true;
+                        }
+                        Err(e) => {
+                            log::error!("Failed to parse FEN position: {}", e);
+                            self.error_message = Some(format!("Failed to parse FEN: {}", e));
+                            self.current_popup = Some(Popups::Error);
+                            return false;
+                        }
+                    }
+                }
+                Err(e) => {
+                    log::error!("Failed to parse FEN string: {}", e);
+                    self.error_message = Some(format!("Failed to parse FEN: {}", e));
+                    self.current_popup = Some(Popups::Error);
+                    return false;
+                }
+            }
+        }
+
+        // Final fallback: No FEN available (new game from seek)
+        // For new games from seek, initial_move_count is 0
+        log::info!("No FEN available, setting up as new game");
+        self.setup_lichess_game(game_id, color, 0);
+        true
     }
 
     fn setup_lichess_game(&mut self, game_id: String, color: Color, initial_move_count: usize) {
@@ -550,116 +649,8 @@ impl App {
                 fen
             );
 
-            // Fetch moves from board API to build history
-            // Try board API first, then fall back to PGN export API
-            let moves_string = if let Some(token) = &self.lichess_token {
-                let client = crate::lichess::LichessClient::new(token.clone());
-
-                // First try board API
-                match client.get_game_state_with_moves(&game_id) {
-                    Ok(moves) => {
-                        log::info!("Fetched moves from board API");
-                        Some(moves)
-                    }
-                    Err(e) => {
-                        log::warn!(
-                            "Failed to fetch moves from board API: {}, trying PGN export API...",
-                            e
-                        );
-
-                        // Fallback to PGN export API
-                        match client.get_game_pgn(&game_id) {
-                            Ok(pgn) => {
-                                log::info!("Successfully fetched PGN from export API");
-                                // Parse PGN to extract moves in UCI format
-                                match crate::lichess::LichessClient::parse_pgn_moves(&pgn) {
-                                    Ok(uci_moves) => {
-                                        let move_count = uci_moves.split_whitespace().count();
-                                        log::info!(
-                                            "Successfully parsed PGN ({} moves)",
-                                            move_count
-                                        );
-                                        Some(uci_moves)
-                                    }
-                                    Err(parse_err) => {
-                                        log::warn!(
-                                            "Failed to parse PGN moves: {}, will use FEN only",
-                                            parse_err
-                                        );
-                                        None
-                                    }
-                                }
-                            }
-                            Err(pgn_err) => {
-                                log::warn!(
-                                    "Failed to fetch PGN from export API for game {}: {}. This is expected for ongoing games - history will be built from stream.",
-                                    game_id,
-                                    pgn_err
-                                );
-                                None
-                            }
-                        }
-                    }
-                }
-            } else {
-                log::warn!("No Lichess token available, cannot fetch moves");
-                None
-            };
-
-            // If we have moves, apply them to build the history
-            if let Some(ref moves_str) = moves_string {
-                if !moves_str.trim().is_empty() {
-                    self.game
-                        .logic
-                        .game_board
-                        .reconstruct_history(moves_str, Some(&fen));
-
-                    // Sync the player turn with the position's turn
-                    self.game.logic.sync_player_turn_with_position();
-
-                    // Calculate initial move count (number of half-moves)
-                    let initial_move_count = self.game.logic.game_board.move_history.len();
-
-                    log::info!(
-                        "Setting up Lichess game with {} moves in history",
-                        initial_move_count
-                    );
-
-                    // Now set up the Lichess connection
-                    self.setup_lichess_game(game_id, color, initial_move_count);
-                    return;
-                }
-            }
-
-            // Fallback: No moves available or empty moves string
-            // Set up with FEN position directly
-            log::info!("No moves available, setting up game from FEN: {}", fen);
-            match shakmaty::fen::Fen::from_ascii(fen.as_bytes()) {
-                Ok(fen_data) => {
-                    match fen_data
-                        .into_position::<shakmaty::Chess>(shakmaty::CastlingMode::Standard)
-                    {
-                        Ok(position) => {
-                            self.game.logic.game_board.position_history = vec![position];
-                            self.game.logic.game_board.move_history = vec![];
-                            self.game.logic.game_board.taken_pieces = vec![];
-                            self.game.logic.game_board.history_position_index = None;
-                            self.game.logic.sync_player_turn_with_position();
-                            self.setup_lichess_game(game_id, color, 0);
-                        }
-                        Err(e) => {
-                            log::error!("Failed to parse FEN position: {}", e);
-                            self.error_message = Some(format!("Failed to parse FEN: {}", e));
-                            self.current_popup = Some(Popups::Error);
-                        }
-                    }
-                }
-                Err(e) => {
-                    log::error!("Failed to parse FEN string: {}", e);
-                    self.error_message = Some(format!("Failed to parse FEN: {}", e));
-                    self.current_popup = Some(Popups::Error);
-                }
-            }
+            // Use the helper function to set up the game with state (pass the FEN we already have)
+            self.setup_lichess_game_with_state(game_id, color, Some(fen));
         }
     }
 

@@ -1054,6 +1054,36 @@ impl LichessClient {
         Err("No moves found in game state".into())
     }
 
+    /// Get turn count from public API (number of half-moves)
+    /// This is useful when we already have the FEN and only need the turn count
+    pub fn get_game_turn_count(&self, game_id: &str) -> Result<usize, Box<dyn Error>> {
+        // Use public API endpoint /api/game/{id} for polling (no auth required)
+        let url = format!("{}/game/{}", LICHESS_API_URL, game_id);
+        let response = self
+            .client
+            .get(&url)
+            .header(
+                "User-Agent",
+                "chess-tui (https://github.com/thomas-mauran/chess-tui)",
+            )
+            .send()?;
+
+        if !response.status().is_success() {
+            return Err(format!("Failed to get turn count: {}", response.status()).into());
+        }
+
+        let json: serde_json::Value = response.json()?;
+
+        // Extract turns (number of half-moves)
+        let turns = json
+            .get("turns")
+            .and_then(|v| v.as_u64())
+            .map(|v| v as usize)
+            .unwrap_or(0);
+
+        Ok(turns)
+    }
+
     /// Get game PGN from export API
     /// Uses the /api/games/export/{ids} endpoint to get the game in PGN format
     /// Returns the PGN string which contains all moves in standard notation
@@ -1246,7 +1276,6 @@ impl LichessClient {
             );
             let mut last_turns: Option<usize> = None;
             let mut last_move_seen: Option<String> = None;
-            let mut last_was_player_turn: bool = false;
             let mut last_status: Option<String> = None;
 
             loop {
@@ -1254,21 +1283,17 @@ impl LichessClient {
                 std::thread::sleep(std::time::Duration::from_secs(3));
 
                 // Check if we received a signal that the player made a move
-                // This resets the skip flag so we poll again (opponent's turn now)
+                // This ensures we poll immediately to check for opponent's response
                 if let Some(ref rx) = player_move_rx {
                     if rx.try_recv().is_ok() {
-                        log::debug!("Player made a move, resetting polling skip flag");
-                        last_was_player_turn = false;
+                        log::debug!(
+                            "Player made a move, will poll to check for opponent's response"
+                        );
                         // Continue to poll immediately to check for opponent's response
                     }
                 }
 
-                // Skip polling if we know it's the player's turn from the last poll
-                if last_was_player_turn {
-                    log::debug!("Skipping poll - it's the player's turn (from last poll)");
-                    continue;
-                }
-
+                // Always poll to detect moves made on the Lichess website, even when it's the player's turn
                 log::debug!("Polling game {}...", game_id);
 
                 // Use public stream endpoint to get current game state with moves
@@ -1501,7 +1526,8 @@ impl LichessClient {
                                         }
                                     }
 
-                                    // AFTER checking for moves, check whose turn it is to decide if we should continue polling
+                                    // Check whose turn it is for logging purposes
+                                    // We always poll now to detect moves made on the Lichess website
                                     let is_player_turn = if let Some(player_color) = player_color {
                                         // Check from the "player" field in the gameFull event
                                         if let Some(player) =
@@ -1527,24 +1553,19 @@ impl LichessClient {
                                                 };
                                                 active_color == player_color
                                             } else {
-                                                false // Can't determine, poll anyway
+                                                false // Can't determine
                                             }
                                         } else {
-                                            false // Can't determine, poll anyway
+                                            false // Can't determine
                                         }
                                     } else {
-                                        false // No player color info, poll anyway
+                                        false // No player color info
                                     };
-
-                                    // Update last_was_player_turn for next poll cycle
-                                    last_was_player_turn = is_player_turn;
 
                                     if is_player_turn {
                                         log::debug!(
-                                            "It's the player's turn, will skip next poll cycle"
+                                            "It's the player's turn, but continuing to poll to detect moves made on website"
                                         );
-                                        // Don't continue here - we still want to process any moves we found above
-                                        // The next poll cycle will be skipped
                                     } else {
                                         log::debug!(
                                             "It's the opponent's turn, will continue polling"
