@@ -403,23 +403,25 @@ impl App {
         if let Some(ref fen_str) = fen {
             log::info!("Setting up game from FEN: {}", fen_str);
 
-            // Try to get turn count from public API to set initial_move_count correctly
+            // Try to get turn count and last move from public API immediately
             // This ensures the last move shows in green immediately when joining
-            // We already have the FEN, so we only need the turn count
             let mut initial_move_count = 0;
+            let mut last_move_to_add: Option<String> = None;
             if let Some(token) = &self.lichess_token {
                 let client = crate::lichess::LichessClient::new(token.clone());
-                match client.get_game_turn_count(&game_id) {
-                    Ok(turns) => {
+                match client.get_game_turn_count_and_last_move(&game_id) {
+                    Ok((turns, last_move)) => {
                         initial_move_count = turns;
+                        last_move_to_add = last_move.clone();
                         log::info!(
-                            "Got turn count from API: {} (half-moves)",
-                            initial_move_count
+                            "Got turn count from API: {} (half-moves), last move: {:?}",
+                            initial_move_count,
+                            last_move
                         );
                     }
                     Err(e) => {
                         log::warn!(
-                            "Failed to get turn count: {} (last move may not show immediately)",
+                            "Failed to get game info: {} (last move may not show immediately)",
                             e
                         );
                     }
@@ -437,7 +439,13 @@ impl App {
                             self.game.logic.game_board.taken_pieces = vec![];
                             self.game.logic.game_board.history_position_index = None;
                             self.game.logic.sync_player_turn_with_position();
-                            self.setup_lichess_game(game_id, color, initial_move_count);
+                            // Send last move immediately if we have it, so it shows in green right away
+                            self.setup_lichess_game(
+                                game_id,
+                                color,
+                                initial_move_count,
+                                last_move_to_add,
+                            );
                             return true;
                         }
                         Err(e) => {
@@ -460,21 +468,39 @@ impl App {
         // Final fallback: No FEN available (new game from seek)
         // For new games from seek, initial_move_count is 0
         log::info!("No FEN available, setting up as new game");
-        self.setup_lichess_game(game_id, color, 0);
+        self.setup_lichess_game(game_id, color, 0, None);
         true
     }
 
-    fn setup_lichess_game(&mut self, game_id: String, color: Color, initial_move_count: usize) {
+    fn setup_lichess_game(
+        &mut self,
+        game_id: String,
+        color: Color,
+        initial_move_count: usize,
+        immediate_last_move: Option<String>,
+    ) {
         if let Some(token) = &self.lichess_token {
             let client = LichessClient::new(token.clone());
             let (lichess_to_app_tx, lichess_to_app_rx) = channel::<String>();
             let (app_to_lichess_tx, app_to_lichess_rx) = channel::<String>();
             let (player_move_tx, player_move_rx) = channel::<()>();
 
-            // Start streaming game events
+            // Send last move immediately if we have it (before starting stream)
+            // This ensures it shows in green right away instead of waiting for first poll
+            if let Some(ref last_move) = immediate_last_move {
+                log::info!("Sending last move immediately: {}", last_move);
+                let _ = lichess_to_app_tx.send(last_move.clone());
+                // Also send INIT_MOVES to set the initial move count correctly
+                if initial_move_count > 0 {
+                    let _ = lichess_to_app_tx.send(format!("INIT_MOVES:{}", initial_move_count));
+                }
+            }
+
+            // Start streaming game events (clone the sender since it's moved)
+            let lichess_to_app_tx_clone = lichess_to_app_tx.clone();
             if let Err(e) = client.stream_game(
                 game_id.clone(),
-                lichess_to_app_tx,
+                lichess_to_app_tx_clone,
                 Some(color),
                 Some(player_move_rx),
             ) {
