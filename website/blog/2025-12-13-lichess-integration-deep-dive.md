@@ -45,40 +45,39 @@ Initially, we tried to use Lichess's streaming API (`/api/stream/game/{id}`) for
 
 This was unacceptable for a chess application where timely move updates are critical. A 60-second delay could mean missing your opponent's move entirely, especially in time-critical situations.
 
-### Our Solution: Intelligent Polling
+### Our Solution: Continuous Polling
 
-To work around this limitation, we implemented a hybrid approach that combines both streaming and polling:
+To work around this limitation, we implemented a continuous polling system that provides reliable move detection:
 
 #### 1. **Polling Thread (Primary Method)**
 
 We spawn a dedicated polling thread that:
 - Polls the game state **every 3 seconds** using `/api/stream/game/{id}`
 - Compares the `turns` count and `lastMove` field to detect new moves
-- Skips polling when it's the player's turn (to avoid unnecessary API calls)
-- Resumes polling immediately after the player makes a move
+- **Polls continuously** even when it's the player's turn, to detect moves made on the Lichess website
+- Uses the public stream endpoint, reading the first line (gameFull event) and closing the connection
 
 ```rust
 // Poll every 3 seconds to avoid the 3-60 second delay in the stream
 std::thread::sleep(std::time::Duration::from_secs(3));
 ```
 
-#### 2. **Turn Detection Logic**
+#### 2. **Initial Game State Setup**
 
-The polling system includes sophisticated logic to determine whose turn it is:
+When joining an ongoing game, we:
+- Fetch the current board state using FEN (Forsyth-Edwards Notation) from the game state
+- Immediately fetch the turn count and last move to display the current position
+- Set up the board position directly from FEN, ensuring accurate state representation
+- Display the last move immediately (highlighted in green) without waiting for the first poll
 
-- Parses the FEN (Forsyth-Edwards Notation) to determine the active color
-- Checks the `player` field in the game state
-- Skips polling cycles when it's the player's turn
-- Automatically resumes when the player makes a move (via a signal channel)
+This ensures that when you join a game in progress, you see the exact current board state right away.
 
-This optimization reduces unnecessary API calls while ensuring we catch opponent moves as quickly as possible.
+#### 3. **Simplified Architecture**
 
-#### 3. **Streaming Thread (Secondary Method)**
-
-We also maintain a streaming connection as a backup:
-- Provides game status updates (checkmate, draw, resignation)
-- Handles initial game state when joining an ongoing game
-- Acts as a fallback if polling fails
+We've simplified the system by:
+- **Removing the streaming thread** - relying solely on polling for all updates
+- Using FEN-based board setup instead of trying to reconstruct move history
+- Fetching game state information directly from the stream endpoint when needed
 
 ### The Struggles We Faced
 
@@ -96,19 +95,21 @@ The Lichess API doesn't provide a simple "new move" event. We had to:
 
 When joining an ongoing game, we need to:
 - Detect how many moves have already been played
-- Send the existing moves to the game board in the correct order
-- Ensure the board state matches the server state exactly
+- Display the current board state accurately
+- Show the last move immediately without delay
 
-We solved this by sending an `INIT_MOVES` command that tells the game logic how many moves to expect, preventing duplicate move application.
+We solved this by:
+- Fetching the FEN (Forsyth-Edwards Notation) directly from the game state
+- Setting up the board position from FEN, which provides the exact current state
+- Fetching the turn count and last move immediately when joining, so it displays right away
+- Using an `INIT_MOVES` command that tells the game logic how many moves to expect, preventing duplicate move application
 
-#### Challenge 3: Turn Detection Edge Cases
+#### Challenge 3: Continuous Polling
 
-Determining whose turn it is can be tricky:
-- The API format varies between endpoints
-- Some games might not have complete state information
-- We need to handle cases where the player color isn't immediately available
-
-Our solution checks multiple sources (FEN, player field, game state) and falls back gracefully.
+We initially tried to optimize by skipping polls when it's the player's turn, but this prevented detection of moves made on the Lichess website. Our solution:
+- Polls continuously every 3 seconds regardless of whose turn it is
+- This allows users to make moves both in `chess-tui` and on the Lichess website while staying synchronized
+- The polling interval is short enough to catch moves quickly while being respectful of API rate limits
 
 #### Challenge 4: Game Status Updates
 
@@ -158,11 +159,12 @@ We need to detect when games end (checkmate, draw, resignation, etc.):
 2. **API Rate Limits**
    - Polling every 3 seconds means ~20 requests per minute per game
    - Lichess rate limits are generous, but multiple simultaneous games could be an issue
-   - We skip polls when it's the player's turn to reduce load
+   - We use the public stream endpoint which doesn't require authentication and is more reliable
 
-3. **Stream Reliability**
-   - The streaming API is used as a backup but isn't relied upon for moves
-   - Some game status updates might be delayed if streaming fails
+3. **Architecture Simplification**
+   - We've removed the streaming thread to simplify the codebase
+   - All updates now come through the polling mechanism
+   - This reduces complexity while maintaining reliability
 
 ## Next Steps
 
