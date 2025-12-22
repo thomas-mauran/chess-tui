@@ -545,7 +545,7 @@ pub fn render_color_selection_popup(frame: &mut Frame, app: &App) {
         .constraints(
             [
                 Constraint::Ratio(1, 3),
-                Constraint::Ratio(1, 3),
+                Constraint::Min(3),
                 Constraint::Ratio(1, 3),
             ]
             .as_ref(),
@@ -565,7 +565,6 @@ pub fn render_color_selection_popup(frame: &mut Frame, app: &App) {
         .split(inner_popup_layout_vertical[1]);
 
     let display_mode = &app.game.ui.display_mode;
-    let piece_size = PieceSize::from_dimensions(inner_popup_layout_horizontal[0].height);
 
     // White option: white pawn on black background (like a chess square)
     let white_selected = app.menu_cursor == 0;
@@ -580,10 +579,12 @@ pub fn render_color_selection_popup(frame: &mut Frame, app: &App) {
     let white_area = inner_popup_layout_horizontal[0];
     frame.render_widget(white_block.clone(), white_area);
 
+    let white_inner_area = white_block.inner(white_area);
+    let piece_size = PieceSize::from_dimensions(white_inner_area.height);
+
     // Render background only in the inner area (inside the border)
     if white_selected {
-        let inner_area = white_block.inner(white_area);
-        render_cell(frame, inner_area, Color::Black, None);
+        render_cell(frame, white_inner_area, Color::Black, None);
     }
 
     let white_pawn = Paragraph::new(Pawn::to_string(
@@ -607,7 +608,7 @@ pub fn render_color_selection_popup(frame: &mut Frame, app: &App) {
                 Modifier::empty()
             }),
     );
-    frame.render_widget(white_pawn, white_block.inner(white_area));
+    frame.render_widget(white_pawn, white_inner_area);
 
     // Black option: black pawn on white background (like a chess square)
     let black_selected = app.menu_cursor == 1;
@@ -622,15 +623,17 @@ pub fn render_color_selection_popup(frame: &mut Frame, app: &App) {
     let black_area = inner_popup_layout_horizontal[2];
     frame.render_widget(black_block.clone(), black_area);
 
+    let black_inner_area = black_block.inner(black_area);
+    let black_piece_size = PieceSize::from_dimensions(black_inner_area.height);
+
     // Render background only in the inner area (inside the border)
     if black_selected {
-        let inner_area = black_block.inner(black_area);
-        render_cell(frame, inner_area, Color::White, None);
+        render_cell(frame, black_inner_area, Color::White, None);
     }
 
     let black_pawn = Paragraph::new(Pawn::to_string(
         display_mode,
-        piece_size,
+        black_piece_size,
         Some(ShakmatyColor::Black),
     ))
     .block(Block::default())
@@ -649,7 +652,7 @@ pub fn render_color_selection_popup(frame: &mut Frame, app: &App) {
                 Modifier::empty()
             }),
     );
-    frame.render_widget(black_pawn, black_block.inner(black_area));
+    frame.render_widget(black_pawn, black_inner_area);
 
     // Labels under each option to make the choice explicit and readable on any theme
     let label_layout_horizontal = Layout::default()
