@@ -45,13 +45,6 @@ struct GameState {
     status: String,
 }
 
-#[derive(Debug, Clone)]
-pub struct GameStatePoll {
-    pub fen: Option<String>,
-    pub last_move: Option<String>,
-    pub turns: Option<usize>,
-}
-
 #[derive(Debug, Deserialize, Clone)]
 pub struct OngoingGame {
     #[serde(rename = "gameId")]
@@ -1019,11 +1012,15 @@ impl LichessClient {
         Err("Game not started yet or failed to join. If you created a challenge, make sure your opponent has accepted it. Otherwise, try using 'My Ongoing Games' to join.".into())
     }
 
-    /// Get game state with moves from board API
-    /// Returns the current game state including moves string
-    pub fn get_game_state_with_moves(&self, game_id: &str) -> Result<String, Box<dyn Error>> {
-        // Use board API stream endpoint to get the gameFull event with moves
-        let url = format!("{}/board/game/{}/stream", LICHESS_API_URL, game_id);
+    /// Get turn count and last move from public API
+    /// Returns (turn_count, last_move) - useful when setting up a game
+    pub fn get_game_turn_count_and_last_move(
+        &self,
+        game_id: &str,
+    ) -> Result<(usize, Option<String>), Box<dyn Error>> {
+        // Use public stream endpoint /api/stream/game/{id} (same as polling)
+        // Read the first line (gameFull event), then close the stream
+        let url = format!("{}/stream/game/{}", LICHESS_API_URL, game_id);
         let response = self
             .client
             .get(&url)
@@ -1031,203 +1028,41 @@ impl LichessClient {
                 "User-Agent",
                 "chess-tui (https://github.com/thomas-mauran/chess-tui)",
             )
-            .bearer_auth(&self.token)
             .send()?;
 
         if !response.status().is_success() {
-            return Err(format!("Failed to get game state: {}", response.status()).into());
+            return Err(format!("Failed to get game info: {}", response.status()).into());
         }
 
         // Read the first line which should be the gameFull event
         let reader = BufReader::new(response);
         if let Some(Ok(line)) = reader.lines().next() {
+            if line.trim().is_empty() {
+                return Err("Empty response from stream".into());
+            }
+
             if let Ok(json) = serde_json::from_str::<serde_json::Value>(&line) {
-                // The board API returns gameFull with state.moves
-                if let Some(state) = json.get("state") {
-                    if let Some(moves) = state.get("moves").and_then(|v| v.as_str()) {
-                        return Ok(moves.to_string());
-                    }
-                }
+                log::info!("Game info JSON: {:?}", json);
+                // Extract turns (number of half-moves)
+                let turns = json
+                    .get("turns")
+                    .and_then(|v| v.as_u64())
+                    .map(|v| v as usize)
+                    .unwrap_or(0);
+
+                // Extract last move
+                let last_move = json
+                    .get("lastMove")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string());
+
+                return Ok((turns, last_move));
+            } else {
+                return Err("Failed to parse JSON from stream".into());
             }
         }
 
-        Err("No moves found in game state".into())
-    }
-
-    /// Get game PGN from export API
-    /// Uses the /api/games/export/{ids} endpoint to get the game in PGN format
-    /// Returns the PGN string which contains all moves in standard notation
-    pub fn get_game_pgn(&self, game_id: &str) -> Result<String, Box<dyn Error>> {
-        let url = format!("{}/games/export/{}", LICHESS_API_URL, game_id);
-        let response = self
-            .client
-            .get(&url)
-            .header(
-                "User-Agent",
-                "chess-tui (https://github.com/thomas-mauran/chess-tui)",
-            )
-            .bearer_auth(&self.token)
-            .header("Accept", "application/x-chess-pgn")
-            .send()?;
-
-        if !response.status().is_success() {
-            return Err(format!("Failed to get game PGN: {}", response.status()).into());
-        }
-
-        let pgn = response.text()?;
-        Ok(pgn)
-    }
-
-    /// Extract moves from PGN format
-    /// Parses PGN and returns moves in UCI format (space-separated)
-    /// Example PGN: "1. e4 e5 2. Nf3 Nc6" -> "e2e4 e7e5 g1f3 b8c6"
-    pub fn parse_pgn_moves(pgn: &str) -> Result<String, Box<dyn Error>> {
-        use shakmaty::{san::San, Chess, Position};
-
-        // Find the moves section (after the headers, which end with a blank line)
-        let moves_section = pgn
-            .split("\n\n")
-            .nth(1)
-            .ok_or("No moves section found in PGN")?;
-
-        let cleaned = Self::clean_pgn_string(moves_section);
-        let mut position = Chess::default();
-        let mut uci_moves = Vec::new();
-
-        // Split by whitespace and process each token
-        for token in cleaned.split_whitespace() {
-            // Skip move numbers (1., 2., etc.) and result markers
-            if token.ends_with('.')
-                || token == "1-0"
-                || token == "0-1"
-                || token == "1/2-1/2"
-                || token == "*"
-            {
-                if token == "1-0" || token == "0-1" || token == "1/2-1/2" || token == "*" {
-                    break; // End of game
-                }
-                continue;
-            }
-
-            // Try to parse as SAN (Standard Algebraic Notation)
-            match San::from_ascii(token.as_bytes()) {
-                Ok(san) => {
-                    // Convert SAN to a move
-                    match san.to_move(&position) {
-                        Ok(chess_move) => {
-                            // Convert to UCI format (e.g., "e2e4")
-                            // shakmaty::Move implements Display which gives UCI format for some variants,
-                            // but we want pure coordinate notation.
-                            // However, we can construct it manually or use uci() method if available.
-                            // Let's stick to manual construction for control.
-
-                            let from_sq = chess_move.from().unwrap_or(shakmaty::Square::A1); // Fallback should not happen for valid moves
-                            let to_sq = chess_move.to();
-
-                            let mut uci_move = format!("{}{}", from_sq, to_sq);
-
-                            if let Some(role) = chess_move.promotion() {
-                                let char = match role {
-                                    shakmaty::Role::Queen => 'q',
-                                    shakmaty::Role::Rook => 'r',
-                                    shakmaty::Role::Bishop => 'b',
-                                    shakmaty::Role::Knight => 'n',
-                                    _ => 'q',
-                                };
-                                uci_move.push(char);
-                            }
-
-                            uci_moves.push(uci_move);
-
-                            // Apply the move to update position
-                            match position.play(&chess_move) {
-                                Ok(new_pos) => position = new_pos,
-                                Err(e) => {
-                                    log::warn!("Failed to play move {}: {}", token, e);
-                                    break;
-                                }
-                            }
-                        }
-                        Err(e) => {
-                            log::warn!("Failed to convert SAN {} to move: {}", token, e);
-                        }
-                    }
-                }
-                Err(_) => {
-                    // Not a valid SAN, skip
-                }
-            }
-        }
-
-        Ok(uci_moves.join(" "))
-    }
-
-    fn clean_pgn_string(input: &str) -> String {
-        let mut cleaned = String::new();
-        let mut in_comment = false;
-        let mut in_annotation = false;
-        let mut in_recursive_annotation = 0; // Handle nested parentheses if any (though PGN usually uses {} and [])
-
-        for ch in input.chars() {
-            match ch {
-                '{' => in_comment = true,
-                '}' if in_comment => in_comment = false,
-                '[' => in_annotation = true,
-                ']' if in_annotation => in_annotation = false,
-                '(' => in_recursive_annotation += 1,
-                ')' if in_recursive_annotation > 0 => in_recursive_annotation -= 1,
-                _ if !in_comment && !in_annotation && in_recursive_annotation == 0 => {
-                    cleaned.push(ch)
-                }
-                _ => {}
-            }
-        }
-        cleaned
-    }
-
-    /// Poll game state from Lichess API
-    /// Returns the current FEN and last move if available
-    /// Uses the public API endpoint /api/game/{id} which doesn't require authentication
-    pub fn poll_game_state(&self, game_id: &str) -> Result<GameStatePoll, Box<dyn Error>> {
-        // Use public API endpoint /api/game/{id} for polling (no auth required)
-        let url = format!("{}/game/{}", LICHESS_API_URL, game_id);
-        let response = self
-            .client
-            .get(&url)
-            .header(
-                "User-Agent",
-                "chess-tui (https://github.com/thomas-mauran/chess-tui)",
-            )
-            .send()?;
-
-        if !response.status().is_success() {
-            return Err(format!("Failed to poll game state: {}", response.status()).into());
-        }
-
-        let json: serde_json::Value = response.json()?;
-
-        // The public API returns game data in a different format
-        // Extract moves from the moves field or from the pgn
-        let fen = json
-            .get("fen")
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string());
-
-        let last_move = json
-            .get("lastMove")
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string());
-
-        let turns = json
-            .get("turns")
-            .and_then(|v| v.as_u64())
-            .map(|v| v as usize);
-
-        Ok(GameStatePoll {
-            fen,
-            last_move,
-            turns,
-        })
+        Err("No data received from stream".into())
     }
 
     fn spawn_polling_thread(
@@ -1237,7 +1072,7 @@ impl LichessClient {
         player_color: Option<Color>,
         player_move_rx: Option<Receiver<()>>,
     ) {
-        let client = self.client.clone();
+        let client: Client = self.client.clone();
 
         thread::spawn(move || {
             log::info!(
@@ -1246,7 +1081,6 @@ impl LichessClient {
             );
             let mut last_turns: Option<usize> = None;
             let mut last_move_seen: Option<String> = None;
-            let mut last_was_player_turn: bool = false;
             let mut last_status: Option<String> = None;
 
             loop {
@@ -1254,21 +1088,17 @@ impl LichessClient {
                 std::thread::sleep(std::time::Duration::from_secs(3));
 
                 // Check if we received a signal that the player made a move
-                // This resets the skip flag so we poll again (opponent's turn now)
+                // This ensures we poll immediately to check for opponent's response
                 if let Some(ref rx) = player_move_rx {
                     if rx.try_recv().is_ok() {
-                        log::debug!("Player made a move, resetting polling skip flag");
-                        last_was_player_turn = false;
+                        log::debug!(
+                            "Player made a move, will poll to check for opponent's response"
+                        );
                         // Continue to poll immediately to check for opponent's response
                     }
                 }
 
-                // Skip polling if we know it's the player's turn from the last poll
-                if last_was_player_turn {
-                    log::debug!("Skipping poll - it's the player's turn (from last poll)");
-                    continue;
-                }
-
+                // Always poll to detect moves made on the Lichess website, even when it's the player's turn
                 log::debug!("Polling game {}...", game_id);
 
                 // Use public stream endpoint to get current game state with moves
@@ -1501,7 +1331,8 @@ impl LichessClient {
                                         }
                                     }
 
-                                    // AFTER checking for moves, check whose turn it is to decide if we should continue polling
+                                    // Check whose turn it is for logging purposes
+                                    // We always poll now to detect moves made on the Lichess website
                                     let is_player_turn = if let Some(player_color) = player_color {
                                         // Check from the "player" field in the gameFull event
                                         if let Some(player) =
@@ -1527,24 +1358,19 @@ impl LichessClient {
                                                 };
                                                 active_color == player_color
                                             } else {
-                                                false // Can't determine, poll anyway
+                                                false // Can't determine
                                             }
                                         } else {
-                                            false // Can't determine, poll anyway
+                                            false // Can't determine
                                         }
                                     } else {
-                                        false // No player color info, poll anyway
+                                        false // No player color info
                                     };
-
-                                    // Update last_was_player_turn for next poll cycle
-                                    last_was_player_turn = is_player_turn;
 
                                     if is_player_turn {
                                         log::debug!(
-                                            "It's the player's turn, will skip next poll cycle"
+                                            "It's the player's turn, but continuing to poll to detect moves made on website"
                                         );
-                                        // Don't continue here - we still want to process any moves we found above
-                                        // The next poll cycle will be skipped
                                     } else {
                                         log::debug!(
                                             "It's the opponent's turn, will continue polling"
@@ -1568,118 +1394,6 @@ impl LichessClient {
         });
     }
 
-    fn spawn_streaming_thread(&self, game_id: String, move_tx: Sender<String>) {
-        let client = self.client.clone();
-        let url = format!("{}/stream/game/{}", LICHESS_API_URL, game_id);
-
-        thread::spawn(move || {
-            log::info!("Starting game stream thread for game {}", game_id);
-            let response = match client
-                .get(&url)
-                .header(
-                    "User-Agent",
-                    "chess-tui (https://github.com/thomas-mauran/chess-tui)",
-                )
-                .send()
-            {
-                Ok(resp) => {
-                    let status = resp.status();
-                    log::info!(
-                        "Connected to game stream for {}. Status: {}",
-                        game_id,
-                        status
-                    );
-
-                    // Check if response is successful before reading stream
-                    if !status.is_success() {
-                        if status == reqwest::StatusCode::NOT_FOUND {
-                            log::error!("Game {} not found or has ended", game_id);
-                        } else if status == reqwest::StatusCode::UNAUTHORIZED {
-                            log::error!("Unauthorized to stream game {}", game_id);
-                        } else {
-                            log::error!("Failed to stream game {}: {}", game_id, status);
-                        }
-                        return; // Exit the thread early
-                    }
-
-                    resp
-                }
-                Err(e) => {
-                    log::error!("Failed to connect to game stream: {}", e);
-                    return;
-                }
-            };
-
-            let reader = BufReader::new(response);
-            for line in reader.lines() {
-                match line {
-                    Ok(line) => {
-                        if line.trim().is_empty() {
-                            continue;
-                        }
-
-                        log::debug!("Stream received line: {}", line);
-
-                        // Parse the JSON to extract the last move or game info
-                        // The public API returns objects with "lm" (last move) field
-                        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&line) {
-                            if let Some(last_move) = json.get("lm").and_then(|v| v.as_str()) {
-                                log::debug!("Received move from stream: {}", last_move);
-                                // Stream moves are delayed, so we rely on polling for moves
-                                // But we can still use stream for other events
-                            } else if json.get("fen").is_some() && json.get("turns").is_some() {
-                                // This is the initial gameFull event with current state
-                                // Extract turns count to know how many moves to skip
-                                if let Some(turns) = json.get("turns").and_then(|v| v.as_u64()) {
-                                    let turns_usize = turns as usize;
-                                    log::info!(
-                                        "Received gameFull event with {} turns (half-moves)",
-                                        turns_usize
-                                    );
-
-                                    // On gameFull event, if there are already moves (turns > 0),
-                                    // we need to send the lastMove so it gets applied to the board
-                                    // This handles the case when joining an ongoing game
-                                    // IMPORTANT: Send the move BEFORE INIT_MOVES so it's processed first
-                                    if turns_usize > 0 {
-                                        // The stream uses "lastMove" field (not "lm")
-                                        if let Some(last_move_str) =
-                                            json.get("lastMove").and_then(|v| v.as_str())
-                                        {
-                                            let last_move = last_move_str.to_string();
-                                            log::info!(
-                                                "Stream gameFull detected existing move: {} (turns: {}) - sending before INIT_MOVES",
-                                                last_move,
-                                                turns_usize
-                                            );
-                                            // Send the move FIRST
-                                            let _ = move_tx.send(last_move);
-                                        }
-                                    }
-
-                                    // Send initial move count AFTER the move (if any)
-                                    // This ensures the move is processed first, then INIT_MOVES updates the counters
-                                    let _ = move_tx.send(format!("INIT_MOVES:{}", turns_usize));
-                                }
-                                log::debug!("Received game info: {}", line);
-                            } else {
-                                // First message is the game description, no move to send
-                                log::debug!("Received game info: {}", line);
-                            }
-                        } else {
-                            log::warn!("Failed to parse JSON: {}", line);
-                        }
-                    }
-                    Err(e) => {
-                        log::error!("Error reading game stream: {}", e);
-                        break;
-                    }
-                }
-            }
-            log::info!("Game stream thread ended for {}", game_id);
-        });
-    }
-
     pub fn stream_game(
         &self,
         game_id: String,
@@ -1695,13 +1409,8 @@ impl LichessClient {
             return Ok(());
         }
 
-        self.spawn_polling_thread(
-            game_id.clone(),
-            move_tx.clone(),
-            player_color,
-            player_move_rx,
-        );
-        self.spawn_streaming_thread(game_id, move_tx);
+        // Only use polling - it handles everything including initial setup
+        self.spawn_polling_thread(game_id, move_tx, player_color, player_move_rx);
 
         Ok(())
     }
@@ -1744,42 +1453,5 @@ impl LichessClient {
 
         log::info!("Successfully resigned game: {}", game_id);
         Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_clean_pgn_string() {
-        let input = "1. e4 { comment } e5 [ %clk 0:05:00 ] 2. Nf3 ( 2. Nc3 )";
-        // Note: The function preserves spaces, so we might have extra spaces
-        let cleaned = LichessClient::clean_pgn_string(input);
-
-        // Check that comments and annotations are removed
-        assert!(!cleaned.contains("{"));
-        assert!(!cleaned.contains("}"));
-        assert!(!cleaned.contains("["));
-        assert!(!cleaned.contains("]"));
-        assert!(!cleaned.contains("("));
-        assert!(!cleaned.contains(")"));
-        assert!(!cleaned.contains("comment"));
-        assert!(!cleaned.contains("%clk"));
-        assert!(!cleaned.contains("Nc3"));
-
-        assert!(cleaned.contains("1. e4"));
-        assert!(cleaned.contains("e5"));
-        assert!(cleaned.contains("2. Nf3"));
-    }
-
-    #[test]
-    fn test_clean_pgn_nested() {
-        let input = "1. e4 { comment { nested } } e5";
-        let cleaned = LichessClient::clean_pgn_string(input);
-        assert!(!cleaned.contains("comment"));
-        assert!(!cleaned.contains("nested"));
-        assert!(cleaned.contains("1. e4"));
-        assert!(cleaned.contains("e5"));
     }
 }
