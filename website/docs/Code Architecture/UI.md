@@ -89,8 +89,8 @@ pub struct UI {
   - Formats moves in pairs (white, black)
   - Uses fixed-width formatting to ensure consistent column alignment:
     - Line numbers: Right-aligned in 3 characters + ". " (5 chars total)
-    - White moves: Icon + space + move notation in 10 characters (left-aligned)
-    - Black moves: Icon + space + move notation in 10 characters (left-aligned)
+    - White moves: Icon + space + move notation in 8 characters (left-aligned)
+    - Black moves: Icon + space + move notation in 8 characters (left-aligned)
   - Maintains alignment regardless of move length or piece type
 
 #### Material Rendering

@@ -329,7 +329,28 @@ impl UI {
             .borders(Borders::ALL)
             .border_style(Style::default().fg(WHITE))
             .border_type(BorderType::Rounded)
-            .padding(Padding::new(5, 10, 1, 2));
+            .padding(Padding::new(1, 2, 1, 2));
+
+        let height = area.height;
+
+        let right_panel_layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(height - 1), Constraint::Length(1)].as_ref())
+            .split(area);
+
+        // Calculate available width in the inner area (after borders and padding)
+        let inner_area = history_block.inner(right_panel_layout[0]);
+        let available_width = inner_area.width as usize;
+
+        // Calculate widths needed for different formats
+        // Big mode: line number (5 chars: "  1. ") + white move (8) + black move (8) = 21 chars
+        // Medium mode: white move (8) + black move (8) = 16 chars (no numbers)
+        // Small mode: one move per line, 8 chars per move (no numbers)
+        const BIG_MODE_WIDTH: usize = 21; // 5 + 8 + 8 (with numbers, 2 moves on one line)
+        const MEDIUM_MODE_WIDTH: usize = 16; // 8 + 8 (no numbers, 2 moves on one line)
+
+        let use_big_mode = available_width >= BIG_MODE_WIDTH;
+        let use_medium_mode = !use_big_mode && available_width >= MEDIUM_MODE_WIDTH;
 
         let mut lines: Vec<Line> = vec![];
 
@@ -350,34 +371,57 @@ impl UI {
                 utf_icon_black = role_to_utf_enum(&role_to, Some(shakmaty::Color::Black));
             }
 
-            // Format white move: icon + space + move notation (fixed total width of 10 chars)
-            let white_move_formatted =
-                format!("{:<10}", format!("{utf_icon_white} {}", move_white));
-            // Format black move: icon + space + move notation (fixed total width of 10 chars)
-            let black_move_formatted =
-                format!("{:<10}", format!("{utf_icon_black} {}", move_black));
+            if use_big_mode {
+                // Format white move: icon + space + move notation (fixed total width of 8 chars)
+                let white_move_formatted =
+                    format!("{:<8}", format!("{utf_icon_white} {}", move_white));
+                // Format black move: icon + space + move notation (fixed total width of 8 chars)
+                let black_move_formatted =
+                    format!("{:<8}", format!("{utf_icon_black} {}", move_black));
 
-            lines.push(Line::from(vec![
-                Span::raw(format!("{:>3}. ", i / 2 + 1)), // line number (right-aligned, 3 chars + ". ")
-                Span::styled(white_move_formatted, Style::default().fg(WHITE)), // white icon + move (fixed width)
-                Span::styled(black_move_formatted, Style::default().fg(WHITE)), // black icon + move (fixed width)
-            ]));
+                // Big mode: "  1. ♙ e4    ♟ d5   " (centered, with numbers, 2 moves on one line)
+                lines.push(Line::from(vec![
+                    Span::raw(format!("{:>3}. ", i / 2 + 1)), // line number (right-aligned, 3 chars + ". ")
+                    Span::styled(white_move_formatted, Style::default().fg(WHITE)), // white icon + move (fixed width)
+                    Span::styled(black_move_formatted, Style::default().fg(WHITE)), // black icon + move (fixed width)
+                ]));
+            } else if use_medium_mode {
+                // Format white move: icon + space + move notation (fixed total width of 8 chars)
+                let white_move_formatted =
+                    format!("{:<8}", format!("{utf_icon_white} {}", move_white));
+                // Format black move: icon + space + move notation (fixed total width of 8 chars)
+                let black_move_formatted =
+                    format!("{:<8}", format!("{utf_icon_black} {}", move_black));
+
+                // Medium mode: "♙ e4    ♟ d5   " (centered, no numbers, 2 moves on one line)
+                lines.push(Line::from(vec![
+                    Span::styled(white_move_formatted, Style::default().fg(WHITE)), // white icon + move (fixed width)
+                    Span::styled(black_move_formatted, Style::default().fg(WHITE)), // black icon + move (fixed width)
+                ]));
+            } else {
+                // Small mode: one move per line, no numbers
+                // "♙ e4"
+                // "♟ d5"
+                let white_move_text = format!("{utf_icon_white} {}", move_white);
+                lines.push(Line::from(vec![
+                    Span::styled(white_move_text, Style::default().fg(WHITE)), // white move
+                ]));
+                if !move_black.trim().is_empty() {
+                    let black_move_text = format!("{utf_icon_black} {}", move_black);
+                    lines.push(Line::from(vec![
+                        Span::styled(black_move_text, Style::default().fg(WHITE)), // black move
+                    ]));
+                }
+            }
         }
 
-        let history_paragraph = Paragraph::new(lines).alignment(Alignment::Left);
+        // Determine alignment: center for all modes
+        let alignment = Alignment::Center;
 
-        let height = area.height;
-
-        let right_panel_layout = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Length(height - 1), Constraint::Length(1)].as_ref())
-            .split(area);
+        let history_paragraph = Paragraph::new(lines).alignment(alignment);
 
         frame.render_widget(history_block.clone(), right_panel_layout[0]);
-        frame.render_widget(
-            history_paragraph,
-            history_block.inner(right_panel_layout[0]),
-        );
+        frame.render_widget(history_paragraph, inner_area);
     }
 
     /// Method to render the white material
