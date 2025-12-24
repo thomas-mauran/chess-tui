@@ -307,9 +307,21 @@ fn handle_page_input(app: &mut App, key_event: KeyEvent) {
 /// Handles keyboard input on the home/menu page.
 /// Supports navigation through menu items and selection.
 fn handle_home_page_events(app: &mut App, key_event: KeyEvent) {
+    // Number of menu items depends on whether sound feature is enabled
+    const MENU_ITEMS: u8 = {
+        #[cfg(feature = "sound")]
+        {
+            8 // Local game, Multiplayer, Lichess, Bot, Skin, Sound, Help, About
+        }
+        #[cfg(not(feature = "sound"))]
+        {
+            7 // Local game, Multiplayer, Lichess, Bot, Skin, Help, About
+        }
+    };
+
     match key_event.code {
-        KeyCode::Up | KeyCode::Char('k') => app.menu_cursor_up(8), // 8 menu items: Local game, Multiplayer, Lichess, Bot, Skin, Sound, Help, About
-        KeyCode::Down | KeyCode::Char('j') => app.menu_cursor_down(8), // 8 menu items
+        KeyCode::Up | KeyCode::Char('k') => app.menu_cursor_up(MENU_ITEMS),
+        KeyCode::Down | KeyCode::Char('j') => app.menu_cursor_down(MENU_ITEMS),
         // If on skin selection menu item (index 3), use left/right to cycle skins
         KeyCode::Left | KeyCode::Char('h') if app.menu_cursor == 3 => {
             app.cycle_skin_backward();

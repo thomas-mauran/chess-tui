@@ -1225,14 +1225,21 @@ impl App {
                 self.cycle_skin();
                 self.update_config();
             }
+            #[cfg(feature = "sound")]
             5 => {
                 // Toggle sound
                 self.sound_enabled = !self.sound_enabled;
                 crate::sound::set_sound_enabled(self.sound_enabled);
                 self.update_config();
             }
+            #[cfg(feature = "sound")]
             6 => self.toggle_help_popup(),
+            #[cfg(feature = "sound")]
             7 => self.current_page = Pages::Credit,
+            #[cfg(not(feature = "sound"))]
+            5 => self.toggle_help_popup(),
+            #[cfg(not(feature = "sound"))]
+            6 => self.current_page = Pages::Credit,
             _ => {}
         }
     }

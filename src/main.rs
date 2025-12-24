@@ -30,6 +30,9 @@ struct Args {
     /// Lichess API token
     #[arg(short, long)]
     lichess_token: Option<String>,
+    /// Disable sound effects
+    #[arg(long)]
+    no_sound: bool,
 }
 
 fn main() -> AppResult<()> {
@@ -176,6 +179,12 @@ fn main() -> AppResult<()> {
     // Command line lichess token takes precedence over configuration file
     if let Some(token) = &args.lichess_token {
         app.lichess_token = Some(token.clone());
+    }
+
+    // Command line no-sound flag takes precedence over configuration file
+    if args.no_sound {
+        app.sound_enabled = false;
+        chess_tui::sound::set_sound_enabled(false);
     }
 
     // Setup logging
@@ -361,6 +370,11 @@ fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResu
         config.bot_depth = Some(args.depth);
     }
 
+    // Always update sound_enabled if --no-sound flag is provided via command line (command line takes precedence)
+    if args.no_sound {
+        config.sound_enabled = Some(false);
+    }
+
     let toml_string = toml::to_string(&config)
         .expect("Failed to serialize config to TOML. This is a bug, please report it.");
     let mut file = File::create(config_path)?;
@@ -395,6 +409,7 @@ mod tests {
             engine_path: "test_engine_path".to_string(),
             depth: 10,
             lichess_token: None,
+            no_sound: false,
         };
 
         let config_dir = config_dir().unwrap();
