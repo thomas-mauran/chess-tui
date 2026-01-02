@@ -27,6 +27,9 @@ chess-tui -e "/opt/homebrew/bin/gnuchess --uci"
 # Set bot thinking depth
 chess-tui --depth 15
 
+# Disable sound effects
+chess-tui --no-sound
+
 # Combine both options
 chess-tui -e /path/to/engine --depth 15
 chess-tui -e "/opt/homebrew/bin/gnuchess --uci" --depth 15
@@ -57,6 +60,9 @@ log_level = "OFF"
 
 # Bot thinking depth for chess engine (1-255, default: 10)
 bot_depth = 10
+
+# Enable or disable sound effects (default: true)
+sound_enabled = true
 ``` 
 
 CONFIG_DIR is typically:
