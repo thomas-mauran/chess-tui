@@ -257,7 +257,8 @@ pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
         format!("Skin: {skin_name}")
     };
 
-    // Determine the "sound" text
+    // Determine the "sound" text (only if sound feature is enabled)
+    #[cfg(feature = "sound")]
     let sound_menu = {
         let sound_status = if app.sound_enabled {
             "On 🔊"
@@ -268,19 +269,27 @@ pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
     };
 
     // Menu items with descriptions
-    let menu_items: Vec<(&str, &str)> = vec![
+    let mut menu_items: Vec<(&str, &str)> = vec![
         ("Local game", "Practice mode - play against yourself"),
         ("Multiplayer", "Play with friends over network"),
         ("Lichess Online", "Play on Lichess.org"),
         ("Play Bot", "Challenge a chess engine"),
         (&display_mode_menu, "Change display theme"),
-        (&sound_menu, "Toggle sound effects"),
-        ("Help", "View keyboard shortcuts and controls"),
-        ("About", "Project information and credits"),
     ];
 
-    // Menu has 8 items, each takes 3 lines (item + description/empty + spacing), plus padding
-    const MENU_HEIGHT: u16 = 8 * 3 + 4;
+    // Add sound menu item only if sound feature is enabled
+    #[cfg(feature = "sound")]
+    {
+        menu_items.push((&sound_menu, "Toggle sound effects"));
+    }
+
+    menu_items.extend(vec![
+        ("Help", "View keyboard shortcuts and controls"),
+        ("About", "Project information and credits"),
+    ]);
+
+    // Menu height depends on number of items, each takes 3 lines (item + description/empty + spacing), plus padding
+    let menu_height = menu_items.len() as u16 * 3 + 4;
 
     let main_layout_horizontal = Layout::default()
         .direction(Direction::Vertical)
@@ -289,7 +298,7 @@ pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
                 Constraint::Ratio(1, 5),         // Title
                 Constraint::Length(1),           // Subtitle
                 Constraint::Min(0),              // Flexible space above menu
-                Constraint::Length(MENU_HEIGHT), // Menu (fixed height)
+                Constraint::Length(menu_height), // Menu (fixed height)
                 Constraint::Min(0),              // Flexible space below menu
                 Constraint::Ratio(1, 10),        // Footer/hints
             ]
