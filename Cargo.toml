@@ -40,6 +40,19 @@ codegen-units = 1
 opt-level = "z"
 strip = true
 
+[lints.clippy]
+correctness = { level = "deny", priority = -1 }
+suspicious = { level = "deny", priority = -1 }
+
+style = "warn"
+complexity = "warn"
+perf = "warn"
+
+unwrap_used = "warn"
+expect_used = "warn"
+todo = "warn"
+dbg_macro = "warn"
+
 [package.metadata.deb]
 # Configuration for cargo-deb (alternative packaging method)
 # Install with: cargo install cargo-deb

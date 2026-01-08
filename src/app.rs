@@ -282,7 +282,7 @@ impl App {
 
                 // Seek a correspondence game (no timer) since timer isn't implemented yet
                 // Using 0,0 which will trigger the days parameter in seek_game
-                match client.seek_game(0, 0, cancellation_token, my_id) {
+                match client.seek_game(0, 0, &cancellation_token, &my_id) {
                     Ok((game_id, color)) => {
                         let _ = tx.send(Ok((game_id, color)));
                     }
@@ -328,7 +328,7 @@ impl App {
                 };
 
                 // Join the game by code
-                match client.join_game(&game_id, my_id) {
+                match client.join_game(&game_id, &my_id) {
                     Ok((game_id, color)) => {
                         let _ = tx.send(Ok((game_id, color)));
                     }
@@ -1035,19 +1035,27 @@ impl App {
         };
 
         // Store in history
+        let Some(from_square) = bot_move.from() else {
+            log::error!("Bot move has no from square");
+            return;
+        };
         self.game.logic.game_board.move_history.push(Move::Normal {
             role: bot_move.role(),
-            from: bot_move.from().unwrap(),
+            from: from_square,
             capture: bot_move.capture(),
             to: bot_move.to(),
             promotion: bot_move.promotion(),
         });
 
+        let Ok(new_position) = current_position.play(&bot_move) else {
+            log::error!("Failed to play bot move");
+            return;
+        };
         self.game
             .logic
             .game_board
             .position_history
-            .push(current_position.play(&bot_move).unwrap());
+            .push(new_position);
         // Reset history navigation when a new move is made
         self.game.logic.game_board.history_position_index = None;
         self.game.logic.game_board.original_flip_state = None;
@@ -1262,7 +1270,10 @@ impl App {
     }
 
     pub fn update_config(&self) {
-        let config_dir = config_dir().unwrap();
+        let Ok(config_dir) = config_dir() else {
+            log::error!("Failed to get config directory");
+            return;
+        };
         let config_path = config_dir.join("chess-tui/config.toml");
         let mut config: Config = match fs::read_to_string(&config_path) {
             Ok(content) => toml::from_str(&content).unwrap_or_default(),
@@ -1535,12 +1546,12 @@ impl App {
             return false;
         }
 
+        let Some(selected_square) = self.game.ui.selected_square else {
+            return false;
+        };
         let authorized_positions = self.game.logic.game_board.get_authorized_positions(
             self.game.logic.player_turn,
-            &flip_square_if_needed(
-                self.game.ui.selected_square.unwrap(),
-                self.game.logic.game_board.is_flipped,
-            ),
+            &flip_square_if_needed(selected_square, self.game.logic.game_board.is_flipped),
         );
 
         // Check if target square is a valid move destination

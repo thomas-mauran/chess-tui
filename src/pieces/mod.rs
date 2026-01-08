@@ -23,6 +23,7 @@ pub enum PieceSize {
 
 impl PieceSize {
     /// Determine the appropriate piece size based on cell dimensions
+    #[must_use]
     pub fn from_dimensions(height: u16) -> Self {
         // If height is less than 3, use small (1x1)
         if height < 3 {
@@ -46,6 +47,7 @@ impl PieceSize {
 }
 
 /// Convert piece type to UTF-8 character
+#[must_use]
 pub fn role_to_utf_enum(role: &Role, color: Option<Color>) -> &'static str {
     match color {
         Some(Color::White) => match role {
@@ -70,6 +72,7 @@ pub fn role_to_utf_enum(role: &Role, color: Option<Color>) -> &'static str {
 
 /// Convert piece type to string based on display mode
 /// Note: This is used for the board grid. For multi-line designs, see individual piece modules.
+#[must_use]
 pub fn role_to_string_enum(role: Option<Role>, display_mode: &DisplayMode) -> &'static str {
     match display_mode {
         DisplayMode::DEFAULT | DisplayMode::CUSTOM => match role {

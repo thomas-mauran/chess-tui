@@ -36,12 +36,22 @@ pub struct SkinCollection {
 }
 
 impl Skin {
+    /// Loads a skin from a JSON file.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the file cannot be read or parsed.
     pub fn load_from_file<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn std::error::Error>> {
         let content = fs::read_to_string(path)?;
         let skin: Skin = serde_json::from_str(&content)?;
         Ok(skin)
     }
 
+    /// Loads all skins from a JSON file containing a collection.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the file cannot be read or parsed.
     pub fn load_all_skins<P: AsRef<Path>>(
         path: P,
     ) -> Result<Vec<Skin>, Box<dyn std::error::Error>> {
@@ -50,11 +60,13 @@ impl Skin {
         Ok(collection.skins)
     }
 
+    #[must_use]
     pub fn get_skin_by_name(skins: &[Skin], name: &str) -> Option<Skin> {
         skins.iter().find(|s| s.name == name).cloned()
     }
 
     /// Creates a special "Default" display mode skin entry
+    #[must_use]
     pub fn default_display_mode() -> Self {
         Self {
             name: "Default".to_string(),
@@ -69,6 +81,7 @@ impl Skin {
     }
 
     /// Creates a special "ASCII" display mode skin entry
+    #[must_use]
     pub fn ascii_display_mode() -> Self {
         Self {
             name: "ASCII".to_string(),

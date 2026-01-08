@@ -26,6 +26,15 @@ impl Bot {
         }
     }
 
+    /// Get the best move from the chess engine.
+    ///
+    /// # Panics
+    ///
+    /// Panics if:
+    /// - The engine process fails to spawn
+    /// - The engine fails to initialize
+    /// - The FEN string is invalid
+    /// - The engine fails to return a move
     pub fn get_move(&self, fen: &str) -> UciMove {
         // Parse engine_path to support command-line arguments
         // Split by spaces, treating first part as command and rest as args
@@ -45,17 +54,20 @@ impl Bot {
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped())
             .spawn()
-            .expect("Failed to spawn engine process");
+            .unwrap_or_else(|e| panic!("Failed to spawn engine process: {e}"));
 
-        let mut engine =
-            Engine::from_process(&mut process, false).expect("Failed to initialize engine");
+        let mut engine = Engine::from_process(&mut process, false)
+            .unwrap_or_else(|e| panic!("Failed to initialize engine: {e}"));
+
+        let fen_parsed =
+            Fen::from_str(fen).unwrap_or_else(|e| panic!("Failed to parse FEN '{fen}': {e}"));
 
         engine
             .send(ruci::Position::Fen {
-                fen: Cow::Owned(Fen::from_str(fen).unwrap()),
+                fen: Cow::Owned(fen_parsed),
                 moves: Cow::Borrowed(&[]),
             })
-            .unwrap();
+            .unwrap_or_else(|e| panic!("Failed to send position to engine: {e}"));
 
         engine
             .go(
@@ -65,9 +77,9 @@ impl Bot {
                 },
                 |_| {},
             )
-            .unwrap()
+            .unwrap_or_else(|e| panic!("Engine failed to compute move: {e}"))
             .take_normal()
-            .unwrap()
+            .unwrap_or_else(|| panic!("Engine returned non-normal move"))
             .r#move
     }
 }
