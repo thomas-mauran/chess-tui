@@ -3,14 +3,13 @@ use serde::Deserialize;
 use shakmaty::Color;
 use std::error::Error;
 use std::io::{BufRead, BufReader};
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::Sender;
 use std::thread;
 
 const LICHESS_API_URL: &str = "https://lichess.org/api";
 
 #[derive(Debug, Deserialize)]
 #[serde(tag = "type")]
-#[allow(dead_code)]
 enum GameEvent {
     #[serde(rename = "gameFull")]
     GameFull {
@@ -28,206 +27,37 @@ enum GameEvent {
 // Event stream types for /api/stream/event
 #[derive(Debug, Deserialize)]
 #[serde(tag = "type")]
-#[allow(dead_code)]
 enum EventStreamEvent {
     #[serde(rename = "gameStart")]
     GameStart { game: EventStreamGame },
     #[serde(rename = "gameFinish")]
     GameFinish { game: EventStreamGame },
     #[serde(rename = "challenge")]
-    Challenge {
-        challenge: EventStreamChallenge,
-        #[serde(default)]
-        compat: Option<ChallengeCompat>,
-    },
+    Challenge,
     #[serde(rename = "challengeCanceled")]
-    ChallengeCanceled { challenge: EventStreamChallenge },
+    ChallengeCanceled,
     #[serde(rename = "challengeDeclined")]
-    ChallengeDeclined { challenge: EventStreamChallenge },
+    ChallengeDeclined,
 }
 
 #[derive(Debug, Deserialize)]
-#[allow(dead_code)]
 struct EventStreamGame {
-    #[serde(rename = "fullId")]
-    full_id: String,
     #[serde(rename = "gameId")]
     game_id: String,
-    #[serde(default)]
-    fen: Option<String>,
     color: String,
-    #[serde(default, rename = "lastMove")]
-    last_move: Option<String>,
-    #[serde(default)]
-    source: Option<String>,
-    status: GameStatus,
-    variant: Variant,
-    speed: String,
-    perf: String,
-    rated: bool,
-    #[serde(default, rename = "hasMoved")]
-    has_moved: Option<bool>,
-    opponent: EventStreamOpponent,
-    #[serde(default, rename = "isMyTurn")]
-    is_my_turn: Option<bool>,
-    #[serde(default, rename = "secondsLeft")]
-    seconds_left: Option<u32>,
-    #[serde(default)]
-    winner: Option<String>,
-    #[serde(default, rename = "ratingDiff")]
-    rating_diff: Option<i32>,
-    #[serde(default)]
-    compat: Option<GameCompat>,
-    #[serde(default)]
-    id: Option<String>,
-    #[serde(default, rename = "tournamentId")]
-    tournament_id: Option<String>,
+    // We only need game_id and color, but keep minimal structure for deserialization
+    #[serde(flatten)]
+    _rest: serde_json::Value,
 }
 
 #[derive(Debug, Deserialize)]
-#[allow(dead_code)]
-struct GameStatus {
-    id: u32,
-    name: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[allow(dead_code)]
-struct Variant {
-    key: String,
-    name: String,
-    #[serde(default)]
-    short: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-#[allow(dead_code)]
-#[serde(untagged)]
-enum EventStreamOpponent {
-    Player {
-        id: String,
-        username: String,
-        rating: u32,
-        #[serde(default, rename = "ratingDiff")]
-        rating_diff: Option<i32>,
-    },
-    AI {
-        id: Option<String>,
-        username: String,
-        ai: u32,
-    },
-}
-
-#[derive(Debug, Deserialize)]
-#[allow(dead_code)]
-struct GameCompat {
-    bot: bool,
-    board: bool,
-}
-
-#[derive(Debug, Deserialize)]
-#[allow(dead_code)]
-struct EventStreamChallenge {
-    id: String,
-    url: String,
-    status: String,
-    challenger: ChallengeUser,
-    #[serde(default, rename = "destUser")]
-    dest_user: Option<ChallengeUser>,
-    variant: Variant,
-    rated: bool,
-    speed: String,
-    #[serde(rename = "timeControl")]
-    time_control: TimeControl,
-    color: String,
-    #[serde(default, rename = "finalColor")]
-    final_color: Option<String>,
-    perf: PerfInfo,
-    #[serde(default)]
-    direction: Option<String>,
-    #[serde(default, rename = "initialFen")]
-    initial_fen: Option<String>,
-    #[serde(default, rename = "rematchOf")]
-    rematch_of: Option<String>,
-    #[serde(default)]
-    decline_reason: Option<String>,
-    #[serde(default, rename = "declineReasonKey")]
-    decline_reason_key: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-#[allow(dead_code)]
-struct ChallengeUser {
-    id: String,
-    name: String,
-    #[serde(default)]
-    rating: Option<u32>,
-    #[serde(default)]
-    title: Option<String>,
-    #[serde(default)]
-    flair: Option<String>,
-    #[serde(default)]
-    patron: Option<bool>,
-    #[serde(default, rename = "patronColor")]
-    patron_color: Option<u32>,
-    #[serde(default)]
-    provisional: Option<bool>,
-    #[serde(default)]
-    online: Option<bool>,
-    #[serde(default)]
-    lag: Option<u32>,
-}
-
-#[derive(Debug, Deserialize)]
-#[allow(dead_code)]
-#[serde(tag = "type")]
-enum TimeControl {
-    #[serde(rename = "clock")]
-    Clock {
-        limit: u32,
-        increment: u32,
-        show: String,
-    },
-    #[serde(rename = "correspondence")]
-    Correspondence {
-        #[serde(rename = "daysPerTurn")]
-        days_per_turn: u32,
-    },
-    #[serde(rename = "unlimited")]
-    Unlimited,
-}
-
-#[derive(Debug, Deserialize)]
-#[allow(dead_code)]
-struct PerfInfo {
-    icon: String,
-    name: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[allow(dead_code)]
-struct ChallengeCompat {
-    bot: bool,
-    board: bool,
-}
-
-#[derive(Debug, Deserialize)]
-#[allow(dead_code)]
 struct Player {
     id: Option<String>,
-    name: Option<String>,
-    #[serde(default)]
-    ai_level: Option<u32>,
 }
 
 #[derive(Debug, Deserialize)]
-#[allow(dead_code)]
 struct GameState {
     moves: String,
-    wtime: u64,
-    btime: u64,
-    winc: u64,
-    binc: u64,
     status: String,
 }
 
@@ -279,23 +109,6 @@ pub struct PuzzleInfo {
     pub initial_ply: u32,
     pub solution: Vec<String>,
     pub themes: Vec<String>,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct PuzzleActivity {
-    pub date: u64,
-    pub win: bool,
-    #[serde(default)]
-    pub puzzle: Option<PuzzleActivityPuzzle>,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct PuzzleActivityPuzzle {
-    pub id: String,
-    #[serde(default)]
-    pub rating: Option<u32>,
-    #[serde(default, rename = "ratingAfter")]
-    pub rating_after: Option<u32>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -572,48 +385,6 @@ impl LichessClient {
         Ok(())
     }
 
-    /// Get puzzle activity from Lichess API
-    /// Returns the most recent puzzle attempts with rating changes
-    /// See: https://lichess.org/api#tag/puzzles/get/apipuzzleactivity
-    pub fn get_puzzle_activity(&self) -> Result<Vec<PuzzleActivity>, Box<dyn Error>> {
-        let url = format!("{}/puzzle/activity", LICHESS_API_URL);
-        log::info!("Fetching puzzle activity from: {}", url);
-
-        let response = self
-            .client
-            .get(&url)
-            .header(
-                "User-Agent",
-                "chess-tui (https://github.com/thomas-mauran/chess-tui)",
-            )
-            .bearer_auth(&self.token)
-            .send()?;
-
-        if !response.status().is_success() {
-            return Err(format!("Failed to fetch puzzle activity: {}", response.status()).into());
-        }
-
-        // The API returns NDJSON (newline-delimited JSON)
-        let reader = BufReader::new(response);
-        let mut activities = Vec::new();
-
-        for line in reader.lines() {
-            let line = line?;
-            if line.trim().is_empty() {
-                continue;
-            }
-            match serde_json::from_str::<PuzzleActivity>(&line) {
-                Ok(activity) => activities.push(activity),
-                Err(e) => {
-                    log::warn!("Failed to parse puzzle activity line: {} - {}", line, e);
-                }
-            }
-        }
-
-        log::info!("Fetched {} puzzle activity entries", activities.len());
-        Ok(activities)
-    }
-
     fn spawn_event_stream_thread(
         &self,
         initial_game_ids: std::collections::HashSet<String>,
@@ -701,13 +472,13 @@ impl LichessClient {
                         Ok(EventStreamEvent::GameFinish { game }) => {
                             log::debug!("Game finished: {}", game.game_id);
                         }
-                        Ok(EventStreamEvent::Challenge { .. }) => {
+                        Ok(EventStreamEvent::Challenge) => {
                             log::debug!("Challenge event received");
                         }
-                        Ok(EventStreamEvent::ChallengeCanceled { .. }) => {
+                        Ok(EventStreamEvent::ChallengeCanceled) => {
                             log::debug!("Challenge canceled event received");
                         }
-                        Ok(EventStreamEvent::ChallengeDeclined { .. }) => {
+                        Ok(EventStreamEvent::ChallengeDeclined) => {
                             log::debug!("Challenge declined event received");
                         }
                         Err(e) => {
