@@ -19,7 +19,7 @@ impl Knight {
                 }
                 PieceSize::Extended => {
                     // Extended 3-4 line design - more solid and consistent
-                    " \n ▞█▙\n▞███\n ███".to_string()
+                    " \n ▞█▙\n▞███\n ▗███▖".to_string()
                 }
                 PieceSize::Large => "\
     \n\
