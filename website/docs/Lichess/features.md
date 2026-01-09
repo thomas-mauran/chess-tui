@@ -30,25 +30,16 @@ Select **Puzzle** to play rated chess puzzles from Lichess.
 *   **Feedback**: You'll get immediate feedback on whether your move was correct or incorrect.
 *   **Rating**: Your puzzle rating will update automatically after each puzzle.
 
-## Technical Details: Polling System
+## Technical Details: Streaming System
 
-Due to limitations in the Lichess API, `chess-tui` uses a polling system to ensure reliable move updates during games.
-
-### Why Polling?
-
-The Lichess streaming API can have random delays ranging from 3 to 60 seconds when delivering move updates. This makes it unreliable for real-time gameplay, especially in faster time controls. To work around this limitation, `chess-tui` implements a continuous polling system that:
-
-*   **Polls every 3 seconds** to check for new moves and game state updates
-*   **Polls continuously** even when it's your turn, to detect moves made on the Lichess website
-*   **Uses the public stream endpoint** (`/api/stream/game/{id}`) to fetch the current game state with each poll
-*   **Immediately displays the last move** when joining an ongoing game, so you see the current board state right away
+`chess-tui` uses Lichess's streaming APIs to provide real-time game updates.
 
 ### How It Works
 
-1. When you join a game, a background polling thread starts automatically
-2. The thread polls the Lichess API every 3 seconds to get the current game state
-3. If it detects a new move (by comparing turn counts or the last move), it immediately updates the board
-4. Polling continues throughout the game, even during your turn, to catch any moves made on the Lichess website
+1. **Event Stream** (`/api/stream/event`): Monitors for new games starting, challenges, and game events
+2. **Game Stream** (`/api/board/game/stream/{id}`): Streams move updates in real-time during active games
+3. When you join a game, a background streaming thread connects to the game stream
+4. Moves are received instantly as they happen via `gameState` events
 5. When joining an ongoing game, the current board state (FEN) and last move are fetched immediately for instant display
 
-This ensures you see moves as quickly as possible (within 3 seconds) regardless of stream delays, and allows you to make moves both in `chess-tui` and on the Lichess website while staying synchronized.
+This ensures you see moves in real-time as they happen, and allows you to make moves both in `chess-tui` and on the Lichess website while staying synchronized.
