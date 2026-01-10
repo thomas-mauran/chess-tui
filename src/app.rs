@@ -340,6 +340,13 @@ impl App {
                 self.lichess_seek_receiver = None;
                 self.current_popup = None;
 
+                // Cancel the seek since we found a game (or got an error)
+                if let Some(cancellation_token) = &self.lichess_cancellation_token {
+                    cancellation_token.store(true, std::sync::atomic::Ordering::Relaxed);
+                    log::info!("Cancelling Lichess seek - game found or error occurred");
+                }
+                self.lichess_cancellation_token = None;
+
                 match result {
                     Ok((game_id, color)) => {
                         log::info!("Found Lichess game: {} with color {:?}", game_id, color);
@@ -1556,6 +1563,14 @@ impl App {
         let display_mode = self.game.ui.display_mode;
         let current_skin = self.game.ui.skin.clone();
         self.end_screen_dismissed = false;
+
+        // Cancel any active Lichess seek before resetting
+        if let Some(cancellation_token) = &self.lichess_cancellation_token {
+            cancellation_token.store(true, std::sync::atomic::Ordering::Relaxed);
+            log::info!("Cancelling Lichess seek before returning to home");
+        }
+        self.lichess_cancellation_token = None;
+        self.lichess_seek_receiver = None;
 
         // Reset game-related state
         self.selected_color = None;
