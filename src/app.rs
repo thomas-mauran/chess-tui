@@ -271,18 +271,9 @@ impl App {
             self.current_popup = Some(Popups::SeekingLichessGame);
 
             std::thread::spawn(move || {
-                // Fetch user profile to know our ID
-                let my_id = match client.get_my_profile() {
-                    Ok(id) => id,
-                    Err(e) => {
-                        let _ = tx.send(Err(format!("Failed to fetch profile: {}", e)));
-                        return;
-                    }
-                };
-
                 // Seek a correspondence game (no timer) since timer isn't implemented yet
                 // Using 0,0 which will trigger the days parameter in seek_game
-                match client.seek_game(0, 0, cancellation_token, my_id) {
+                match client.seek_game(0, 0, cancellation_token) {
                     Ok((game_id, color)) => {
                         let _ = tx.send(Ok((game_id, color)));
                     }
@@ -348,6 +339,13 @@ impl App {
             if let Ok(result) = rx.try_recv() {
                 self.lichess_seek_receiver = None;
                 self.current_popup = None;
+
+                // Cancel the seek since we found a game (or got an error)
+                if let Some(cancellation_token) = &self.lichess_cancellation_token {
+                    cancellation_token.store(true, std::sync::atomic::Ordering::Relaxed);
+                    log::info!("Cancelling Lichess seek - game found or error occurred");
+                }
+                self.lichess_cancellation_token = None;
 
                 match result {
                     Ok((game_id, color)) => {
@@ -483,7 +481,7 @@ impl App {
             let client = LichessClient::new(token.clone());
             let (lichess_to_app_tx, lichess_to_app_rx) = channel::<String>();
             let (app_to_lichess_tx, app_to_lichess_rx) = channel::<String>();
-            let (player_move_tx, player_move_rx) = channel::<()>();
+            let (player_move_tx, _player_move_rx) = channel::<()>();
 
             // Send last move immediately if we have it (before starting stream)
             // This ensures it shows in green right away instead of waiting for first poll
@@ -498,12 +496,9 @@ impl App {
 
             // Start streaming game events (clone the sender since it's moved)
             let lichess_to_app_tx_clone = lichess_to_app_tx.clone();
-            if let Err(e) = client.stream_game(
-                game_id.clone(),
-                lichess_to_app_tx_clone,
-                Some(color),
-                Some(player_move_rx),
-            ) {
+            if let Err(e) =
+                client.stream_game(game_id.clone(), lichess_to_app_tx_clone, Some(color))
+            {
                 log::error!("Failed to stream Lichess game: {}", e);
                 self.error_message = Some(format!("Failed to stream game: {}", e));
                 self.current_popup = Some(Popups::Error);
@@ -1064,6 +1059,11 @@ impl App {
 
     /// Set running to false to quit the application.
     pub fn quit(&mut self) {
+        // Cancel any active Lichess seek before quitting
+        if let Some(cancellation_token) = &self.lichess_cancellation_token {
+            cancellation_token.store(true, std::sync::atomic::Ordering::Relaxed);
+            log::info!("Cancelling Lichess seek before quit");
+        }
         self.running = false;
     }
 
@@ -1563,6 +1563,14 @@ impl App {
         let display_mode = self.game.ui.display_mode;
         let current_skin = self.game.ui.skin.clone();
         self.end_screen_dismissed = false;
+
+        // Cancel any active Lichess seek before resetting
+        if let Some(cancellation_token) = &self.lichess_cancellation_token {
+            cancellation_token.store(true, std::sync::atomic::Ordering::Relaxed);
+            log::info!("Cancelling Lichess seek before returning to home");
+        }
+        self.lichess_cancellation_token = None;
+        self.lichess_seek_receiver = None;
 
         // Reset game-related state
         self.selected_color = None;
