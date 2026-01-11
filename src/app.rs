@@ -76,6 +76,8 @@ pub struct App {
     pub pending_promotion_move: Option<(shakmaty::Square, shakmaty::Square)>,
     /// Lichess user profile (username, ratings, etc.)
     pub lichess_user_profile: Option<crate::lichess::UserProfile>,
+    /// Lichess rating history for line chart
+    pub lichess_rating_history: Option<Vec<crate::lichess::RatingHistoryEntry>>,
     /// Track if the end screen was dismissed by the user (to prevent re-showing)
     pub end_screen_dismissed: bool,
     /// Whether sound effects are enabled
@@ -109,6 +111,7 @@ impl Default for App {
             puzzle_game: None,
             pending_promotion_move: None,
             lichess_user_profile: None,
+            lichess_rating_history: None,
             end_screen_dismissed: false,
             sound_enabled: true,
         }
@@ -635,7 +638,18 @@ impl App {
             let client = crate::lichess::LichessClient::new(token.clone());
             match client.get_user_profile() {
                 Ok(profile) => {
+                    let username = profile.username.clone();
                     self.lichess_user_profile = Some(profile);
+
+                    // Fetch rating history for the line chart
+                    match client.get_rating_history(&username) {
+                        Ok(history) => {
+                            self.lichess_rating_history = Some(history);
+                        }
+                        Err(e) => {
+                            log::error!("Failed to fetch rating history: {}", e);
+                        }
+                    }
                 }
                 Err(e) => {
                     log::error!("Failed to fetch user profile: {}", e);
