@@ -198,6 +198,12 @@ pub struct Perf {
     pub prog: Option<i32>,
 }
 
+#[derive(Debug, Deserialize, Clone)]
+pub struct RatingHistoryEntry {
+    pub name: String,
+    pub points: Vec<[i32; 4]>, // [year, month, day, rating]
+}
+
 #[derive(Clone)]
 pub struct LichessClient {
     token: String,
@@ -257,6 +263,35 @@ impl LichessClient {
         let profile: UserProfile = response.json()?;
         log::info!("Fetched user profile: {}", profile.username);
         Ok(profile)
+    }
+
+    pub fn get_rating_history(
+        &self,
+        username: &str,
+    ) -> Result<Vec<RatingHistoryEntry>, Box<dyn Error>> {
+        let url = format!("{}/user/{}/rating-history", LICHESS_API_URL, username);
+        log::info!("Fetching rating history from: {}", url);
+
+        let response = self
+            .client
+            .get(&url)
+            .header(
+                "User-Agent",
+                "chess-tui (https://github.com/thomas-mauran/chess-tui)",
+            )
+            .bearer_auth(&self.token)
+            .send()?;
+
+        if !response.status().is_success() {
+            return Err(format!("Failed to fetch rating history: {}", response.status()).into());
+        }
+
+        let history: Vec<RatingHistoryEntry> = response.json()?;
+        log::info!(
+            "Fetched rating history with {} time controls",
+            history.len()
+        );
+        Ok(history)
     }
 
     pub fn get_ongoing_games(&self) -> Result<Vec<OngoingGame>, Box<dyn Error>> {
