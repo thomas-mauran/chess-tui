@@ -433,11 +433,17 @@ fn point_to_days(year: i32, month: i32, day: i32) -> Option<f64> {
         })
 }
 
+/// Bounds for chart display: (min_date, max_date, min_rating, max_rating)
+type ChartBounds = (f64, f64, f64, f64);
+
+/// Processed rating data: (datasets, names, bounds)
+type ProcessedRatingData = (Vec<Vec<(f64, f64)>>, Vec<String>, ChartBounds);
+
 /// Process rating history data and filter to last 90 days
 fn process_rating_data(
     history: &[crate::lichess::RatingHistoryEntry],
     cutoff_days: f64,
-) -> Option<(Vec<Vec<(f64, f64)>>, Vec<String>, (f64, f64, f64, f64))> {
+) -> Option<ProcessedRatingData> {
     let mut datasets_data = Vec::new();
     let mut dataset_names = Vec::new();
     let mut min_date = f64::MAX;
