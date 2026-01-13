@@ -157,7 +157,9 @@ impl UI {
             authorized_positions.sort();
 
             // Safe: selected_piece_cursor is always non-negative after the above logic
-            if let Some(position) = authorized_positions.get(self.selected_piece_cursor.unsigned_abs() as usize) {
+            if let Some(position) =
+                authorized_positions.get(self.selected_piece_cursor.unsigned_abs() as usize)
+            {
                 self.cursor_coordinates = *position;
             }
         }
@@ -664,9 +666,9 @@ impl UI {
             board.flip_horizontal();
         }
 
-        let actual_square = self.selected_square.map(|s| {
-            flip_square_if_needed(s, logic.game_board.is_flipped)
-        });
+        let actual_square = self
+            .selected_square
+            .map(|s| flip_square_if_needed(s, logic.game_board.is_flipped));
 
         self.render_board_grid(area, frame, logic, actual_square);
     }
@@ -823,7 +825,8 @@ impl UI {
                 DisplayMode::CUSTOM => {
                     // Use selection color for selected square, last move color for last move
                     if i == get_coord_from_square(actual_square, logic.game_board.is_flipped).row
-                        && j == get_coord_from_square(actual_square, logic.game_board.is_flipped).col
+                        && j == get_coord_from_square(actual_square, logic.game_board.is_flipped)
+                            .col
                     {
                         self.skin.selection_color
                     } else {

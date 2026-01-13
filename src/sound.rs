@@ -94,7 +94,8 @@ pub fn play_move_sound() {
 
                 // Convert to i16 sample (truncation is intentional for audio)
                 let sample_i16 = (sample * f64::from(i16::MAX))
-                    .clamp(f64::from(i16::MIN), f64::from(i16::MAX)) as i16;
+                    .clamp(f64::from(i16::MIN), f64::from(i16::MAX))
+                    as i16;
                 samples.push(sample_i16);
             }
 
@@ -154,7 +155,8 @@ pub fn play_menu_nav_sound() {
 
                 // Convert to i16 sample (truncation is intentional for audio)
                 let sample_i16 = (sample * f64::from(i16::MAX))
-                    .clamp(f64::from(i16::MIN), f64::from(i16::MAX)) as i16;
+                    .clamp(f64::from(i16::MIN), f64::from(i16::MAX))
+                    as i16;
                 samples.push(sample_i16);
             }
 

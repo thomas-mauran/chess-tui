@@ -461,9 +461,7 @@ impl GameLogic {
             {
                 // Store the move without promotion piece so popup will appear
                 // from() returns None only for drops (non-Normal moves), but we know this is Normal
-                let from_square = executed_move
-                    .from()
-                    .unwrap_or_else(|| executed_move.to());
+                let from_square = executed_move.from().unwrap_or_else(|| executed_move.to());
                 shakmaty::Move::Normal {
                     role: Role::Pawn,
                     from: from_square,
