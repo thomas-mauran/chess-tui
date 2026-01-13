@@ -76,6 +76,8 @@ pub struct App {
     pub pending_promotion_move: Option<(shakmaty::Square, shakmaty::Square)>,
     /// Lichess user profile (username, ratings, etc.)
     pub lichess_user_profile: Option<crate::lichess::UserProfile>,
+    /// Lichess rating history for line chart
+    pub lichess_rating_history: Option<Vec<crate::lichess::RatingHistoryEntry>>,
     /// Track if the end screen was dismissed by the user (to prevent re-showing)
     pub end_screen_dismissed: bool,
     /// Whether sound effects are enabled
@@ -109,6 +111,7 @@ impl Default for App {
             puzzle_game: None,
             pending_promotion_move: None,
             lichess_user_profile: None,
+            lichess_rating_history: None,
             end_screen_dismissed: false,
             sound_enabled: true,
         }
@@ -271,18 +274,9 @@ impl App {
             self.current_popup = Some(Popups::SeekingLichessGame);
 
             std::thread::spawn(move || {
-                // Fetch user profile to know our ID
-                let my_id = match client.get_my_profile() {
-                    Ok(id) => id,
-                    Err(e) => {
-                        let _ = tx.send(Err(format!("Failed to fetch profile: {}", e)));
-                        return;
-                    }
-                };
-
                 // Seek a correspondence game (no timer) since timer isn't implemented yet
                 // Using 0,0 which will trigger the days parameter in seek_game
-                match client.seek_game(0, 0, &cancellation_token, &my_id) {
+                match client.seek_game(0, 0, cancellation_token) {
                     Ok((game_id, color)) => {
                         let _ = tx.send(Ok((game_id, color)));
                     }
@@ -328,7 +322,7 @@ impl App {
                 };
 
                 // Join the game by code
-                match client.join_game(&game_id, &my_id) {
+                match client.join_game(&game_id, my_id) {
                     Ok((game_id, color)) => {
                         let _ = tx.send(Ok((game_id, color)));
                     }
@@ -348,6 +342,13 @@ impl App {
             if let Ok(result) = rx.try_recv() {
                 self.lichess_seek_receiver = None;
                 self.current_popup = None;
+
+                // Cancel the seek since we found a game (or got an error)
+                if let Some(cancellation_token) = &self.lichess_cancellation_token {
+                    cancellation_token.store(true, std::sync::atomic::Ordering::Relaxed);
+                    log::info!("Cancelling Lichess seek - game found or error occurred");
+                }
+                self.lichess_cancellation_token = None;
 
                 match result {
                     Ok((game_id, color)) => {
@@ -483,7 +484,7 @@ impl App {
             let client = LichessClient::new(token.clone());
             let (lichess_to_app_tx, lichess_to_app_rx) = channel::<String>();
             let (app_to_lichess_tx, app_to_lichess_rx) = channel::<String>();
-            let (player_move_tx, player_move_rx) = channel::<()>();
+            let (player_move_tx, _player_move_rx) = channel::<()>();
 
             // Send last move immediately if we have it (before starting stream)
             // This ensures it shows in green right away instead of waiting for first poll
@@ -498,12 +499,9 @@ impl App {
 
             // Start streaming game events (clone the sender since it's moved)
             let lichess_to_app_tx_clone = lichess_to_app_tx.clone();
-            if let Err(e) = client.stream_game(
-                game_id.clone(),
-                lichess_to_app_tx_clone,
-                Some(color),
-                Some(player_move_rx),
-            ) {
+            if let Err(e) =
+                client.stream_game(game_id.clone(), lichess_to_app_tx_clone, Some(color))
+            {
                 log::error!("Failed to stream Lichess game: {}", e);
                 self.error_message = Some(format!("Failed to stream game: {}", e));
                 self.current_popup = Some(Popups::Error);
@@ -640,7 +638,18 @@ impl App {
             let client = crate::lichess::LichessClient::new(token.clone());
             match client.get_user_profile() {
                 Ok(profile) => {
+                    let username = profile.username.clone();
                     self.lichess_user_profile = Some(profile);
+
+                    // Fetch rating history for the line chart
+                    match client.get_rating_history(&username) {
+                        Ok(history) => {
+                            self.lichess_rating_history = Some(history);
+                        }
+                        Err(e) => {
+                            log::error!("Failed to fetch rating history: {}", e);
+                        }
+                    }
                 }
                 Err(e) => {
                     log::error!("Failed to fetch user profile: {}", e);
@@ -1072,6 +1081,11 @@ impl App {
 
     /// Set running to false to quit the application.
     pub fn quit(&mut self) {
+        // Cancel any active Lichess seek before quitting
+        if let Some(cancellation_token) = &self.lichess_cancellation_token {
+            cancellation_token.store(true, std::sync::atomic::Ordering::Relaxed);
+            log::info!("Cancelling Lichess seek before quit");
+        }
         self.running = false;
     }
 
@@ -1574,6 +1588,14 @@ impl App {
         let display_mode = self.game.ui.display_mode;
         let current_skin = self.game.ui.skin.clone();
         self.end_screen_dismissed = false;
+
+        // Cancel any active Lichess seek before resetting
+        if let Some(cancellation_token) = &self.lichess_cancellation_token {
+            cancellation_token.store(true, std::sync::atomic::Ordering::Relaxed);
+            log::info!("Cancelling Lichess seek before returning to home");
+        }
+        self.lichess_cancellation_token = None;
+        self.lichess_seek_receiver = None;
 
         // Reset game-related state
         self.selected_color = None;

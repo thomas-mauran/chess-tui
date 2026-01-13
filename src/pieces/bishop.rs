@@ -16,16 +16,16 @@ impl Bishop {
                 },
                 PieceSize::Compact => {
                     // Simple 2-line design for medium-sized cells
-                    "\n ⭘\n ███".to_string()
+                    "\n █x█\n ███".to_string()
                 }
                 PieceSize::Extended => {
-                    // Extended 3-4 line design - more solid and consistent
-                    " ⭘\n █▄█\n ███\n ███".to_string()
+                    // Extended design - bishop with X cross on top
+                    " \n █x█\n ███\n ▗███▖".to_string()
                 }
                 PieceSize::Large => "\
     \n\
        ⭘\n\
-      █✝█\n\
+      █x█\n\
       ███\n\
     ▗█████▖\n\
     "

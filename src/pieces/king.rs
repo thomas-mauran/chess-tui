@@ -19,11 +19,11 @@ impl King {
                 }
                 PieceSize::Compact => {
                     // Simple 2-line design for medium-sized cells
-                    "\n ✚\n ███".to_string()
+                    "\n ▙✚▟\n ███".to_string()
                 }
                 PieceSize::Extended => {
                     // Extended 3-4 line design - more solid and consistent
-                    " ✚\n █▄█\n ███\n ███".to_string()
+                    " \n▙█▟\n ▙✚▟\n ▗███▖".to_string()
                 }
                 PieceSize::Large => {
                     // Current multi-line art
