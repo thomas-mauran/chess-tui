@@ -92,21 +92,15 @@ impl GameBoard {
 
     /// Gets a read-only reference to the last position in the history.
     /// If navigating history, returns the position at history_position_index.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the position history is empty. This should never happen
-    /// as the game always starts with an initial position.
     pub fn position_ref(&self) -> &Chess {
         if let Some(index) = self.history_position_index {
-            self.position_history
-                .get(index)
-                .or_else(|| self.position_history.last())
-                .unwrap_or_else(|| panic!("Position history is empty"))
+            if index < self.position_history.len() {
+                &self.position_history[index]
+            } else {
+                self.position_history.last().unwrap()
+            }
         } else {
-            self.position_history
-                .last()
-                .unwrap_or_else(|| panic!("Position history is empty"))
+            self.position_history.last().unwrap()
         }
     }
 
@@ -291,10 +285,31 @@ impl GameBoard {
                     match uci.to_move(&current_position) {
                         Ok(chess_move) => {
                             // Track captures
-                            if let Some(captured_piece) =
-                                current_position.board().piece_at(chess_move.to())
-                            {
-                                self.taken_pieces.push(captured_piece);
+                            match chess_move {
+                                Move::Normal { .. } => {
+                                    if let Some(captured_piece) =
+                                        current_position.board().piece_at(chess_move.to())
+                                    {
+                                        self.taken_pieces.push(captured_piece);
+                                    }
+                                }
+                                Move::EnPassant { .. } => {
+                                    let from_square = chess_move.from().unwrap();
+                                    let to_square = chess_move.to();
+                                    let captured_pawn_square =
+                                        Square::from_coords(to_square.file(), from_square.rank());
+                                    if let Some(captured_piece) =
+                                        current_position.board().piece_at(captured_pawn_square)
+                                    {
+                                        self.taken_pieces.push(captured_piece);
+                                    }
+                                }
+                                Move::Castle { .. } => {
+                                    // No piece is taken when castling.
+                                }
+                                Move::Put { .. } => {
+                                    // Putting a piece on board, not a capture
+                                }
                             }
 
                             // Apply the move
@@ -407,11 +422,6 @@ impl GameBoard {
     ) -> Option<Move> {
         let chess = self.position_ref().clone();
 
-        // Track captures before executing move
-        if let Some(captured_piece) = chess.board().piece_at(to) {
-            self.taken_pieces.push(captured_piece);
-        }
-
         // Find matching legal move
         let legal_moves = chess.legal_moves();
 
@@ -472,6 +482,29 @@ impl GameBoard {
         });
 
         if let Some(shakmaty_move) = matching_move {
+            // It's a legal move. Check for capture.
+            match *shakmaty_move {
+                Move::Normal { .. } => {
+                    if let Some(captured_piece) = chess.board().piece_at(shakmaty_move.to()) {
+                        self.taken_pieces.push(captured_piece);
+                    }
+                }
+                Move::EnPassant { .. } => {
+                    let from_square = shakmaty_move.from().unwrap();
+                    let to_square = shakmaty_move.to();
+                    let captured_pawn_square = Square::from_coords(to_square.file(), from_square.rank());
+                    if let Some(captured_piece) = chess.board().piece_at(captured_pawn_square) {
+                        self.taken_pieces.push(captured_piece);
+                    }
+                }
+                Move::Castle { .. } => {
+                    // No piece is taken when castling.
+                }
+                Move::Put { .. } => {
+                    // Putting a piece on board, not a capture
+                }
+            }
+
             // Execute move
             match chess.play(shakmaty_move) {
                 Ok(new_chess) => {
