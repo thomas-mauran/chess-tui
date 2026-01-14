@@ -326,7 +326,7 @@ impl LichessClient {
         use std::time::{SystemTime, UNIX_EPOCH};
         let _timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
+            .unwrap_or_default()
             .as_millis();
         let url = format!("{}/puzzle/next?t={}", LICHESS_API_URL, _timestamp);
 

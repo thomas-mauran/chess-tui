@@ -39,6 +39,11 @@ impl fmt::Display for DisplayMode {
     }
 }
 
+/// Returns the user's config directory path.
+///
+/// # Errors
+///
+/// Returns an error if the config directory cannot be determined.
 pub fn config_dir() -> Result<PathBuf, &'static str> {
     match dirs::config_dir() {
         Some(dir) => Ok(dir),
@@ -58,6 +63,7 @@ pub enum Pages {
     Credit,
 }
 impl Pages {
+    #[must_use]
     pub fn variant_count() -> usize {
         7
     }

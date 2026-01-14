@@ -5,6 +5,7 @@ use shakmaty::Color;
 pub struct Queen;
 
 impl Queen {
+    #[must_use]
     pub fn to_string(display_mode: &DisplayMode, size: PieceSize, color: Option<Color>) -> String {
         match display_mode {
             DisplayMode::DEFAULT | DisplayMode::CUSTOM => match size {

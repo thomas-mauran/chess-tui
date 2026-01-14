@@ -200,11 +200,10 @@ fn main() -> AppResult<()> {
     let default_panic = std::panic::take_hook();
     panic::set_hook(Box::new(move |info| {
         ratatui::restore();
-        ratatui::crossterm::execute!(
+        let _ = ratatui::crossterm::execute!(
             std::io::stdout(),
             ratatui::crossterm::event::DisableMouseCapture
-        )
-        .unwrap();
+        );
         default_panic(info);
     }));
 
@@ -375,8 +374,12 @@ fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResu
         config.sound_enabled = Some(false);
     }
 
-    let toml_string = toml::to_string(&config)
-        .expect("Failed to serialize config to TOML. This is a bug, please report it.");
+    let toml_string = toml::to_string(&config).map_err(|e| {
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            format!("Failed to serialize config to TOML: {e}"),
+        )
+    })?;
     let mut file = File::create(config_path)?;
     file.write_all(toml_string.as_bytes())?;
 

@@ -4,6 +4,14 @@ use simplelog::{CombinedLogger, Config, WriteLogger};
 use std::fs;
 use std::path::Path;
 
+/// Sets up logging for the application.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The logs directory cannot be created
+/// - The log file cannot be created
+/// - The logger initialization fails
 pub fn setup_logging(
     config_dir: &Path,
     log_level: &LevelFilter,
@@ -17,7 +25,7 @@ pub fn setup_logging(
 
             // Create log file with timestamp
             let timestamp = Local::now().format("%Y-%m-%d_%H-%M-%S");
-            let log_file = log_dir.join(format!("chess-tui_{}.log", timestamp));
+            let log_file = log_dir.join(format!("chess-tui_{timestamp}.log"));
 
             CombinedLogger::init(vec![WriteLogger::new(
                 *level,

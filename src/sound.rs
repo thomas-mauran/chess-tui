@@ -57,15 +57,18 @@ pub fn play_move_sound() {
 
             // Generate a pleasant wood-like click sound
             // Using a lower fundamental frequency with harmonics for a richer sound
-            let sample_rate = 44100;
+            let sample_rate = 44100_u32;
             let duration = 0.08; // 80 milliseconds - slightly longer for better perception
             let fundamental = 200.0; // Lower frequency for a more pleasant, less harsh sound
 
-            let num_samples = (sample_rate as f64 * duration) as usize;
+            // Safe conversion: sample_rate * duration is always positive and within reasonable bounds
+            let num_samples = (f64::from(sample_rate) * duration) as usize;
             let mut samples = Vec::with_capacity(num_samples);
 
             for i in 0..num_samples {
-                let t = i as f64 / sample_rate as f64;
+                // Note: precision loss is acceptable for audio sample calculations
+                #[allow(clippy::cast_precision_loss)]
+                let t = i as f64 / f64::from(sample_rate);
 
                 // Create a more sophisticated envelope with exponential decay
                 // Quick attack, smooth decay - like a wood piece being placed
@@ -89,10 +92,11 @@ pub fn play_move_sound() {
                 // Combine harmonics with envelope
                 let sample = (fundamental_wave + harmonic2 + harmonic3) * envelope * 0.25;
 
-                // Convert to i16 sample
-                samples.push(
-                    (sample * i16::MAX as f64).clamp(i16::MIN as f64, i16::MAX as f64) as i16,
-                );
+                // Convert to i16 sample (truncation is intentional for audio)
+                let sample_i16 = (sample * f64::from(i16::MAX))
+                    .clamp(f64::from(i16::MIN), f64::from(i16::MAX))
+                    as i16;
+                samples.push(sample_i16);
             }
 
             // Convert to a source that rodio can play
@@ -125,15 +129,18 @@ pub fn play_menu_nav_sound() {
             };
 
             // Generate a light, high-pitched tick sound for menu navigation
-            let sample_rate = 44100;
+            let sample_rate = 44100_u32;
             let duration = 0.04;
             let frequency = 600.0;
 
-            let num_samples = (sample_rate as f64 * duration) as usize;
+            // Safe conversion: sample_rate * duration is always positive and within reasonable bounds
+            let num_samples = (f64::from(sample_rate) * duration) as usize;
             let mut samples = Vec::with_capacity(num_samples);
 
             for i in 0..num_samples {
-                let t = i as f64 / sample_rate as f64;
+                // Note: precision loss is acceptable for audio sample calculations
+                #[allow(clippy::cast_precision_loss)]
+                let t = i as f64 / f64::from(sample_rate);
 
                 let envelope = if t < duration * 0.2 {
                     (t / (duration * 0.2)).powf(0.3)
@@ -146,9 +153,11 @@ pub fn play_menu_nav_sound() {
 
                 let sample = (t * frequency * 2.0 * std::f64::consts::PI).sin() * envelope * 0.3;
 
-                samples.push(
-                    (sample * i16::MAX as f64).clamp(i16::MIN as f64, i16::MAX as f64) as i16,
-                );
+                // Convert to i16 sample (truncation is intentional for audio)
+                let sample_i16 = (sample * f64::from(i16::MAX))
+                    .clamp(f64::from(i16::MIN), f64::from(i16::MAX))
+                    as i16;
+                samples.push(sample_i16);
             }
 
             // Convert to a source that rodio can play

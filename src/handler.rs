@@ -116,7 +116,7 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
         },
         // End screen popup - shown when game ends (checkmate or draw)
         Popups::EndScreen => match key_event.code {
-            KeyCode::Char('h') | KeyCode::Char('H') => {
+            KeyCode::Char('h' | 'H') => {
                 // Hide the end screen (can be toggled back with H when not in popup)
                 app.current_popup = None;
                 app.end_screen_dismissed = true;
@@ -126,14 +126,14 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
                 app.current_popup = None;
                 app.end_screen_dismissed = true;
             }
-            KeyCode::Char('r') | KeyCode::Char('R') => {
+            KeyCode::Char('r' | 'R') => {
                 // Restart the game (only for non-multiplayer games)
                 if app.game.logic.opponent.is_none() {
                     app.restart();
                     app.current_popup = None;
                 }
             }
-            KeyCode::Char('b') | KeyCode::Char('B') => {
+            KeyCode::Char('b' | 'B') => {
                 // Go back to home menu - completely reset all game state
                 app.reset_home();
             }
@@ -141,7 +141,7 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
         },
         // Puzzle end screen popup - shown when puzzle is completed
         Popups::PuzzleEndScreen => match key_event.code {
-            KeyCode::Char('h') | KeyCode::Char('H') => {
+            KeyCode::Char('h' | 'H') => {
                 // Hide the puzzle end screen
                 app.current_popup = None;
             }
@@ -149,12 +149,12 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
                 // Also allow Esc to hide the puzzle end screen
                 app.current_popup = None;
             }
-            KeyCode::Char('n') | KeyCode::Char('N') => {
+            KeyCode::Char('n' | 'N') => {
                 // Start a new puzzle
                 app.current_popup = None;
                 app.start_puzzle_mode();
             }
-            KeyCode::Char('b') | KeyCode::Char('B') => {
+            KeyCode::Char('b' | 'B') => {
                 // Go back to home menu - completely reset all game state
                 app.reset_home();
             }
