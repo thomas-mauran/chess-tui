@@ -92,6 +92,23 @@ impl GameBoard {
 
     /// Gets a read-only reference to the last position in the history.
     /// If navigating history, returns the position at history_position_index.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the position history is empty. This should never happen
+    /// as the game always starts with an initial position.
+    pub fn position_ref(&self) -> &Chess {
+        if let Some(index) = self.history_position_index {
+            self.position_history
+                .get(index)
+                .or_else(|| self.position_history.last())
+                .unwrap_or_else(|| panic!("Position history is empty"))
+        } else {
+            self.position_history
+                .last()
+                .unwrap_or_else(|| panic!("Position history is empty"))
+        }
+    }
     pub fn position_ref(&self) -> &Chess {
         if let Some(index) = self.history_position_index {
             if index < self.position_history.len() {
