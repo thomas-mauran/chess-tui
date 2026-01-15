@@ -263,6 +263,7 @@ impl GameBoard {
 
     /// Reconstruct game history from a string of space-separated UCI moves
     /// Optionally verifies against an expected final FEN
+    #[allow(clippy::expect_used)]
     pub fn reconstruct_history(&mut self, moves_str: &str, expected_fen: Option<&str>) {
         if moves_str.trim().is_empty() {
             return;
@@ -291,10 +292,33 @@ impl GameBoard {
                     match uci.to_move(&current_position) {
                         Ok(chess_move) => {
                             // Track captures
-                            if let Some(captured_piece) =
-                                current_position.board().piece_at(chess_move.to())
-                            {
-                                self.taken_pieces.push(captured_piece);
+                            match chess_move {
+                                Move::Normal { .. } => {
+                                    if let Some(captured_piece) =
+                                        current_position.board().piece_at(chess_move.to())
+                                    {
+                                        self.taken_pieces.push(captured_piece);
+                                    }
+                                }
+                                Move::EnPassant { .. } => {
+                                    let from_square = chess_move
+                                        .from()
+                                        .expect("En passant move must have a 'from' square");
+                                    let to_square = chess_move.to();
+                                    let captured_pawn_square =
+                                        Square::from_coords(to_square.file(), from_square.rank());
+                                    if let Some(captured_piece) =
+                                        current_position.board().piece_at(captured_pawn_square)
+                                    {
+                                        self.taken_pieces.push(captured_piece);
+                                    }
+                                }
+                                Move::Castle { .. } => {
+                                    // No piece is taken when castling.
+                                }
+                                Move::Put { .. } => {
+                                    // Putting a piece on board, not a capture
+                                }
                             }
 
                             // Apply the move
@@ -399,6 +423,7 @@ impl GameBoard {
 
     /// Execute a move on the board
     /// Returns the executed Move if successful, None if illegal
+    #[allow(clippy::expect_used)]
     pub fn execute_move(
         &mut self,
         from: Square,
@@ -406,11 +431,6 @@ impl GameBoard {
         promotion: Option<Role>,
     ) -> Option<Move> {
         let chess = self.position_ref().clone();
-
-        // Track captures before executing move
-        if let Some(captured_piece) = chess.board().piece_at(to) {
-            self.taken_pieces.push(captured_piece);
-        }
 
         // Find matching legal move
         let legal_moves = chess.legal_moves();
@@ -472,6 +492,32 @@ impl GameBoard {
         });
 
         if let Some(shakmaty_move) = matching_move {
+            // It's a legal move. Check for capture.
+            match *shakmaty_move {
+                Move::Normal { .. } => {
+                    if let Some(captured_piece) = chess.board().piece_at(shakmaty_move.to()) {
+                        self.taken_pieces.push(captured_piece);
+                    }
+                }
+                Move::EnPassant { .. } => {
+                    let from_square = shakmaty_move
+                        .from()
+                        .expect("En passant move must have a 'from' square");
+                    let to_square = shakmaty_move.to();
+                    let captured_pawn_square =
+                        Square::from_coords(to_square.file(), from_square.rank());
+                    if let Some(captured_piece) = chess.board().piece_at(captured_pawn_square) {
+                        self.taken_pieces.push(captured_piece);
+                    }
+                }
+                Move::Castle { .. } => {
+                    // No piece is taken when castling.
+                }
+                Move::Put { .. } => {
+                    // Putting a piece on board, not a capture
+                }
+            }
+
             // Execute move
             match chess.play(shakmaty_move) {
                 Ok(new_chess) => {
