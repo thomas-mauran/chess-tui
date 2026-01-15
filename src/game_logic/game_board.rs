@@ -301,7 +301,9 @@ impl GameBoard {
                                     }
                                 }
                                 Move::EnPassant { .. } => {
-                                    let from_square = chess_move.from().expect("En passant move must have a 'from' square");
+                                    let from_square = chess_move
+                                        .from()
+                                        .expect("En passant move must have a 'from' square");
                                     let to_square = chess_move.to();
                                     let captured_pawn_square =
                                         Square::from_coords(to_square.file(), from_square.rank());
@@ -498,7 +500,9 @@ impl GameBoard {
                     }
                 }
                 Move::EnPassant { .. } => {
-                    let from_square = shakmaty_move.from().expect("En passant move must have a 'from' square");
+                    let from_square = shakmaty_move
+                        .from()
+                        .expect("En passant move must have a 'from' square");
                     let to_square = shakmaty_move.to();
                     let captured_pawn_square =
                         Square::from_coords(to_square.file(), from_square.rank());
