@@ -109,17 +109,6 @@ impl GameBoard {
                 .unwrap_or_else(|| panic!("Position history is empty"))
         }
     }
-    pub fn position_ref(&self) -> &Chess {
-        if let Some(index) = self.history_position_index {
-            if index < self.position_history.len() {
-                &self.position_history[index]
-            } else {
-                self.position_history.last().unwrap()
-            }
-        } else {
-            self.position_history.last().unwrap()
-        }
-    }
 
     /// Gets a read-only reference to the current position, or None if history is empty
     /// If navigating history, returns the position at history_position_index.
@@ -274,6 +263,7 @@ impl GameBoard {
 
     /// Reconstruct game history from a string of space-separated UCI moves
     /// Optionally verifies against an expected final FEN
+    #[allow(clippy::expect_used)]
     pub fn reconstruct_history(&mut self, moves_str: &str, expected_fen: Option<&str>) {
         if moves_str.trim().is_empty() {
             return;
@@ -311,7 +301,7 @@ impl GameBoard {
                                     }
                                 }
                                 Move::EnPassant { .. } => {
-                                    let from_square = chess_move.from().unwrap();
+                                    let from_square = chess_move.from().expect("En passant move must have a 'from' square");
                                     let to_square = chess_move.to();
                                     let captured_pawn_square =
                                         Square::from_coords(to_square.file(), from_square.rank());
@@ -431,6 +421,7 @@ impl GameBoard {
 
     /// Execute a move on the board
     /// Returns the executed Move if successful, None if illegal
+    #[allow(clippy::expect_used)]
     pub fn execute_move(
         &mut self,
         from: Square,
@@ -507,7 +498,7 @@ impl GameBoard {
                     }
                 }
                 Move::EnPassant { .. } => {
-                    let from_square = shakmaty_move.from().unwrap();
+                    let from_square = shakmaty_move.from().expect("En passant move must have a 'from' square");
                     let to_square = shakmaty_move.to();
                     let captured_pawn_square =
                         Square::from_coords(to_square.file(), from_square.rank());
