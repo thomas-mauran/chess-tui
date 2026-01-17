@@ -16,10 +16,9 @@ Type "cargo run" Sleep 500ms  Enter
 
 Sleep 2s
 
-# Navigate to Lichess menu (option 2, index 2)
-Down @0.3s
-Down @0.3s
-Space @0.3s
+# Navigate to "Play on Lichess" (index 1)
+Down @0.5s
+Space @0.5s
 
 Sleep 2s
 
@@ -27,20 +26,16 @@ Sleep 2s
 # Show "Seek Game" option
 Sleep 1s
 
-# Navigate to "Puzzle" option
-Down @0.3s
+Down @0.5s
 Sleep 1s
 
-# Navigate to "My Ongoing Games" option
-Down @0.3s
+Down @0.5s
 Sleep 1s
 
-# Navigate to "Join by Code" option
-Down @0.3s
+Down @0.5s
 Sleep 1s
 
-# Go back up to show "Puzzle" option
-Up @0.3s
+Up @0.5s
 Sleep 1s
 
 # Show the menu for a bit longer to see the stats panel

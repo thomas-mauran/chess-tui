@@ -507,7 +507,6 @@ fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: u8
                 .alignment(Alignment::Center)
                 .style(black_style);
             frame.render_widget(black_text, color_button_area[2]);
-            chunk_idx += 1;
         }
         2 => {
             // Bot: color buttons
@@ -660,7 +659,6 @@ fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: u8
                 .alignment(Alignment::Center)
                 .style(increase_style);
             frame.render_widget(increase_text, depth_value_area[2]);
-            chunk_idx += 1;
         }
         _ => {}
     }
