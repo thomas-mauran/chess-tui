@@ -56,16 +56,16 @@ pub enum Pages {
     OngoingGames,
     Bot,
     Credit,
+    GameModeMenu,
 }
 impl Pages {
     pub fn variant_count() -> usize {
-        7
+        8
     }
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Popups {
-    ColorSelection,
     MultiplayerSelection,
     EnterHostIP,
     WaitingForOpponentToJoin,

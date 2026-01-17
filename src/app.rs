@@ -82,6 +82,12 @@ pub struct App {
     pub end_screen_dismissed: bool,
     /// Whether sound effects are enabled
     pub sound_enabled: bool,
+    /// Selected game mode in GameModeMenu (0: Local, 1: Multiplayer, 2: Bot)
+    pub game_mode_selection: Option<u8>,
+    /// Form field cursor for game mode configuration form
+    pub game_mode_form_cursor: u8,
+    /// Whether the form is active (ungreyed) - user pressed Enter to activate
+    pub game_mode_form_active: bool,
 }
 
 impl Default for App {
@@ -114,6 +120,9 @@ impl Default for App {
             lichess_rating_history: None,
             end_screen_dismissed: false,
             sound_enabled: true,
+            game_mode_selection: None,
+            game_mode_form_cursor: 0,
+            game_mode_form_active: false,
         }
     }
 }
@@ -1126,16 +1135,6 @@ impl App {
         crate::sound::play_menu_nav_sound();
     }
 
-    pub fn color_selection(&mut self) {
-        self.current_popup = None;
-        let color = match self.menu_cursor {
-            0 => Color::White,
-            1 => Color::Black,
-            _ => unreachable!("Invalid color selection"),
-        };
-        self.selected_color = Some(color);
-    }
-
     pub fn bot_setup(&mut self) {
         let is_bot_starting = self.selected_color.unwrap_or(Color::White) == shakmaty::Color::Black;
         let path = self.chess_engine_path.as_deref().unwrap_or("");
@@ -1222,12 +1221,17 @@ impl App {
 
     pub fn menu_select(&mut self) {
         match self.menu_cursor {
-            0 => self.current_page = Pages::Solo,
-            1 => {
+            0 => {
+                // Play Game -> GameModeMenu
+                // Reset everything to ensure cursor starts at first item
                 self.menu_cursor = 0;
-                self.current_page = Pages::Multiplayer
+                self.game_mode_selection = Some(0);
+                self.game_mode_form_cursor = 0;
+                self.game_mode_form_active = false;
+                self.current_page = Pages::GameModeMenu;
             }
-            2 => {
+            1 => {
+                // Lichess Online
                 // Check if Lichess token is configured
                 if self.lichess_token.is_none()
                     || self
@@ -1247,30 +1251,26 @@ impl App {
                 // Fetch user profile when entering Lichess menu
                 self.fetch_lichess_user_profile();
             }
-            3 => {
-                self.menu_cursor = 0;
-                self.current_page = Pages::Bot
-            }
-            4 => {
+            2 => {
                 // Cycle through available skins
                 self.cycle_skin();
                 self.update_config();
             }
             #[cfg(feature = "sound")]
-            5 => {
+            3 => {
                 // Toggle sound
                 self.sound_enabled = !self.sound_enabled;
                 crate::sound::set_sound_enabled(self.sound_enabled);
                 self.update_config();
             }
             #[cfg(feature = "sound")]
-            6 => self.toggle_help_popup(),
+            4 => self.toggle_help_popup(),
             #[cfg(feature = "sound")]
-            7 => self.current_page = Pages::Credit,
+            5 => self.current_page = Pages::Credit,
             #[cfg(not(feature = "sound"))]
-            5 => self.toggle_help_popup(),
+            3 => self.toggle_help_popup(),
             #[cfg(not(feature = "sound"))]
-            6 => self.current_page = Pages::Credit,
+            4 => self.current_page = Pages::Credit,
             _ => {}
         }
     }

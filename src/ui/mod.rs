@@ -1,3 +1,4 @@
+pub mod game_mode_menu;
 pub mod lichess_menu;
 pub mod main_ui;
 pub mod ongoing_games;
