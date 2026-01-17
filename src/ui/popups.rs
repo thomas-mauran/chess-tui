@@ -3,8 +3,8 @@ use std::net::IpAddr;
 use crate::{
     app::App,
     constants::{NETWORK_PORT, WHITE},
-    pieces::{bishop::Bishop, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook, PieceSize},
-    ui::main_ui::{centered_rect, render_cell},
+    pieces::{bishop::Bishop, knight::Knight, queen::Queen, rook::Rook, PieceSize},
+    ui::main_ui::centered_rect,
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Position},
@@ -13,7 +13,6 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Wrap},
     Frame,
 };
-use shakmaty::Color as ShakmatyColor;
 
 use super::prompt::Prompt;
 
@@ -514,192 +513,6 @@ pub fn render_help_popup(frame: &mut Frame, app: &crate::app::App) {
     frame.render_widget(Clear, area); //this clears out the background
     frame.render_widget(block, area);
     frame.render_widget(paragraph, area);
-}
-
-// This renders a popup for the color selection
-pub fn render_color_selection_popup(frame: &mut Frame, app: &App) {
-    let block = Block::default()
-        .title("Color selection")
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .padding(Padding::horizontal(1))
-        .border_style(Style::default().fg(WHITE));
-    let area = centered_rect(40, 40, frame.area());
-
-    let text = vec![
-        Line::from(""),
-        Line::from("-- Choose your color --").alignment(Alignment::Center),
-        Line::from(""),
-    ];
-
-    let paragraph = Paragraph::new(text)
-        .block(Block::default())
-        .alignment(Alignment::Left)
-        .wrap(Wrap { trim: true });
-    frame.render_widget(Clear, area);
-    frame.render_widget(block, area);
-    frame.render_widget(paragraph, area);
-
-    let inner_popup_layout_vertical = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints(
-            [
-                Constraint::Ratio(1, 3),
-                Constraint::Min(3),
-                Constraint::Ratio(1, 3),
-            ]
-            .as_ref(),
-        )
-        .split(area);
-
-    let inner_popup_layout_horizontal = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints(
-            [
-                Constraint::Ratio(1, 3),
-                Constraint::Ratio(1, 3),
-                Constraint::Ratio(1, 3),
-            ]
-            .as_ref(),
-        )
-        .split(inner_popup_layout_vertical[1]);
-
-    let display_mode = &app.game.ui.display_mode;
-
-    // White option: white pawn on black background (like a chess square)
-    let white_selected = app.menu_cursor == 0;
-    let white_block = Block::default()
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(if white_selected {
-            Color::Yellow
-        } else {
-            Color::DarkGray
-        }));
-    let white_area = inner_popup_layout_horizontal[0];
-    frame.render_widget(white_block.clone(), white_area);
-
-    let white_inner_area = white_block.inner(white_area);
-    let piece_size = PieceSize::from_dimensions(white_inner_area.height);
-
-    // Render background only in the inner area (inside the border)
-    if white_selected {
-        render_cell(frame, white_inner_area, Color::Black, None);
-    }
-
-    let white_pawn = Paragraph::new(Pawn::to_string(
-        display_mode,
-        piece_size,
-        Some(ShakmatyColor::White),
-    ))
-    .block(Block::default())
-    .alignment(Alignment::Center)
-    .style(
-        Style::default()
-            .fg(Color::White)
-            .bg(if white_selected {
-                Color::Black
-            } else {
-                Color::Reset
-            })
-            .add_modifier(if white_selected {
-                Modifier::BOLD
-            } else {
-                Modifier::empty()
-            }),
-    );
-    frame.render_widget(white_pawn, white_inner_area);
-
-    // Black option: black pawn on white background (like a chess square)
-    let black_selected = app.menu_cursor == 1;
-    let black_block = Block::default()
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(if black_selected {
-            Color::Yellow
-        } else {
-            Color::DarkGray
-        }));
-    let black_area = inner_popup_layout_horizontal[2];
-    frame.render_widget(black_block.clone(), black_area);
-
-    let black_inner_area = black_block.inner(black_area);
-    let black_piece_size = PieceSize::from_dimensions(black_inner_area.height);
-
-    // Render background only in the inner area (inside the border)
-    if black_selected {
-        render_cell(frame, black_inner_area, Color::White, None);
-    }
-
-    let black_pawn = Paragraph::new(Pawn::to_string(
-        display_mode,
-        black_piece_size,
-        Some(ShakmatyColor::Black),
-    ))
-    .block(Block::default())
-    .alignment(Alignment::Center)
-    .style(
-        Style::default()
-            .fg(Color::Black)
-            .bg(if black_selected {
-                Color::White
-            } else {
-                Color::Reset
-            })
-            .add_modifier(if black_selected {
-                Modifier::BOLD
-            } else {
-                Modifier::empty()
-            }),
-    );
-    frame.render_widget(black_pawn, black_inner_area);
-
-    // Labels under each option to make the choice explicit and readable on any theme
-    let label_layout_horizontal = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints(
-            [
-                Constraint::Ratio(1, 3),
-                Constraint::Ratio(1, 3),
-                Constraint::Ratio(1, 3),
-            ]
-            .as_ref(),
-        )
-        .split(inner_popup_layout_vertical[2]);
-
-    let white_label = Paragraph::new(" White pieces ")
-        .alignment(Alignment::Center)
-        .style(
-            Style::default()
-                .fg(if white_selected {
-                    Color::Yellow
-                } else {
-                    Color::Gray
-                })
-                .add_modifier(if app.menu_cursor == 0 {
-                    Modifier::BOLD
-                } else {
-                    Modifier::empty()
-                }),
-        );
-    frame.render_widget(white_label, label_layout_horizontal[0]);
-
-    let black_label = Paragraph::new(" Black pieces ")
-        .alignment(Alignment::Center)
-        .style(
-            Style::default()
-                .fg(if black_selected {
-                    Color::Yellow
-                } else {
-                    Color::Gray
-                })
-                .add_modifier(if app.menu_cursor == 1 {
-                    Modifier::BOLD
-                } else {
-                    Modifier::empty()
-                }),
-        );
-    frame.render_widget(black_label, label_layout_horizontal[2]);
 }
 
 // This renders a popup for the multiplayer hosting / joining popup

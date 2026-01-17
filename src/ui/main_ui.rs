@@ -11,10 +11,10 @@ use crate::{
     constants::Popups,
     game_logic::game::GameState,
     ui::popups::{
-        render_color_selection_popup, render_credit_popup, render_end_popup,
-        render_enter_game_code_popup, render_enter_lichess_token_popup, render_error_popup,
-        render_help_popup, render_promotion_popup, render_puzzle_end_popup,
-        render_resign_confirmation_popup, render_success_popup,
+        render_credit_popup, render_end_popup, render_enter_game_code_popup,
+        render_enter_lichess_token_popup, render_error_popup, render_help_popup,
+        render_promotion_popup, render_puzzle_end_popup, render_resign_confirmation_popup,
+        render_success_popup,
     },
 };
 
@@ -43,8 +43,6 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
         if app.current_popup != Some(Popups::Error) {
             if app.hosting.is_none() {
                 app.current_popup = Some(Popups::MultiplayerSelection);
-            } else if app.selected_color.is_none() && app.hosting == Some(true) {
-                app.current_popup = Some(Popups::ColorSelection);
             } else if app.game.logic.opponent.is_none() {
                 if app.host_ip.is_none() {
                     if app.hosting == Some(true) {
@@ -119,9 +117,12 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
 
         // If we passed all validation checks, proceed with bot setup
         if app.current_popup != Some(Popups::Error) {
+            // Color should already be selected from the game mode menu
+            // Default to White if somehow not set
             if app.selected_color.is_none() {
-                app.current_popup = Some(Popups::ColorSelection);
-            } else if app.game.logic.bot.is_none() {
+                app.selected_color = Some(shakmaty::Color::White);
+            }
+            if app.game.logic.bot.is_none() {
                 app.bot_setup();
             } else {
                 render_game_ui(frame, app, main_area);
@@ -131,6 +132,10 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
     // Lichess menu
     else if app.current_page == Pages::LichessMenu {
         render_lichess_menu(frame, app);
+    }
+    // Game mode menu
+    else if app.current_page == Pages::GameModeMenu {
+        crate::ui::game_mode_menu::render_game_mode_menu(frame, app);
     }
     // Ongoing games list
     else if app.current_page == Pages::OngoingGames {
@@ -147,9 +152,6 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
 
     // Render popups
     match app.current_popup {
-        Some(Popups::ColorSelection) => {
-            render_color_selection_popup(frame, app);
-        }
         Some(Popups::MultiplayerSelection) => {
             render_multiplayer_selection_popup(frame, app);
         }
@@ -270,10 +272,8 @@ pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
 
     // Menu items with descriptions
     let mut menu_items: Vec<(&str, &str)> = vec![
-        ("Local game", "Practice mode - play against yourself"),
-        ("Multiplayer", "Play with friends over network"),
-        ("Lichess Online", "Play on Lichess.org"),
-        ("Play Bot", "Challenge a chess engine"),
+        ("Play Game", "Local, Multiplayer, or Bot game"),
+        ("Play on Lichess", "Play on Lichess.org"),
         (&display_mode_menu, "Change display theme"),
     ];
 

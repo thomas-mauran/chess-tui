@@ -87,14 +87,6 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
             KeyCode::Esc => app.toggle_help_popup(),
             _ => fallback_key_handler(app, key_event),
         },
-        // Color selection popup - choose white or black when playing against bot
-        Popups::ColorSelection => match key_event.code {
-            KeyCode::Esc => app.close_popup_and_go_home(),
-            KeyCode::Right | KeyCode::Char('l') => app.menu_cursor_right(2),
-            KeyCode::Left | KeyCode::Char('h') => app.menu_cursor_left(2),
-            KeyCode::Char(' ') | KeyCode::Enter => app.color_selection(),
-            _ => fallback_key_handler(app, key_event),
-        },
         // Multiplayer selection popup - choose to host or join a game
         Popups::MultiplayerSelection => match key_event.code {
             KeyCode::Esc => app.close_popup_and_go_home(),
@@ -298,6 +290,7 @@ fn handle_page_input(app: &mut App, key_event: KeyEvent) {
         Pages::Multiplayer => handle_multiplayer_page_events(app, key_event),
         Pages::Lichess => handle_multiplayer_page_events(app, key_event),
         Pages::LichessMenu => handle_lichess_menu_page_events(app, key_event),
+        Pages::GameModeMenu => handle_game_mode_menu_page_events(app, key_event),
         Pages::OngoingGames => handle_ongoing_games_page_events(app, key_event),
         Pages::Bot => handle_bot_page_events(app, key_event),
         Pages::Credit => handle_credit_page_events(app, key_event),
@@ -311,23 +304,23 @@ fn handle_home_page_events(app: &mut App, key_event: KeyEvent) {
     const MENU_ITEMS: u8 = {
         #[cfg(feature = "sound")]
         {
-            8 // Local game, Multiplayer, Lichess, Bot, Skin, Sound, Help, About
+            6 // Play Game, Lichess, Skin, Sound, Help, About
         }
         #[cfg(not(feature = "sound"))]
         {
-            7 // Local game, Multiplayer, Lichess, Bot, Skin, Help, About
+            5 // Play Game, Lichess, Skin, Help, About
         }
     };
 
     match key_event.code {
         KeyCode::Up | KeyCode::Char('k') => app.menu_cursor_up(MENU_ITEMS),
         KeyCode::Down | KeyCode::Char('j') => app.menu_cursor_down(MENU_ITEMS),
-        // If on skin selection menu item (index 3), use left/right to cycle skins
-        KeyCode::Left | KeyCode::Char('h') if app.menu_cursor == 3 => {
+        // If on skin selection menu item (index 2), use left/right to cycle skins
+        KeyCode::Left | KeyCode::Char('h') if app.menu_cursor == 2 => {
             app.cycle_skin_backward();
             app.update_config();
         }
-        KeyCode::Right | KeyCode::Char('l') if app.menu_cursor == 3 => {
+        KeyCode::Right | KeyCode::Char('l') if app.menu_cursor == 2 => {
             app.cycle_skin();
             app.update_config();
         }
@@ -503,6 +496,12 @@ fn fallback_key_handler(app: &mut App, key_event: KeyEvent) {
 /// Mouse input is only active during game pages (Solo, Bot, Multiplayer).
 /// Handles both board clicks and promotion selection clicks.
 pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<()> {
+    // Handle clicks on GameModeMenu page for documentation links
+    if app.current_page == Pages::GameModeMenu {
+        // Documentation links are opened via keyboard shortcut ('d')
+        return Ok(());
+    }
+
     // Mouse control only implemented for game pages, not home or credits
     if app.current_page == Pages::Home || app.current_page == Pages::Credit {
         return Ok(());
@@ -827,6 +826,233 @@ fn handle_lichess_menu_page_events(app: &mut App, key_event: KeyEvent) {
         }
         KeyCode::Char('?') => app.toggle_help_popup(),
         _ => fallback_key_handler(app, key_event),
+    }
+}
+
+/// Handles keyboard input on the Game Mode menu page.
+/// Supports navigation through menu items, form fields, and selection.
+fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
+    // Ensure cursor is valid (0-2)
+    if app.menu_cursor > 2 {
+        app.menu_cursor = 0;
+    }
+
+    let game_mode = app.menu_cursor;
+
+    // If form is active, handle form navigation
+    if app.game_mode_form_active {
+        match key_event.code {
+            KeyCode::Esc => {
+                // Deactivate form and go back to menu
+                app.game_mode_form_active = false;
+                app.game_mode_form_cursor = 0;
+            }
+            KeyCode::Up | KeyCode::Char('k') | KeyCode::Down | KeyCode::Char('j') => {
+                // Up/Down navigation disabled in form mode
+                // Use Left/Right to toggle options and Enter/Space to move to next field
+            }
+            KeyCode::Left | KeyCode::Char('h') => {
+                // Navigate left - go to first option (Host/White)
+                match game_mode {
+                    0 => {
+                        // Local: no configuration fields to navigate
+                    }
+                    1 => {
+                        // Multiplayer
+                        match app.game_mode_form_cursor {
+                            0 => {
+                                // Set to Host
+                                app.hosting = Some(true);
+                            }
+                            1 => {
+                                // Set to White (only if hosting)
+                                if app.hosting == Some(true) {
+                                    app.selected_color = Some(shakmaty::Color::White);
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                    2 => {
+                        // Bot
+                        match app.game_mode_form_cursor {
+                            0 => {
+                                // Set to White
+                                app.selected_color = Some(shakmaty::Color::White);
+                            }
+                            1 => {
+                                // Bot depth - decrease
+                                if app.bot_depth > 1 {
+                                    app.bot_depth -= 1;
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            KeyCode::Right | KeyCode::Char('l') => {
+                // Navigate right - go to second option (Join/Black)
+                match game_mode {
+                    0 => {
+                        // Local: no fields to navigate
+                    }
+                    1 => {
+                        // Multiplayer
+                        match app.game_mode_form_cursor {
+                            0 => {
+                                // Set to Join
+                                app.hosting = Some(false);
+                            }
+                            1 => {
+                                // Set to Black (only if hosting)
+                                if app.hosting == Some(true) {
+                                    app.selected_color = Some(shakmaty::Color::Black);
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                    2 => {
+                        // Bot
+                        match app.game_mode_form_cursor {
+                            0 => {
+                                // Set to Black
+                                app.selected_color = Some(shakmaty::Color::Black);
+                            }
+                            1 => {
+                                // Bot depth - increase
+                                if app.bot_depth < 20 {
+                                    app.bot_depth += 1;
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            KeyCode::Char(' ') | KeyCode::Enter => {
+                // Confirm current field and move to next, or start game if all fields filled
+                match game_mode {
+                    0 => {
+                        // Local game - just start
+                        app.current_page = Pages::Solo;
+                        app.game_mode_selection = None;
+                        app.game_mode_form_cursor = 0;
+                        app.game_mode_form_active = false;
+                    }
+                    1 => {
+                        // Multiplayer - step by step
+                        match app.game_mode_form_cursor {
+                            0 => {
+                                // On Host/Join field - select default (Host) if nothing selected, then move to next
+                                if app.hosting.is_none() {
+                                    app.hosting = Some(true); // Default to Host
+                                }
+                                if app.hosting == Some(true) {
+                                    // Hosting: move to color selection
+                                    app.game_mode_form_cursor = 1;
+                                } else {
+                                    // Joining: can start game immediately
+                                    app.current_page = Pages::Multiplayer;
+                                    app.game_mode_selection = None;
+                                    app.game_mode_form_cursor = 0;
+                                    app.game_mode_form_active = false;
+                                }
+                            }
+                            1 => {
+                                // On Color field - select default (White) if nothing selected, then start game
+                                if app.selected_color.is_none() {
+                                    app.selected_color = Some(shakmaty::Color::White);
+                                    // Default to White
+                                }
+                                // Hosting: start game (color selected)
+                                app.current_page = Pages::Multiplayer;
+                                app.game_mode_selection = None;
+                                app.game_mode_form_cursor = 0;
+                                app.game_mode_form_active = false;
+                            }
+                            _ => {}
+                        }
+                    }
+                    2 => {
+                        // Bot - step by step
+                        match app.game_mode_form_cursor {
+                            0 => {
+                                // On Color field - select default (White) if nothing selected, then move to depth
+                                if app.selected_color.is_none() {
+                                    app.selected_color = Some(shakmaty::Color::White);
+                                    // Default to White
+                                }
+                                app.game_mode_form_cursor = 1;
+                            }
+                            1 => {
+                                // On Depth field - start game (color and depth selected)
+                                app.current_page = Pages::Bot;
+                                app.game_mode_selection = None;
+                                app.game_mode_form_cursor = 0;
+                                app.game_mode_form_active = false;
+                            }
+                            _ => {}
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            _ => fallback_key_handler(app, key_event),
+        }
+    } else {
+        // Menu navigation mode (form not active)
+        match key_event.code {
+            KeyCode::Up | KeyCode::Char('k') => {
+                app.menu_cursor_up(3);
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                app.menu_cursor_down(3);
+            }
+            KeyCode::Left | KeyCode::Char('h') => {
+                // Change game mode selection
+                if app.menu_cursor > 0 {
+                    app.menu_cursor -= 1;
+                }
+            }
+            KeyCode::Right | KeyCode::Char('l') => {
+                // Change game mode selection
+                if app.menu_cursor < 2 {
+                    app.menu_cursor += 1;
+                }
+            }
+            KeyCode::Char(' ') | KeyCode::Enter => {
+                // If game mode has no configuration fields, start game directly
+                if game_mode == 0 {
+                    // Local game - no fields, start immediately
+                    app.current_page = Pages::Solo;
+                    app.game_mode_selection = None;
+                    app.game_mode_form_cursor = 0;
+                    app.game_mode_form_active = false;
+                } else {
+                    // Activate the form for modes with configuration
+                    app.game_mode_form_active = true;
+                    app.game_mode_form_cursor = 0; // Start at first form field
+                    app.game_mode_selection = Some(game_mode);
+                    // Reset form state
+                    app.hosting = None;
+                    app.selected_color = None;
+                }
+            }
+            KeyCode::Esc | KeyCode::Char('b') => {
+                // Return to home menu
+                app.menu_cursor = 0;
+                app.game_mode_selection = None;
+                app.game_mode_form_cursor = 0;
+                app.game_mode_form_active = false;
+                app.current_page = Pages::Home;
+            }
+            KeyCode::Char('?') => app.toggle_help_popup(),
+            _ => fallback_key_handler(app, key_event),
+        }
     }
 }
 
