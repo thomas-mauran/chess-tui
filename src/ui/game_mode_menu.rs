@@ -396,7 +396,7 @@ fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: u8
                     .fg(Color::Black)
                     .bg(Color::White)
                     .add_modifier(Modifier::BOLD)
-            } else if host_focused || (is_focused && !app.hosting.is_some()) {
+            } else if host_focused || (is_focused && app.hosting.is_none()) {
                 // Show focus when cursor is on this field
                 Style::default()
                     .fg(Color::Black)
@@ -439,13 +439,8 @@ fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: u8
                 .constraints([Constraint::Length(1), Constraint::Length(1)])
                 .split(form_chunks[chunk_idx]);
 
-            let is_color_field_focused = is_active && app.game_mode_form_cursor == 1;
             let color_label_style = if !is_active || app.hosting != Some(true) {
                 Style::default().fg(grey_color)
-            } else if is_color_field_focused {
-                Style::default()
-                    .fg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD)
             } else {
                 Style::default()
                     .fg(Color::Cyan)
@@ -477,7 +472,7 @@ fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: u8
                     .fg(Color::Black)
                     .bg(Color::White)
                     .add_modifier(Modifier::BOLD)
-            } else if white_focused || (is_focused && !app.selected_color.is_some()) {
+            } else if white_focused || (is_focused && app.selected_color.is_none()) {
                 // Show focus when cursor is on this field
                 Style::default()
                     .fg(Color::Black)
@@ -549,7 +544,7 @@ fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: u8
                     .fg(Color::Black)
                     .bg(Color::White)
                     .add_modifier(Modifier::BOLD)
-            } else if white_focused || (is_focused && !app.selected_color.is_some()) {
+            } else if white_focused || (is_focused && app.selected_color.is_none()) {
                 // Show focus when cursor is on this field
                 Style::default()
                     .fg(Color::Black)
@@ -589,10 +584,6 @@ fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: u8
 
             let depth_label_style = if !is_active {
                 Style::default().fg(grey_color)
-            } else if is_depth_field_focused {
-                Style::default()
-                    .fg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD)
             } else {
                 Style::default()
                     .fg(Color::Cyan)
