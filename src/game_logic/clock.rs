@@ -70,12 +70,16 @@ impl Clock {
         };
 
         // If this color's clock is running, subtract elapsed time
-        if self.is_running && self.active_color == Some(color) && self.turn_start.is_some() {
-            let elapsed = self.turn_start.unwrap().elapsed();
-            if elapsed < base_time {
-                base_time - elapsed
+        if self.is_running && self.active_color == Some(color) {
+            if let Some(turn_start) = self.turn_start {
+                let elapsed = turn_start.elapsed();
+                if elapsed < base_time {
+                    base_time - elapsed
+                } else {
+                    Duration::ZERO
+                }
             } else {
-                Duration::ZERO
+                base_time
             }
         } else {
             base_time

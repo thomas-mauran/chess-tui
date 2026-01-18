@@ -156,7 +156,7 @@ impl App {
     pub fn get_time_control_seconds(&self) -> Option<u32> {
         match self.clock_form_cursor {
             0 => Some(15),      // UltraBullet: 15 seconds
-            1 => Some(1 * 60),  // Bullet: 1 minutes = 120 seconds
+            1 => Some(60),      // Bullet: 1 minutes = 60 seconds
             2 => Some(5 * 60),  // Blitz: 5 minutes = 300 seconds
             3 => Some(10 * 60), // Rapid: 10 minutes = 600 seconds
             4 => Some(60 * 60), // Classical: 60 minutes = 3600 seconds

@@ -932,10 +932,9 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                 // Bot depth (if Custom selected)
                                 if app.clock_form_cursor
                                     == crate::constants::TIME_CONTROL_CUSTOM_INDEX
+                                    && app.bot_depth > 1
                                 {
-                                    if app.bot_depth > 1 {
-                                        app.bot_depth -= 1;
-                                    }
+                                    app.bot_depth -= 1;
                                 }
                             }
                             _ => {}
@@ -1029,10 +1028,9 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                 // Bot depth (if Custom selected)
                                 if app.clock_form_cursor
                                     == crate::constants::TIME_CONTROL_CUSTOM_INDEX
+                                    && app.bot_depth < 20
                                 {
-                                    if app.bot_depth < 20 {
-                                        app.bot_depth += 1;
-                                    }
+                                    app.bot_depth += 1;
                                 }
                             }
                             _ => {}

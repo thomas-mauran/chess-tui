@@ -20,8 +20,12 @@ fn render_time_control_ui(
     chunk_idx: &mut usize,
     is_active: bool,
     time_control_cursor: u8,
-    grey_color: Color,
 ) {
+    let grey_color = if is_active {
+        Color::White
+    } else {
+        Color::DarkGray
+    };
     let time_control_label_area = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(1), Constraint::Length(1)])
@@ -30,10 +34,6 @@ fn render_time_control_ui(
     let is_time_control_focused = is_active && app.game_mode_form_cursor == time_control_cursor;
     let time_control_label_style = if !is_active {
         Style::default().fg(grey_color)
-    } else if is_time_control_focused {
-        Style::default()
-            .fg(Color::Cyan)
-            .add_modifier(Modifier::BOLD)
     } else {
         Style::default()
             .fg(Color::Cyan)
@@ -588,7 +588,6 @@ fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: u8
                 &mut chunk_idx,
                 is_active,
                 0, // time_control_cursor
-                grey_color,
             );
         }
         1 => {
@@ -747,8 +746,7 @@ fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: u8
                 &form_chunks,
                 &mut chunk_idx,
                 is_active,
-                0,
-                grey_color,
+                0, // time_control_cursor
             );
             chunk_idx += 1;
 
