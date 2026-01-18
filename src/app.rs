@@ -88,6 +88,12 @@ pub struct App {
     pub game_mode_form_cursor: u8,
     /// Whether the form is active (ungreyed) - user pressed Enter to activate
     pub game_mode_form_active: bool,
+    /// Clock time control index (0: UltraBullet, 1: Bullet, 2: Blitz, 3: Rapid, 4: Classical, 5: No clock, 6: Custom)
+    pub clock_form_cursor: u32,
+    /// Custom time in minutes (used when clock_form_cursor == TIME_CONTROL_CUSTOM_INDEX)
+    pub custom_time_minutes: u32,
+    /// Whether the game ended due to time running out
+    pub game_ended_by_time: bool,
 }
 
 impl Default for App {
@@ -123,11 +129,61 @@ impl Default for App {
             game_mode_selection: None,
             game_mode_form_cursor: 0,
             game_mode_form_active: false,
+            clock_form_cursor: 3,    // Default: Rapid (index 3 = 15 minutes)
+            custom_time_minutes: 10, // Default custom time: 10 minutes
+            game_ended_by_time: false,
         }
     }
 }
 
 impl App {
+    /// Get the time control name for the current index
+    pub fn get_time_control_name(&self) -> &'static str {
+        match self.clock_form_cursor {
+            0 => "UltraBullet",
+            1 => "Bullet",
+            2 => "Blitz",
+            3 => "Rapid",
+            4 => "Classical",
+            5 => "No clock",
+            x if x == crate::constants::TIME_CONTROL_CUSTOM_INDEX => "Custom",
+            _ => "Rapid",
+        }
+    }
+
+    /// Get the actual seconds for the current time control index
+    /// Returns None if "No clock" is selected
+    pub fn get_time_control_seconds(&self) -> Option<u32> {
+        match self.clock_form_cursor {
+            0 => Some(15),      // UltraBullet: 15 seconds
+            1 => Some(1 * 60),  // Bullet: 1 minutes = 120 seconds
+            2 => Some(5 * 60),  // Blitz: 5 minutes = 300 seconds
+            3 => Some(10 * 60), // Rapid: 10 minutes = 600 seconds
+            4 => Some(60 * 60), // Classical: 60 minutes = 3600 seconds
+            5 => None,          // No clock
+            x if x == crate::constants::TIME_CONTROL_CUSTOM_INDEX => {
+                Some(self.custom_time_minutes * 60)
+            } // Custom: use custom_time_minutes
+            _ => Some(10 * 60), // Default fallback
+        }
+    }
+
+    /// Get the description for the current time control index
+    pub fn get_time_control_description(&self) -> String {
+        match self.clock_form_cursor {
+            0 => "Lightning fast (15 seconds per side)".to_string(),
+            1 => "Very short games (e.g., 1 minute per side)".to_string(),
+            2 => "Fast games (e.g., 5 minutes)".to_string(),
+            3 => "Medium games (e.g., 10 minutes)".to_string(),
+            4 => "Longer games (e.g., 60 minutes)".to_string(),
+            5 => "Play without any time limits".to_string(),
+            x if x == crate::constants::TIME_CONTROL_CUSTOM_INDEX => {
+                format!("Custom time: {} minutes per side", self.custom_time_minutes)
+            }
+            _ => "Medium games (e.g., 10 minutes)".to_string(), // Default fallback
+        }
+    }
+
     pub fn toggle_help_popup(&mut self) {
         if self.current_popup == Some(Popups::Help) {
             self.current_popup = None;
@@ -950,8 +1006,28 @@ impl App {
             self.puzzle_game = Some(puzzle_game);
         }
 
+        // Check clock for time up (for local games and bot games with clock)
+        if let Some(ref mut clock) = self.game.logic.clock {
+            if clock.any_time_up() {
+                if let Some(time_up_color) = clock.get_time_up_color() {
+                    // Time is up - end the game
+                    let winner = time_up_color.other();
+                    // Stop the clock (it should already be stopped, but ensure it)
+                    if clock.is_running {
+                        clock.stop();
+                    }
+                    self.game.logic.game_state = GameState::Checkmate;
+                    // Set player_turn to the winner so check_and_show_game_end shows correct winner
+                    self.game.logic.player_turn = winner;
+                    // Mark that the game ended due to time
+                    self.game_ended_by_time = true;
+                    self.check_and_show_game_end();
+                }
+            }
+        }
+
         // Check for opponent moves (Lichess or Multiplayer)
-        // Skip if we're in puzzle mode - puzzles don't use opponents or polling
+        // Skip if we're in puzzle mode
         if self.puzzle_game.is_some() {
             return; // Puzzles have all moves pre-loaded, no need to check for opponent moves
         }
@@ -1147,6 +1223,13 @@ impl App {
         let is_bot_starting = self.selected_color.unwrap_or(Color::White) == shakmaty::Color::Black;
         let path = self.chess_engine_path.as_deref().unwrap_or("");
         self.game.logic.bot = Some(Bot::new(path, is_bot_starting, self.bot_depth));
+
+        // Initialize clock for bot games if time control is selected
+        if let Some(seconds) = self.get_time_control_seconds() {
+            use crate::game_logic::clock::Clock;
+            self.game.logic.clock = Some(Clock::new(seconds));
+        }
+
         if let Some(color) = self.selected_color {
             if color == Color::Black {
                 // Flip the board once so Black player sees from their perspective
@@ -1197,11 +1280,15 @@ impl App {
         // Clear puzzle state when restarting (for normal games)
         self.puzzle_game = None;
         self.end_screen_dismissed = false;
+        self.game_ended_by_time = false;
         let bot = self.game.logic.bot.clone();
         let opponent = self.game.logic.opponent.clone();
         // Preserve skin and display mode
         let current_skin = self.game.ui.skin.clone();
         let display_mode = self.game.ui.display_mode;
+        // Check if we're in a local game (Solo page with no bot/opponent) or bot game to preserve clock
+        let is_local_game = self.current_page == Pages::Solo && bot.is_none() && opponent.is_none();
+        let is_bot_game = bot.is_some() && opponent.is_none();
 
         self.game = Game::default();
 
@@ -1211,6 +1298,14 @@ impl App {
         self.game.ui.skin = current_skin;
         self.game.ui.display_mode = display_mode;
         self.current_popup = None;
+
+        // Re-initialize clock for local games and bot games
+        if is_local_game || is_bot_game {
+            if let Some(seconds) = self.get_time_control_seconds() {
+                use crate::game_logic::clock::Clock;
+                self.game.logic.clock = Some(Clock::new(seconds));
+            }
+        }
 
         if self
             .game
@@ -1588,6 +1683,7 @@ impl App {
         let display_mode = self.game.ui.display_mode;
         let current_skin = self.game.ui.skin.clone();
         self.end_screen_dismissed = false;
+        self.game_ended_by_time = false;
 
         // Cancel any active Lichess seek before resetting
         if let Some(cancellation_token) = &self.lichess_cancellation_token {
@@ -1618,6 +1714,8 @@ impl App {
         self.game.ui.display_mode = display_mode;
         self.game.ui.skin = current_skin;
         self.end_screen_dismissed = false;
+        self.clock_form_cursor = 3; // Reset to default (Rapid)
+        self.custom_time_minutes = 10; // Reset custom time
         self.current_page = Pages::Home;
         self.current_popup = None;
         self.loaded_skin = self.loaded_skin.clone();
@@ -1626,29 +1724,13 @@ impl App {
     /// Checks for game end conditions after a move and shows end screen if needed.
     /// This consolidates the repeated game end checking logic.
     pub fn check_and_show_game_end(&mut self) {
-        if self.game.logic.game_board.is_checkmate() {
-            self.game.logic.game_state = GameState::Checkmate;
-            // Only show end screen if it's not already shown and not dismissed
-            if self.current_popup != Some(Popups::EndScreen)
-                && self.current_popup != Some(Popups::PuzzleEndScreen)
-                && !self.end_screen_dismissed
-            {
-                self.show_end_screen();
-            }
-        } else if self.game.logic.game_board.is_draw() {
-            self.game.logic.game_state = GameState::Draw;
-            // Only show end screen if it's not already shown and not dismissed
-            if self.current_popup != Some(Popups::EndScreen)
-                && self.current_popup != Some(Popups::PuzzleEndScreen)
-                && !self.end_screen_dismissed
-            {
-                self.show_end_screen();
-            }
-        } else if self.game.logic.game_state == GameState::Checkmate
+        // Update game state first (this will stop the clock if game ended)
+        self.game.logic.update_game_state();
+
+        if self.game.logic.game_state == GameState::Checkmate
             || self.game.logic.game_state == GameState::Draw
         {
-            // Game already ended, only show the screen if it's not already shown
-            // (user might have dismissed it with 'H' or 'Esc')
+            // Game ended - only show end screen if it's not already shown and not dismissed
             if self.current_popup != Some(Popups::EndScreen)
                 && self.current_popup != Some(Popups::PuzzleEndScreen)
                 && !self.end_screen_dismissed
@@ -1665,6 +1747,8 @@ impl App {
     /// Used by popups that should return to home when closed.
     pub fn close_popup_and_go_home(&mut self) {
         self.current_popup = None;
+        self.clock_form_cursor = 3; // Reset to default (Rapid)
+        self.custom_time_minutes = 10; // Reset custom time
         self.current_page = Pages::Home;
     }
 

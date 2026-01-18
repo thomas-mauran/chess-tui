@@ -8,6 +8,165 @@ use ratatui::{
 };
 use shakmaty::Color as ShakmatyColor;
 
+use crate::constants::TIME_CONTROL_OPTIONS;
+
+/// Renders the time control selection UI (buttons and custom time field if needed)
+/// Returns the updated chunk index after rendering
+fn render_time_control_ui(
+    frame: &mut Frame,
+    app: &App,
+    time_control_area: Rect,
+    form_chunks: &[Rect],
+    chunk_idx: &mut usize,
+    is_active: bool,
+    time_control_cursor: u8,
+    grey_color: Color,
+) {
+    let time_control_label_area = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(1), Constraint::Length(1)])
+        .split(time_control_area);
+
+    let is_time_control_focused = is_active && app.game_mode_form_cursor == time_control_cursor;
+    let time_control_label_style = if !is_active {
+        Style::default().fg(grey_color)
+    } else if is_time_control_focused {
+        Style::default()
+            .fg(Color::Cyan)
+            .add_modifier(Modifier::BOLD)
+    } else {
+        Style::default()
+            .fg(Color::Cyan)
+            .add_modifier(Modifier::BOLD)
+    };
+    let time_control_label = Paragraph::new("Time Control:")
+        .style(time_control_label_style)
+        .alignment(Alignment::Left);
+    frame.render_widget(time_control_label, time_control_label_area[0]);
+
+    let current_index = app
+        .clock_form_cursor
+        .min(crate::constants::TIME_CONTROL_CUSTOM_INDEX) as usize;
+
+    // Calculate button widths - need to fit all options horizontally
+    let button_widths: Vec<u16> = TIME_CONTROL_OPTIONS
+        .iter()
+        .map(|opt| opt.len() as u16 + 2) // +2 for padding
+        .collect();
+
+    // Create constraints for each button
+    let mut constraints = Vec::new();
+    for width in &button_widths {
+        constraints.push(Constraint::Length(*width));
+    }
+
+    let button_areas = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(constraints)
+        .horizontal_margin(0)
+        .split(time_control_label_area[1]);
+
+    for (idx, option) in TIME_CONTROL_OPTIONS.iter().enumerate() {
+        let is_selected = idx == current_index;
+        let option_style = if !is_active {
+            Style::default().fg(grey_color)
+        } else if is_selected {
+            Style::default()
+                .fg(Color::Black)
+                .bg(Color::White)
+                .add_modifier(Modifier::BOLD)
+        } else if is_time_control_focused && idx == current_index {
+            Style::default()
+                .fg(Color::Black)
+                .bg(Color::Cyan)
+                .add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(Color::White)
+        };
+        let option_text = Paragraph::new(*option)
+            .alignment(Alignment::Center)
+            .style(option_style);
+        frame.render_widget(option_text, button_areas[idx]);
+    }
+
+    // Show custom time adjustment field if Custom is selected
+    if app.clock_form_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX && is_active {
+        *chunk_idx += 1;
+        if *chunk_idx < form_chunks.len() {
+            let custom_time_area = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Length(1), Constraint::Length(1)])
+                .split(form_chunks[*chunk_idx]);
+
+            let custom_time_cursor = time_control_cursor + 1;
+            let is_custom_time_focused = app.game_mode_form_cursor == custom_time_cursor;
+            let custom_time_label_style = if is_custom_time_focused {
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().fg(Color::White)
+            };
+            let custom_time_label = Paragraph::new("Custom Time (minutes):")
+                .style(custom_time_label_style)
+                .alignment(Alignment::Left);
+            frame.render_widget(custom_time_label, custom_time_area[0]);
+
+            let custom_time_value_area = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([
+                    Constraint::Length(4),  // - button
+                    Constraint::Length(10), // Time value
+                    Constraint::Length(4),  // + button
+                ])
+                .split(custom_time_area[1]);
+
+            // Decrease button
+            let decrease_style = if is_custom_time_focused {
+                Style::default()
+                    .fg(Color::Black)
+                    .bg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().fg(Color::White)
+            };
+            let decrease_text = Paragraph::new("  -")
+                .alignment(Alignment::Center)
+                .style(decrease_style);
+            frame.render_widget(decrease_text, custom_time_value_area[0]);
+
+            // Custom time value display
+            let custom_time_value_style = if is_custom_time_focused {
+                Style::default()
+                    .fg(Color::Black)
+                    .bg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().fg(Color::White)
+            };
+            let custom_time_display = format!("  {}", app.custom_time_minutes);
+            let custom_time_value_text = Paragraph::new(custom_time_display)
+                .alignment(Alignment::Center)
+                .style(custom_time_value_style);
+            frame.render_widget(custom_time_value_text, custom_time_value_area[1]);
+
+            // Increase button
+            let increase_style = if is_custom_time_focused {
+                Style::default()
+                    .fg(Color::Black)
+                    .bg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().fg(Color::White)
+            };
+            let increase_text = Paragraph::new("  +")
+                .alignment(Alignment::Center)
+                .style(increase_style);
+            frame.render_widget(increase_text, custom_time_value_area[2]);
+        }
+    }
+}
+
 pub fn render_game_mode_menu(frame: &mut Frame, app: &App) {
     let area = frame.area();
 
@@ -166,6 +325,46 @@ fn render_details_panel(frame: &mut Frame, app: &App, area: Rect, game_mode: u8)
             info_lines.push(Line::from(""));
             info_lines.push(Line::from("Perfect for practicing chess alone or"));
             info_lines.push(Line::from("playing with your friend on a single computer."));
+            info_lines.push(Line::from(""));
+            info_lines.push(Line::from(vec![Span::styled(
+                "Time Control:",
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            )]));
+            let current_time_control = app.get_time_control_name();
+            let time_seconds = app.get_time_control_seconds();
+            if let Some(seconds) = time_seconds {
+                if seconds < 60 {
+                    // Show seconds for UltraBullet
+                    info_lines.push(Line::from(vec![Span::styled(
+                        format!("  {} ({} sec)", current_time_control, seconds),
+                        Style::default()
+                            .fg(Color::White)
+                            .add_modifier(Modifier::BOLD),
+                    )]));
+                } else {
+                    // Show minutes for others
+                    let minutes = seconds / 60;
+                    info_lines.push(Line::from(vec![Span::styled(
+                        format!("  {} ({} min)", current_time_control, minutes),
+                        Style::default()
+                            .fg(Color::White)
+                            .add_modifier(Modifier::BOLD),
+                    )]));
+                }
+            } else {
+                info_lines.push(Line::from(vec![Span::styled(
+                    format!("  {}", current_time_control),
+                    Style::default()
+                        .fg(Color::White)
+                        .add_modifier(Modifier::BOLD),
+                )]));
+            }
+            info_lines.push(Line::from(""));
+            let description = app.get_time_control_description();
+            // Add description as a single line - let Paragraph widget handle wrapping
+            info_lines.push(Line::from(format!("  {}", description)));
             info_lines.push(Line::from(""));
             info_lines.push(Line::from(vec![Span::styled(
                 "Features:",
@@ -333,19 +532,45 @@ fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: u8
     let form_chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints(match game_mode {
-            0 => vec![
-                Constraint::Min(1), // Local game has no fields (just start)
-            ],
+            0 => {
+                // Show custom time field if Custom is selected
+                if app.clock_form_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX {
+                    vec![
+                        Constraint::Length(3), // Time control selection
+                        Constraint::Length(3), // Custom time adjustment
+                        Constraint::Min(1),
+                    ]
+                } else {
+                    vec![
+                        Constraint::Length(3), // Time control selection
+                        Constraint::Min(1),
+                    ]
+                }
+            }
             1 => vec![
                 Constraint::Length(3), // Mode (host/join)
                 Constraint::Length(3), // Color (if hosting)
                 Constraint::Min(1),
             ],
-            2 => vec![
-                Constraint::Length(3), // Color
-                Constraint::Length(3), // Bot depth
-                Constraint::Min(1),
-            ],
+            2 => {
+                // Show custom time field if Custom is selected
+                if app.clock_form_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX {
+                    vec![
+                        Constraint::Length(3), // Time control selection
+                        Constraint::Length(3), // Custom time adjustment
+                        Constraint::Length(3), // Color
+                        Constraint::Length(3), // Bot depth
+                        Constraint::Min(1),
+                    ]
+                } else {
+                    vec![
+                        Constraint::Length(3), // Time control selection
+                        Constraint::Length(3), // Color
+                        Constraint::Length(3), // Bot depth
+                        Constraint::Min(1),
+                    ]
+                }
+            }
             _ => vec![Constraint::Min(3)],
         })
         .split(inner_form_area);
@@ -354,7 +579,17 @@ fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: u8
 
     match game_mode {
         0 => {
-            // Local game: no fields, just start immediately
+            // Local game: time control selection
+            render_time_control_ui(
+                frame,
+                app,
+                form_chunks[chunk_idx],
+                &form_chunks,
+                &mut chunk_idx,
+                is_active,
+                0, // time_control_cursor
+                grey_color,
+            );
         }
         1 => {
             // Multiplayer: host/join buttons
@@ -504,6 +739,19 @@ fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: u8
             frame.render_widget(black_text, color_button_area[2]);
         }
         2 => {
+            // Bot: time control selection
+            render_time_control_ui(
+                frame,
+                app,
+                form_chunks[chunk_idx],
+                &form_chunks,
+                &mut chunk_idx,
+                is_active,
+                0,
+                grey_color,
+            );
+            chunk_idx += 1;
+
             // Bot: color buttons
             let color_area = Layout::default()
                 .direction(Direction::Vertical)
@@ -534,7 +782,13 @@ fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: u8
             chunk_idx += 1;
 
             // White button
-            let is_focused = is_active && app.game_mode_form_cursor == 0;
+            let color_cursor =
+                if app.clock_form_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX {
+                    2
+                } else {
+                    1
+                };
+            let is_focused = is_active && app.game_mode_form_cursor == color_cursor;
             let white_selected = app.selected_color == Some(ShakmatyColor::White);
             let white_focused = is_focused && app.selected_color.is_none();
             let white_style = if !is_active {
@@ -576,7 +830,13 @@ fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: u8
             frame.render_widget(black_text, color_button_area[2]);
 
             // Bot depth field
-            let is_depth_field_focused = is_active && app.game_mode_form_cursor == 1;
+            let depth_cursor =
+                if app.clock_form_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX {
+                    3
+                } else {
+                    2
+                };
+            let is_depth_field_focused = is_active && app.game_mode_form_cursor == depth_cursor;
             let depth_area = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([Constraint::Length(1), Constraint::Length(1)])

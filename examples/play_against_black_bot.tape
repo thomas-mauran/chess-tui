@@ -25,13 +25,26 @@ Right @0.5s
 Space @0.5s
 Sleep 0.7s
 
-# Form is now active, cursor is on Color field (index 0)
-# Select Black (press Right to toggle to Black)
+# Form is now active, cursor is on Time Control field (index 0)
+# Default is Rapid (index 3), let's select Bullet (index 1) to show the feature
+Left @0.5s
+Left @0.5s
+Sleep 0.7s
+
+# Press Enter to move to Color field
+Space @0.5s
+Sleep 0.7s
+
+# Now on Color field (index 1), select Black (press Right to toggle to Black)
 Right @0.5s
 Space @0.5s
 Sleep 0.7s
 
-# Now on Bot Depth field (index 1), adjust depth
+# Press Enter to move to Depth field
+Space @0.5s
+Sleep 0.7s
+
+# Now on Bot Depth field (index 2), adjust depth
 Right @0.5s
 Space @0.5s
 Sleep 0.7s

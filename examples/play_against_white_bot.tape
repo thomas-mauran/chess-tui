@@ -25,12 +25,21 @@ Right @0.5s
 Space @0.5s
 Sleep 0.7s
 
-# Form is now active, cursor is on Color field (index 0)
-# Select White (already default, but confirm with Enter)
+# Form is now active, cursor is on Time Control field (index 0)
+# Default is Rapid (index 3), let's select Blitz (index 2) to show the feature
+Left @0.5s
+Sleep 0.7s
+
+# Press Enter to move to Color field
 Space @0.5s
 Sleep 0.7s
 
-# Now on Bot Depth field (index 1), adjust depth
+# Now on Color field (index 1), White is default
+# Press Enter to confirm and move to Depth field
+Space @0.5s
+Sleep 0.7s
+
+# Now on Bot Depth field (index 2), adjust depth
 Right @0.5s
 Space @0.5s
 Sleep 0.7s

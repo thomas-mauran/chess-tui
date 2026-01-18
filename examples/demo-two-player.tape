@@ -20,7 +20,16 @@ Space @0.5s
 Sleep 1.5s
 
 # Now in Game Mode Menu, "Local Game" (index 0) is selected
-# Press Enter to start (no form needed)
+# Press Enter to activate form
+Space @0.5s
+Sleep 0.7s
+
+# Form is now active, cursor is on Time Control field (index 0)
+# Default is Rapid (index 3), let's select Blitz (index 2) to show the feature
+Left @0.5s
+Sleep 0.7s
+
+# Now press Enter to start game with Blitz time control
 Space @0.5s
 Sleep 0.7s
 

@@ -155,14 +155,20 @@ pub fn render_end_popup(frame: &mut Frame, sentence: &str, is_lichess: bool) {
     let area = centered_rect(50, 50, frame.area());
 
     // Create styled text with better formatting
-    let mut text = vec![
-        Line::from(""),
-        Line::from(""),
-        Line::from(sentence).alignment(Alignment::Center).style(
-            Style::default()
-                .fg(Color::Yellow)
-                .add_modifier(Modifier::BOLD),
-        ),
+    let mut text = vec![Line::from(""), Line::from("")];
+
+    // Split sentence by newlines to handle multi-line messages
+    for line in sentence.lines() {
+        text.push(
+            Line::from(line).alignment(Alignment::Center).style(
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
+        );
+    }
+
+    text.extend(vec![
         Line::from(""),
         Line::from(""),
         Line::from("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
@@ -171,7 +177,7 @@ pub fn render_end_popup(frame: &mut Frame, sentence: &str, is_lichess: bool) {
         Line::from("Press `H` to hide this screen")
             .alignment(Alignment::Center)
             .style(Style::default().fg(Color::LightBlue)),
-    ];
+    ]);
 
     // Only show restart option for non-Lichess games (Lichess games can't be restarted)
     if !is_lichess {
