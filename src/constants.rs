@@ -13,6 +13,21 @@ pub const NETWORK_BUFFER_SIZE: usize = 5;
 pub const SLEEP_DURATION_SHORT_MS: u64 = 50;
 pub const SLEEP_DURATION_LONG_MS: u64 = 100;
 
+// Time control constants
+// Time control indices: 0: UltraBullet, 1: Bullet, 2: Blitz, 3: Rapid, 4: Classical, 5: No clock, 6: Custom
+pub const TIME_CONTROL_CUSTOM_INDEX: u32 = 6;
+
+/// Time control options displayed in the UI
+pub const TIME_CONTROL_OPTIONS: &[&str] = &[
+    "UltraBullet",
+    "Bullet",
+    "Blitz",
+    "Rapid",
+    "Classical",
+    "No clock",
+    "Custom",
+];
+
 pub const TITLE: &str = r"
  ██████╗██╗  ██╗███████╗███████╗███████╗   ████████╗██╗   ██╗██╗
 ██╔════╝██║  ██║██╔════╝██╔════╝██╔════╝   ╚══██╔══╝██║   ██║██║

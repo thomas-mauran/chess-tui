@@ -1,4 +1,6 @@
-use super::{bot::Bot, coord::Coord, game_board::GameBoard, opponent::Opponent, ui::UI};
+use super::{
+    bot::Bot, clock::Clock, coord::Coord, game_board::GameBoard, opponent::Opponent, ui::UI,
+};
 use crate::utils::flip_square_if_needed;
 use shakmaty::{Color, Move, Position, Role, Square};
 
@@ -20,6 +22,7 @@ impl Clone for GameLogic {
             opponent: opponent_clone,
             player_turn: self.player_turn,
             game_state: self.game_state,
+            clock: self.clock.clone(),
         }
     }
 }
@@ -35,6 +38,8 @@ pub struct GameLogic {
     pub player_turn: Color,
     /// The current state of the game (Playing, Draw, Checkmate. Promotion)
     pub game_state: GameState,
+    /// Chess clock for timing games (optional, for local play and bot games)
+    pub clock: Option<Clock>,
 }
 
 impl Default for GameLogic {
@@ -45,6 +50,7 @@ impl Default for GameLogic {
             opponent: None,
             player_turn: Color::White,
             game_state: GameState::Playing,
+            clock: None,
         }
     }
 }
@@ -148,6 +154,14 @@ impl Game {
         }
         self.ui.promotion_cursor = 0;
 
+        // Switch player turn (this will start the opponent's clock)
+        self.logic.switch_player_turn();
+        // Start clock on first move if needed (promotion can happen on first move)
+        self.logic.start_clock_if_needed();
+
+        // Update game state after promotion
+        self.logic.update_game_state();
+
         if self.logic.opponent.is_some() {
             self.logic.handle_multiplayer_promotion();
         }
@@ -246,7 +260,23 @@ impl Game {
         self.logic
             .execute_move(*selected_coords_usize, actual_cursor_coords);
         self.ui.unselect_cell();
-        self.logic.switch_player_turn();
+
+        // Update game state first to check if this is a promotion
+        self.logic.update_game_state();
+
+        // Only switch player turn if it's not a promotion (promotion will handle turn switching)
+        if self.logic.game_state != GameState::Promotion {
+            // Start clock on first move if needed
+            self.logic.start_clock_if_needed();
+            self.logic.switch_player_turn();
+        } else {
+            // For promotion, stop the current player's clock (it will be restarted after promotion)
+            if let Some(ref mut clock) = self.logic.clock {
+                if clock.is_running {
+                    clock.stop();
+                }
+            }
+        }
 
         // Handle post-move logic based on game mode
         self.handle_after_move_board_flip();
@@ -314,18 +344,58 @@ impl GameLogic {
     pub fn update_game_state(&mut self) {
         if self.game_board.is_checkmate() {
             self.game_state = GameState::Checkmate;
+            // Stop the clock when game ends in checkmate
+            if let Some(ref mut clock) = self.clock {
+                if clock.is_running {
+                    clock.stop();
+                }
+            }
         } else if self.game_board.is_draw() {
             self.game_state = GameState::Draw;
+            // Stop the clock when game ends in draw
+            if let Some(ref mut clock) = self.clock {
+                if clock.is_running {
+                    clock.stop();
+                }
+            }
         } else if self.game_board.is_latest_move_promotion() {
             self.game_state = GameState::Promotion;
+            // Stop the clock when entering promotion state (both players' clocks should be stopped)
+            if let Some(ref mut clock) = self.clock {
+                if clock.is_running {
+                    clock.stop();
+                }
+            }
         }
     }
 
     /// Switch the player turn
     pub fn switch_player_turn(&mut self) {
+        // Stop clock for current player (if it's running)
+        if let Some(ref mut clock) = self.clock {
+            if clock.is_running {
+                clock.stop();
+            }
+        }
+
         match self.player_turn {
             Color::White => self.player_turn = Color::Black,
             Color::Black => self.player_turn = Color::White,
+        }
+
+        // Start clock for new player
+        if let Some(ref mut clock) = self.clock {
+            clock.start(self.player_turn);
+        }
+    }
+
+    /// Start the clock for the current player (used on first move)
+    pub fn start_clock_if_needed(&mut self) {
+        if let Some(ref mut clock) = self.clock {
+            if !clock.is_running {
+                // Clock hasn't started yet, start it for the current player (White on first move)
+                clock.start(self.player_turn);
+            }
         }
     }
 

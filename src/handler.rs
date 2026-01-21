@@ -855,7 +855,25 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                 // Navigate left - go to first option (Host/White)
                 match game_mode {
                     0 => {
-                        // Local: no configuration fields to navigate
+                        // Local: time control selection
+                        match app.game_mode_form_cursor {
+                            0 => {
+                                // Time control - previous option (0-6)
+                                if app.clock_form_cursor > 0 {
+                                    app.clock_form_cursor -= 1;
+                                }
+                            }
+                            1 => {
+                                // Custom time - decrease (only if Custom is selected)
+                                if app.clock_form_cursor
+                                    == crate::constants::TIME_CONTROL_CUSTOM_INDEX
+                                    && app.custom_time_minutes > 1
+                                {
+                                    app.custom_time_minutes -= 1;
+                                }
+                            }
+                            _ => {}
+                        }
                     }
                     1 => {
                         // Multiplayer
@@ -877,12 +895,45 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                         // Bot
                         match app.game_mode_form_cursor {
                             0 => {
-                                // Set to White
-                                app.selected_color = Some(shakmaty::Color::White);
+                                // Time control - previous option (0-6)
+                                if app.clock_form_cursor > 0 {
+                                    app.clock_form_cursor -= 1;
+                                }
                             }
                             1 => {
-                                // Bot depth - decrease
-                                if app.bot_depth > 1 {
+                                // Custom time or Color
+                                if app.clock_form_cursor
+                                    == crate::constants::TIME_CONTROL_CUSTOM_INDEX
+                                {
+                                    // Custom time - decrease (only if Custom is selected)
+                                    if app.custom_time_minutes > 1 {
+                                        app.custom_time_minutes -= 1;
+                                    }
+                                } else {
+                                    // Color - set to White
+                                    app.selected_color = Some(shakmaty::Color::White);
+                                }
+                            }
+                            2 => {
+                                // Color (if Custom selected) or Bot depth
+                                if app.clock_form_cursor
+                                    == crate::constants::TIME_CONTROL_CUSTOM_INDEX
+                                {
+                                    // Color - set to White
+                                    app.selected_color = Some(shakmaty::Color::White);
+                                } else {
+                                    // Bot depth - decrease
+                                    if app.bot_depth > 1 {
+                                        app.bot_depth -= 1;
+                                    }
+                                }
+                            }
+                            3 => {
+                                // Bot depth (if Custom selected)
+                                if app.clock_form_cursor
+                                    == crate::constants::TIME_CONTROL_CUSTOM_INDEX
+                                    && app.bot_depth > 1
+                                {
                                     app.bot_depth -= 1;
                                 }
                             }
@@ -896,7 +947,27 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                 // Navigate right - go to second option (Join/Black)
                 match game_mode {
                     0 => {
-                        // Local: no fields to navigate
+                        // Local: time control selection
+                        match app.game_mode_form_cursor {
+                            0 => {
+                                // Time control - next option (0-6: UltraBullet, Bullet, Blitz, Rapid, Classical, No clock, Custom)
+                                if app.clock_form_cursor
+                                    < crate::constants::TIME_CONTROL_CUSTOM_INDEX
+                                {
+                                    app.clock_form_cursor += 1;
+                                }
+                            }
+                            1 => {
+                                // Custom time - increase (only if Custom is selected)
+                                if app.clock_form_cursor
+                                    == crate::constants::TIME_CONTROL_CUSTOM_INDEX
+                                    && app.custom_time_minutes < 120
+                                {
+                                    app.custom_time_minutes += 1;
+                                }
+                            }
+                            _ => {}
+                        }
                     }
                     1 => {
                         // Multiplayer
@@ -918,12 +989,47 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                         // Bot
                         match app.game_mode_form_cursor {
                             0 => {
-                                // Set to Black
-                                app.selected_color = Some(shakmaty::Color::Black);
+                                // Time control - next option (0-6: UltraBullet, Bullet, Blitz, Rapid, Classical, No clock, Custom)
+                                if app.clock_form_cursor
+                                    < crate::constants::TIME_CONTROL_CUSTOM_INDEX
+                                {
+                                    app.clock_form_cursor += 1;
+                                }
                             }
                             1 => {
-                                // Bot depth - increase
-                                if app.bot_depth < 20 {
+                                // Custom time or Color
+                                if app.clock_form_cursor
+                                    == crate::constants::TIME_CONTROL_CUSTOM_INDEX
+                                {
+                                    // Custom time - increase (only if Custom is selected)
+                                    if app.custom_time_minutes < 120 {
+                                        app.custom_time_minutes += 1;
+                                    }
+                                } else {
+                                    // Color - set to Black
+                                    app.selected_color = Some(shakmaty::Color::Black);
+                                }
+                            }
+                            2 => {
+                                // Color (if Custom selected) or Bot depth
+                                if app.clock_form_cursor
+                                    == crate::constants::TIME_CONTROL_CUSTOM_INDEX
+                                {
+                                    // Color - set to Black
+                                    app.selected_color = Some(shakmaty::Color::Black);
+                                } else {
+                                    // Bot depth - increase
+                                    if app.bot_depth < 20 {
+                                        app.bot_depth += 1;
+                                    }
+                                }
+                            }
+                            3 => {
+                                // Bot depth (if Custom selected)
+                                if app.clock_form_cursor
+                                    == crate::constants::TIME_CONTROL_CUSTOM_INDEX
+                                    && app.bot_depth < 20
+                                {
                                     app.bot_depth += 1;
                                 }
                             }
@@ -937,11 +1043,40 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                 // Confirm current field and move to next, or start game if all fields filled
                 match game_mode {
                     0 => {
-                        // Local game - just start
-                        app.current_page = Pages::Solo;
-                        app.game_mode_selection = None;
-                        app.game_mode_form_cursor = 0;
-                        app.game_mode_form_active = false;
+                        // Local game - handle form navigation or start game
+                        match app.game_mode_form_cursor {
+                            0 => {
+                                // On time control field
+                                if app.clock_form_cursor
+                                    == crate::constants::TIME_CONTROL_CUSTOM_INDEX
+                                {
+                                    // Custom selected - move to custom time field
+                                    app.game_mode_form_cursor = 1;
+                                } else {
+                                    // Other time control - start game directly
+                                    if let Some(seconds) = app.get_time_control_seconds() {
+                                        use crate::game_logic::clock::Clock;
+                                        app.game.logic.clock = Some(Clock::new(seconds));
+                                    }
+                                    app.current_page = Pages::Solo;
+                                    app.game_mode_selection = None;
+                                    app.game_mode_form_cursor = 0;
+                                    app.game_mode_form_active = false;
+                                }
+                            }
+                            1 => {
+                                // On custom time field - start game
+                                if let Some(seconds) = app.get_time_control_seconds() {
+                                    use crate::game_logic::clock::Clock;
+                                    app.game.logic.clock = Some(Clock::new(seconds));
+                                }
+                                app.current_page = Pages::Solo;
+                                app.game_mode_selection = None;
+                                app.game_mode_form_cursor = 0;
+                                app.game_mode_form_active = false;
+                            }
+                            _ => {}
+                        }
                     }
                     1 => {
                         // Multiplayer - step by step
@@ -981,15 +1116,54 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                         // Bot - step by step
                         match app.game_mode_form_cursor {
                             0 => {
-                                // On Color field - select default (White) if nothing selected, then move to depth
-                                if app.selected_color.is_none() {
-                                    app.selected_color = Some(shakmaty::Color::White);
-                                    // Default to White
+                                // On time control field
+                                if app.clock_form_cursor
+                                    == crate::constants::TIME_CONTROL_CUSTOM_INDEX
+                                {
+                                    // Custom selected - move to custom time field
+                                    app.game_mode_form_cursor = 1;
+                                } else {
+                                    // Other time control - move to color field
+                                    app.game_mode_form_cursor = 1;
                                 }
-                                app.game_mode_form_cursor = 1;
                             }
                             1 => {
-                                // On Depth field - start game (color and depth selected)
+                                // On custom time field (if Custom selected) or color field
+                                if app.clock_form_cursor
+                                    == crate::constants::TIME_CONTROL_CUSTOM_INDEX
+                                {
+                                    // Custom time field - move to color field
+                                    app.game_mode_form_cursor = 2;
+                                } else {
+                                    // Color field - select default (White) if nothing selected, then move to depth
+                                    if app.selected_color.is_none() {
+                                        app.selected_color = Some(shakmaty::Color::White);
+                                        // Default to White
+                                    }
+                                    app.game_mode_form_cursor = 2;
+                                }
+                            }
+                            2 => {
+                                // On color field (if Custom selected) or depth field
+                                if app.clock_form_cursor
+                                    == crate::constants::TIME_CONTROL_CUSTOM_INDEX
+                                {
+                                    // Color field - select default (White) if nothing selected, then move to depth
+                                    if app.selected_color.is_none() {
+                                        app.selected_color = Some(shakmaty::Color::White);
+                                        // Default to White
+                                    }
+                                    app.game_mode_form_cursor = 3;
+                                } else {
+                                    // Depth field - start game (time control, color and depth selected)
+                                    app.current_page = Pages::Bot;
+                                    app.game_mode_selection = None;
+                                    app.game_mode_form_cursor = 0;
+                                    app.game_mode_form_active = false;
+                                }
+                            }
+                            3 => {
+                                // On depth field (if Custom selected) - start game
                                 app.current_page = Pages::Bot;
                                 app.game_mode_selection = None;
                                 app.game_mode_form_cursor = 0;
@@ -1025,13 +1199,16 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                 }
             }
             KeyCode::Char(' ') | KeyCode::Enter => {
-                // If game mode has no configuration fields, start game directly
+                // Activate the form for all modes
+                app.game_mode_form_active = true;
+                app.game_mode_form_cursor = 0;
+                app.game_mode_selection = Some(game_mode);
+                // Reset form state
                 if game_mode == 0 {
-                    // Local game - no fields, start immediately
-                    app.current_page = Pages::Solo;
-                    app.game_mode_selection = None;
-                    app.game_mode_form_cursor = 0;
-                    app.game_mode_form_active = false;
+                    // Local game: reset clock time to default if needed
+                    if app.clock_form_cursor > crate::constants::TIME_CONTROL_CUSTOM_INDEX {
+                        app.clock_form_cursor = 3; // Default: Rapid
+                    }
                 } else {
                     // Activate the form for modes with configuration
                     app.game_mode_form_active = true;
@@ -1048,6 +1225,8 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                 app.game_mode_selection = None;
                 app.game_mode_form_cursor = 0;
                 app.game_mode_form_active = false;
+                app.clock_form_cursor = 3; // Reset to default (Rapid)
+                app.custom_time_minutes = 10; // Reset custom time
                 app.current_page = Pages::Home;
             }
             KeyCode::Char('?') => app.toggle_help_popup(),
