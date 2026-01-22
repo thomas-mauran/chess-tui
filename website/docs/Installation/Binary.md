@@ -25,3 +25,9 @@ tar xvf chess-tui-$LATEST-x86_64-unknown-linux-gnu.tar.gz
 ```
 
 You can find the latest release here [github.com/thomas-mauran/chess-tui/releases/latest](https://github.com/thomas-mauran/chess-tui/releases/latest) :tada:
+
+### Installation using [AppMan](https://github.com/ivan-hc/AppMan)/[AM](https://github.com/ivan-hc/AM)
+
+```bash
+appman -i chess-tui
+```
