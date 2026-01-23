@@ -16,8 +16,9 @@ use log::LevelFilter;
 use shakmaty::{Color, Move, Position};
 use std::error;
 use std::fs::{self, File};
-use std::io::Write;
+use std::io::{self, Write};
 use std::net::{IpAddr, UdpSocket};
+use std::path::Path;
 use std::sync::mpsc::{channel, Receiver};
 use std::thread::sleep;
 use std::time::Duration;
@@ -1378,6 +1379,29 @@ impl App {
         }
     }
 
+    /// Checks if an IO error indicates a read-only filesystem or permission issue.
+    /// This handles both EROFS (error code 30) and permission denied errors.
+    fn is_readonly_error(e: &io::Error) -> bool {
+        // EROFS = 30 on Unix systems (Read-only file system)
+        e.raw_os_error() == Some(30) || e.kind() == io::ErrorKind::PermissionDenied
+    }
+
+    /// Handles config file write errors gracefully, logging appropriate warnings.
+    /// This allows the application to work with read-only config files (e.g., from NixOS/home-manager).
+    fn handle_config_write_error(&self, e: io::Error, config_path: &Path) {
+        if Self::is_readonly_error(&e) {
+            log::warn!(
+                "Config file at {:?} is read-only. Settings changes will not be persisted.",
+                config_path
+            );
+        } else {
+            log::warn!(
+                "Could not write to config file at {:?}: {}. Settings changes will not be persisted.",
+                config_path, e
+            );
+        }
+    }
+
     pub fn update_config(&self) {
         let Ok(config_dir) = config_dir() else {
             log::error!("Failed to get config directory");
@@ -1396,10 +1420,17 @@ impl App {
         config.lichess_token = self.lichess_token.clone();
         config.sound_enabled = Some(self.sound_enabled);
 
-        if let Ok(mut file) = File::create(&config_path) {
-            let toml_string = toml::to_string(&config).unwrap_or_default();
-            if let Err(e) = file.write_all(toml_string.as_bytes()) {
-                log::error!("Failed to write config: {}", e);
+        // Try to write the config file, but don't fail if it's read-only
+        // This allows the application to work with read-only config files (e.g., from NixOS/home-manager)
+        let toml_string = toml::to_string(&config).unwrap_or_default();
+        match File::create(&config_path) {
+            Ok(mut file) => {
+                if let Err(e) = file.write_all(toml_string.as_bytes()) {
+                    self.handle_config_write_error(e, &config_path);
+                }
+            }
+            Err(e) => {
+                self.handle_config_write_error(e, &config_path);
             }
         }
     }
