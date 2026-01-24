@@ -13,7 +13,7 @@ use chess_tui::ui::tui::Tui;
 use clap::Parser;
 use log::LevelFilter;
 use std::fs::{self, File};
-use std::io::Write;
+use std::io::{self, Write};
 use std::panic;
 use std::path::Path;
 
@@ -312,13 +312,31 @@ fn main() -> AppResult<()> {
     Ok(())
 }
 
+/// Checks if an IO error indicates a read-only filesystem or permission issue.
+/// This handles both EROFS (error code 30) and permission denied errors.
+fn is_readonly_error(e: &io::Error) -> bool {
+    // EROFS = 30 on Unix systems (Read-only file system)
+    e.raw_os_error() == Some(30) || e.kind() == io::ErrorKind::PermissionDenied
+}
+
+/// Handles config file write errors gracefully, printing appropriate warnings.
+/// This allows the application to work with read-only config files (e.g., from NixOS/home-manager).
+fn handle_config_write_error(e: io::Error, config_path: &Path) {
+    if is_readonly_error(&e) {
+        eprintln!(
+            "Warning: Config file at {:?} is read-only. The application will continue with the existing read-only config.",
+            config_path
+        );
+    } else {
+        eprintln!(
+            "Warning: Could not write to config file at {:?}: {}. The application will continue with the existing config.",
+            config_path, e
+        );
+    }
+}
+
 fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResult<()> {
     std::fs::create_dir_all(folder_path)?;
-
-    if !config_path.exists() {
-        //write to console
-        File::create(config_path)?;
-    }
 
     // Attempt to read the configuration file and parse it as a TOML Value.
     // If we encounter any issues (like the file not being readable or not being valid TOML), we start with a new, empty TOML table instead.
@@ -374,14 +392,25 @@ fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResu
         config.sound_enabled = Some(false);
     }
 
+    // Try to write the config file, but don't fail if it's read-only
+    // This allows the application to work with read-only config files (e.g., from NixOS/home-manager)
     let toml_string = toml::to_string(&config).map_err(|e| {
-        std::io::Error::new(
-            std::io::ErrorKind::InvalidData,
+        io::Error::new(
+            io::ErrorKind::InvalidData,
             format!("Failed to serialize config to TOML: {e}"),
         )
     })?;
-    let mut file = File::create(config_path)?;
-    file.write_all(toml_string.as_bytes())?;
+
+    match File::create(config_path) {
+        Ok(mut file) => {
+            if let Err(e) = file.write_all(toml_string.as_bytes()) {
+                handle_config_write_error(e, config_path);
+            }
+        }
+        Err(e) => {
+            handle_config_write_error(e, config_path);
+        }
+    }
 
     Ok(())
 }
