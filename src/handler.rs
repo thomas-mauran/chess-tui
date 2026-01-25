@@ -279,6 +279,29 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
             }
             _ => fallback_key_handler(app, key_event),
         },
+        Popups::MoveInputSelection => match key_event.code {
+            KeyCode::Enter => {
+                // Submit the entered move
+                app.game.ui.prompt.submit_message();
+                let player_move = app.game.ui.prompt.message.clone().trim().to_string();
+
+                if !player_move.is_empty() {
+                    // Save and validate the move
+                    println!("Player move: {}", player_move);
+                } else {
+                    // No move entered, return to previous page
+                    app.current_popup = None;
+                }
+            }
+            KeyCode::Char(to_insert) => app.game.ui.prompt.enter_char(to_insert),
+            KeyCode::Backspace => app.game.ui.prompt.delete_char(),
+            KeyCode::Left => app.game.ui.prompt.move_cursor_left(),
+            KeyCode::Right => app.game.ui.prompt.move_cursor_right(),
+            KeyCode::Esc => {
+                app.current_popup = None;
+            }
+            _ => fallback_key_handler(app, key_event),
+        }
     };
 }
 
@@ -441,7 +464,14 @@ fn chess_inputs(app: &mut App, key_event: KeyEvent) {
             app.cycle_skin(); // Cycle through available skins
             app.update_config();
         }
-        KeyCode::Esc => app.game.ui.unselect_cell(), // Deselect piece
+        KeyCode::Esc => {
+            if app.game.ui.selected_square.is_some(){
+                app.game.ui.unselect_cell()
+            }else{
+                app.game.ui.prompt.reset();
+                app.current_popup = Some(Popups::MoveInputSelection);
+            }
+        }, // Deselect piece
         _ => fallback_key_handler(app, key_event),
     }
 }
