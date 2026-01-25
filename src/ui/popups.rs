@@ -638,14 +638,13 @@ pub fn render_move_input_popup(frame: &mut Frame, prompt: &Prompt) {
         .border_type(BorderType::Rounded)
         .padding(Padding::horizontal(1))
         .border_style(Style::default().fg(WHITE));
-    let area = centered_rect(40, 40, frame.area());
+    let area = centered_rect(20, 20, frame.area());
 
     let current_input = prompt.input.as_str();
     let text = vec![
         Line::from("Enter a move").alignment(Alignment::Center),
         Line::from(""),
         Line::from(current_input),
-        Line::from(""),
         Line::from(""),
         Line::from("Press `Esc` to close the popup.").alignment(Alignment::Center),
     ];
