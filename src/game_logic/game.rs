@@ -338,6 +338,51 @@ impl Game {
                 .collect(),
         );
     }
+
+    pub fn apply_player_move(
+        &mut self,
+        from: Square,
+        to: Square,
+        promotion: Option<Role>,
+    ) -> bool {
+        let role_from = match self.logic.game_board.get_role_at_square(&from) {
+            Some(role) => role,
+            None => return false,
+        };
+        let role_to = self.logic.game_board.get_role_at_square(&to);
+
+        let executed_move = self
+            .logic
+            .game_board
+            .execute_move(from, to, promotion);
+
+        let Some(executed_move) = executed_move else { return false };
+
+        crate::sound::play_move_sound();
+        self.logic
+            .game_board
+            .increment_consecutive_non_pawn_or_capture(role_from, role_to);
+
+        self.logic.game_board.move_history.push(executed_move);
+
+        self.logic.update_game_state();
+
+        if self.logic.game_state != GameState::Promotion {
+            self.logic.start_clock_if_needed();
+            self.logic.switch_player_turn();
+        } else if let Some(ref mut clock) = self.logic.clock {
+            if clock.is_running {
+                clock.stop();
+            }
+        }
+
+        self.handle_after_move_board_flip();
+        self.handle_after_move_bot_logic();
+        self.handle_after_move_opponent_logic();
+
+        true
+    }
+
 }
 
 impl GameLogic {
