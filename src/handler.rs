@@ -322,9 +322,10 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
 
                 if app.game.apply_player_move(from, to, promotion) {
                     app.current_popup = None;
+                }else{
+                    app.game.ui.prompt.reset();
+                    app.current_popup = Some(Popups::MoveInputSelection); // just try again
                 }
-
-                app.current_popup = None;
             }
             KeyCode::Char(to_insert) => app.game.ui.prompt.enter_char(to_insert),
             KeyCode::Backspace => app.game.ui.prompt.delete_char(),
