@@ -644,9 +644,9 @@ pub fn render_move_input_popup(frame: &mut Frame, prompt: &Prompt) {
     let text = vec![
         Line::from("Enter a move in chess notation").alignment(Alignment::Center),
         Line::from(""),
-        Line::from("Visit this website for more information: https://www.chess.com/terms/chess-notation"),
-        Line::from(""),
         Line::from(current_input),
+        Line::from(""),
+        Line::from("Visit this website for more information: https://www.chess.com/terms/chess-notation"),
         Line::from(""),
         Line::from("Press `Esc` to close the popup.").alignment(Alignment::Center),
     ];
@@ -658,7 +658,7 @@ pub fn render_move_input_popup(frame: &mut Frame, prompt: &Prompt) {
 
     frame.set_cursor_position(Position::new(
         area.x + prompt.character_index as u16 + 2,
-        area.y + 5,
+        area.y + 3,
     ));
 
     frame.render_widget(Clear, area);
