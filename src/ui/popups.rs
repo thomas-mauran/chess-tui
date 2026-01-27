@@ -13,7 +13,7 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Wrap},
     Frame,
 };
-
+use crate::ui::main_ui::right_rect;
 use super::prompt::Prompt;
 
 // This renders a confirmation popup for resigning a game
@@ -638,11 +638,13 @@ pub fn render_move_input_popup(frame: &mut Frame, prompt: &Prompt) {
         .border_type(BorderType::Rounded)
         .padding(Padding::horizontal(1))
         .border_style(Style::default().fg(WHITE));
-    let area = centered_rect(20, 20, frame.area());
+    let area = right_rect(23, 20, frame.area());
 
     let current_input = prompt.input.as_str();
     let text = vec![
-        Line::from("Enter a move").alignment(Alignment::Center),
+        Line::from("Enter a move in chess notation").alignment(Alignment::Center),
+        Line::from(""),
+        Line::from("Visit this website for more information: https://www.chess.com/terms/chess-notation"),
         Line::from(""),
         Line::from(current_input),
         Line::from(""),
@@ -656,7 +658,7 @@ pub fn render_move_input_popup(frame: &mut Frame, prompt: &Prompt) {
 
     frame.set_cursor_position(Position::new(
         area.x + prompt.character_index as u16 + 2,
-        area.y + 3,
+        area.y + 5,
     ));
 
     frame.render_widget(Clear, area);

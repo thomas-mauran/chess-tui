@@ -494,13 +494,13 @@ fn chess_inputs(app: &mut App, key_event: KeyEvent) {
             app.cycle_skin(); // Cycle through available skins
             app.update_config();
         }
+        KeyCode::Char('m') => {
+            app.game.ui.prompt.reset();
+            app.current_popup = Some(Popups::MoveInputSelection)
+        }
         KeyCode::Esc => {
-            if app.game.ui.selected_square.is_some() {
                 app.game.ui.unselect_cell()
-            } else {
-                app.game.ui.prompt.reset();
-                app.current_popup = Some(Popups::MoveInputSelection);
-            }
+
         } // Deselect piece
         _ => fallback_key_handler(app, key_event),
     }
