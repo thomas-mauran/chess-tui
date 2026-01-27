@@ -638,7 +638,7 @@ pub fn render_move_input_popup(frame: &mut Frame, prompt: &Prompt) {
         .border_type(BorderType::Rounded)
         .padding(Padding::horizontal(1))
         .border_style(Style::default().fg(WHITE));
-    let area = right_rect(23, 20, frame.area());
+    let area = right_rect(23, 40, frame.area());
 
     let current_input = prompt.input.as_str();
     let text = vec![
