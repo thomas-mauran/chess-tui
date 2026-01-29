@@ -9,6 +9,7 @@ use crate::{
 use ratatui::crossterm::event::{
     KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
 };
+use shakmaty::san::San;
 use shakmaty::{Role, Square};
 
 /// Handles keyboard input events and updates the application state accordingly.
@@ -279,6 +280,58 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
             }
             _ => fallback_key_handler(app, key_event),
         },
+        Popups::MoveInputSelection => match key_event.code {
+            KeyCode::Enter => {
+                // Submit the entered move
+                app.game.ui.prompt.submit_message();
+                let player_move = app.game.ui.prompt.message.clone().trim().to_string();
+
+                if player_move.is_empty() {
+                    app.current_popup = None;
+                    return;
+                }
+
+                let san = match San::from_ascii(player_move.as_bytes()) {
+                    Ok(san) => san,
+                    Err(_) => {
+                        app.current_popup = None;
+                        return;
+                    }
+                };
+
+                let position = app.game.logic.game_board.position_ref().clone();
+
+                let chess_move = match san.to_move(&position) {
+                    Ok(chess_move) => chess_move,
+                    Err(_) => {
+                        app.current_popup = None;
+                        return;
+                    }
+                };
+
+                let from = match chess_move.from() {
+                    Some(from) => from,
+                    None => {
+                        app.current_popup = None;
+                        return;
+                    }
+                };
+
+                let to = chess_move.to();
+                let promotion = chess_move.promotion();
+
+                app.game.apply_player_move(from, to, promotion);
+                app.current_popup = None;
+            }
+            KeyCode::Char(to_insert) => app.game.ui.prompt.enter_char(to_insert),
+            KeyCode::Backspace => app.game.ui.prompt.delete_char(),
+            KeyCode::Left => app.game.ui.prompt.move_cursor_left(),
+            KeyCode::Right => app.game.ui.prompt.move_cursor_right(),
+            KeyCode::Esc => {
+                app.current_popup = None;
+            }
+            _ => fallback_key_handler(app, key_event),
+        },
     };
 }
 
@@ -440,6 +493,10 @@ fn chess_inputs(app: &mut App, key_event: KeyEvent) {
         KeyCode::Char('s' | 'S') => {
             app.cycle_skin(); // Cycle through available skins
             app.update_config();
+        }
+        KeyCode::Char('m') => {
+            app.game.ui.prompt.reset();
+            app.current_popup = Some(Popups::MoveInputSelection)
         }
         KeyCode::Esc => app.game.ui.unselect_cell(), // Deselect piece
         _ => fallback_key_handler(app, key_event),
