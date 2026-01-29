@@ -498,10 +498,7 @@ fn chess_inputs(app: &mut App, key_event: KeyEvent) {
             app.game.ui.prompt.reset();
             app.current_popup = Some(Popups::MoveInputSelection)
         }
-        KeyCode::Esc => {
-                app.game.ui.unselect_cell()
-
-        } // Deselect piece
+        KeyCode::Esc => app.game.ui.unselect_cell(), // Deselect piece
         _ => fallback_key_handler(app, key_event),
     }
 }

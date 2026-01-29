@@ -1,5 +1,7 @@
 use std::net::IpAddr;
 
+use super::prompt::Prompt;
+use crate::ui::main_ui::right_rect;
 use crate::{
     app::App,
     constants::{NETWORK_PORT, WHITE},
@@ -13,8 +15,6 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Wrap},
     Frame,
 };
-use crate::ui::main_ui::right_rect;
-use super::prompt::Prompt;
 
 // This renders a confirmation popup for resigning a game
 pub fn render_resign_confirmation_popup(frame: &mut Frame, app: &App) {
@@ -646,7 +646,9 @@ pub fn render_move_input_popup(frame: &mut Frame, prompt: &Prompt) {
         Line::from(""),
         Line::from(current_input),
         Line::from(""),
-        Line::from("Visit this website for more information: https://www.chess.com/terms/chess-notation"),
+        Line::from(
+            "Visit this website for more information: https://www.chess.com/terms/chess-notation",
+        ),
         Line::from(""),
         Line::from("Press `Esc` to close the popup.").alignment(Alignment::Center),
     ];

@@ -100,5 +100,5 @@ pub enum Popups {
     EnterGameCode,
     EnterLichessToken,
     ResignConfirmation,
-    MoveInputSelection
+    MoveInputSelection,
 }

@@ -339,24 +339,18 @@ impl Game {
         );
     }
 
-    pub fn apply_player_move(
-        &mut self,
-        from: Square,
-        to: Square,
-        promotion: Option<Role>,
-    ) -> bool {
+    pub fn apply_player_move(&mut self, from: Square, to: Square, promotion: Option<Role>) -> bool {
         let role_from = match self.logic.game_board.get_role_at_square(&from) {
             Some(role) => role,
             None => return false,
         };
         let role_to = self.logic.game_board.get_role_at_square(&to);
 
-        let executed_move = self
-            .logic
-            .game_board
-            .execute_move(from, to, promotion);
+        let executed_move = self.logic.game_board.execute_move(from, to, promotion);
 
-        let Some(executed_move) = executed_move else { return false };
+        let Some(executed_move) = executed_move else {
+            return false;
+        };
 
         crate::sound::play_move_sound();
         self.logic
@@ -382,7 +376,6 @@ impl Game {
 
         true
     }
-
 }
 
 impl GameLogic {
