@@ -480,14 +480,16 @@ impl GameLogic {
                 }
             }
             Move::EnPassant { .. } => {
-                let from_square = bot_actual_move.from().expect("En passant has from");
-                let to_square = bot_actual_move.to();
-                let captured_pawn_square =
-                    shakmaty::Square::from_coords(to_square.file(), from_square.rank());
-                if let Some(captured_piece) =
-                    current_position.board().piece_at(captured_pawn_square)
+                if let (Some(from_square), to_square) =
+                    (bot_actual_move.from(), bot_actual_move.to())
                 {
-                    self.game_board.taken_pieces.push(captured_piece);
+                    let captured_pawn_square =
+                        shakmaty::Square::from_coords(to_square.file(), from_square.rank());
+                    if let Some(captured_piece) =
+                        current_position.board().piece_at(captured_pawn_square)
+                    {
+                        self.game_board.taken_pieces.push(captured_piece);
+                    }
                 }
             }
             Move::Castle { .. } | Move::Put { .. } => {}
