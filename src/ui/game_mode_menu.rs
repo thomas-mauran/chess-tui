@@ -927,12 +927,12 @@ fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: u8
             chunk_idx += 1;
 
             // Bot ELO field
-            let elo_cursor =
-                if app.clock_form_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX {
-                    4
-                } else {
-                    3
-                };
+            let elo_cursor = if app.clock_form_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX
+            {
+                4
+            } else {
+                3
+            };
             let is_elo_field_focused = is_active && app.game_mode_form_cursor == elo_cursor;
             let elo_area = Layout::default()
                 .direction(Direction::Vertical)
