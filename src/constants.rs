@@ -17,6 +17,13 @@ pub const SLEEP_DURATION_LONG_MS: u64 = 100;
 // Time control indices: 0: UltraBullet, 1: Bullet, 2: Blitz, 3: Rapid, 4: Classical, 5: No clock, 6: Custom
 pub const TIME_CONTROL_CUSTOM_INDEX: u32 = 6;
 
+// Bot ELO limit
+pub const BOT_ELO_MIN: u16 = 100;
+pub const BOT_ELO_MAX: u16 = 3200;
+pub const BOT_ELO_STEP: u16 = 100;
+/// Default ELO when enabling from "Off"
+pub const BOT_ELO_DEFAULT: u16 = 1500;
+
 /// Time control options displayed in the UI
 pub const TIME_CONTROL_OPTIONS: &[&str] = &[
     "UltraBullet",

@@ -27,6 +27,9 @@ struct Args {
     /// Bot thinking depth for chess engine (1-255)
     #[arg(short, long, default_value = "10")]
     depth: u8,
+    /// Bot ELO limit for UCI engine (e.g. 1300-3200 for Stockfish). Omit for full strength.
+    #[arg(long)]
+    elo: Option<u16>,
     /// Lichess API token
     #[arg(short, long)]
     lichess_token: Option<String>,
@@ -90,6 +93,8 @@ fn main() -> AppResult<()> {
             if let Some(bot_depth) = config.bot_depth {
                 app.bot_depth = bot_depth;
             }
+            // Add bot ELO handling
+            app.bot_elo = config.bot_elo;
             // Add selected skin name handling
             if let Some(selected_skin_name) = config.selected_skin_name {
                 app.selected_skin_name = selected_skin_name;
@@ -175,6 +180,11 @@ fn main() -> AppResult<()> {
 
     // Command line depth argument takes precedence over configuration file
     app.bot_depth = args.depth;
+
+    // Command line ELO argument takes precedence over configuration file
+    if args.elo.is_some() {
+        app.bot_elo = args.elo;
+    }
 
     // Command line lichess token takes precedence over configuration file
     if let Some(token) = &args.lichess_token {
@@ -387,6 +397,11 @@ fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResu
         config.bot_depth = Some(args.depth);
     }
 
+    // Update bot_elo if provided via command line
+    if args.elo.is_some() {
+        config.bot_elo = args.elo;
+    }
+
     // Always update sound_enabled if --no-sound flag is provided via command line (command line takes precedence)
     if args.no_sound {
         config.sound_enabled = Some(false);
@@ -440,6 +455,7 @@ mod tests {
         let args = Args {
             engine_path: "test_engine_path".to_string(),
             depth: 10,
+            elo: None,
             lichess_token: None,
             no_sound: false,
         };

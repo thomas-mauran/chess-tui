@@ -470,6 +470,29 @@ impl GameLogic {
             }
         };
 
+        // Record captured piece (before applying the move) so material display is correct
+        match &bot_actual_move {
+            Move::Normal { .. } => {
+                if let Some(captured_piece) =
+                    current_position.board().piece_at(bot_actual_move.to())
+                {
+                    self.game_board.taken_pieces.push(captured_piece);
+                }
+            }
+            Move::EnPassant { .. } => {
+                let from_square = bot_actual_move.from().expect("En passant has from");
+                let to_square = bot_actual_move.to();
+                let captured_pawn_square =
+                    shakmaty::Square::from_coords(to_square.file(), from_square.rank());
+                if let Some(captured_piece) =
+                    current_position.board().piece_at(captured_pawn_square)
+                {
+                    self.game_board.taken_pieces.push(captured_piece);
+                }
+            }
+            Move::Castle { .. } | Move::Put { .. } => {}
+        }
+
         // Execute the move and update position
         let new_position = match current_position.play(&bot_actual_move) {
             Ok(pos) => pos,
@@ -485,6 +508,10 @@ impl GameLogic {
         // Reset history navigation when a new move is made
         self.game_board.history_position_index = None;
         self.game_board.original_flip_state = None;
+
+        // Switch turn back to the human player (bot just moved)
+        self.switch_player_turn();
+        self.update_game_state();
 
         // Play move sound
         crate::sound::play_move_sound();

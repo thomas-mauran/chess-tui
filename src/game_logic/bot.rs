@@ -14,15 +14,18 @@ pub struct Bot {
     pub is_bot_starting: bool,
     /// Bot thinking depth for chess engine
     pub depth: u8,
+    /// Optional ELO limit Uses UCI_LimitStrength + UCI_Elo when set.
+    pub elo: Option<u16>,
 }
 
 impl Bot {
-    pub fn new(engine_path: &str, is_bot_starting: bool, depth: u8) -> Bot {
+    pub fn new(engine_path: &str, is_bot_starting: bool, depth: u8, elo: Option<u16>) -> Bot {
         Self {
             engine_path: engine_path.to_string(),
             bot_will_move: false,
             is_bot_starting,
             depth,
+            elo,
         }
     }
 
@@ -58,6 +61,27 @@ impl Bot {
 
         let mut engine = Engine::from_process(&mut process, false)
             .unwrap_or_else(|e| panic!("Failed to initialize engine: {e}"));
+
+        // UCI handshake (required before setoption/position). Discard options.
+        engine
+            .use_uci(|_| {})
+            .unwrap_or_else(|e| panic!("Failed UCI handshake: {e}"));
+
+        // Optional ELO limit via UCI options (UCI_LimitStrength + UCI_Elo) as mentionned in the spec
+        if let Some(elo) = self.elo {
+            engine
+                .send(ruci::gui::SetOption {
+                    name: Cow::Borrowed("UCI_LimitStrength"),
+                    value: Some(Cow::Borrowed("true")),
+                })
+                .unwrap_or_else(|e| panic!("Failed to set UCI_LimitStrength: {e}"));
+            engine
+                .send(ruci::gui::SetOption {
+                    name: Cow::Borrowed("UCI_Elo"),
+                    value: Some(Cow::Owned(elo.to_string())),
+                })
+                .unwrap_or_else(|e| panic!("Failed to set UCI_Elo: {e}"));
+        }
 
         let fen_parsed =
             Fen::from_str(fen).unwrap_or_else(|e| panic!("Failed to parse FEN '{fen}': {e}"));
