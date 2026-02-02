@@ -1,3 +1,4 @@
+use crate::constants::{BOT_ELO_MAX, BOT_ELO_MIN, BOT_MOVETIME_MS_MAX, BOT_MOVETIME_MS_MIN};
 use ruci::{Engine, Go};
 use shakmaty::fen::Fen;
 use shakmaty::uci::UciMove;
@@ -27,6 +28,19 @@ impl Bot {
             depth,
             elo,
         }
+    }
+
+    /// Map ELO to movetime in ms for UCI "go movetime". Uses x³ so lower ELO gets
+    /// very little time (weaker play); high ELO still gets full time.
+    fn elo_to_movetime_ms(elo: u16) -> u64 {
+        let elo = elo.clamp(BOT_ELO_MIN, BOT_ELO_MAX);
+        let elo_range = (BOT_ELO_MAX - BOT_ELO_MIN) as u64;
+        let elo_above_min = (elo.saturating_sub(BOT_ELO_MIN)) as u64;
+        let progress = elo_above_min as f64 / elo_range as f64; // 0..1
+        let time_factor = progress * progress * progress; // x³ curve
+        let movetime_span = (BOT_MOVETIME_MS_MAX - BOT_MOVETIME_MS_MIN) as f64;
+
+        (BOT_MOVETIME_MS_MIN as f64 + movetime_span * time_factor) as u64
     }
 
     /// Get the best move from the chess engine.
@@ -93,10 +107,15 @@ impl Bot {
             })
             .unwrap_or_else(|e| panic!("Failed to send position to engine: {e}"));
 
+        // When ELO is set, also send movetime so engines without UCI_Elo still
+        // play at roughly the right strength (lower ELO = less time).
+        let move_time_ms = self.elo.map(Self::elo_to_movetime_ms);
+
         engine
             .go(
                 &Go {
                     depth: Some(self.depth as usize),
+                    move_time: move_time_ms.map(|ms| ms as usize),
                     ..Default::default()
                 },
                 |_| {},

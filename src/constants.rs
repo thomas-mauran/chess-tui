@@ -24,6 +24,11 @@ pub const BOT_ELO_STEP: u16 = 100;
 /// Default ELO when enabling from "Off"
 pub const BOT_ELO_DEFAULT: u16 = 1500;
 
+/// Move time (ms) range when ELO is set — used in UCI "go movetime" so engines
+/// without UCI_Elo still play weaker (less time) or stronger (more time).
+pub const BOT_MOVETIME_MS_MIN: u64 = 1;
+pub const BOT_MOVETIME_MS_MAX: u64 = 15_000;
+
 /// Time control options displayed in the UI
 pub const TIME_CONTROL_OPTIONS: &[&str] = &[
     "UltraBullet",
