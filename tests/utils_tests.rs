@@ -30,4 +30,7 @@ fn test_normalize_lowercase_to_san() {
             expected
         );
     }
+
+    // check empty string
+    assert_eq!(chess_tui::utils::normalize_lowercase_to_san("                       "), "");
 }
