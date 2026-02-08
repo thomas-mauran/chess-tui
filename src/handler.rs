@@ -284,11 +284,28 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
             KeyCode::Enter => {
                 // Submit the entered move
                 app.game.ui.prompt.submit_message();
-                let player_move = app.game.ui.prompt.message.clone().trim().to_string();
+                let mut player_move = app.game.ui.prompt.message.clone().trim().to_string();
 
                 if player_move.is_empty() {
                     app.current_popup = None;
                     return;
+                }
+
+                // normalize the input so if the first letter is lower case, make it upper case, not doing so means invalid SAN because lower case denotes pawn only
+                if let Some(first) = player_move.chars().next() {
+                    let upper = match first {
+                        'n' => Some('N'),
+                        'b' => Some('B'),
+                        'r' => Some('R'),
+                        'q' => Some('Q'),
+                        'k' => Some('K'),
+                        _ => None, // pawn moves like "e4" should stay lowercase
+                    };
+
+                    if let Some(u) = upper {
+                        // Replace just the first character, keep the rest as-is (e.g. "nh3" -> "Nh3").
+                        player_move.replace_range(0..first.len_utf8(), &u.to_string());
+                    }
                 }
 
                 let san = match San::from_ascii(player_move.as_bytes()) {
