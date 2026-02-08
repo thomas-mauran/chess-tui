@@ -33,4 +33,6 @@ fn test_normalize_lowercase_to_san() {
 
     // check empty string
     assert_eq!(chess_tui::utils::normalize_lowercase_to_san("                       "), "");
+    assert_eq!(chess_tui::utils::normalize_lowercase_to_san("      kh4             "), "Kh4");
+
 }
