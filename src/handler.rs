@@ -1,7 +1,7 @@
 use crate::constants::Popups;
 use crate::game_logic::coord::Coord;
 use crate::game_logic::game::GameState;
-use crate::utils::{flip_square_if_needed, get_coord_from_square};
+use crate::utils::{flip_square_if_needed, get_coord_from_square, normalize_lowercase_to_san};
 use crate::{
     app::{App, AppResult},
     constants::Pages,
@@ -284,7 +284,10 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
             KeyCode::Enter => {
                 // Submit the entered move
                 app.game.ui.prompt.submit_message();
-                let player_move = app.game.ui.prompt.message.clone().trim().to_string();
+                let mut player_move = app.game.ui.prompt.message.clone().trim().to_string();
+
+                // normalize the input so if some letters are lower case, make it upper case, not doing so means invalid SAN because lower case denotes pawn only
+                player_move = normalize_lowercase_to_san(&player_move);
 
                 if player_move.is_empty() {
                     app.current_popup = None;

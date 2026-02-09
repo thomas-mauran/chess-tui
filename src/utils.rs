@@ -95,3 +95,60 @@ pub fn convert_position_into_notation(position: &str) -> String {
         ranks[to_rank as usize]
     )
 }
+
+// normalize lower case sans into valid uppercase san
+#[must_use]
+pub fn normalize_lowercase_to_san(input: &str) -> String {
+    let s0 = input.trim();
+
+    if s0.is_empty() {
+        return String::new();
+    }
+
+    // ---- Castling normalization (accept common variants) ----
+    let lower = s0.to_ascii_lowercase();
+    match lower.as_str() {
+        "o-o" | "0-0" => return "O-O".to_string(),
+        "o-o-o" | "0-0-0" => return "O-O-O".to_string(),
+        _ => {}
+    }
+
+    let mut s = s0.to_string();
+
+    // ---- Uppercase leading piece letter (only first char) ----
+    if let Some(first) = s.chars().next() {
+        let up = match first {
+            'n' => Some('N'),
+            'b' => Some('B'),
+            'r' => Some('R'),
+            'q' => Some('Q'),
+            'k' => Some('K'),
+            _ => None, // pawn moves like "e4" should stay lowercase
+        };
+
+        if let Some(up) = up {
+            s.replace_range(0..first.len_utf8(), &up.to_string());
+        }
+    }
+
+    // ---- Uppercase promotion piece after '=' (e8=q -> e8=Q) ----
+    if let Some(eq) = s.find('=') {
+        // SAN promotion piece is a single ASCII letter right after '='
+        let bytes = s.as_bytes();
+        if eq + 1 < bytes.len() {
+            let promo = bytes[eq + 1] as char;
+            let up = match promo {
+                'q' => Some('Q'),
+                'r' => Some('R'),
+                'b' => Some('B'),
+                'n' => Some('N'),
+                _ => None,
+            };
+            if let Some(up) = up {
+                s.replace_range(eq + 1..eq + 2, &up.to_string());
+            }
+        }
+    }
+
+    s
+}
