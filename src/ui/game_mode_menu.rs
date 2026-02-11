@@ -489,17 +489,19 @@ fn render_details_panel(frame: &mut Frame, app: &App, area: Rect, game_mode: u8)
             info_lines.push(Line::from(format!("  {}", app.bot_depth)));
             info_lines.push(Line::from(""));
             info_lines.push(Line::from(vec![Span::styled(
-                "Bot ELO:",
+                "Difficulty:",
                 Style::default()
                     .fg(Color::Cyan)
                     .add_modifier(Modifier::BOLD),
             )]));
-            info_lines.push(Line::from(format!(
-                "  {}",
-                app.bot_elo
-                    .map(|e| e.to_string())
-                    .unwrap_or_else(|| "Off (full strength)".to_string())
-            )));
+            let difficulty_display = app
+                .bot_difficulty
+                .and_then(|i| {
+                    ((i as usize) < crate::constants::BOT_DIFFICULTY_NAMES.len())
+                        .then_some(crate::constants::BOT_DIFFICULTY_NAMES[i as usize])
+                })
+                .unwrap_or("Off (full strength)");
+            info_lines.push(Line::from(format!("  {}", difficulty_display)));
             info_lines.push(Line::from(""));
             info_lines.push(Line::from("  Controls how many moves"));
             info_lines.push(Line::from("  ahead the bot thinks."));
@@ -946,7 +948,7 @@ fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: u8
                     .fg(Color::Cyan)
                     .add_modifier(Modifier::BOLD)
             };
-            let elo_label = Paragraph::new("Bot ELO:")
+            let elo_label = Paragraph::new("Difficulty:")
                 .style(elo_label_style)
                 .alignment(Alignment::Left);
             frame.render_widget(elo_label, elo_area[0]);
@@ -955,15 +957,19 @@ fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: u8
                 .direction(Direction::Horizontal)
                 .constraints([
                     Constraint::Length(4),  // - button
-                    Constraint::Length(10), // "Off" or value
+                    Constraint::Length(16), // "Off" or "Easy (400)" / "Magnus (2700)"
                     Constraint::Length(4),  // + button
                 ])
                 .split(elo_area[1]);
 
             let elo_display = app
-                .bot_elo
-                .map(|e| e.to_string())
-                .unwrap_or_else(|| "Off".to_string());
+                .bot_difficulty
+                .and_then(|i| {
+                    ((i as usize) < crate::constants::BOT_DIFFICULTY_NAMES.len())
+                        .then_some(crate::constants::BOT_DIFFICULTY_NAMES[i as usize])
+                })
+                .unwrap_or("Off")
+                .to_string();
 
             let decrease_elo_style = if !is_active {
                 Style::default().fg(grey_color)

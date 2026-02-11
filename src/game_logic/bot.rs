@@ -1,4 +1,4 @@
-use crate::constants::{BOT_ELO_MAX, BOT_ELO_MIN, BOT_MOVETIME_MS_MAX, BOT_MOVETIME_MS_MIN};
+use crate::constants::{BOT_DIFFICULTY_DEPTH, BOT_DIFFICULTY_ELO, BOT_DIFFICULTY_MOVETIME_MS};
 use ruci::{Engine, Go};
 use shakmaty::fen::Fen;
 use shakmaty::uci::UciMove;
@@ -13,34 +13,59 @@ pub struct Bot {
     pub bot_will_move: bool,
     // if the bot is starting, meaning the player is black
     pub is_bot_starting: bool,
-    /// Bot thinking depth for chess engine
+    /// Base depth when difficulty is Off (full strength)
     pub depth: u8,
-    /// Optional ELO limit Uses UCI_LimitStrength + UCI_Elo when set.
-    pub elo: Option<u16>,
+    /// Difficulty preset index: None = Off (full strength), Some(0..=3) = Easy/Medium/Hard/Magnus
+    pub difficulty: Option<u8>,
 }
 
 impl Bot {
-    pub fn new(engine_path: &str, is_bot_starting: bool, depth: u8, elo: Option<u16>) -> Bot {
+    pub fn new(engine_path: &str, is_bot_starting: bool, depth: u8, difficulty: Option<u8>) -> Bot {
         Self {
             engine_path: engine_path.to_string(),
             bot_will_move: false,
             is_bot_starting,
             depth,
-            elo,
+            difficulty,
         }
     }
 
-    /// Map ELO to movetime in ms for UCI "go movetime". Uses x³ so lower ELO gets
-    /// very little time (weaker play); high ELO still gets full time.
-    fn elo_to_movetime_ms(elo: u16) -> u64 {
-        let elo = elo.clamp(BOT_ELO_MIN, BOT_ELO_MAX);
-        let elo_range = (BOT_ELO_MAX - BOT_ELO_MIN) as u64;
-        let elo_above_min = (elo.saturating_sub(BOT_ELO_MIN)) as u64;
-        let progress = elo_above_min as f64 / elo_range as f64; // 0..1
-        let time_factor = progress * progress * progress; // x³ curve
-        let movetime_span = (BOT_MOVETIME_MS_MAX - BOT_MOVETIME_MS_MIN) as f64;
+    /// Effective depth: preset depth when difficulty is set, else base depth.
+    fn effective_depth(&self) -> u8 {
+        self.difficulty
+            .and_then(|i| {
+                let idx = i as usize;
+                if idx < BOT_DIFFICULTY_DEPTH.len() {
+                    Some(BOT_DIFFICULTY_DEPTH[idx])
+                } else {
+                    None
+                }
+            })
+            .unwrap_or(self.depth)
+    }
 
-        (BOT_MOVETIME_MS_MIN as f64 + movetime_span * time_factor) as u64
+    /// Movetime in ms when difficulty is set; None = no limit (full strength).
+    fn movetime_ms(&self) -> Option<u64> {
+        self.difficulty.and_then(|i| {
+            let idx = i as usize;
+            if idx < BOT_DIFFICULTY_MOVETIME_MS.len() {
+                Some(BOT_DIFFICULTY_MOVETIME_MS[idx])
+            } else {
+                None
+            }
+        })
+    }
+
+    /// ELO for UCI_LimitStrength when difficulty is set.
+    fn elo(&self) -> Option<u16> {
+        self.difficulty.and_then(|i| {
+            let idx = i as usize;
+            if idx < BOT_DIFFICULTY_ELO.len() {
+                Some(BOT_DIFFICULTY_ELO[idx])
+            } else {
+                None
+            }
+        })
     }
 
     /// Get the best move from the chess engine.
@@ -81,8 +106,8 @@ impl Bot {
             .use_uci(|_| {})
             .unwrap_or_else(|e| panic!("Failed UCI handshake: {e}"));
 
-        // Optional ELO limit via UCI options (UCI_LimitStrength + UCI_Elo) as mentionned in the spec
-        if let Some(elo) = self.elo {
+        // Optional ELO limit via UCI options (UCI_LimitStrength + UCI_Elo) when difficulty is set
+        if let Some(elo) = self.elo() {
             engine
                 .send(ruci::gui::SetOption {
                     name: Cow::Borrowed("UCI_LimitStrength"),
@@ -107,14 +132,13 @@ impl Bot {
             })
             .unwrap_or_else(|e| panic!("Failed to send position to engine: {e}"));
 
-        // When ELO is set, also send movetime so engines without UCI_Elo still
-        // play at roughly the right strength (lower ELO = less time).
-        let move_time_ms = self.elo.map(Self::elo_to_movetime_ms);
+        let depth = self.effective_depth();
+        let move_time_ms = self.movetime_ms();
 
         engine
             .go(
                 &Go {
-                    depth: Some(self.depth as usize),
+                    depth: Some(depth as usize),
                     move_time: move_time_ms.map(|ms| ms as usize),
                     ..Default::default()
                 },

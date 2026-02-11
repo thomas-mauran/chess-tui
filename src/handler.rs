@@ -1,4 +1,4 @@
-use crate::constants::{Popups, BOT_ELO_DEFAULT, BOT_ELO_MAX, BOT_ELO_MIN, BOT_ELO_STEP};
+use crate::constants::{Popups, BOT_DIFFICULTY_COUNT};
 use crate::game_logic::coord::Coord;
 use crate::game_logic::game::GameState;
 use crate::utils::{flip_square_if_needed, get_coord_from_square};
@@ -994,23 +994,25 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                         app.bot_depth -= 1;
                                     }
                                 } else {
-                                    // ELO - decrease or set to Off
-                                    if let Some(elo) = app.bot_elo {
-                                        if elo <= BOT_ELO_MIN {
-                                            app.bot_elo = None;
-                                        } else {
-                                            app.bot_elo = Some(elo.saturating_sub(BOT_ELO_STEP));
+                                    // Difficulty - previous: Off -> Magnus -> Hard -> Medium -> Easy -> Off
+                                    match app.bot_difficulty {
+                                        None => {
+                                            app.bot_difficulty =
+                                                Some((BOT_DIFFICULTY_COUNT - 1) as u8)
                                         }
+                                        Some(0) => app.bot_difficulty = None,
+                                        Some(i) => app.bot_difficulty = Some(i - 1),
                                     }
                                 }
                             }
                             4 => {
-                                if let Some(elo) = app.bot_elo {
-                                    if elo <= BOT_ELO_MIN {
-                                        app.bot_elo = None;
-                                    } else {
-                                        app.bot_elo = Some(elo.saturating_sub(BOT_ELO_STEP));
+                                // Difficulty - previous
+                                match app.bot_difficulty {
+                                    None => {
+                                        app.bot_difficulty = Some((BOT_DIFFICULTY_COUNT - 1) as u8)
                                     }
+                                    Some(0) => app.bot_difficulty = None,
+                                    Some(i) => app.bot_difficulty = Some(i - 1),
                                 }
                             }
                             _ => {}
@@ -1109,19 +1111,25 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                         app.bot_depth += 1;
                                     }
                                 } else {
-                                    // ELO - increase or set from Off
-                                    app.bot_elo = Some(match app.bot_elo {
-                                        None => BOT_ELO_DEFAULT,
-                                        Some(elo) => (elo + BOT_ELO_STEP).min(BOT_ELO_MAX),
-                                    });
+                                    // Difficulty - next: Off -> Easy -> Medium -> Hard -> Magnus -> Off
+                                    match app.bot_difficulty {
+                                        None => app.bot_difficulty = Some(0),
+                                        Some(i) if i + 1 >= BOT_DIFFICULTY_COUNT as u8 => {
+                                            app.bot_difficulty = None
+                                        }
+                                        Some(i) => app.bot_difficulty = Some(i + 1),
+                                    }
                                 }
                             }
                             4 => {
-                                // Bot ELO - increase or set from Off
-                                app.bot_elo = Some(match app.bot_elo {
-                                    None => BOT_ELO_DEFAULT,
-                                    Some(elo) => (elo + BOT_ELO_STEP).min(BOT_ELO_MAX),
-                                });
+                                // Difficulty - next
+                                match app.bot_difficulty {
+                                    None => app.bot_difficulty = Some(0),
+                                    Some(i) if i + 1 >= BOT_DIFFICULTY_COUNT as u8 => {
+                                        app.bot_difficulty = None
+                                    }
+                                    Some(i) => app.bot_difficulty = Some(i + 1),
+                                }
                             }
                             _ => {}
                         }
