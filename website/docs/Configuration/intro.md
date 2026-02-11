@@ -27,6 +27,9 @@ chess-tui -e "/opt/homebrew/bin/gnuchess --uci"
 # Set bot thinking depth
 chess-tui --depth 15
 
+# Set bot difficulty (easy, medium, hard, magnus)
+chess-tui --difficulty easy
+
 # Disable sound effects
 chess-tui --no-sound
 
@@ -60,6 +63,9 @@ log_level = "OFF"
 
 # Bot thinking depth for chess engine (1-255, default: 10)
 bot_depth = 10
+
+# Bot difficulty: 0=Easy, 1=Medium, 2=Hard, 3=Magnus (omit for full strength)
+# bot_difficulty = 0
 
 # Enable or disable sound effects (default: true)
 sound_enabled = true

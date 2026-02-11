@@ -25,8 +25,8 @@ struct Args {
     #[arg(short, long, default_value = "")]
     engine_path: String,
     /// Bot thinking depth for chess engine (1-255)
-    #[arg(short, long, default_value = "10")]
-    depth: u8,
+    #[arg(short, long)]
+    depth: Option<u8>,
     /// Bot difficulty: easy, medium, hard, or magnus. Omit for full strength (Off).
     #[arg(long)]
     difficulty: Option<String>,
@@ -179,7 +179,9 @@ fn main() -> AppResult<()> {
     }
 
     // Command line depth argument takes precedence over configuration file
-    app.bot_depth = args.depth;
+    if let Some(depth) = args.depth {
+        app.bot_depth = depth;
+    }
 
     // Command line difficulty argument takes precedence over configuration file
     if let Some(ref d) = args.difficulty {
@@ -402,8 +404,8 @@ fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResu
     }
 
     // Update bot_depth if provided via command line
-    if args.depth != 10 {
-        config.bot_depth = Some(args.depth);
+    if let Some(depth) = args.depth {
+        config.bot_depth = Some(depth);
     }
 
     // Update bot_difficulty if provided via command line
@@ -472,7 +474,7 @@ mod tests {
     fn test_config_create() {
         let args = Args {
             engine_path: "test_engine_path".to_string(),
-            depth: 10,
+            depth: None,
             difficulty: None,
             lichess_token: None,
             no_sound: false,

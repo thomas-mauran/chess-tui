@@ -1278,6 +1278,8 @@ impl App {
         if let Some(skin) = &self.loaded_skin {
             self.game.ui.skin = skin.clone();
         }
+
+        self.update_config();
     }
 
     pub fn hosting_selection(&mut self) {

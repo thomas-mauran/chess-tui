@@ -64,7 +64,7 @@ The path will be automatically saved to your configuration file for future use.
 ### Supported Engines
 
 Any UCI-compatible chess engine should work. Some popular options include:
-- **Stockfish** - Popular open-source engine (recommended)
+- **Stockfish** - Popular open-source engine (recommended). Supports the difficulty presets via UCI ELO limiting.
 - **GNU Chess** - Classic chess engine (requires `--uci` flag)
 - **Leela Chess Zero** - Neural network engine
 - **Komodo** - Commercial engine
@@ -109,7 +109,12 @@ Bot settings can be configured in the `CONFIG_DIR/chess-tui/config.toml` file:
 
 ```toml
 # Bot thinking depth for chess engine (1-255, default: 10)
+# Used when difficulty is "Off" (full strength)
 bot_depth = 10
+
+# Bot difficulty preset (optional): 0=Easy, 1=Medium, 2=Hard, 3=Magnus
+# Omit or set to null for full strength
+bot_difficulty = 0
 ```
 
 CONFIG_DIR is typically:
@@ -131,6 +136,35 @@ This is useful for:
 - Testing different depth values without editing the config file
 - Setting a custom depth for a specific game session
 - Overriding the default depth temporarily
+
+### Difficulty Preset
+
+You can also set the bot difficulty from the command line:
+
+```bash
+chess-tui --difficulty easy
+chess-tui --difficulty medium
+chess-tui --difficulty hard
+chess-tui --difficulty magnus
+```
+
+## Difficulty Selection
+
+When configuring a game against the bot, you can select a **difficulty preset** instead of playing at full engine strength. Use the **←** and **→** arrow keys in the game setup form to cycle through the options:
+
+| Preset | Approx. ELO | Best for |
+|--------|-------------|----------|
+| **Off** | Full strength | Experienced players |
+| **Easy** | 400 | Beginners, learning |
+| **Medium** | 900 | Casual play |
+| **Hard** | 1500 | Intermediate |
+| **Magnus** | 2700 | Strong players |
+
+:::tip **Works great with Stockfish**
+Stockfish supports the UCI `UCI_LimitStrength` and `UCI_Elo` options natively. When you select a difficulty preset, chess-tui uses these options so Stockfish plays at the corresponding strength level. This gives you smooth, predictable scaling from beginner to near-grandmaster level.
+:::
+
+For engines that don't support ELO limiting (e.g. GNU Chess), chess-tui still weakens the bot by limiting search depth and thinking time per move. Lower difficulties use shallower depth and less time, so the bot will make quicker but weaker moves.
 
 ## Bot Depth
 

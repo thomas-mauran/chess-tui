@@ -982,16 +982,18 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                     // Bot depth - decrease
                                     if app.bot_depth > 1 {
                                         app.bot_depth -= 1;
+                                        app.update_config();
                                     }
                                 }
                             }
                             3 => {
-                                // Bot depth (if Custom selected) or Bot ELO (no custom)
+                                // Bot depth (if Custom selected) or Difficulty (no custom)
                                 if app.clock_form_cursor
                                     == crate::constants::TIME_CONTROL_CUSTOM_INDEX
                                 {
                                     if app.bot_depth > 1 {
                                         app.bot_depth -= 1;
+                                        app.update_config();
                                     }
                                 } else {
                                     // Difficulty - previous: Off -> Magnus -> Hard -> Medium -> Easy -> Off
@@ -1003,6 +1005,7 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                         Some(0) => app.bot_difficulty = None,
                                         Some(i) => app.bot_difficulty = Some(i - 1),
                                     }
+                                    app.update_config();
                                 }
                             }
                             4 => {
@@ -1014,6 +1017,7 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                     Some(0) => app.bot_difficulty = None,
                                     Some(i) => app.bot_difficulty = Some(i - 1),
                                 }
+                                app.update_config();
                             }
                             _ => {}
                         }
@@ -1099,16 +1103,18 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                     // Bot depth - increase
                                     if app.bot_depth < 20 {
                                         app.bot_depth += 1;
+                                        app.update_config();
                                     }
                                 }
                             }
                             3 => {
-                                // Bot depth (if Custom selected) or Bot ELO (no custom)
+                                // Bot depth (if Custom selected) or Difficulty (no custom)
                                 if app.clock_form_cursor
                                     == crate::constants::TIME_CONTROL_CUSTOM_INDEX
                                 {
                                     if app.bot_depth < 20 {
                                         app.bot_depth += 1;
+                                        app.update_config();
                                     }
                                 } else {
                                     // Difficulty - next: Off -> Easy -> Medium -> Hard -> Magnus -> Off
@@ -1119,6 +1125,7 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                         }
                                         Some(i) => app.bot_difficulty = Some(i + 1),
                                     }
+                                    app.update_config();
                                 }
                             }
                             4 => {
@@ -1130,6 +1137,7 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                     }
                                     Some(i) => app.bot_difficulty = Some(i + 1),
                                 }
+                                app.update_config();
                             }
                             _ => {}
                         }
