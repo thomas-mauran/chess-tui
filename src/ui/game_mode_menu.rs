@@ -488,6 +488,21 @@ fn render_details_panel(frame: &mut Frame, app: &App, area: Rect, game_mode: u8)
             )]));
             info_lines.push(Line::from(format!("  {}", app.bot_depth)));
             info_lines.push(Line::from(""));
+            info_lines.push(Line::from(vec![Span::styled(
+                "Difficulty:",
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            )]));
+            let difficulty_display = app
+                .bot_difficulty
+                .and_then(|i| {
+                    ((i as usize) < crate::constants::BOT_DIFFICULTY_NAMES.len())
+                        .then_some(crate::constants::BOT_DIFFICULTY_NAMES[i as usize])
+                })
+                .unwrap_or("Off (full strength)");
+            info_lines.push(Line::from(format!("  {}", difficulty_display)));
+            info_lines.push(Line::from(""));
             info_lines.push(Line::from("  Controls how many moves"));
             info_lines.push(Line::from("  ahead the bot thinks."));
             info_lines.push(Line::from("  Higher = stronger but slower."));
@@ -560,6 +575,7 @@ fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: u8
                         Constraint::Length(3), // Custom time adjustment
                         Constraint::Length(3), // Color
                         Constraint::Length(3), // Bot depth
+                        Constraint::Length(3), // Bot ELO
                         Constraint::Min(1),
                     ]
                 } else {
@@ -567,6 +583,7 @@ fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: u8
                         Constraint::Length(3), // Time control selection
                         Constraint::Length(3), // Color
                         Constraint::Length(3), // Bot depth
+                        Constraint::Length(3), // Bot ELO
                         Constraint::Min(1),
                     ]
                 }
@@ -908,6 +925,96 @@ fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: u8
                 .alignment(Alignment::Center)
                 .style(increase_style);
             frame.render_widget(increase_text, depth_value_area[2]);
+
+            chunk_idx += 1;
+
+            // Bot ELO field
+            let elo_cursor = if app.clock_form_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX
+            {
+                4
+            } else {
+                3
+            };
+            let is_elo_field_focused = is_active && app.game_mode_form_cursor == elo_cursor;
+            let elo_area = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Length(1), Constraint::Length(1)])
+                .split(form_chunks[chunk_idx]);
+
+            let elo_label_style = if !is_active {
+                Style::default().fg(grey_color)
+            } else {
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD)
+            };
+            let elo_label = Paragraph::new("Difficulty:")
+                .style(elo_label_style)
+                .alignment(Alignment::Left);
+            frame.render_widget(elo_label, elo_area[0]);
+
+            let elo_value_area = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([
+                    Constraint::Length(4),  // - button
+                    Constraint::Length(16), // "Off" or "Easy (400)" / "Magnus (2700)"
+                    Constraint::Length(4),  // + button
+                ])
+                .split(elo_area[1]);
+
+            let elo_display = app
+                .bot_difficulty
+                .and_then(|i| {
+                    ((i as usize) < crate::constants::BOT_DIFFICULTY_NAMES.len())
+                        .then_some(crate::constants::BOT_DIFFICULTY_NAMES[i as usize])
+                })
+                .unwrap_or("Off")
+                .to_string();
+
+            let decrease_elo_style = if !is_active {
+                Style::default().fg(grey_color)
+            } else if is_elo_field_focused {
+                Style::default()
+                    .fg(Color::Black)
+                    .bg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().fg(Color::White)
+            };
+            let decrease_elo_text = Paragraph::new("  -")
+                .alignment(Alignment::Center)
+                .style(decrease_elo_style);
+            frame.render_widget(decrease_elo_text, elo_value_area[0]);
+
+            let elo_value_style = if !is_active {
+                Style::default().fg(grey_color)
+            } else if is_elo_field_focused {
+                Style::default()
+                    .fg(Color::Black)
+                    .bg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().fg(Color::White)
+            };
+            let elo_value_text = Paragraph::new(format!("  {}", elo_display))
+                .alignment(Alignment::Center)
+                .style(elo_value_style);
+            frame.render_widget(elo_value_text, elo_value_area[1]);
+
+            let increase_elo_style = if !is_active {
+                Style::default().fg(grey_color)
+            } else if is_elo_field_focused {
+                Style::default()
+                    .fg(Color::Black)
+                    .bg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().fg(Color::White)
+            };
+            let increase_elo_text = Paragraph::new("  +")
+                .alignment(Alignment::Center)
+                .style(increase_elo_style);
+            frame.render_widget(increase_elo_text, elo_value_area[2]);
         }
         _ => {}
     }

@@ -1,4 +1,4 @@
-use crate::constants::Popups;
+use crate::constants::{Popups, BOT_DIFFICULTY_COUNT};
 use crate::game_logic::coord::Coord;
 use crate::game_logic::game::GameState;
 use crate::utils::{flip_square_if_needed, get_coord_from_square, normalize_lowercase_to_san};
@@ -985,17 +985,42 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                     // Bot depth - decrease
                                     if app.bot_depth > 1 {
                                         app.bot_depth -= 1;
+                                        app.update_config();
                                     }
                                 }
                             }
                             3 => {
-                                // Bot depth (if Custom selected)
+                                // Bot depth (if Custom selected) or Difficulty (no custom)
                                 if app.clock_form_cursor
                                     == crate::constants::TIME_CONTROL_CUSTOM_INDEX
-                                    && app.bot_depth > 1
                                 {
-                                    app.bot_depth -= 1;
+                                    if app.bot_depth > 1 {
+                                        app.bot_depth -= 1;
+                                        app.update_config();
+                                    }
+                                } else {
+                                    // Difficulty - previous: Off -> Magnus -> Hard -> Medium -> Easy -> Off
+                                    match app.bot_difficulty {
+                                        None => {
+                                            app.bot_difficulty =
+                                                Some((BOT_DIFFICULTY_COUNT - 1) as u8)
+                                        }
+                                        Some(0) => app.bot_difficulty = None,
+                                        Some(i) => app.bot_difficulty = Some(i - 1),
+                                    }
+                                    app.update_config();
                                 }
+                            }
+                            4 => {
+                                // Difficulty - previous
+                                match app.bot_difficulty {
+                                    None => {
+                                        app.bot_difficulty = Some((BOT_DIFFICULTY_COUNT - 1) as u8)
+                                    }
+                                    Some(0) => app.bot_difficulty = None,
+                                    Some(i) => app.bot_difficulty = Some(i - 1),
+                                }
+                                app.update_config();
                             }
                             _ => {}
                         }
@@ -1081,17 +1106,41 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                     // Bot depth - increase
                                     if app.bot_depth < 20 {
                                         app.bot_depth += 1;
+                                        app.update_config();
                                     }
                                 }
                             }
                             3 => {
-                                // Bot depth (if Custom selected)
+                                // Bot depth (if Custom selected) or Difficulty (no custom)
                                 if app.clock_form_cursor
                                     == crate::constants::TIME_CONTROL_CUSTOM_INDEX
-                                    && app.bot_depth < 20
                                 {
-                                    app.bot_depth += 1;
+                                    if app.bot_depth < 20 {
+                                        app.bot_depth += 1;
+                                        app.update_config();
+                                    }
+                                } else {
+                                    // Difficulty - next: Off -> Easy -> Medium -> Hard -> Magnus -> Off
+                                    match app.bot_difficulty {
+                                        None => app.bot_difficulty = Some(0),
+                                        Some(i) if i + 1 >= BOT_DIFFICULTY_COUNT as u8 => {
+                                            app.bot_difficulty = None
+                                        }
+                                        Some(i) => app.bot_difficulty = Some(i + 1),
+                                    }
+                                    app.update_config();
                                 }
+                            }
+                            4 => {
+                                // Difficulty - next
+                                match app.bot_difficulty {
+                                    None => app.bot_difficulty = Some(0),
+                                    Some(i) if i + 1 >= BOT_DIFFICULTY_COUNT as u8 => {
+                                        app.bot_difficulty = None
+                                    }
+                                    Some(i) => app.bot_difficulty = Some(i + 1),
+                                }
+                                app.update_config();
                             }
                             _ => {}
                         }
@@ -1215,15 +1264,27 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                     }
                                     app.game_mode_form_cursor = 3;
                                 } else {
-                                    // Depth field - start game (time control, color and depth selected)
+                                    // Depth field - move to ELO field
+                                    app.game_mode_form_cursor = 3;
+                                }
+                            }
+                            3 => {
+                                // On depth field (if Custom selected) - move to ELO; on ELO field (no custom) - start game
+                                if app.clock_form_cursor
+                                    == crate::constants::TIME_CONTROL_CUSTOM_INDEX
+                                {
+                                    // Depth field - move to ELO
+                                    app.game_mode_form_cursor = 4;
+                                } else {
+                                    // ELO field - start game
                                     app.current_page = Pages::Bot;
                                     app.game_mode_selection = None;
                                     app.game_mode_form_cursor = 0;
                                     app.game_mode_form_active = false;
                                 }
                             }
-                            3 => {
-                                // On depth field (if Custom selected) - start game
+                            4 => {
+                                // On ELO field - start game
                                 app.current_page = Pages::Bot;
                                 app.game_mode_selection = None;
                                 app.game_mode_form_cursor = 0;

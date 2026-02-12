@@ -50,8 +50,10 @@ pub struct App {
     /// path of the chess engine
     pub chess_engine_path: Option<String>,
     pub log_level: LevelFilter,
-    /// Bot thinking depth for chess engine
+    /// Bot thinking depth for chess engine (used when difficulty is Off)
     pub bot_depth: u8,
+    /// Bot difficulty preset: None = Off (full strength), Some(0..=3) = Easy/Medium/Hard/Magnus
+    pub bot_difficulty: Option<u8>,
     /// Bot thinking channel receiver
     pub bot_move_receiver: Option<Receiver<Move>>,
     /// Error message for Error popup
@@ -112,6 +114,7 @@ impl Default for App {
             chess_engine_path: None,
             log_level: LevelFilter::Off,
             bot_depth: 10,
+            bot_difficulty: None,
             bot_move_receiver: None,
             error_message: None,
             loaded_skin: None,
@@ -1080,6 +1083,7 @@ impl App {
         let fen = self.game.logic.game_board.fen_position();
         let engine_path = self.chess_engine_path.clone().unwrap_or_default();
         let depth = bot.depth;
+        let bot_difficulty = bot.difficulty;
 
         // Create channel for communication
         let (tx, rx) = channel();
@@ -1088,7 +1092,7 @@ impl App {
         // Spawn thread to compute bot move
         std::thread::spawn(move || {
             // Create bot instance in thread
-            let bot = Bot::new(&engine_path, false, depth);
+            let bot = Bot::new(&engine_path, false, depth, bot_difficulty);
             let uci_move = bot.get_move(&fen);
 
             // Convert UCI move to shakmaty Move
@@ -1128,6 +1132,27 @@ impl App {
                 return;
             }
         };
+
+        // Record captured piece (before applying the move) so material display is correct
+        match &bot_move {
+            Move::Normal { .. } => {
+                if let Some(captured_piece) = current_position.board().piece_at(bot_move.to()) {
+                    self.game.logic.game_board.taken_pieces.push(captured_piece);
+                }
+            }
+            Move::EnPassant { .. } => {
+                if let (Some(from_square), to_square) = (bot_move.from(), bot_move.to()) {
+                    let captured_pawn_square =
+                        shakmaty::Square::from_coords(to_square.file(), from_square.rank());
+                    if let Some(captured_piece) =
+                        current_position.board().piece_at(captured_pawn_square)
+                    {
+                        self.game.logic.game_board.taken_pieces.push(captured_piece);
+                    }
+                }
+            }
+            Move::Castle { .. } | Move::Put { .. } => {}
+        }
 
         // Store in history
         let Some(from_square) = bot_move.from() else {
@@ -1223,7 +1248,12 @@ impl App {
     pub fn bot_setup(&mut self) {
         let is_bot_starting = self.selected_color.unwrap_or(Color::White) == shakmaty::Color::Black;
         let path = self.chess_engine_path.as_deref().unwrap_or("");
-        self.game.logic.bot = Some(Bot::new(path, is_bot_starting, self.bot_depth));
+        self.game.logic.bot = Some(Bot::new(
+            path,
+            is_bot_starting,
+            self.bot_depth,
+            self.bot_difficulty,
+        ));
 
         // Initialize clock for bot games if time control is selected
         if let Some(seconds) = self.get_time_control_seconds() {
@@ -1248,6 +1278,8 @@ impl App {
         if let Some(skin) = &self.loaded_skin {
             self.game.ui.skin = skin.clone();
         }
+
+        self.update_config();
     }
 
     pub fn hosting_selection(&mut self) {
@@ -1416,6 +1448,7 @@ impl App {
         config.display_mode = Some(self.game.ui.display_mode.to_string());
         config.log_level = Some(self.log_level.to_string());
         config.bot_depth = Some(self.bot_depth);
+        config.bot_difficulty = self.bot_difficulty;
         config.selected_skin_name = Some(self.selected_skin_name.clone());
         config.lichess_token = self.lichess_token.clone();
         config.sound_enabled = Some(self.sound_enabled);
@@ -1506,6 +1539,7 @@ impl App {
         self.end_screen_dismissed = false;
         self.chess_engine_path = None;
         self.bot_depth = 10;
+        self.bot_difficulty = None;
         self.loaded_skin = loaded_skin;
     }
 

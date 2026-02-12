@@ -17,6 +17,15 @@ pub const SLEEP_DURATION_LONG_MS: u64 = 100;
 // Time control indices: 0: UltraBullet, 1: Bullet, 2: Blitz, 3: Rapid, 4: Classical, 5: No clock, 6: Custom
 pub const TIME_CONTROL_CUSTOM_INDEX: u32 = 6;
 
+// Bot difficulty presets (name, UCI_Elo, depth, movetime_ms).
+// Lower depth and movetime make the bot weaker for engines without UCI_Elo.
+pub const BOT_DIFFICULTY_NAMES: [&str; 4] =
+    ["Easy (400)", "Medium (900)", "Hard (1500)", "Magnus (2700)"];
+pub const BOT_DIFFICULTY_ELO: [u16; 4] = [400, 900, 1500, 2700];
+pub const BOT_DIFFICULTY_DEPTH: [u8; 4] = [1, 4, 8, 20];
+pub const BOT_DIFFICULTY_MOVETIME_MS: [u64; 4] = [25, 120, 500, 12_000];
+pub const BOT_DIFFICULTY_COUNT: usize = 4;
+
 /// Time control options displayed in the UI
 pub const TIME_CONTROL_OPTIONS: &[&str] = &[
     "UltraBullet",

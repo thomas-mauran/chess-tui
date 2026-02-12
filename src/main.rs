@@ -25,8 +25,11 @@ struct Args {
     #[arg(short, long, default_value = "")]
     engine_path: String,
     /// Bot thinking depth for chess engine (1-255)
-    #[arg(short, long, default_value = "10")]
-    depth: u8,
+    #[arg(short, long)]
+    depth: Option<u8>,
+    /// Bot difficulty: easy, medium, hard, or magnus. Omit for full strength (Off).
+    #[arg(long)]
+    difficulty: Option<String>,
     /// Lichess API token
     #[arg(short, long)]
     lichess_token: Option<String>,
@@ -90,6 +93,8 @@ fn main() -> AppResult<()> {
             if let Some(bot_depth) = config.bot_depth {
                 app.bot_depth = bot_depth;
             }
+            // Bot difficulty
+            app.bot_difficulty = config.bot_difficulty;
             // Add selected skin name handling
             if let Some(selected_skin_name) = config.selected_skin_name {
                 app.selected_skin_name = selected_skin_name;
@@ -174,7 +179,23 @@ fn main() -> AppResult<()> {
     }
 
     // Command line depth argument takes precedence over configuration file
-    app.bot_depth = args.depth;
+    if let Some(depth) = args.depth {
+        app.bot_depth = depth;
+    }
+
+    // Command line difficulty argument takes precedence over configuration file
+    if let Some(ref d) = args.difficulty {
+        let idx = match d.to_lowercase().as_str() {
+            "easy" => Some(0),
+            "medium" => Some(1),
+            "hard" => Some(2),
+            "magnus" => Some(3),
+            _ => None,
+        };
+        if let Some(i) = idx {
+            app.bot_difficulty = Some(i);
+        }
+    }
 
     // Command line lichess token takes precedence over configuration file
     if let Some(token) = &args.lichess_token {
@@ -383,8 +404,22 @@ fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResu
     }
 
     // Update bot_depth if provided via command line
-    if args.depth != 10 {
-        config.bot_depth = Some(args.depth);
+    if let Some(depth) = args.depth {
+        config.bot_depth = Some(depth);
+    }
+
+    // Update bot_difficulty if provided via command line
+    if let Some(ref d) = args.difficulty {
+        let idx = match d.to_lowercase().as_str() {
+            "easy" => Some(0),
+            "medium" => Some(1),
+            "hard" => Some(2),
+            "magnus" => Some(3),
+            _ => None,
+        };
+        if let Some(i) = idx {
+            config.bot_difficulty = Some(i);
+        }
     }
 
     // Always update sound_enabled if --no-sound flag is provided via command line (command line takes precedence)
@@ -439,7 +474,8 @@ mod tests {
     fn test_config_create() {
         let args = Args {
             engine_path: "test_engine_path".to_string(),
-            depth: 10,
+            depth: None,
+            difficulty: None,
             lichess_token: None,
             no_sound: false,
         };
