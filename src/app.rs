@@ -10,7 +10,7 @@ use crate::game_logic::opponent::{Opponent, OpponentKind};
 use crate::game_logic::puzzle::PuzzleGame;
 use crate::lichess::LichessClient;
 use crate::server::game_server::GameServer;
-use crate::skin::Skin;
+use crate::skin::{PieceStyle, Skin};
 use crate::utils::flip_square_if_needed;
 use log::LevelFilter;
 use shakmaty::{Color, Move, Position};
@@ -60,6 +60,8 @@ pub struct App {
     pub loaded_skin: Option<Skin>,
     /// Available skins loaded from skins.json
     pub available_skins: Vec<Skin>,
+    /// Available Piece Styles
+    pub available_piece_styles: Vec<PieceStyle>,
     /// Selected skin name
     pub selected_skin_name: String,
     /// Lichess API token
@@ -116,6 +118,7 @@ impl Default for App {
             error_message: None,
             loaded_skin: None,
             available_skins: Vec::new(),
+            available_piece_styles: Vec::new(),
             selected_skin_name: "Default".to_string(),
             lichess_token: None,
             lichess_seek_receiver: None,
@@ -1295,9 +1298,10 @@ impl App {
 
         self.game.logic.bot = bot;
         self.game.logic.opponent = opponent;
-        // Restore skin and display mode
+        // Restore skin, display mode and piece styles
         self.game.ui.skin = current_skin;
         self.game.ui.display_mode = display_mode;
+        self.game.ui.available_piece_styles = self.available_piece_styles.clone();
         self.current_popup = None;
 
         // Re-initialize clock for local games and bot games
@@ -1498,6 +1502,10 @@ impl App {
     pub fn reset(&mut self) {
         let loaded_skin = self.loaded_skin.clone();
         self.game = Game::default();
+        self.game.ui.available_piece_styles = self.available_piece_styles.clone();
+        if let Some(ref skin) = loaded_skin {
+            self.game.ui.skin = skin.clone();
+        }
         self.current_popup = None;
         self.selected_color = None;
         self.hosting = None;
@@ -1740,10 +1748,11 @@ impl App {
         // Clear puzzle state
         self.puzzle_game = None;
 
-        // Reset game completely but preserve display mode and skin preference
+        // Reset game completely but preserve display mode, skin and piece styles
         self.game = Game::default();
         self.game.ui.display_mode = display_mode;
         self.game.ui.skin = current_skin;
+        self.game.ui.available_piece_styles = self.available_piece_styles.clone();
         self.end_screen_dismissed = false;
         self.clock_form_cursor = 3; // Reset to default (Rapid)
         self.custom_time_minutes = 10; // Reset custom time

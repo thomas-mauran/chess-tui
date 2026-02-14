@@ -15,6 +15,7 @@ fn test_default_skin() {
 fn test_load_skin() {
     let json = r#"{
         "name": "Test Skin",
+        "display_mode": "Default"
         "board_white_color": "Red",
         "board_black_color": "Blue",
         "piece_white_color": "Green",

@@ -8,14 +8,61 @@ use chess_tui::event::{Event, EventHandler};
 use chess_tui::game_logic::opponent::wait_for_game_start;
 use chess_tui::handler::{handle_key_events, handle_mouse_events};
 use chess_tui::logging;
-use chess_tui::skin::Skin;
+use chess_tui::skin::{PieceStyle, Skin};
 use chess_tui::ui::tui::Tui;
 use clap::Parser;
 use log::LevelFilter;
 use std::fs::{self, File};
-use std::io::{self, Write};
+use std::io::{self, BufRead, Write};
 use std::panic;
 use std::path::Path;
+
+/// Runs the --update-skins command: prompt for confirmation, archive current skins.json, write default.
+fn run_update_skins() -> AppResult<()> {
+    const DEFAULT_SKINS: &str = include_str!("default_skins.json");
+
+    let config_dir = config_dir()?;
+    let skins_dir = config_dir.join("chess-tui");
+    let skins_path = skins_dir.join("skins.json");
+
+    fs::create_dir_all(&skins_dir)?;
+
+    if !skins_path.exists() {
+        let mut file = File::create(&skins_path)?;
+        file.write_all(DEFAULT_SKINS.as_bytes())?;
+        println!("Created skins.json with default content at {}", skins_path.display());
+        return Ok(());
+    }
+
+    print!(
+        "This will replace your skins config with the default. \
+         Your current file will be archived in the same folder. Continue? (y/n): "
+    );
+    std::io::stdout().flush()?;
+
+    let mut line = String::new();
+    std::io::stdin().lock().read_line(&mut line)?;
+    let answer = line.trim().to_lowercase();
+
+    if answer != "y" && answer != "yes" {
+        println!("Aborted.");
+        return Ok(());
+    }
+
+    let timestamp = chrono::Local::now().format("%Y-%m-%d_%H-%M-%S");
+    let archive_name = format!("skins_{}.json", timestamp);
+    let archive_path = skins_dir.join(&archive_name);
+
+    fs::copy(&skins_path, &archive_path)?;
+    let mut file = File::create(&skins_path)?;
+    file.write_all(DEFAULT_SKINS.as_bytes())?;
+
+    println!(
+        "Archived previous config to {} and updated skins.json with default.",
+        archive_path.display()
+    );
+    Ok(())
+}
 
 /// Simple program to greet a person
 #[derive(Parser, Debug)]
@@ -33,11 +80,19 @@ struct Args {
     /// Disable sound effects
     #[arg(long)]
     no_sound: bool,
+    /// Update skin config with built-in default (prompts for confirmation, archives current file)
+    #[arg(long)]
+    update_skins: bool,
 }
 
 fn main() -> AppResult<()> {
     // Parse the cli arguments first (this will handle --version and exit early if needed)
     let args = Args::parse();
+
+    // Handle --update-skins: update config from default, then exit (no TUI)
+    if args.update_skins {
+        return run_update_skins();
+    }
 
     // Used to enable mouse capture (only after we know we're running the TUI)
     ratatui::crossterm::execute!(
@@ -121,7 +176,6 @@ fn main() -> AppResult<()> {
             eprintln!("Failed to create default skins.json: {}", e);
         }
     }
-
     if skins_path.exists() {
         match Skin::load_all_skins(&skins_path) {
             Ok(skins) => {
@@ -136,6 +190,22 @@ fn main() -> AppResult<()> {
                 eprintln!("Failed to load skins: {}", e);
             }
         }
+
+        match Skin::load_all_piece_styles(&skins_path) {
+            Ok(piece_styles) => {
+                // Filter out any "Default" or "ASCII" skins from JSON to avoid duplicates
+                let custom_piece_styles: Vec<PieceStyle> = piece_styles
+                    .into_iter()
+                    .filter(|ps| ps.name != "Default" && ps.name != "ASCII")
+                    .collect();
+                app.available_piece_styles.extend(custom_piece_styles);
+            }
+            Err(e) => {
+                eprintln!("Failed to load custom piece styles: {}", e);
+            }
+        }
+        // Sync loaded piece styles to the game UI so rendering can use them
+        app.game.ui.available_piece_styles = app.available_piece_styles.clone();
     }
 
     // Apply selected skin
@@ -442,6 +512,7 @@ mod tests {
             depth: 10,
             lichess_token: None,
             no_sound: false,
+            update_skins: false,
         };
 
         let config_dir = config_dir().unwrap();

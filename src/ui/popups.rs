@@ -346,45 +346,66 @@ pub fn render_promotion_popup(frame: &mut Frame, app: &mut App) {
     app.game.ui.width = inner_popup_layout_horizontal[0].width;
     app.game.ui.height = inner_popup_layout_horizontal[0].height;
 
-    let display_mode = &app.game.ui.display_mode;
+    let piece_style = &app.game.ui.skin.piece_style;
     let piece_size = PieceSize::from_dimensions(inner_popup_layout_horizontal[0].height);
     let piece_color = Some(app.game.logic.player_turn);
 
-    let queen_p = Paragraph::new(Queen::to_string(display_mode, piece_size, piece_color))
-        .block(Block::default())
-        .alignment(Alignment::Center)
-        .style(Style::default().bg(if app.game.ui.promotion_cursor == 0 {
-            Color::LightBlue
-        } else {
-            Color::Reset // Set to the default background color when the condition is false
-        }));
+    let piece_styles = &app.game.ui.available_piece_styles;
+    let queen_p = Paragraph::new(Queen::to_string(
+        piece_style.clone(),
+        piece_size,
+        piece_color,
+        piece_styles,
+    ))
+    .block(Block::default())
+    .alignment(Alignment::Center)
+    .style(Style::default().bg(if app.game.ui.promotion_cursor == 0 {
+        Color::LightBlue
+    } else {
+        Color::Reset // Set to the default background color when the condition is false
+    }));
     frame.render_widget(queen_p, inner_popup_layout_horizontal[0]);
-    let rook_p = Paragraph::new(Rook::to_string(display_mode, piece_size, piece_color))
-        .block(Block::default())
-        .alignment(Alignment::Center)
-        .style(Style::default().bg(if app.game.ui.promotion_cursor == 1 {
-            Color::LightBlue
-        } else {
-            Color::Reset // Set to the default background color when the condition is false
-        }));
+    let rook_p = Paragraph::new(Rook::to_string(
+        piece_style.clone(),
+        piece_size,
+        piece_color,
+        piece_styles,
+    ))
+    .block(Block::default())
+    .alignment(Alignment::Center)
+    .style(Style::default().bg(if app.game.ui.promotion_cursor == 1 {
+        Color::LightBlue
+    } else {
+        Color::Reset // Set to the default background color when the condition is false
+    }));
     frame.render_widget(rook_p, inner_popup_layout_horizontal[1]);
-    let bishop_p = Paragraph::new(Bishop::to_string(display_mode, piece_size, piece_color))
-        .block(Block::default())
-        .alignment(Alignment::Center)
-        .style(Style::default().bg(if app.game.ui.promotion_cursor == 2 {
-            Color::LightBlue
-        } else {
-            Color::Reset // Set to the default background color when the condition is false
-        }));
+    let bishop_p = Paragraph::new(Bishop::to_string(
+        piece_style.clone(),
+        piece_size,
+        piece_color,
+        piece_styles,
+    ))
+    .block(Block::default())
+    .alignment(Alignment::Center)
+    .style(Style::default().bg(if app.game.ui.promotion_cursor == 2 {
+        Color::LightBlue
+    } else {
+        Color::Reset // Set to the default background color when the condition is false
+    }));
     frame.render_widget(bishop_p, inner_popup_layout_horizontal[2]);
-    let knight_p = Paragraph::new(Knight::to_string(display_mode, piece_size, piece_color))
-        .block(Block::default())
-        .alignment(Alignment::Center)
-        .style(Style::default().bg(if app.game.ui.promotion_cursor == 3 {
-            Color::LightBlue
-        } else {
-            Color::Reset // Set to the default background color when the condition is false
-        }));
+    let knight_p = Paragraph::new(Knight::to_string(
+        piece_style.clone(),
+        piece_size,
+        piece_color,
+        piece_styles,
+    ))
+    .block(Block::default())
+    .alignment(Alignment::Center)
+    .style(Style::default().bg(if app.game.ui.promotion_cursor == 3 {
+        Color::LightBlue
+    } else {
+        Color::Reset // Set to the default background color when the condition is false
+    }));
     frame.render_widget(knight_p, inner_popup_layout_horizontal[3]);
 }
 
@@ -400,11 +421,12 @@ pub fn render_credit_popup(frame: &mut Frame) {
 
     let credits_text = vec![
         Line::from(""),
-        Line::from("Hi 👋, I'm Thomas, a 23 years old French computer science student."),
+        Line::from("Hi 👋, I'm Thomas, a 23 years old French computer engineer."),
         Line::from("Thank you for playing Chess-tui! This project started as a personal journey to improve my algorithmic skills and learn Rust."),
         Line::from(""),
         Line::from("The entire source code is available on GitHub at https://github.com/thomas-mauran/chess-tui"),
-        Line::from("Feel free to contribute by picking an issue or creating a new one."),
+        Line::from(""),
+        Line::from("Feel free to contribute by picking an issue or creating a new one and star the repo if you wanna support the project !"),
         Line::from(""),
         Line::from("Special thanks to my classmates for their support and inspiration!"),
         Line::from(""),
