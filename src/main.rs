@@ -307,6 +307,12 @@ fn main() -> AppResult<()> {
         }
     }
 
+    // Force clear the screen before quitting so we leave a clean terminal.
+    ratatui::crossterm::execute!(
+        std::io::stdout(),
+        ratatui::crossterm::terminal::Clear(ratatui::crossterm::terminal::ClearType::All)
+    )?;
+
     // Exit the user interface.
     ratatui::try_restore()?;
     // Free up the mouse, otherwise it will remain linked to the terminal
