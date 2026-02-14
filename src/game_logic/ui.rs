@@ -845,7 +845,8 @@ impl UI {
             let piece_color = logic.game_board.get_piece_color_at_square(&square_index);
             let piece_type = logic.game_board.get_role_at_square(&square_index);
 
-            let (paragraph, line_count) = self.render_piece_paragraph(piece_type, piece_color, square);
+            let (paragraph, line_count) =
+                self.render_piece_paragraph(piece_type, piece_color, square);
             let piece_area = Self::piece_centered_rect(square, line_count);
             frame.render_widget(paragraph, piece_area);
         }

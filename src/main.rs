@@ -30,7 +30,10 @@ fn run_update_skins() -> AppResult<()> {
     if !skins_path.exists() {
         let mut file = File::create(&skins_path)?;
         file.write_all(DEFAULT_SKINS.as_bytes())?;
-        println!("Created skins.json with default content at {}", skins_path.display());
+        println!(
+            "Created skins.json with default content at {}",
+            skins_path.display()
+        );
         return Ok(());
     }
 
