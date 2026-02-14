@@ -16,7 +16,7 @@ this directory for more details.
 ## Pull Requests
 
 To make changes to Chess-tui, please send in pull requests on GitHub to the `main`
-branch. We'll review them and either merge or request changes. Travis CI tests
+branch. We'll review them and either merge or request changes. Check the CI tests
 everything as well, so you may get feedback from it too.
 
 If you make additions or other changes to a pull request, feel free to either amend
