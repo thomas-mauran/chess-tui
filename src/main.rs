@@ -291,6 +291,12 @@ fn main() -> AppResult<()> {
     let events = EventHandler::new(250);
     let mut tui = Tui::new(terminal, events);
 
+    // Clear the screen to avoid drawing the TUI on top of existing console output.
+    ratatui::crossterm::execute!(
+        std::io::stdout(),
+        ratatui::crossterm::terminal::Clear(ratatui::crossterm::terminal::ClearType::All)
+    )?;
+
     let default_panic = std::panic::take_hook();
     panic::set_hook(Box::new(move |info| {
         ratatui::restore();
@@ -394,6 +400,12 @@ fn main() -> AppResult<()> {
             }
         }
     }
+
+    // Force clear the screen before quitting so we leave a clean terminal.
+    ratatui::crossterm::execute!(
+        std::io::stdout(),
+        ratatui::crossterm::terminal::Clear(ratatui::crossterm::terminal::ClearType::All)
+    )?;
 
     // Exit the user interface.
     ratatui::try_restore()?;
