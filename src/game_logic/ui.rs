@@ -7,7 +7,7 @@ use super::{
 use crate::{
     constants::{DisplayMode, BLACK, WHITE},
     pieces::{role_to_utf_enum, PieceSize},
-    skin::Skin,
+    skin::{PieceStyle, Skin},
     ui::{main_ui::render_cell, prompt::Prompt},
     utils::{flip_square_if_needed, get_coord_from_square, get_square_from_coord},
 };
@@ -67,6 +67,8 @@ pub struct UI {
     pub cursor_blink_visible: bool,
     /// Counter to control how often the cursor blink toggles (in ticks)
     pub cursor_blink_counter: u8,
+    /// The piece styles of the game
+    pub available_piece_styles: Vec<PieceStyle>,
 }
 
 impl Default for UI {
@@ -87,6 +89,7 @@ impl Default for UI {
             skin: Skin::default(),
             cursor_blink_visible: true,
             cursor_blink_counter: 0,
+            available_piece_styles: Vec::new(),
         }
     }
 }
@@ -225,121 +228,104 @@ impl UI {
         }
     }
 
-    /// Helper method to render a piece paragraph
+    /// Returns a rect vertically (and horizontally) centered inside `cell` for content with
+    /// `content_lines` lines, so the piece is centered in the cell.
+    fn piece_centered_rect(cell: Rect, content_lines: u16) -> Rect {
+        let content_height = content_lines.min(cell.height);
+        let top_offset = cell.height.saturating_sub(content_height) / 2;
+        Rect {
+            x: cell.x,
+            y: cell.y + top_offset,
+            width: cell.width,
+            height: content_height,
+        }
+    }
+
+    /// Helper method to render a piece paragraph. Returns the paragraph and its line count
+    /// so the caller can render it in a vertically centered rect.
     fn render_piece_paragraph(
         &self,
         piece_type: Option<Role>,
         piece_color: Option<shakmaty::Color>,
         square: Rect,
-    ) -> Paragraph<'static> {
-        use crate::{
-            pieces::{
-                bishop::Bishop, king::King, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook,
-            },
-            utils::color_to_ratatui_enum,
+    ) -> (Paragraph<'static>, u16) {
+        use crate::pieces::{
+            bishop::Bishop, king::King, knight::Knight, pawn::Pawn, queen::Queen, rook::Rook,
         };
 
         // Determine piece size based on available cell dimensions
         let piece_size = PieceSize::from_dimensions(square.height);
 
-        match self.display_mode {
-            DisplayMode::DEFAULT => {
-                let color_enum = color_to_ratatui_enum(piece_color);
+        let piece_styles = &self.available_piece_styles;
+        let piece_str = match piece_type {
+            Some(Role::King) => King::to_string(
+                self.skin.piece_style.clone(),
+                piece_size,
+                piece_color,
+                piece_styles,
+            ),
+            Some(Role::Queen) => Queen::to_string(
+                self.skin.piece_style.clone(),
+                piece_size,
+                piece_color,
+                piece_styles,
+            ),
+            Some(Role::Rook) => Rook::to_string(
+                self.skin.piece_style.clone(),
+                piece_size,
+                piece_color,
+                piece_styles,
+            ),
+            Some(Role::Bishop) => Bishop::to_string(
+                self.skin.piece_style.clone(),
+                piece_size,
+                piece_color,
+                piece_styles,
+            ),
+            Some(Role::Knight) => Knight::to_string(
+                self.skin.piece_style.clone(),
+                piece_size,
+                piece_color,
+                piece_styles,
+            ),
+            Some(Role::Pawn) => Pawn::to_string(
+                self.skin.piece_style.clone(),
+                piece_size,
+                piece_color,
+                piece_styles,
+            ),
+            None => " ".to_string(),
+        };
 
-                let piece_str = match piece_type {
-                    Some(Role::King) => {
-                        King::to_string(&self.display_mode, piece_size, piece_color)
-                    }
-                    Some(Role::Queen) => {
-                        Queen::to_string(&self.display_mode, piece_size, piece_color)
-                    }
-                    Some(Role::Rook) => {
-                        Rook::to_string(&self.display_mode, piece_size, piece_color)
-                    }
-                    Some(Role::Bishop) => {
-                        Bishop::to_string(&self.display_mode, piece_size, piece_color)
-                    }
-                    Some(Role::Knight) => {
-                        Knight::to_string(&self.display_mode, piece_size, piece_color)
-                    }
-                    Some(Role::Pawn) => {
-                        Pawn::to_string(&self.display_mode, piece_size, piece_color)
-                    }
-                    None => " ".to_string(),
-                };
+        let line_count = piece_str.lines().count().max(1) as u16;
 
+        // TODO FOR ASCII if piece_style == ascii force that
+        let color_enum = match piece_color {
+            Some(shakmaty::Color::White) => self.skin.piece_white_color,
+            Some(shakmaty::Color::Black) => self.skin.piece_black_color,
+            None => Color::Red,
+        };
+
+        if self.skin.piece_style.eq_ignore_ascii_case("ASCII") {
+            let piece_str = match piece_color {
+                Some(shakmaty::Color::Black) => piece_str.to_lowercase(),
+                Some(shakmaty::Color::White) => piece_str.to_uppercase(),
+                None => piece_str,
+            };
+
+            return (
                 Paragraph::new(piece_str)
-                    .fg(color_enum)
-                    .alignment(Alignment::Center)
-            }
-            DisplayMode::CUSTOM => {
-                let color_enum = match piece_color {
-                    Some(shakmaty::Color::White) => self.skin.piece_white_color,
-                    Some(shakmaty::Color::Black) => self.skin.piece_black_color,
-                    None => Color::Red,
-                };
-
-                let piece_str = match piece_type {
-                    Some(Role::King) => {
-                        King::to_string(&self.display_mode, piece_size, piece_color)
-                    }
-                    Some(Role::Queen) => {
-                        Queen::to_string(&self.display_mode, piece_size, piece_color)
-                    }
-                    Some(Role::Rook) => {
-                        Rook::to_string(&self.display_mode, piece_size, piece_color)
-                    }
-                    Some(Role::Bishop) => {
-                        Bishop::to_string(&self.display_mode, piece_size, piece_color)
-                    }
-                    Some(Role::Knight) => {
-                        Knight::to_string(&self.display_mode, piece_size, piece_color)
-                    }
-                    Some(Role::Pawn) => {
-                        Pawn::to_string(&self.display_mode, piece_size, piece_color)
-                    }
-                    None => " ".to_string(),
-                };
-
-                Paragraph::new(piece_str)
-                    .fg(color_enum)
-                    .alignment(Alignment::Center)
-            }
-            DisplayMode::ASCII => {
-                let piece_str = match piece_type {
-                    Some(Role::King) => {
-                        King::to_string(&self.display_mode, piece_size, piece_color)
-                    }
-                    Some(Role::Queen) => {
-                        Queen::to_string(&self.display_mode, piece_size, piece_color)
-                    }
-                    Some(Role::Rook) => {
-                        Rook::to_string(&self.display_mode, piece_size, piece_color)
-                    }
-                    Some(Role::Bishop) => {
-                        Bishop::to_string(&self.display_mode, piece_size, piece_color)
-                    }
-                    Some(Role::Knight) => {
-                        Knight::to_string(&self.display_mode, piece_size, piece_color)
-                    }
-                    Some(Role::Pawn) => {
-                        Pawn::to_string(&self.display_mode, piece_size, piece_color)
-                    }
-                    None => " ".to_string(),
-                };
-
-                let final_piece_str = match piece_color {
-                    Some(shakmaty::Color::Black) => piece_str.to_lowercase(),
-                    Some(shakmaty::Color::White) => piece_str.to_uppercase(),
-                    None => piece_str,
-                };
-
-                // Use bright yellow for ASCII pieces to ensure visibility on both black and white squares
-                Paragraph::new(final_piece_str)
-                    .fg(Color::Yellow)
-                    .alignment(Alignment::Center)
-            }
+                    .fg(Color::Magenta)
+                    .alignment(Alignment::Center),
+                line_count,
+            );
         }
+        (
+            Paragraph::new(piece_str)
+                .fg(color_enum)
+                .alignment(Alignment::Center),
+            line_count,
+        )
     }
 
     /// Method to render the right panel history
@@ -859,8 +845,10 @@ impl UI {
             let piece_color = logic.game_board.get_piece_color_at_square(&square_index);
             let piece_type = logic.game_board.get_role_at_square(&square_index);
 
-            let paragraph = self.render_piece_paragraph(piece_type, piece_color, square);
-            frame.render_widget(paragraph, square);
+            let (paragraph, line_count) =
+                self.render_piece_paragraph(piece_type, piece_color, square);
+            let piece_area = Self::piece_centered_rect(square, line_count);
+            frame.render_widget(paragraph, piece_area);
         }
     }
 

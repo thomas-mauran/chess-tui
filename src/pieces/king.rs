@@ -1,14 +1,18 @@
-use crate::constants::DisplayMode;
-use crate::pieces::PieceSize;
+use crate::{pieces::PieceSize, skin::PieceStyle};
 use shakmaty::Color;
 
 pub struct King;
 
 impl King {
     #[must_use]
-    pub fn to_string(display_mode: &DisplayMode, size: PieceSize, color: Option<Color>) -> String {
-        match display_mode {
-            DisplayMode::DEFAULT | DisplayMode::CUSTOM => match size {
+    pub fn to_string(
+        piece_style: String,
+        size: PieceSize,
+        color: Option<Color>,
+        piece_styles: &[PieceStyle],
+    ) -> String {
+        match piece_style.as_str() {
+            "DEFAULT" => match size {
                 PieceSize::Small => {
                     // Use standard Unicode chess symbols for 1x1
                     match color {
@@ -37,7 +41,20 @@ impl King {
                     .to_string()
                 }
             },
-            DisplayMode::ASCII => "K".to_string(),
+            "ASCII" => "K".to_string(),
+            _ => piece_styles
+                .iter()
+                .find(|ps| ps.name.eq_ignore_ascii_case(&piece_style))
+                .map(|ps| {
+                    let block = match size {
+                        PieceSize::Small => &ps.small,
+                        PieceSize::Compact => &ps.compact,
+                        PieceSize::Extended => &ps.extended,
+                        PieceSize::Large => &ps.large,
+                    };
+                    block.king.clone()
+                })
+                .unwrap_or_else(|| format!("({}) piece style not found", piece_style)),
         }
     }
 }
