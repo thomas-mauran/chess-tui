@@ -299,7 +299,6 @@ impl UI {
 
         let line_count = piece_str.lines().count().max(1) as u16;
 
-        // TODO FOR ASCII if piece_style == ascii force that
         let color_enum = match piece_color {
             Some(shakmaty::Color::White) => self.skin.piece_white_color,
             Some(shakmaty::Color::Black) => self.skin.piece_black_color,
