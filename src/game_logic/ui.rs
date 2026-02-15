@@ -417,7 +417,14 @@ impl UI {
         // Determine alignment: center for all modes
         let alignment = Alignment::Center;
 
-        let history_paragraph = Paragraph::new(lines).alignment(alignment);
+        // Auto-scroll so the latest moves are visible when content exceeds the area height
+        let line_count = lines.len() as u16;
+        let visible_height = inner_area.height;
+        let vertical_offset = line_count.saturating_sub(visible_height);
+
+        let history_paragraph = Paragraph::new(lines)
+            .alignment(alignment)
+            .scroll((vertical_offset, 0));
 
         frame.render_widget(history_block.clone(), right_panel_layout[0]);
         frame.render_widget(history_paragraph, inner_area);
