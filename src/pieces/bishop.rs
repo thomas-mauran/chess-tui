@@ -19,14 +19,14 @@ impl Bishop {
                     Some(Color::Black) => "♝".to_string(),
                     None => " ".to_string(),
                 },
-                PieceSize::Compact => "\n █x█\n ███".to_string(),
-                PieceSize::Extended => " \n █x█\n ███\n ▗███▖".to_string(),
+                PieceSize::Compact => " ▆▖▆ \n ▐▙▌ \n ▀▀▀ ".to_string(),
+                PieceSize::Extended => " ▄▁▗ \n ██▟ \n ▟█▙ \n▝▀▀▀▘".to_string(),
                 PieceSize::Large => "\
-    \n\
-       ⭘\n\
-      █x█\n\
-      ███\n\
-    ▗█████▖\n\
+    ▗▅  ▖\n\
+    ██▍ █\n\
+    ███▍█\n\
+    ▝███▘\n\
+    ▀▀▀▀▀\n\
     "
                 .to_string(),
             },
