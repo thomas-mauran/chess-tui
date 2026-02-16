@@ -19,16 +19,15 @@ impl Knight {
                     Some(Color::Black) => "♞".to_string(),
                     None => " ".to_string(),
                 },
-                PieceSize::Compact => "\n▞█▙\n ██".to_string(),
-                PieceSize::Extended => " \n ▞█▙\n▞███\n ▗███▖".to_string(),
-                PieceSize::Large => "\
-    \n\
-    ▟▛██▙\n\
-   ▟█████\n\
-   ▀▀▟██▌\n\
-    ▟████\n\
-    "
-                .to_string(),
+                PieceSize::Compact => " ▄▟▟▖\n ▂█▛▘\n▝▀▀▀▘".to_string(),
+                PieceSize::Extended => "  ▖▗ \n▗▇▟█▌\n ▟█▛ \n▝▀▀▀▘".to_string(),
+                PieceSize::Large =>
+r#"  ▅ ▅
+ ▟▛███▖
+▝▀▜███▊
+ ▗███▛ 
+ ▀▀▀▀▀ 
+"#.to_string(),
             },
             "ASCII" => "N".to_string(),
             _ => piece_styles
