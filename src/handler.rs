@@ -187,7 +187,7 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
                 app.error_message = None;
                 // Navigate back to an appropriate page based on current context
                 match app.current_page {
-                    Pages::Lichess | Pages::OngoingGames => {
+                    Pages::Lichess => {
                         // If we're on Lichess-related pages, go back to Lichess menu
                         app.current_page = Pages::LichessMenu;
                     }
