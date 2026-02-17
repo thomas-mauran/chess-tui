@@ -1,6 +1,41 @@
 {
   "piece_styles": [
     {
+      "name": "CLASSIC",
+      "small": {
+        "bishop": "♝",
+        "king": "♚",
+        "knight": "♞",
+        "pawn": "♟",
+        "queen": "♛",
+        "rook": "♜"
+      },
+      "compact": {
+        "bishop": "\n █x█\n ███",
+        "king": "\n ▙✚▟\n ███",
+        "knight": "\n▞█▙\n ██",
+        "pawn": "\n ▟▙\n ██",
+        "queen": "▲▲▲\n █◈█\n ███",
+        "rook": "\n ▙█▟\n ███"
+      },
+      "extended": {
+        "bishop": " \n █x█\n ███\n ▗███▖",
+        "king": " \n▙█▟\n ▙✚▟\n ▗███▖",
+        "knight": " \n ▞█▙\n▞███\n ▗███▖",
+        "pawn": "   \n   \n ▟▙\n ██",
+        "queen": " ▲▲▲\n ◀█◈█▶\n ◥███◤\n ▗███▖",
+        "rook": " \n ▙█▟\n ███\n ▗███▖"
+      },
+      "large": {
+        "bishop": "\n   ⭘   \n  █x█  \n  ███  \n▗█████▖",
+        "king": "   ✚   \n ▞▀▄▀▚ \n ▙▄█▄▟ \n ▐███▌ \n▗█████▖",
+        "knight": "      \n ▟▛██▙\n▟█████\n▀▀▟██▌\n ▟████",
+        "pawn": "     \n     \n ▟█▙ \n ▜█▛ \n▟███▙",
+        "queen": "       \n◀█▟█▙█▶\n ◥█◈█◤ \n  ███  \n▗█████▖",
+        "rook": "       \n █▟█▙█ \n ▜███▛ \n ▐███▌ \n▗█████▖"
+      }
+    },
+    {
       "name": "SIMPLE",
       "small": {
         "bishop": "s",
@@ -140,7 +175,7 @@
     },
     {
       "name": "Classic",
-      "piece_style": "DEFAULT",
+      "piece_style": "CLASSIC",
       "board_white_color": { "Rgb": [240, 217, 181] },
       "board_black_color": { "Rgb": [181, 136, 99] },
       "piece_white_color": { "Rgb": [255, 255, 255] },
