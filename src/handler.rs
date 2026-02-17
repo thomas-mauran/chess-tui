@@ -192,7 +192,7 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
                         app.current_page = Pages::LichessMenu;
                     }
                     Pages::OngoingGames => {
-                        // If we're on Ongoing Games page, stay in Ongoing Games menu, 
+                        // If we're on Ongoing Games page, stay in Ongoing Games menu,
                         // and after resign success, refetch the list of ongoing games
                         app.fetch_ongoing_games();
                     }
