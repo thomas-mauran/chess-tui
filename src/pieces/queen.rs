@@ -19,15 +19,14 @@ impl Queen {
                     Some(Color::Black) => "♛".to_string(),
                     None => " ".to_string(),
                 },
-                PieceSize::Compact => "▲▲▲\n █◈█\n ███".to_string(),
-                PieceSize::Extended => " ▲▲▲\n ◀█◈█▶\n ◥███◤\n ▗███▖".to_string(),
-                PieceSize::Large => "\
-    \n\
-◀█▟█▙█▶\n\
-  ◥█◈█◤\n\
-  ███\n\
-▗█████▖\n\
-    "
+                PieceSize::Compact => " ▆▄▆ \n ▗█▖ \n ▀▀▀ ".to_string(),
+                PieceSize::Extended => "▂ ▄ ▂\n▜▙█▟▛\n ▜█▛ \n▝▀▀▀▘".to_string(),
+                PieceSize::Large => r#"▗  ▂  ▖
+▐▙▟█▙▟▌
+ ▜███▛ 
+ ▗███▖ 
+▝▀▀▀▀▀▘
+"#
                 .to_string(),
             },
             "ASCII" => "Q".to_string(),
