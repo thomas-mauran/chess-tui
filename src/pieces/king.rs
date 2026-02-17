@@ -31,12 +31,13 @@ impl King {
                 }
                 PieceSize::Large => {
                     // Current multi-line art
-r#"  ▂▃╋▃▂  
+                    r#"  ▂▃╋▃▂  
  ▐█████▋ 
   ▜███▛  
    ▟█▙   
   ▀▀▀▀▀  
-"#.to_string()
+"#
+                    .to_string()
                 }
             },
             "ASCII" => "K".to_string(),

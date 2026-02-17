@@ -21,13 +21,13 @@ impl Rook {
                 },
                 PieceSize::Compact => " ▅ ▅ \n ███ \n▝▀▀▀▘".to_string(),
                 PieceSize::Extended => "▄ ▄ ▄\n█████\n ███ \n▀▀▀▀▀".to_string(),
-                PieceSize::Large =>
-r#"▗▄ ▃ ▄▖
+                PieceSize::Large => r#"▗▄ ▃ ▄▖
 ▐█▄█▄█▌
 ▝▜███▛▘
  ▟███▙ 
 ▝▀▀▀▀▀▘
-"#.to_string(),
+"#
+                .to_string(),
             },
             "ASCII" => "R".to_string(),
             _ => piece_styles
