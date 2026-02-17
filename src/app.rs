@@ -693,9 +693,6 @@ impl App {
                 ));
                 self.current_popup = Some(Popups::Success);
 
-                // Immediately refetch ongoing games in the main thread
-                self.fetch_ongoing_games();
-
                 log::info!(
                     "Resignation request sent for game {} vs {}",
                     game_id,
