@@ -40,7 +40,8 @@ Space @0.5s
 Sleep 0.7s
 
 # Now on Bot Depth field (index 2), adjust depth
-Right @0.5s
+Left @0.5s
+Left @0.5s
 Space @0.5s
 Sleep 0.7s
 

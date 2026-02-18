@@ -4,11 +4,28 @@ import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
 import HomepageFeatures from '@site/src/components/HomepageFeatures';
 import Heading from '@theme/Heading';
+import { useRef, useEffect } from 'react';
 
 import styles from './index.module.css';
 
+const DEMO_GIF_SRC = require('@site/static/gif/demo.gif').default;
+
 function HomepageHeader() {
   const {siteConfig} = useDocusaurusContext();
+  const gifRef = useRef<HTMLImageElement>(null);
+
+  useEffect(() => {
+    const el = gifRef.current;
+    if (!el) return;
+    const durationMs = 12000;
+    const id = setInterval(() => {
+      if (el.src) {
+        el.src = el.src.split('?')[0] + '?t=' + Date.now();
+      }
+    }, durationMs);
+    return () => clearInterval(id);
+  }, []);
+
   return (
     <header className={clsx('hero hero--primary', styles.heroBanner)}>
       <div className="container">
@@ -16,8 +33,9 @@ function HomepageHeader() {
             {siteConfig.title}
           </Heading> */}
         <img
+          ref={gifRef}
           className={styles.featureGif}
-          src={require('@site/static/gif/play_against_white_bot.gif').default}
+          src={DEMO_GIF_SRC}
           alt="Demo"
           role="img"
         />

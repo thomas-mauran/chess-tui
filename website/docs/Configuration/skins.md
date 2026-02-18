@@ -6,6 +6,8 @@ sidebar_position: 5
 
 # Skins
 
+![Skins demo](../../static/gif/skins.gif)
+
 Chess-tui supports custom skins that let you change the look of the board and **custom piece styles** (the characters or art used for each piece). A skin combines a **piece style** with colors for the board, pieces, cursor, and highlights.
 
 ## Updating the skin config from the app default

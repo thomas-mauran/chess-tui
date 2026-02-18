@@ -58,7 +58,7 @@ dbg_macro = "warn"
 # Install with: cargo install cargo-deb
 # Build with: cargo deb
 maintainer = "Thomas Mauran <thomasmauran@yahoo.com>"
-copyright = "2023-2025, Thomas Mauran"
+copyright = "2023-2026, Thomas Mauran"
 license-file = ["LICENSE"]
 extended-description = """\
 Chess-tui is a simple chess game you can play from your terminal.

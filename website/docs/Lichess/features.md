@@ -1,6 +1,6 @@
 # Features
 
-![Lichess menu](../../static/gif/lichess-menu.gif)
+![Lichess menu](../../static/gif/lichess-chess-tui.gif)
 
 Once authenticated, you can access the Lichess menu from the main screen. Here are the available features:
 

@@ -11,7 +11,7 @@ const sidebars: SidebarsConfig = {
     {
       type: "category",
       label: "Configuration",
-      items: ["Configuration/configuration-intro", "Configuration/display", "Configuration/skins", "Configuration/logging", "Configuration/bot"],
+      items: ["Configuration/configuration-intro", "Configuration/skins", "Configuration/logging", "Configuration/bot"],
     },
     {
       type: "category",
