@@ -6,7 +6,8 @@ Play chess from your terminal 🦀
 
 <div>
 
-  ![Stars](https://img.shields.io/github/stars/thomas-mauran/chess-tui?logo=github) ![Downloads](https://img.shields.io/crates/d/chess-tui?logo=rust) ![GitHub CI](https://github.com/thomas-mauran/chess-tui/actions/workflows/flow_test_build_push.yml/badge.svg) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![GitHub release](https://img.shields.io/github/v/release/thomas-mauran/chess-tui?color=success)](https://github.com/thomas-mauran/chess-tui/releases/latest)
+![Stars](https://img.shields.io/github/stars/thomas-mauran/chess-tui?logo=github) ![Downloads](https://img.shields.io/crates/d/chess-tui?logo=rust) ![GitHub CI](https://github.com/thomas-mauran/chess-tui/actions/workflows/flow_test_build_push.yml/badge.svg) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![GitHub release](https://img.shields.io/github/v/release/thomas-mauran/chess-tui?color=success)](https://github.com/thomas-mauran/chess-tui/releases/latest)
+
   </div>
 </div>
 
@@ -17,18 +18,21 @@ Chess-tui is a simple chess game you can play from your terminal. It supports lo
 ### Quick Install
 
 **Homebrew:**
+
 ```bash
 brew install thomas-mauran/tap/chess-tui
 chess-tui
 ```
 
 **Debian/Ubuntu:**
+
 ```bash
 DEB_URL=$(curl -s "https://api.github.com/repos/thomas-mauran/chess-tui/releases/latest" | jq -r '.assets[] | select(.name | endswith(".deb")) | .browser_download_url') && curl -LO "$DEB_URL" && sudo dpkg -i "$(basename "$DEB_URL")" && sudo apt-get install -f
 chess-tui
 ```
 
 **Cargo:**
+
 ```bash
 cargo install chess-tui
 chess-tui
@@ -66,6 +70,7 @@ For installation via package managers or other methods, see the [Installation Gu
 ### Quick Start
 
 **Connect a chess engine:**
+
 ```bash
 # Simple engine path
 chess-tui -e /path/to/engine
@@ -76,12 +81,15 @@ chess-tui -e "/opt/homebrew/bin/gnuchess --uci"
 # Stockfish example
 chess-tui -e /opt/homebrew/bin/stockfish
 ```
+
 See [Bot Configuration](https://thomas-mauran.github.io/chess-tui/docs/Configuration/bot) for details.
 
 **Configure Lichess:**
+
 ```bash
 chess-tui -l YOUR_LICHESS_TOKEN_HERE
 ```
+
 See [Lichess Setup](https://thomas-mauran.github.io/chess-tui/docs/Lichess/setup) for details.
 
 ### Documentation

@@ -86,6 +86,9 @@ struct Args {
     /// Disable sound effects
     #[arg(long)]
     no_sound: bool,
+    /// Skin/theme name (e.g. Default, ASCII). Overrides config for reproducible demos.
+    #[arg(long)]
+    skin: Option<String>,
     /// Update skin config with built-in default (prompts for confirmation, archives current file)
     #[arg(long)]
     update_skins: bool,
@@ -279,6 +282,20 @@ fn main() -> AppResult<()> {
     if args.no_sound {
         app.sound_enabled = false;
         chess_tui::sound::set_sound_enabled(false);
+    }
+
+    // Command line skin takes precedence over configuration file (reproducible theme)
+    if let Some(ref skin_name) = args.skin {
+        app.selected_skin_name = skin_name.clone();
+        if let Some(skin) = Skin::get_skin_by_name(&app.available_skins, skin_name) {
+            app.loaded_skin = Some(skin.clone());
+            app.game.ui.skin = skin.clone();
+            match skin_name.as_str() {
+                "Default" => app.game.ui.display_mode = DisplayMode::DEFAULT,
+                "ASCII" => app.game.ui.display_mode = DisplayMode::ASCII,
+                _ => app.game.ui.display_mode = DisplayMode::CUSTOM,
+            }
+        }
     }
 
     // Setup logging
@@ -551,6 +568,7 @@ mod tests {
             difficulty: None,
             lichess_token: None,
             no_sound: false,
+            skin: None,
             update_skins: false,
         };
 

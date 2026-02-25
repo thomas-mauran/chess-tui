@@ -12,7 +12,7 @@ Set Height 1300
 Set WindowBar Colorful
 Set WindowBarSize 40
 
-Type "cargo run" Sleep 500ms  Enter
+Type "cargo run -- --no-sound --depth 10 --difficulty hard --skin Default" Sleep 300ms  Enter
 
 Sleep 2s
 
@@ -28,11 +28,13 @@ Sleep 0.7s
 Space @0.5s
 Sleep 1s
 
-# Make a move so we see the board clearly
+# 1. e4 (Italian Game opening)
 Down @0.5s
 Down @0.5s
 Space @0.5s
-Sleep 0.5s
+Sleep 0.7s
+Up @0.5s
+Up @0.5s
 Space @0.5s
 Sleep 1s
 
