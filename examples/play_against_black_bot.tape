@@ -71,56 +71,56 @@ Space @0.3s
 Right @0.3s
 Right @0.3s
 Space @0.3s
-Sleep 0.6s
+Sleep 0.8s
 
 
 Left @0.3s
 Space @0.3s
 Space @0.3s
-Sleep 0.6s
+Sleep 0.8s
 
 Up @0.3s
 Space @0.3s
 Space @0.3s
-Sleep 0.6s
+Sleep 0.8s
 
 Up @0.3s
 Left @0.3s
 Space @0.3s
 Space @0.3s
-Sleep 0.6s
+Sleep 0.8s
 
 Right @0.3s
 Space @0.3s
 Space @0.3s
-Sleep 0.6s
+Sleep 0.8s
 
 Left @0.3s
 Space @0.3s
 Space @0.3s
-Sleep 0.6s
+Sleep 0.8s
 
 Left @0.3s
 Space @0.3s
 Space @0.3s
-Sleep 0.6s
+Sleep 0.8s
 
 Left @0.3s
 Space @0.3s
 Space @0.3s
-Sleep 0.6s
+Sleep 0.8s
 
 Up @0.3
 Left @0.3s
 Space @0.3s
 Space @0.3s
-Sleep 0.6s
+Sleep 0.8s
 
 Up @0.3s
 Right @0.3s
 Space @0.3s
 Space @0.3s
-Sleep 0.6s
+Sleep 0.8s
 
 Sleep 0.8s
 Type "h"

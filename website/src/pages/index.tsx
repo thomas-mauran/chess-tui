@@ -8,7 +8,7 @@ import { useRef, useEffect } from 'react';
 
 import styles from './index.module.css';
 
-const DEMO_GIF_SRC = require('@site/static/gif/demo.gif').default;
+const DEMO_GIF_SRC = require('@site/static/gif/ratatui.gif').default;
 
 function HomepageHeader() {
   const {siteConfig} = useDocusaurusContext();
