@@ -12,73 +12,116 @@ Set Height 1300
 Set WindowBar Colorful
 Set WindowBarSize 40
 
-Type "cargo run" Sleep 500ms  Enter
+Type "cargo run -- --no-sound --depth 10 --difficulty hard --skin Default" Sleep 300ms  Enter
 
-Sleep 2s
+Sleep 3s
 # Navigate to "Play Game" (index 0) - already selected
-Space @0.5s
-Sleep 0.7s
+Space @0.3s
+Sleep 0.4s
 
 # Now in Game Mode Menu, navigate to "Play Bot" (index 2)
-Right @0.5s
-Right @0.5s
-Space @0.5s
-Sleep 0.7s
+Right @0.3s
+Right @0.3s
+Space @0.3s
+Sleep 0.4s
 
 # Form is now active, cursor is on Time Control field (index 0)
-# Default is Rapid (index 3), let's select Bullet (index 1) to show the feature
-Left @0.5s
-Left @0.5s
-Sleep 0.7s
+# Default is Rapid (index 3), let's select Blitz (index 2) to show the feature
+Left @0.3s
+Sleep 0.4s
 
 # Press Enter to move to Color field
-Space @0.5s
-Sleep 0.7s
+Space @0.3s
+Sleep 0.4s
 
-# Now on Color field (index 1), select Black (press Right to toggle to Black)
-Right @0.5s
-Space @0.5s
-Sleep 0.7s
-
-# Press Enter to move to Depth field
-Space @0.5s
-Sleep 0.7s
+# Now on Color field (index 1), White is default
+# Press Enter to confirm and move to Depth field
+Space @0.3s
+Sleep 0.4s
 
 # Now on Bot Depth field (index 2), adjust depth
-Right @0.5s
-Space @0.5s
-Sleep 0.7s
+Space @0.3s
+Sleep 0.2s
 
 # Start game
-Space @0.5s
-Sleep 0.7s
+Right @0.3s
+Right @0.3s
+Space @0.3s
+Sleep 0.4s
 
-# Now playing - make some moves
-Down @0.5s
-Down @0.5s
-Space @0.5s
-Sleep 0.7s
-Space @0.5s
+Down @0.3s
+Down @0.3s
+Space @0.3s
+Space @0.3s
+Sleep 0.8s
 
-Sleep 0.7s
-Right @0.5s
-Space @0.5s
-Sleep 0.7s
-Space @0.5s
+# Bot plays 1...e5
+# 2. Nf3 (g1->f3)
+Right @0.3s
+Right @0.3s
+Down @0.3s
+Space @0.3s
+Space @0.3s
 
-Sleep 0.7s
-Right @0.5s
-Space @0.5s
-Sleep 0.7s
-Space @0.5s
+# Bot plays 2...Nc6
+# 3. Bc4 (f1->c4)
 
-Sleep 0.7s
-Left @0.5s
-Left @0.5s
-Left @0.5s
-Left @0.5s
-Left @0.5s
-Space @0.5s
-Sleep 0.7s
-Space @0.5s
-Sleep 0.7s
+Left @0.3s
+Space @0.3s
+Right @0.3s
+Right @0.3s
+Space @0.3s
+Sleep 0.8s
+
+
+Left @0.3s
+Space @0.3s
+Space @0.3s
+Sleep 0.8s
+
+Up @0.3s
+Space @0.3s
+Space @0.3s
+Sleep 0.8s
+
+Up @0.3s
+Left @0.3s
+Space @0.3s
+Space @0.3s
+Sleep 0.8s
+
+Right @0.3s
+Space @0.3s
+Space @0.3s
+Sleep 0.8s
+
+Left @0.3s
+Space @0.3s
+Space @0.3s
+Sleep 0.8s
+
+Left @0.3s
+Space @0.3s
+Space @0.3s
+Sleep 0.8s
+
+Left @0.3s
+Space @0.3s
+Space @0.3s
+Sleep 0.8s
+
+Up @0.3
+Left @0.3s
+Space @0.3s
+Space @0.3s
+Sleep 0.8s
+
+Up @0.3s
+Right @0.3s
+Space @0.3s
+Space @0.3s
+Sleep 0.8s
+
+Sleep 0.8s
+Type "h"
+Sleep 3s
