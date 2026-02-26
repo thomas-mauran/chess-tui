@@ -8,6 +8,15 @@ description = "Play chess from your terminal 🦀"
 keywords = ["chess", "tui", "graphics", "game", "board"]
 homepage = "https://github.com/thomas-mauran/chess-tui"
 repository = "https://github.com/thomas-mauran/chess-tui"
+exclude = [
+  "examples/demo-two-player.gif",
+  "examples/helper.gif",
+  "examples/lichess-menu.gif",
+  "examples/play_against_black_bot.gif",
+  "examples/play_against_white_bot.gif",
+  "examples/skins.gif",
+  "website/",
+]
 
 [dependencies]
 clap = { version = "4.4.11", features = ["derive"] }
