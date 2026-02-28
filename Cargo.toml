@@ -4,10 +4,12 @@ version = "2.5.1"
 authors = ["Thomas Mauran"]
 license = "MIT"
 edition = "2021"
-description = "Play chess from your terminal 🦀"
-keywords = ["chess", "tui", "graphics", "game", "board"]
-homepage = "https://github.com/thomas-mauran/chess-tui"
+description = "Play chess in the terminal. Rust TUI, Stockfish, Lichess."
+keywords = ["chess", "tui", "terminal", "lichess", "uci"]
+readme = "README.md"
+homepage = "https://thomas-mauran.github.io/chess-tui/"
 repository = "https://github.com/thomas-mauran/chess-tui"
+documentation = "https://thomas-mauran.github.io/chess-tui/docs/intro"
 exclude = [
   "examples/demo-two-player.gif",
   "examples/helper.gif",
@@ -70,14 +72,17 @@ maintainer = "Thomas Mauran <thomasmauran@yahoo.com>"
 copyright = "2023-2026, Thomas Mauran"
 license-file = ["LICENSE"]
 extended-description = """\
-Chess-tui is a simple chess game you can play from your terminal.
-It supports:
-- Local 2 players mode
+chess-tui is a free, open-source terminal chess game written in Rust. Play chess from your terminal (CLI) with:
+
+- Local 2-player mode
+- Any UCI chess engine (e.g. Stockfish, GNU Chess)
+- Online play via Lichess integration
 - Online multiplayer
-- Playing against any UCI compatible chess engine
-- Lichess integration
-- Custom skins
-- And more!
+- Custom skins and piece styles
+- macOS, Linux, and Windows
+
+Install: cargo install chess-tui or brew install thomas-mauran/tap/chess-tui
+Docs: https://thomas-mauran.github.io/chess-tui/
 """
 section = "games"
 priority = "optional"
