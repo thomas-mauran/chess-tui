@@ -245,10 +245,7 @@ impl Game {
         };
 
         // We already selected a piece so we apply the move
-        let cursor_square = match self.ui.cursor_coordinates.to_square() {
-            Some(sq) => sq,
-            None => return,
-        };
+        let cursor_square = self.ui.cursor_coordinates.into();
 
         let selected_coords_usize =
             &flip_square_if_needed(selected_square, self.logic.game_board.is_flipped);
@@ -285,13 +282,10 @@ impl Game {
     }
 
     pub fn select_cell(&mut self) {
-        let square = match self.ui.cursor_coordinates.to_square() {
-            Some(s) => match Coord::from_square(s).to_square() {
-                Some(sq) => sq,
-                None => return,
-            },
-            None => return,
-        };
+        // Is really needed?
+        let square: Square = self.ui.cursor_coordinates.into();
+        let square: Square = Coord::from(square).into();
+
         let actual_square = flip_square_if_needed(square, self.logic.game_board.is_flipped);
 
         // Check if there is a piece on the cell and if it's the right color
@@ -322,7 +316,7 @@ impl Game {
 
         // We already verified the piece color matches player_turn above, so we can proceed
         self.ui.selected_square = Some(square);
-        self.ui.old_cursor_position = self.ui.cursor_coordinates;
+        self.ui.old_cursor_position = Some(self.ui.cursor_coordinates);
 
         let authorized_positions_flipped: Vec<Square> = authorized_positions
             .iter()
@@ -334,7 +328,7 @@ impl Game {
             1,
             authorized_positions_flipped
                 .iter()
-                .map(|s| Coord::from_square(*s))
+                .map(|s| Coord::from(*s))
                 .collect(),
         );
     }

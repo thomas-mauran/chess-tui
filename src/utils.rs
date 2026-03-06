@@ -14,34 +14,27 @@ pub fn color_to_ratatui_enum(piece_color: Option<shakmaty::Color>) -> Color {
 #[must_use]
 pub fn flip_square_if_needed(square: Square, is_flipped: bool) -> Square {
     if is_flipped {
-        Coord::from_square(square)
-            .reverse()
-            .to_square()
-            .unwrap_or(square)
+        Coord::from(square).reverse().into()
     } else {
         square
     }
 }
 
 #[must_use]
-pub fn get_square_from_coord(coord: Coord, is_flipped: bool) -> Option<Square> {
+pub fn get_square_from_coord(coord: Coord, is_flipped: bool) -> Square {
     if is_flipped {
-        coord.reverse().to_square()
+        coord.reverse().into()
     } else {
-        coord.to_square()
+        coord.into()
     }
 }
 
 #[must_use]
-pub fn get_coord_from_square(square: Option<Square>, is_flipped: bool) -> Coord {
-    if let Some(s) = square {
-        if is_flipped {
-            Coord::from_square(s).reverse()
-        } else {
-            Coord::from_square(s)
-        }
+pub fn get_coord_from_square(square: Square, is_flipped: bool) -> Coord {
+    if is_flipped {
+        Coord::from(square).reverse()
     } else {
-        Coord::undefined()
+        Coord::from(square)
     }
 }
 
@@ -62,7 +55,7 @@ pub fn get_int_from_char(c: Option<char>) -> u8 {
 
 #[must_use]
 pub fn get_opposite_square(square: Option<Square>) -> Option<Square> {
-    square.and_then(|s| Coord::from_square(s).reverse().to_square())
+    square.map(|s| Coord::from(s).reverse().into())
 }
 
 /// Convert position format ("4644") to UCI notation (e.g., "e4e4")

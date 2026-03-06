@@ -968,7 +968,7 @@ impl App {
                 // Convert the square to a coord, accounting for board flip
                 use crate::utils::get_coord_from_square;
                 let coord =
-                    get_coord_from_square(Some(from_square), self.game.logic.game_board.is_flipped);
+                    get_coord_from_square(from_square, self.game.logic.game_board.is_flipped);
 
                 // Set cursor to that position
                 self.game.ui.cursor_coordinates = coord;
@@ -1561,7 +1561,7 @@ impl App {
         authorized_positions
             .iter()
             .map(|s| flip_square_if_needed(*s, self.game.logic.game_board.is_flipped))
-            .map(Coord::from_square)
+            .map(Coord::from)
             .collect()
     }
 
@@ -1676,19 +1676,14 @@ impl App {
             let puzzle_move_info = if self.puzzle_game.is_some() && self.game.ui.is_cell_selected()
             {
                 if let Some(selected_square) = self.game.ui.selected_square {
-                    if let Some(cursor_square) = self.game.ui.cursor_coordinates.to_square() {
-                        let from = flip_square_if_needed(
-                            selected_square,
-                            self.game.logic.game_board.is_flipped,
-                        );
-                        let to = flip_square_if_needed(
-                            cursor_square,
-                            self.game.logic.game_board.is_flipped,
-                        );
-                        Some((from, to))
-                    } else {
-                        None
-                    }
+                    let cursor_square = self.game.ui.cursor_coordinates.into();
+                    let from = flip_square_if_needed(
+                        selected_square,
+                        self.game.logic.game_board.is_flipped,
+                    );
+                    let to =
+                        flip_square_if_needed(cursor_square, self.game.logic.game_board.is_flipped);
+                    Some((from, to))
                 } else {
                     None
                 }
