@@ -1566,23 +1566,19 @@ impl App {
     }
 
     pub fn go_left_in_game(&mut self) {
-        let authorized_positions = self.get_authorized_positions_flipped();
-        self.game.ui.cursor_left(authorized_positions);
+        self.game.ui.cursor_left();
     }
 
     pub fn go_right_in_game(&mut self) {
-        let authorized_positions = self.get_authorized_positions_flipped();
-        self.game.ui.cursor_right(authorized_positions);
+        self.game.ui.cursor_right();
     }
 
     pub fn go_up_in_game(&mut self) {
-        let authorized_positions = self.get_authorized_positions_flipped();
-        self.game.ui.cursor_up(authorized_positions);
+        self.game.ui.cursor_up();
     }
 
     pub fn go_down_in_game(&mut self) {
-        let authorized_positions = self.get_authorized_positions_flipped();
-        self.game.ui.cursor_down(authorized_positions);
+        self.game.ui.cursor_down();
     }
 
     pub fn process_cell_click(&mut self) {

@@ -171,30 +171,18 @@ impl UI {
 
     // CURSOR MOVEMENT
     /// Move the cursor up
-    pub fn cursor_up(&mut self, authorized_positions: Vec<Coord>) {
-        if self.is_cell_selected() {
-            self.move_selected_piece_cursor(false, -1, authorized_positions);
-        } else if self.cursor_coordinates.row() > 0 {
-            self.cursor_coordinates.move_to(MoveDirection::Up);
-        }
+    pub fn cursor_up(&mut self) {
+        self.cursor_coordinates.move_to(MoveDirection::Up);
     }
 
     /// Move the cursor down
-    pub fn cursor_down(&mut self, authorized_positions: Vec<Coord>) {
-        if self.is_cell_selected() {
-            self.move_selected_piece_cursor(false, 1, authorized_positions);
-        } else if self.cursor_coordinates.row() < 7 {
-            self.cursor_coordinates.move_to(MoveDirection::Down);
-        }
+    pub fn cursor_down(&mut self) {
+        self.cursor_coordinates.move_to(MoveDirection::Down);
     }
 
     /// Move the cursor to the left
-    pub fn cursor_left(&mut self, authorized_positions: Vec<Coord>) {
-        if self.is_cell_selected() {
-            self.move_selected_piece_cursor(false, -1, authorized_positions);
-        } else if self.cursor_coordinates.col() > 0 {
-            self.cursor_coordinates.move_to(MoveDirection::Left);
-        }
+    pub fn cursor_left(&mut self) {
+        self.cursor_coordinates.move_to(MoveDirection::Left);
     }
 
     /// Move the cursor to the left when we are showing the promotion popup
@@ -207,12 +195,8 @@ impl UI {
     }
 
     /// Move the cursor to the right
-    pub fn cursor_right(&mut self, authorized_positions: Vec<Coord>) {
-        if self.is_cell_selected() {
-            self.move_selected_piece_cursor(false, 1, authorized_positions);
-        } else if self.cursor_coordinates.col() < 7 {
-            self.cursor_coordinates.move_to(MoveDirection::Right);
-        }
+    pub fn cursor_right(&mut self) {
+        self.cursor_coordinates.move_to(MoveDirection::Right);
     }
 
     /// Move the cursor to the right when we are doing a promotion
