@@ -3,7 +3,7 @@ use ratatui::{
     prelude::{Alignment, Rect},
     style::{Color, Modifier, Style, Stylize},
     text::{Line, Span},
-    widgets::{Block, Borders, Paragraph},
+    widgets::{Block, BorderType, Borders, Paragraph},
     Frame,
 };
 
@@ -269,6 +269,33 @@ pub fn render_cell(frame: &mut Frame, square: Rect, color: Color, modifier: Opti
         cell = cell.add_modifier(modifier);
     }
     frame.render_widget(cell, square);
+}
+
+pub fn render_circle_node(frame: &mut Frame, area: Rect, color: Color) {
+    // We use the Unicode character '●' (U+25CF) for a solid circle.
+    // Alignment::Center handles the horizontal centering.
+    let circle = Paragraph::new("●")
+        .style(Style::default().fg(color))
+        .alignment(Alignment::Center);
+
+    // If the area height is greater than 1, we manually calculate
+    // the vertical center to ensure it's not just at the top.
+    let mut render_area = area;
+    if area.height > 1 {
+        render_area.y += area.height / 2;
+        render_area.height = 1;
+    }
+
+    frame.render_widget(circle, render_area);
+}
+
+pub fn render_cell_outline(frame: &mut Frame, area: Rect, color: Color) {
+    let outline = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::QuadrantInside)
+        .border_style(Style::default().fg(color));
+
+    frame.render_widget(outline, area);
 }
 
 // Method to render the home menu and the options

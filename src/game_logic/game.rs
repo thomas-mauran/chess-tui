@@ -118,20 +118,60 @@ impl Game {
             self.logic.game_board.truncate_history_at(history_index);
         }
 
-        // If we are doing a promotion the cursor is used for the popup
-        if self.logic.game_state == GameState::Promotion {
-            // Default to flipping in solo mode (no bot, no opponent)
-            let should_flip = self.logic.opponent.is_none() && self.logic.bot.is_none();
-            self.handle_promotion(should_flip);
-        } else if !(self.logic.game_state == GameState::Checkmate)
-            && !(self.logic.game_state == GameState::Draw)
-        {
-            if self.ui.is_cell_selected() {
-                self.already_selected_cell_action();
-            } else {
-                self.select_cell()
+        match self.logic.game_state {
+            GameState::Promotion => {
+                // Default to flipping in solo mode (no bot, no opponent)
+                let should_flip = self.logic.opponent.is_none() && self.logic.bot.is_none();
+                self.handle_promotion(should_flip);
             }
-        }
+            GameState::Playing => {
+                if self.ui.is_cell_selected() {
+                    // Try to execute the move
+                    self.already_selected_cell_action();
+                } else {
+                    // Selection Guard: Check if we SHOULD even call select_cell()
+                    let square: shakmaty::Square = self.ui.cursor_coordinates.into();
+                    let actual_square =
+                        flip_square_if_needed(square, self.logic.game_board.is_flipped);
+
+                    let piece_color = self
+                        .logic
+                        .game_board
+                        .get_piece_color_at_square(&actual_square);
+
+                    // Do nothing if clicking an empty square or the opponent's piece
+                    if piece_color != Some(self.logic.player_turn) {
+                        return;
+                    }
+
+                    // Optional: Check if the piece even has legal moves before selecting
+                    let authorized_positions = self
+                        .logic
+                        .game_board
+                        .get_authorized_positions(self.logic.player_turn, &actual_square);
+
+                    if !authorized_positions.is_empty() {
+                        self.select_cell();
+                    }
+                }
+            }
+            _ => {}
+        };
+
+        // // If we are doing a promotion the cursor is used for the popup
+        // if self.logic.game_state == GameState::Promotion {
+        //     // Default to flipping in solo mode (no bot, no opponent)
+        //     let should_flip = self.logic.opponent.is_none() && self.logic.bot.is_none();
+        //     self.handle_promotion(should_flip);
+        // } else if !(self.logic.game_state == GameState::Checkmate)
+        //     && !(self.logic.game_state == GameState::Draw)
+        // {
+        //     if self.ui.is_cell_selected() {
+        //         self.already_selected_cell_action();
+        //     } else {
+        //         self.select_cell()
+        //     }
+        // }
         self.logic.update_game_state();
     }
 
@@ -239,43 +279,60 @@ impl Game {
     }
 
     pub fn already_selected_cell_action(&mut self) {
-        let selected_square = match self.ui.selected_square {
-            Some(sq) => sq,
-            None => return,
+        let Some(selected_square) = self.ui.selected_square else {
+            return;
         };
 
-        // We already selected a piece so we apply the move
         let cursor_square = self.ui.cursor_coordinates.into();
 
-        let selected_coords_usize =
-            &flip_square_if_needed(selected_square, self.logic.game_board.is_flipped);
-
+        // 1. Get flipped versions for logic processing
+        let actual_selected_coords =
+            flip_square_if_needed(selected_square, self.logic.game_board.is_flipped);
         let actual_cursor_coords =
             flip_square_if_needed(cursor_square, self.logic.game_board.is_flipped);
 
-        // Execute the move
+        // 2. VERIFICATION: Check if the clicked square is actually a valid move
+        let authorized_positions = self
+            .logic
+            .game_board
+            .get_authorized_positions(self.logic.player_turn, &actual_selected_coords);
+
+        if !authorized_positions.contains(&actual_cursor_coords) {
+            // Logic: If it's not an authorized move, we "do nothing" regarding the move.
+            // However, we should probably check if the user is trying to select a DIFFERENT piece of their own.
+            let piece_at_destination = self
+                .logic
+                .game_board
+                .get_piece_color_at_square(&actual_cursor_coords);
+
+            if piece_at_destination == Some(self.logic.player_turn) {
+                // User clicked another one of their pieces, so let's switch selection to that one.
+                self.select_cell();
+            } else {
+                // User clicked an empty square or opponent piece that isn't a valid capture.
+                // We unselect to stay consistent with "only handle moves if there is something to be done."
+                self.ui.unselect_cell();
+            }
+            return;
+        }
+
+        // 3. Execution (Only reached if destination is authorized)
         self.logic
-            .execute_move(*selected_coords_usize, actual_cursor_coords);
+            .execute_move(actual_selected_coords, actual_cursor_coords);
         self.ui.unselect_cell();
 
-        // Update game state first to check if this is a promotion
+        // 4. State Updates
         self.logic.update_game_state();
 
-        // Only switch player turn if it's not a promotion (promotion will handle turn switching)
         if self.logic.game_state != GameState::Promotion {
-            // Start clock on first move if needed
             self.logic.start_clock_if_needed();
             self.logic.switch_player_turn();
-        } else {
-            // For promotion, stop the current player's clock (it will be restarted after promotion)
-            if let Some(ref mut clock) = self.logic.clock {
-                if clock.is_running {
-                    clock.stop();
-                }
+        } else if let Some(ref mut clock) = self.logic.clock {
+            if clock.is_running {
+                clock.stop();
             }
         }
 
-        // Handle post-move logic based on game mode
         self.handle_after_move_board_flip();
         self.handle_after_move_bot_logic();
         self.handle_after_move_opponent_logic();
@@ -318,19 +375,19 @@ impl Game {
         self.ui.selected_square = Some(square);
         self.ui.old_cursor_position = Some(self.ui.cursor_coordinates);
 
-        let authorized_positions_flipped: Vec<Square> = authorized_positions
-            .iter()
-            .map(|s| flip_square_if_needed(*s, self.logic.game_board.is_flipped))
-            .collect();
+        // let authorized_positions_flipped: Vec<Square> = authorized_positions
+        //     .iter()
+        //     .map(|s| flip_square_if_needed(*s, self.logic.game_board.is_flipped))
+        //     .collect();
 
-        self.ui.move_selected_piece_cursor(
-            true,
-            1,
-            authorized_positions_flipped
-                .iter()
-                .map(|s| Coord::from(*s))
-                .collect(),
-        );
+        // self.ui.move_selected_piece_cursor(
+        //     true,
+        //     1,
+        //     authorized_positions_flipped
+        //         .iter()
+        //         .map(|s| Coord::from(*s))
+        //         .collect(),
+        // );
     }
 
     pub fn apply_player_move(&mut self, from: Square, to: Square, promotion: Option<Role>) -> bool {

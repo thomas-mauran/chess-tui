@@ -2,6 +2,8 @@ use shakmaty::Square;
 
 /// A coordinate on the chess board (row, col format)
 /// This wraps around shakmaty's Square type for compatibility with existing UI code
+///
+/// Row and Col should be private to ensure that the Coord is valid through the code.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Coord {
     row: u8,
@@ -48,9 +50,7 @@ impl From<Coord> for Square {
         Square::new(index.into())
     }
 }
-/// A valid coord
-///
-/// The implementation garantuess (rever palavra kkk) that the coord is always a valid one.
+
 impl Coord {
     pub fn new(row: u8, col: u8) -> Self {
         let row = row.min(7);

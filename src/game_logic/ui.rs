@@ -9,7 +9,10 @@ use crate::{
     game_logic::coord::MoveDirection,
     pieces::{role_to_utf_enum, PieceSize},
     skin::{PieceStyle, Skin},
-    ui::{main_ui::render_cell, prompt::Prompt},
+    ui::{
+        main_ui::{render_cell, render_cell_outline},
+        prompt::Prompt,
+    },
     utils::{flip_square_if_needed, get_coord_from_square, get_square_from_coord},
 };
 use ratatui::{
@@ -34,7 +37,6 @@ struct CellRenderContext<'a> {
 }
 
 // Constants moved to top of file
-const BLINK_INTERVAL_TICKS: u8 = 2;
 const BIG_MODE_WIDTH: usize = 21; // 5 + 8 + 8 (with numbers, 2 moves on one line)
 const MEDIUM_MODE_WIDTH: usize = 16; // 8 + 8 (no numbers, 2 moves on one line)
 
@@ -114,17 +116,7 @@ impl UI {
     /// Update the cursor blink state. This is called from the global tick handler.
     /// When a piece is selected, the cursor cell will toggle visibility every few ticks.
     pub fn update_cursor_blink(&mut self) {
-        if self.is_cell_selected() {
-            self.cursor_blink_counter = self.cursor_blink_counter.wrapping_add(1);
-            if self.cursor_blink_counter >= BLINK_INTERVAL_TICKS {
-                self.cursor_blink_visible = !self.cursor_blink_visible;
-                self.cursor_blink_counter = 0;
-            }
-        } else {
-            // Ensure cursor is always visible when nothing is selected
-            self.cursor_blink_visible = true;
-            self.cursor_blink_counter = 0;
-        }
+        self.cursor_blink_visible = true;
     }
 
     /// Check if a cell has been selected
@@ -768,6 +760,10 @@ impl UI {
             .iter()
             .any(|&coord| coord == current_rendering_coord);
 
+        if current_rendering_coord == self.cursor_coordinates {
+            render_cell_outline(frame, square, Color::Black);
+        }
+
         // Here we have all the possibilities for a cell:
         // - selected cell: green
         // - cursor cell: blue
@@ -776,19 +772,7 @@ impl UI {
         // - last move cell: green
         // - default cell: white or black
         // Draw the cell blue if this is the current cursor cell
-        if current_rendering_coord == self.cursor_coordinates
-            // When a piece is selected, only draw the cursor cell on "visible" ticks
-            // so that it appears to flicker. On "hidden" ticks, we let the other
-            // branches below (selected cell, available moves, etc.) handle the cell.
-            && (!self.is_cell_selected() || self.cursor_blink_visible)
-        {
-            let cursor_color = match self.display_mode {
-                DisplayMode::CUSTOM => self.skin.cursor_color,
-                _ => Color::LightBlue,
-            };
-            render_cell(frame, square, cursor_color, None);
-            // Draw the cell magenta if the king is getting checked
-        } else if logic.game_board.is_getting_checked(logic.player_turn)
+        if logic.game_board.is_getting_checked(logic.player_turn)
             && current_rendering_coord == logic.game_board.get_king_coordinates(logic.player_turn)
         {
             render_cell(frame, square, Color::Magenta, Some(Modifier::SLOW_BLINK));
