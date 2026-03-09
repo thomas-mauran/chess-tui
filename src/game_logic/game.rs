@@ -158,20 +158,6 @@ impl Game {
             _ => {}
         };
 
-        // // If we are doing a promotion the cursor is used for the popup
-        // if self.logic.game_state == GameState::Promotion {
-        //     // Default to flipping in solo mode (no bot, no opponent)
-        //     let should_flip = self.logic.opponent.is_none() && self.logic.bot.is_none();
-        //     self.handle_promotion(should_flip);
-        // } else if !(self.logic.game_state == GameState::Checkmate)
-        //     && !(self.logic.game_state == GameState::Draw)
-        // {
-        //     if self.ui.is_cell_selected() {
-        //         self.already_selected_cell_action();
-        //     } else {
-        //         self.select_cell()
-        //     }
-        // }
         self.logic.update_game_state();
     }
 
@@ -290,6 +276,11 @@ impl Game {
         let actual_cursor_coords =
             flip_square_if_needed(cursor_square, self.logic.game_board.is_flipped);
 
+        if actual_cursor_coords == actual_selected_coords {
+            self.ui.unselect_cell();
+            return;
+        }
+
         // Check authorized positions before taking any action.
         let authorized_positions = self
             .logic
@@ -366,20 +357,6 @@ impl Game {
         // We already verified the piece color matches player_turn above, so we can proceed
         self.ui.selected_square = Some(square);
         self.ui.old_cursor_position = Some(self.ui.cursor_coordinates);
-
-        // let authorized_positions_flipped: Vec<Square> = authorized_positions
-        //     .iter()
-        //     .map(|s| flip_square_if_needed(*s, self.logic.game_board.is_flipped))
-        //     .collect();
-
-        // self.ui.move_selected_piece_cursor(
-        //     true,
-        //     1,
-        //     authorized_positions_flipped
-        //         .iter()
-        //         .map(|s| Coord::from(*s))
-        //         .collect(),
-        // );
     }
 
     pub fn apply_player_move(&mut self, from: Square, to: Square, promotion: Option<Role>) -> bool {

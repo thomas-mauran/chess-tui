@@ -1548,23 +1548,6 @@ impl App {
         self.loaded_skin = loaded_skin;
     }
 
-    fn get_authorized_positions_flipped(&self) -> Vec<Coord> {
-        let authorized_positions = if let Some(selected_square) = self.game.ui.selected_square {
-            self.game.logic.game_board.get_authorized_positions(
-                self.game.logic.player_turn,
-                &flip_square_if_needed(selected_square, self.game.logic.game_board.is_flipped),
-            )
-        } else {
-            vec![]
-        };
-
-        authorized_positions
-            .iter()
-            .map(|s| flip_square_if_needed(*s, self.game.logic.game_board.is_flipped))
-            .map(Coord::from)
-            .collect()
-    }
-
     pub fn go_left_in_game(&mut self) {
         self.game.ui.cursor_left();
     }
