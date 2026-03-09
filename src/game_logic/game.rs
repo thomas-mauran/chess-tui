@@ -285,43 +285,35 @@ impl Game {
 
         let cursor_square = self.ui.cursor_coordinates.into();
 
-        // 1. Get flipped versions for logic processing
         let actual_selected_coords =
             flip_square_if_needed(selected_square, self.logic.game_board.is_flipped);
         let actual_cursor_coords =
             flip_square_if_needed(cursor_square, self.logic.game_board.is_flipped);
 
-        // 2. VERIFICATION: Check if the clicked square is actually a valid move
+        // Check authorized positions before taking any action.
         let authorized_positions = self
             .logic
             .game_board
             .get_authorized_positions(self.logic.player_turn, &actual_selected_coords);
 
         if !authorized_positions.contains(&actual_cursor_coords) {
-            // Logic: If it's not an authorized move, we "do nothing" regarding the move.
-            // However, we should probably check if the user is trying to select a DIFFERENT piece of their own.
             let piece_at_destination = self
                 .logic
                 .game_board
                 .get_piece_color_at_square(&actual_cursor_coords);
 
             if piece_at_destination == Some(self.logic.player_turn) {
-                // User clicked another one of their pieces, so let's switch selection to that one.
                 self.select_cell();
             } else {
-                // User clicked an empty square or opponent piece that isn't a valid capture.
-                // We unselect to stay consistent with "only handle moves if there is something to be done."
                 self.ui.unselect_cell();
             }
             return;
         }
 
-        // 3. Execution (Only reached if destination is authorized)
         self.logic
             .execute_move(actual_selected_coords, actual_cursor_coords);
         self.ui.unselect_cell();
 
-        // 4. State Updates
         self.logic.update_game_state();
 
         if self.logic.game_state != GameState::Promotion {
@@ -625,9 +617,8 @@ impl GameLogic {
     /// Move a piece from a cell to another
     pub fn execute_move(&mut self, from: Square, to: Square) {
         // Check if moving a piece and get the piece type
-        let role_from = match self.game_board.get_role_at_square(&from) {
-            Some(role) => role,
-            None => return,
+        let Some(role_from) = self.game_board.get_role_at_square(&from) else {
+            return;
         };
 
         let role_to = self.game_board.get_role_at_square(&to);
