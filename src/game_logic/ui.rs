@@ -739,7 +739,7 @@ impl UI {
             get_square_from_coord(current_rendering_coord, logic.game_board.is_flipped);
 
         // Safely determine if this specific cell is the one selected by the player
-        let is_selected_cell = actual_square.map_or(false, |s| {
+        let is_selected_cell = actual_square.is_some_and(|s| {
             get_coord_from_square(s, logic.game_board.is_flipped) == current_rendering_coord
         });
 
@@ -756,13 +756,7 @@ impl UI {
             }
         };
 
-        let is_cell_in_positions = authorized_positions
-            .iter()
-            .any(|&coord| coord == current_rendering_coord);
-
-        if current_rendering_coord == self.cursor_coordinates {
-            render_cell_outline(frame, square, Color::Black);
-        }
+        let is_cell_in_positions = authorized_positions.contains(&current_rendering_coord);
 
         // Here we have all the possibilities for a cell:
         // - selected cell: green
@@ -817,6 +811,10 @@ impl UI {
         let (paragraph, line_count) = self.render_piece_paragraph(piece_type, piece_color, square);
         let piece_area = Self::piece_centered_rect(square, line_count);
         frame.render_widget(paragraph, piece_area);
+
+        if current_rendering_coord == self.cursor_coordinates {
+            render_cell_outline(frame, square, cell_color);
+        }
     }
 
     /// Render rank labels (1-8) on the left side of the board

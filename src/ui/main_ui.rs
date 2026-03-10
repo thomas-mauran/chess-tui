@@ -292,7 +292,7 @@ pub fn render_circle_node(frame: &mut Frame, area: Rect, color: Color) {
 pub fn render_cell_outline(frame: &mut Frame, area: Rect, color: Color) {
     let outline = Block::default()
         .borders(Borders::ALL)
-        .border_type(BorderType::QuadrantInside)
+        .border_type(BorderType::QuadrantOutside)
         .border_style(Style::default().fg(color));
 
     frame.render_widget(outline, area);
