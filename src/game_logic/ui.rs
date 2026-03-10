@@ -813,7 +813,12 @@ impl UI {
         frame.render_widget(paragraph, piece_area);
 
         if current_rendering_coord == self.cursor_coordinates {
-            render_cell_outline(frame, square, cell_color);
+            let cursor_color = match self.display_mode {
+                DisplayMode::CUSTOM => self.skin.cursor_color,
+                _ => Color::LightBlue,
+            };
+
+            render_cell_outline(frame, square, cursor_color);
         }
     }
 
