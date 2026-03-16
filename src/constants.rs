@@ -86,11 +86,12 @@ pub enum Pages {
     Bot,
     Credit,
     GameModeMenu,
+    PgnViewer,
 }
 impl Pages {
     #[must_use]
     pub fn variant_count() -> usize {
-        8
+        9
     }
 }
 

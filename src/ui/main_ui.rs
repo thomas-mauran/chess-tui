@@ -20,6 +20,7 @@ use crate::{
 
 use super::lichess_menu::render_lichess_menu;
 use super::ongoing_games::render_ongoing_games;
+use super::pgn_viewer_ui::render_pgn_viewer;
 use super::popups::{
     render_enter_multiplayer_ip, render_move_input_popup, render_multiplayer_selection_popup,
     render_wait_for_other_player,
@@ -141,6 +142,11 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
     // Ongoing games list
     else if app.current_page == Pages::OngoingGames {
         render_ongoing_games(frame, app);
+    }
+    // PGN viewer
+    else if app.current_page == Pages::PgnViewer {
+        render_pgn_viewer(frame, app);
+        return; // skip popup rendering while viewing PGN
     }
     // Render menu
     else {

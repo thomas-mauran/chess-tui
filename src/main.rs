@@ -92,6 +92,11 @@ struct Args {
     /// Update skin config with built-in default (prompts for confirmation, archives current file)
     #[arg(long)]
     update_skins: bool,
+    /// Open a PGN file or directory of .pgn files directly in the viewer.
+    /// Example: chess-tui --pgn game.pgn
+    ///          chess-tui --pgn outputs/chess/games/step-000500/
+    #[arg(short = 'p', long)]
+    pgn: Option<String>,
 }
 
 fn main() -> AppResult<()> {
@@ -301,6 +306,55 @@ fn main() -> AppResult<()> {
     // Setup logging
     if let Err(e) = logging::setup_logging(&folder_path, &app.log_level) {
         eprintln!("Failed to initialize logging: {}", e);
+    }
+
+    // Load PGN file(s) if --pgn was provided
+    if let Some(ref pgn_path) = args.pgn {
+        use chess_tui::constants::Pages;
+        use chess_tui::pgn_viewer::PgnViewer;
+        use std::path::Path;
+
+        let path = Path::new(pgn_path);
+        let load_result: Result<Vec<PgnViewer>, String> = if path.is_dir() {
+            // Load all .pgn files from the directory
+            let mut all_games: Vec<PgnViewer> = Vec::new();
+            let mut entries: Vec<_> = std::fs::read_dir(path)
+                .map_err(|e| e.to_string())?
+                .filter_map(|e| e.ok())
+                .filter(|e| {
+                    e.path()
+                        .extension()
+                        .map(|x| x == "pgn")
+                        .unwrap_or(false)
+                })
+                .collect();
+            entries.sort_by_key(|e| e.path());
+            for entry in entries {
+                match PgnViewer::from_file(entry.path().to_str().unwrap_or("")) {
+                    Ok(mut games) => all_games.append(&mut games),
+                    Err(e) => eprintln!("Skipping {:?}: {}", entry.path(), e),
+                }
+            }
+            if all_games.is_empty() {
+                Err(format!("No valid .pgn files found in '{}'", pgn_path))
+            } else {
+                Ok(all_games)
+            }
+        } else {
+            PgnViewer::from_file(pgn_path)
+        };
+
+        match load_result {
+            Ok(games) => {
+                app.pgn_viewer_state = Some(games);
+                app.pgn_viewer_game_idx = 0;
+                app.current_page = Pages::PgnViewer;
+            }
+            Err(e) => {
+                eprintln!("Failed to load PGN '{}': {}", pgn_path, e);
+                std::process::exit(1);
+            }
+        }
     }
 
     // Initialize the terminal user interface.

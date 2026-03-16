@@ -355,6 +355,105 @@ fn handle_page_input(app: &mut App, key_event: KeyEvent) {
         Pages::OngoingGames => handle_ongoing_games_page_events(app, key_event),
         Pages::Bot => handle_bot_page_events(app, key_event),
         Pages::Credit => handle_credit_page_events(app, key_event),
+        Pages::PgnViewer => handle_pgn_viewer_events(app, key_event),
+    }
+}
+
+/// Handles keyboard input in PGN viewer mode.
+fn handle_pgn_viewer_events(app: &mut App, key_event: KeyEvent) {
+    let game_count = app
+        .pgn_viewer_state
+        .as_ref()
+        .map(|g| g.len())
+        .unwrap_or(0);
+
+    match key_event.code {
+        // Quit viewer
+        KeyCode::Esc | KeyCode::Char('q') => {
+            app.current_page = Pages::Home;
+            app.pgn_viewer_state = None;
+            app.pgn_viewer_game_idx = 0;
+        }
+
+        // Next move
+        KeyCode::Right | KeyCode::Char('l') => {
+            if let Some(ref mut games) = app.pgn_viewer_state {
+                if let Some(v) = games.get_mut(app.pgn_viewer_game_idx) {
+                    v.next();
+                }
+            }
+        }
+
+        // Previous move
+        KeyCode::Left | KeyCode::Char('h') => {
+            if let Some(ref mut games) = app.pgn_viewer_state {
+                if let Some(v) = games.get_mut(app.pgn_viewer_game_idx) {
+                    v.prev();
+                }
+            }
+        }
+
+        // Go to start
+        KeyCode::Char('g') => {
+            if let Some(ref mut games) = app.pgn_viewer_state {
+                if let Some(v) = games.get_mut(app.pgn_viewer_game_idx) {
+                    v.goto_start();
+                }
+            }
+        }
+
+        // Go to end
+        KeyCode::Char('G') => {
+            if let Some(ref mut games) = app.pgn_viewer_state {
+                if let Some(v) = games.get_mut(app.pgn_viewer_game_idx) {
+                    v.goto_end();
+                }
+            }
+        }
+
+        // Toggle auto-play
+        KeyCode::Char(' ') => {
+            if let Some(ref mut games) = app.pgn_viewer_state {
+                if let Some(v) = games.get_mut(app.pgn_viewer_game_idx) {
+                    v.auto_play = !v.auto_play;
+                    v.auto_play_tick = 0;
+                }
+            }
+        }
+
+        // Speed up
+        KeyCode::Char('+') | KeyCode::Char('=') => {
+            if let Some(ref mut games) = app.pgn_viewer_state {
+                if let Some(v) = games.get_mut(app.pgn_viewer_game_idx) {
+                    v.speed_up();
+                }
+            }
+        }
+
+        // Slow down
+        KeyCode::Char('-') => {
+            if let Some(ref mut games) = app.pgn_viewer_state {
+                if let Some(v) = games.get_mut(app.pgn_viewer_game_idx) {
+                    v.speed_down();
+                }
+            }
+        }
+
+        // Next game (Tab)
+        KeyCode::Tab if game_count > 1 => {
+            app.pgn_viewer_game_idx = (app.pgn_viewer_game_idx + 1) % game_count;
+        }
+
+        // Previous game (BackTab / Shift+Tab)
+        KeyCode::BackTab if game_count > 1 => {
+            if app.pgn_viewer_game_idx == 0 {
+                app.pgn_viewer_game_idx = game_count - 1;
+            } else {
+                app.pgn_viewer_game_idx -= 1;
+            }
+        }
+
+        _ => {}
     }
 }
 
