@@ -111,8 +111,14 @@ elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
     elif command -v pacman &> /dev/null; then
         # Arch Linux
         echo "Detected Arch Linux"
-        echo "Installing Stockfish via pacman..."
-        sudo pacman -S --noconfirm stockfish
+        # Check if stockfish is available in pacman
+        if pacman -Ss stockfish | grep -q "^extra/stockfish"; then
+            echo "Installing Stockfish via pacman..."
+            sudo pacman -S --noconfirm stockfish
+        else
+            echo "Installing Stockfish via yay..."
+            yay -S --noconfirm stockfish
+        fi
         STOCKFISH_PATH="/usr/bin/stockfish"
     else
         echo "Error: Unsupported Linux distribution."
