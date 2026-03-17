@@ -144,7 +144,6 @@ impl Game {
                         return;
                     }
 
-                    // Optional: Check if the piece even has legal moves before selecting
                     let authorized_positions = self
                         .logic
                         .game_board

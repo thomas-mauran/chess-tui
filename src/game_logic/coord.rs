@@ -28,7 +28,6 @@ impl From<Square> for Coord {
         let index = square as u8;
         let rank = index / 8;
         let file = index % 8;
-        // Flip row back: rank 7 = our row 0, rank 0 = our row 7
         Self {
             row: 7 - rank,
             col: file,
@@ -38,20 +37,17 @@ impl From<Square> for Coord {
 
 impl From<Coord> for Square {
     fn from(value: Coord) -> Self {
-        // Flip row: our row 0 = rank 8 (index 56-63), row 7 = rank 1 (index 0-7)
         let rank = 7 - value.row;
         let file = value.col;
 
-        // Safety: Coord invariants guarantee (rank * 8 + file) is 0..=63
         let index = (rank * 8) + file;
 
-        // If using a crate like 'chess', use Square::new(index)
-        // If using 'shakmaty', use Square::new(index)
         Square::new(index.into())
     }
 }
 
 impl Coord {
+    // This initialization makes the coord always compatible with shakmaty::Square
     pub fn new(row: u8, col: u8) -> Self {
         let row = row.min(7);
         let col = col.min(7);
@@ -103,9 +99,9 @@ impl Ord for Coord {
 mod tests {
     use super::*;
 
+    // Test bijection
     #[test]
     fn test_coord_square_conversion() {
-        // Test e4 (row 4, col 4 in our system = rank 4, file e in chess)
         let coord = Coord::new(4, 4);
         let square: Square = coord.into();
         let back = Coord::from(square);
