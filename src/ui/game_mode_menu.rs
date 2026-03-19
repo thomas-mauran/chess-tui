@@ -708,14 +708,19 @@ fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: u8
                     Constraint::Length(8),
                     Constraint::Length(2),
                     Constraint::Length(8),
+                    Constraint::Length(2),
+                    Constraint::Length(8),
                 ])
                 .split(color_area[1]);
 
             // White button
             let is_focused = is_active && app.game_mode_form_cursor == 1;
-            let white_selected = app.selected_color == Some(ShakmatyColor::White);
-            let white_focused =
-                is_focused && app.selected_color.is_none() && app.hosting == Some(true);
+            let white_selected =
+                app.selected_color == Some(ShakmatyColor::White) && !app.multiplayer_random_color;
+            let white_focused = is_focused
+                && app.selected_color.is_none()
+                && !app.multiplayer_random_color
+                && app.hosting == Some(true);
             let white_style = if !is_active || !app.hosting.unwrap_or(false) {
                 Style::default().fg(grey_color)
             } else if white_selected {
@@ -723,7 +728,9 @@ fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: u8
                     .fg(Color::Black)
                     .bg(Color::White)
                     .add_modifier(Modifier::BOLD)
-            } else if white_focused || (is_focused && app.selected_color.is_none()) {
+            } else if white_focused
+                || (is_focused && app.selected_color.is_none() && !app.multiplayer_random_color)
+            {
                 // Show focus when cursor is on this field
                 Style::default()
                     .fg(Color::Black)
@@ -753,6 +760,23 @@ fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: u8
                 .alignment(Alignment::Center)
                 .style(black_style);
             frame.render_widget(black_text, color_button_area[2]);
+
+            // Random button
+            let random_selected = app.multiplayer_random_color;
+            let random_style = if !is_active || !app.hosting.unwrap_or(false) {
+                Style::default().fg(grey_color)
+            } else if random_selected {
+                Style::default()
+                    .fg(Color::Black)
+                    .bg(Color::White)
+                    .add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().fg(Color::White)
+            };
+            let random_text = Paragraph::new("RANDOM")
+                .alignment(Alignment::Center)
+                .style(random_style);
+            frame.render_widget(random_text, color_button_area[4]);
         }
         2 => {
             // Bot: time control selection

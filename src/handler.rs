@@ -76,6 +76,7 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
                 if app.current_page == Pages::Multiplayer {
                     app.hosting = None;
                     app.selected_color = None;
+                    app.multiplayer_random_color = false;
                     app.menu_cursor = 0;
                 }
                 app.current_page = Pages::Home;
@@ -948,10 +949,7 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                 app.hosting = Some(true);
                             }
                             1 => {
-                                // Set to White (only if hosting)
-                                if app.hosting == Some(true) {
-                                    app.selected_color = Some(shakmaty::Color::White);
-                                }
+                                app.cycle_multiplayer_host_color_left();
                             }
                             _ => {}
                         }
@@ -1067,10 +1065,7 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                 app.hosting = Some(false);
                             }
                             1 => {
-                                // Set to Black (only if hosting)
-                                if app.hosting == Some(true) {
-                                    app.selected_color = Some(shakmaty::Color::Black);
-                                }
+                                app.cycle_multiplayer_host_color_right();
                             }
                             _ => {}
                         }
@@ -1212,11 +1207,8 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                 }
                             }
                             1 => {
-                                // On Color field - select default (White) if nothing selected, then start game
-                                if app.selected_color.is_none() {
-                                    app.selected_color = Some(shakmaty::Color::White);
-                                    // Default to White
-                                }
+                                // On Color field - resolve random or default to White, then start game
+                                app.resolve_multiplayer_host_color();
                                 // Hosting: start game (color selected)
                                 app.current_page = Pages::Multiplayer;
                                 app.game_mode_selection = None;
@@ -1343,6 +1335,7 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                     // Reset form state
                     app.hosting = None;
                     app.selected_color = None;
+                    app.multiplayer_random_color = false;
                 }
             }
             KeyCode::Esc | KeyCode::Char('b') => {
