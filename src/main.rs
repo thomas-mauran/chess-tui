@@ -321,12 +321,7 @@ fn main() -> AppResult<()> {
             let mut entries: Vec<_> = std::fs::read_dir(path)
                 .map_err(|e| e.to_string())?
                 .filter_map(|e| e.ok())
-                .filter(|e| {
-                    e.path()
-                        .extension()
-                        .map(|x| x == "pgn")
-                        .unwrap_or(false)
-                })
+                .filter(|e| e.path().extension().map(|x| x == "pgn").unwrap_or(false))
                 .collect();
             entries.sort_by_key(|e| e.path());
             for entry in entries {
@@ -624,6 +619,7 @@ mod tests {
             no_sound: false,
             skin: None,
             update_skins: false,
+            pgn: None,
         };
 
         let config_dir = config_dir().unwrap();

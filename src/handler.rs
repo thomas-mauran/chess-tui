@@ -361,11 +361,7 @@ fn handle_page_input(app: &mut App, key_event: KeyEvent) {
 
 /// Handles keyboard input in PGN viewer mode.
 fn handle_pgn_viewer_events(app: &mut App, key_event: KeyEvent) {
-    let game_count = app
-        .pgn_viewer_state
-        .as_ref()
-        .map(|g| g.len())
-        .unwrap_or(0);
+    let game_count = app.pgn_viewer_state.as_ref().map(|g| g.len()).unwrap_or(0);
 
     match key_event.code {
         // Quit viewer

@@ -6,7 +6,6 @@
 
 use shakmaty::san::San;
 use shakmaty::{Chess, Move, Position};
-use std::str::FromStr;
 
 // Auto-play tick speeds (event loop fires ~4 ticks/sec)
 pub const SPEED_FAST: u64 = 1;
@@ -36,8 +35,8 @@ pub struct PgnViewer {
 impl PgnViewer {
     /// Load all games from a PGN file.
     pub fn from_file(path: &str) -> Result<Vec<Self>, String> {
-        let content = std::fs::read_to_string(path)
-            .map_err(|e| format!("Cannot read '{}': {}", path, e))?;
+        let content =
+            std::fs::read_to_string(path).map_err(|e| format!("Cannot read '{}': {}", path, e))?;
         Self::from_pgn_str(&content)
     }
 
@@ -286,11 +285,7 @@ fn extract_san_tokens(movetext: &str) -> Vec<String> {
                     if depth == 0 {
                         if let Some(s) = open_idx {
                             // Convert char indices to byte indices
-                            let byte_s = text
-                                .char_indices()
-                                .nth(s)
-                                .map(|(i, _)| i)
-                                .unwrap_or(0);
+                            let byte_s = text.char_indices().nth(s).map(|(i, _)| i).unwrap_or(0);
                             let byte_e = text
                                 .char_indices()
                                 .nth(ci)
