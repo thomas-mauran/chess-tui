@@ -44,9 +44,8 @@ impl PgnViewer {
     pub fn from_pgn_str(pgn: &str) -> Result<Vec<Self>, String> {
         let mut viewers = Vec::new();
         for game_text in split_pgn_games(pgn) {
-            match parse_single_game(&game_text) {
-                Ok(v) => viewers.push(v),
-                Err(_) => {} // skip unparseable games silently
+            if let Ok(v) = parse_single_game(&game_text) {
+                viewers.push(v);
             }
         }
         if viewers.is_empty() {
@@ -204,7 +203,7 @@ fn parse_single_game(pgn: &str) -> Result<PgnViewer, String> {
     for san_str in &san_strings {
         // Strip check/checkmate annotations — shakmaty's San parser handles them
         // but being explicit avoids issues with non-standard suffixes
-        let clean: &str = san_str.trim_end_matches(|c: char| c == '+' || c == '#');
+        let clean: &str = san_str.trim_end_matches(['+', '#']);
         match clean.parse::<San>() {
             Ok(san) => match san.to_move(&pos) {
                 Ok(mv) => match pos.clone().play(&mv) {
@@ -324,7 +323,7 @@ fn extract_san_tokens(movetext: &str) -> Vec<String> {
             continue;
         }
         // Strip trailing annotation glyphs (!, ?, !?, ?!, !!, ??)
-        let clean = token.trim_end_matches(|c: char| matches!(c, '!' | '?'));
+        let clean = token.trim_end_matches(['!', '?']);
         if !clean.is_empty() {
             result.push(clean.to_string());
         }

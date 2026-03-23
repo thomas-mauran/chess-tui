@@ -98,7 +98,7 @@ fn render_footer(frame: &mut Frame, app: &App, area: ratatui::layout::Rect) {
     let ply_str = if current_ply == 0 {
         "Start".to_string()
     } else {
-        let move_n = (current_ply + 1) / 2;
+        let move_n = (current_ply + 1).div_ceil(2);
         let side = if current_ply % 2 == 1 { "W" } else { "B" };
         format!("Move {}.{}", move_n, side)
     };
