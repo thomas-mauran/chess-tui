@@ -38,8 +38,8 @@ pub struct App {
     pub current_popup: Option<Popups>,
     // Selected color when playing against the bot or in multiplayer
     pub selected_color: Option<Color>,
-    /// Whether the multiplayer host selected a random color
-    pub multiplayer_random_color: bool,
+    /// Whether the current color choice is pending random resolution
+    pub pending_random_color: bool,
     /// Hosting
     pub hosting: Option<bool>,
     /// Host Ip
@@ -111,7 +111,7 @@ impl Default for App {
             current_page: Pages::Home,
             current_popup: None,
             selected_color: None,
-            multiplayer_random_color: false,
+            pending_random_color: false,
             hosting: None,
             host_ip: None,
             game_start_rx: None,
@@ -147,50 +147,34 @@ impl Default for App {
 }
 
 impl App {
-    pub fn cycle_multiplayer_host_color_left(&mut self) {
-        if self.hosting != Some(true) {
-            return;
-        }
-
-        match (self.selected_color, self.multiplayer_random_color) {
-            (Some(Color::Black), false) | (None, false) => {
-                self.selected_color = Some(Color::White);
-                self.multiplayer_random_color = false;
-            }
-            (_, true) => {
-                self.selected_color = Some(Color::Black);
-                self.multiplayer_random_color = false;
-            }
-            _ => {}
+    pub fn select_previous_color_option(&mut self) {
+        if self.pending_random_color {
+            self.selected_color = Some(Color::Black);
+            self.pending_random_color = false;
+        } else if self.selected_color != Some(Color::White) {
+            self.selected_color = Some(Color::White);
+            self.pending_random_color = false;
         }
     }
 
-    pub fn cycle_multiplayer_host_color_right(&mut self) {
-        if self.hosting != Some(true) {
-            return;
-        }
-
-        match (self.selected_color, self.multiplayer_random_color) {
-            (Some(Color::White), false) | (None, false) => {
-                self.selected_color = Some(Color::Black);
-                self.multiplayer_random_color = false;
-            }
-            (Some(Color::Black), false) => {
-                self.selected_color = None;
-                self.multiplayer_random_color = true;
-            }
-            (_, true) => {}
+    pub fn select_next_color_option(&mut self) {
+        if self.selected_color == Some(Color::White) || self.selected_color.is_none() {
+            self.selected_color = Some(Color::Black);
+            self.pending_random_color = false;
+        } else if self.selected_color == Some(Color::Black) {
+            self.selected_color = None;
+            self.pending_random_color = true;
         }
     }
 
-    pub fn resolve_multiplayer_host_color(&mut self) {
-        if self.multiplayer_random_color {
+    pub fn resolve_selected_color(&mut self) {
+        if self.pending_random_color {
             self.selected_color = Some(if rand::random::<bool>() {
                 Color::White
             } else {
                 Color::Black
             });
-            self.multiplayer_random_color = false;
+            self.pending_random_color = false;
         } else if self.selected_color.is_none() {
             self.selected_color = Some(Color::White);
         }
@@ -820,7 +804,7 @@ impl App {
         // This stops any polling threads from previous Lichess games
         self.game.logic.opponent = None;
         self.selected_color = None;
-        self.multiplayer_random_color = false;
+        self.pending_random_color = false;
 
         // Reset game state to Playing (in case it was Checkmate/Draw from previous puzzle)
         // This must be done early to prevent check_and_show_game_end from re-showing the popup
@@ -1355,7 +1339,7 @@ impl App {
         self.hosting = None;
         self.host_ip = None;
         self.selected_color = None;
-        self.multiplayer_random_color = false;
+        self.pending_random_color = false;
         self.game_start_rx = None;
 
         self.game.logic.opponent = None;
@@ -1592,7 +1576,7 @@ impl App {
         }
         self.current_popup = None;
         self.selected_color = None;
-        self.multiplayer_random_color = false;
+        self.pending_random_color = false;
         self.hosting = None;
         self.host_ip = None;
         self.menu_cursor = 0;
@@ -1820,7 +1804,7 @@ impl App {
 
         // Reset game-related state
         self.selected_color = None;
-        self.multiplayer_random_color = false;
+        self.pending_random_color = false;
         self.game.logic.bot = None;
         self.bot_move_receiver = None;
 
