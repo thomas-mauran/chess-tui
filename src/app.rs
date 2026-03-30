@@ -40,6 +40,8 @@ pub struct App {
     pub selected_color: Option<Color>,
     /// Whether the current color choice is pending random resolution
     pub pending_random_color: bool,
+    /// Whether the player selected the Random color option
+    pub random_color_selection: bool,
     /// Hosting
     pub hosting: Option<bool>,
     /// Host Ip
@@ -112,6 +114,7 @@ impl Default for App {
             current_popup: None,
             selected_color: None,
             pending_random_color: false,
+            random_color_selection: false,
             hosting: None,
             host_ip: None,
             game_start_rx: None,
@@ -151,9 +154,11 @@ impl App {
         if self.pending_random_color {
             self.selected_color = Some(Color::Black);
             self.pending_random_color = false;
+            self.random_color_selection = false;
         } else if self.selected_color != Some(Color::White) {
             self.selected_color = Some(Color::White);
             self.pending_random_color = false;
+            self.random_color_selection = false;
         }
     }
 
@@ -161,9 +166,11 @@ impl App {
         if self.selected_color == Some(Color::White) || self.selected_color.is_none() {
             self.selected_color = Some(Color::Black);
             self.pending_random_color = false;
+            self.random_color_selection = false;
         } else if self.selected_color == Some(Color::Black) {
             self.selected_color = None;
             self.pending_random_color = true;
+            self.random_color_selection = true;
         }
     }
 
@@ -177,6 +184,7 @@ impl App {
             self.pending_random_color = false;
         } else if self.selected_color.is_none() {
             self.selected_color = Some(Color::White);
+            self.random_color_selection = false;
         }
     }
 
@@ -346,6 +354,7 @@ impl App {
                 } else {
                     log::info!("Setting up client (non-host) player");
                     self.selected_color = Some(opponent.color.other());
+                    self.random_color_selection = false;
                     opponent.game_started = true;
                 }
                 self.game.logic.opponent = Some(opponent);
@@ -637,6 +646,7 @@ impl App {
             );
 
             self.selected_color = Some(color);
+            self.random_color_selection = false;
             self.game.logic.opponent = Some(opponent);
 
             if color == Color::Black {
@@ -805,6 +815,7 @@ impl App {
         self.game.logic.opponent = None;
         self.selected_color = None;
         self.pending_random_color = false;
+        self.random_color_selection = false;
 
         // Reset game state to Playing (in case it was Checkmate/Draw from previous puzzle)
         // This must be done early to prevent check_and_show_game_end from re-showing the popup
@@ -1340,6 +1351,7 @@ impl App {
         self.host_ip = None;
         self.selected_color = None;
         self.pending_random_color = false;
+        self.random_color_selection = false;
         self.game_start_rx = None;
 
         self.game.logic.opponent = None;
@@ -1361,10 +1373,21 @@ impl App {
         let is_local_game = self.current_page == Pages::Solo && bot.is_none() && opponent.is_none();
         let is_bot_game = bot.is_some() && opponent.is_none();
 
+        if is_bot_game && self.random_color_selection {
+            self.selected_color = Some(if rand::random::<bool>() {
+                Color::White
+            } else {
+                Color::Black
+            });
+        }
+
         self.game = Game::default();
 
         self.game.logic.bot = bot;
         self.game.logic.opponent = opponent;
+        if let Some(bot) = self.game.logic.bot.as_mut() {
+            bot.is_bot_starting = self.selected_color.unwrap_or(Color::White) == Color::Black;
+        }
         // Restore skin, display mode and piece styles
         self.game.ui.skin = current_skin;
         self.game.ui.display_mode = display_mode;
@@ -1577,6 +1600,7 @@ impl App {
         self.current_popup = None;
         self.selected_color = None;
         self.pending_random_color = false;
+        self.random_color_selection = false;
         self.hosting = None;
         self.host_ip = None;
         self.menu_cursor = 0;
@@ -1805,6 +1829,7 @@ impl App {
         // Reset game-related state
         self.selected_color = None;
         self.pending_random_color = false;
+        self.random_color_selection = false;
         self.game.logic.bot = None;
         self.bot_move_receiver = None;
 
