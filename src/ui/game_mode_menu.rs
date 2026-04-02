@@ -205,8 +205,7 @@ fn render_color_selection_ui(
         .split(color_area[1]);
 
     let is_focused = is_active && app.game_mode_form_cursor == color_cursor;
-    let white_selected =
-        app.selected_color == Some(ShakmatyColor::White) && !app.is_random_color;
+    let white_selected = app.selected_color == Some(ShakmatyColor::White) && !app.is_random_color;
     let white_focused =
         is_enabled && is_focused && app.selected_color.is_none() && !app.is_random_color;
     let white_style = if !is_enabled {
