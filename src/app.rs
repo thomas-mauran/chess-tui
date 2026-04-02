@@ -158,10 +158,10 @@ impl App {
     }
 
     pub fn select_next_color_option(&mut self) {
-        if self.is_random_color {
-            self.selected_color = Some(Color::Black);
-            self.is_random_color = false;
-        } else if self.selected_color == Some(Color::White) || self.selected_color.is_none() {
+        if self.is_random_color
+            || self.selected_color == Some(Color::White)
+            || self.selected_color.is_none()
+        {
             self.selected_color = Some(Color::Black);
             self.is_random_color = false;
         } else if self.selected_color == Some(Color::Black) {
