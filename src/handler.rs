@@ -76,6 +76,7 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
                 if app.current_page == Pages::Multiplayer {
                     app.hosting = None;
                     app.selected_color = None;
+                    app.is_random_color = false;
                     app.menu_cursor = 0;
                 }
                 app.current_page = Pages::Home;
@@ -948,9 +949,8 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                 app.hosting = Some(true);
                             }
                             1 => {
-                                // Set to White (only if hosting)
                                 if app.hosting == Some(true) {
-                                    app.selected_color = Some(shakmaty::Color::White);
+                                    app.select_previous_color_option();
                                 }
                             }
                             _ => {}
@@ -975,8 +975,7 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                         app.custom_time_minutes -= 1;
                                     }
                                 } else {
-                                    // Color - set to White
-                                    app.selected_color = Some(shakmaty::Color::White);
+                                    app.select_previous_color_option();
                                 }
                             }
                             2 => {
@@ -984,8 +983,7 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                 if app.clock_form_cursor
                                     == crate::constants::TIME_CONTROL_CUSTOM_INDEX
                                 {
-                                    // Color - set to White
-                                    app.selected_color = Some(shakmaty::Color::White);
+                                    app.select_previous_color_option();
                                 } else {
                                     // Bot depth - decrease
                                     if app.bot_depth > 1 {
@@ -1067,9 +1065,8 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                 app.hosting = Some(false);
                             }
                             1 => {
-                                // Set to Black (only if hosting)
                                 if app.hosting == Some(true) {
-                                    app.selected_color = Some(shakmaty::Color::Black);
+                                    app.select_next_color_option();
                                 }
                             }
                             _ => {}
@@ -1096,8 +1093,7 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                         app.custom_time_minutes += 1;
                                     }
                                 } else {
-                                    // Color - set to Black
-                                    app.selected_color = Some(shakmaty::Color::Black);
+                                    app.select_next_color_option();
                                 }
                             }
                             2 => {
@@ -1105,8 +1101,7 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                 if app.clock_form_cursor
                                     == crate::constants::TIME_CONTROL_CUSTOM_INDEX
                                 {
-                                    // Color - set to Black
-                                    app.selected_color = Some(shakmaty::Color::Black);
+                                    app.select_next_color_option();
                                 } else {
                                     // Bot depth - increase
                                     if app.bot_depth < 20 {
@@ -1212,11 +1207,8 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                 }
                             }
                             1 => {
-                                // On Color field - select default (White) if nothing selected, then start game
-                                if app.selected_color.is_none() {
-                                    app.selected_color = Some(shakmaty::Color::White);
-                                    // Default to White
-                                }
+                                // On Color field - resolve the final color, then start the game
+                                app.resolve_selected_color();
                                 // Hosting: start game (color selected)
                                 app.current_page = Pages::Multiplayer;
                                 app.game_mode_selection = None;
@@ -1249,11 +1241,7 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                     // Custom time field - move to color field
                                     app.game_mode_form_cursor = 2;
                                 } else {
-                                    // Color field - select default (White) if nothing selected, then move to depth
-                                    if app.selected_color.is_none() {
-                                        app.selected_color = Some(shakmaty::Color::White);
-                                        // Default to White
-                                    }
+                                    // Color field - keep the visible selection as-is, then move to depth
                                     app.game_mode_form_cursor = 2;
                                 }
                             }
@@ -1262,11 +1250,7 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                 if app.clock_form_cursor
                                     == crate::constants::TIME_CONTROL_CUSTOM_INDEX
                                 {
-                                    // Color field - select default (White) if nothing selected, then move to depth
-                                    if app.selected_color.is_none() {
-                                        app.selected_color = Some(shakmaty::Color::White);
-                                        // Default to White
-                                    }
+                                    // Color field - keep the visible selection as-is, then move to depth
                                     app.game_mode_form_cursor = 3;
                                 } else {
                                     // Depth field - move to ELO field
@@ -1343,6 +1327,7 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                     // Reset form state
                     app.hosting = None;
                     app.selected_color = None;
+                    app.is_random_color = false;
                 }
             }
             KeyCode::Esc | KeyCode::Char('b') => {
