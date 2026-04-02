@@ -76,7 +76,7 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
                 if app.current_page == Pages::Multiplayer {
                     app.hosting = None;
                     app.selected_color = None;
-                    app.pending_random_color = false;
+                    app.is_random_color = false;
                     app.menu_cursor = 0;
                 }
                 app.current_page = Pages::Home;
@@ -1207,7 +1207,7 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                 }
                             }
                             1 => {
-                                // On Color field - resolve random or default to White, then start game
+                                // On Color field - resolve the final color, then start the game
                                 app.resolve_selected_color();
                                 // Hosting: start game (color selected)
                                 app.current_page = Pages::Multiplayer;
@@ -1327,7 +1327,7 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                     // Reset form state
                     app.hosting = None;
                     app.selected_color = None;
-                    app.pending_random_color = false;
+                    app.is_random_color = false;
                 }
             }
             KeyCode::Esc | KeyCode::Char('b') => {

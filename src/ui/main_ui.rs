@@ -118,7 +118,7 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
 
         // If we passed all validation checks, proceed with bot setup
         if app.current_popup != Some(Popups::Error) {
-            // Resolve any pending random choice before the bot is initialized.
+            // Resolve the selected color before the bot is initialized.
             app.resolve_selected_color();
             if app.game.logic.bot.is_none() {
                 app.bot_setup();
