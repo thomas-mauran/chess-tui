@@ -26,7 +26,7 @@ pub fn render_resign_confirmation_popup(frame: &mut Frame, app: &App) {
         .border_style(Style::default().fg(WHITE));
     let area = centered_rect(50, 30, frame.area());
 
-    let opponent_name = if let Some(game) = app.ongoing_games.get(app.menu_cursor as usize) {
+    let opponent_name = if let Some(game) = app.lichess_state.ongoing_games.get(app.menu_cursor as usize) {
         format!("vs {}", game.opponent.username)
     } else {
         "this game".to_string()
@@ -510,7 +510,7 @@ pub fn render_help_popup(frame: &mut Frame, app: &crate::app::App) {
 
     // Check if we're playing against a bot (history navigation only in solo mode)
     let is_solo_mode = app.game.logic.bot.is_none() && app.game.logic.opponent.is_none();
-    let is_puzzle_mode = app.puzzle_game.is_some();
+    let is_puzzle_mode = app.lichess_state.puzzle_game.is_some();
 
     let mut text = vec![
         Line::from("Game controls:".underlined().bold()),

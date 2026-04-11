@@ -6,7 +6,6 @@ use chess_tui::config::Config;
 use chess_tui::constants::{config_dir, DisplayMode, Pages};
 use chess_tui::event::{Event, EventHandler};
 use chess_tui::game_logic::opponent::wait_for_game_start;
-use chess_tui::handler::{handle_key_events, handle_mouse_events};
 use chess_tui::logging;
 use chess_tui::pgn_viewer::PgnViewer;
 use chess_tui::skin::{PieceStyle, Skin};
@@ -14,59 +13,11 @@ use chess_tui::ui::tui::Tui;
 use clap::Parser;
 use log::LevelFilter;
 use std::fs::{self, File};
-use std::io::{self, BufRead, Write};
+use std::io::{self, Write};
 use std::panic;
 use std::path::Path;
-
-/// Runs the --update-skins command: prompt for confirmation, archive current skins.json, write default.
-fn run_update_skins() -> AppResult<()> {
-    const DEFAULT_SKINS: &str = include_str!("default_skins.json");
-
-    let config_dir = config_dir()?;
-    let skins_dir = config_dir.join("chess-tui");
-    let skins_path = skins_dir.join("skins.json");
-
-    fs::create_dir_all(&skins_dir)?;
-
-    if !skins_path.exists() {
-        let mut file = File::create(&skins_path)?;
-        file.write_all(DEFAULT_SKINS.as_bytes())?;
-        println!(
-            "Created skins.json with default content at {}",
-            skins_path.display()
-        );
-        return Ok(());
-    }
-
-    print!(
-        "This will replace your skins config with the default. \
-         Your current file will be archived in the same folder. Continue? (y/n): "
-    );
-    std::io::stdout().flush()?;
-
-    let mut line = String::new();
-    std::io::stdin().lock().read_line(&mut line)?;
-    let answer = line.trim().to_lowercase();
-
-    if answer != "y" && answer != "yes" {
-        println!("Aborted.");
-        return Ok(());
-    }
-
-    let timestamp = chrono::Local::now().format("%Y-%m-%d_%H-%M-%S");
-    let archive_name = format!("skins_{}.json", timestamp);
-    let archive_path = skins_dir.join(&archive_name);
-
-    fs::copy(&skins_path, &archive_path)?;
-    let mut file = File::create(&skins_path)?;
-    file.write_all(DEFAULT_SKINS.as_bytes())?;
-
-    println!(
-        "Archived previous config to {} and updated skins.json with default.",
-        archive_path.display()
-    );
-    Ok(())
-}
+use chess_tui::lichess::LichessClient;
+use chess_tui::handlers::handler::{handle_key_events, handle_mouse_events};
 
 /// Simple program to greet a person
 #[derive(Parser, Debug)]
@@ -106,7 +57,7 @@ fn main() -> AppResult<()> {
 
     // Handle --update-skins: update config from default, then exit (no TUI)
     if args.update_skins {
-        return run_update_skins();
+        return Skin::run_update_skins();
     }
 
     // Used to enable mouse capture (only after we know we're running the TUI)
@@ -137,12 +88,12 @@ fn main() -> AppResult<()> {
     // We store the chess engine path if there is one
     if let Ok(content) = fs::read_to_string(config_path) {
         if content.trim().is_empty() {
-            app.chess_engine_path = None;
+            app.bot_state.chess_engine_path = None;
         } else {
             let config: Config = toml::from_str(&content).unwrap_or_default();
 
             if let Some(engine_path) = config.engine_path {
-                app.chess_engine_path = Some(engine_path);
+                app.bot_state.chess_engine_path = Some(engine_path);
             }
             // Set the display mode based on the configuration file
             if let Some(display_mode) = config.display_mode {
@@ -158,17 +109,19 @@ fn main() -> AppResult<()> {
             }
             // Add bot depth handling
             if let Some(bot_depth) = config.bot_depth {
-                app.bot_depth = bot_depth;
+                app.bot_state.bot_depth = bot_depth;
             }
             // Bot difficulty
-            app.bot_difficulty = config.bot_difficulty;
+            app.bot_state.bot_difficulty = config.bot_difficulty;
             // Add selected skin name handling
             if let Some(selected_skin_name) = config.selected_skin_name {
-                app.selected_skin_name = selected_skin_name;
+                app.theme_state.selected_skin_name = selected_skin_name;
             }
             // Add lichess token handling
             if let Some(lichess_token) = config.lichess_token {
-                app.lichess_token = Some(lichess_token);
+                app.lichess_state.token = Some(lichess_token.clone());
+                app.lichess_state.client = Some(LichessClient::new(lichess_token));
+
             }
             // Add sound enabled handling
             if let Some(sound_enabled) = config.sound_enabled {
@@ -181,8 +134,8 @@ fn main() -> AppResult<()> {
     }
 
     // Always start with Default and ASCII display modes at the beginning
-    app.available_skins.push(Skin::default_display_mode());
-    app.available_skins.push(Skin::ascii_display_mode());
+    app.theme_state.available_skins.push(Skin::default_display_mode());
+    app.theme_state.available_skins.push(Skin::ascii_display_mode());
 
     // Load all available skins from skins.json
     let skins_path = config_dir.join("chess-tui/skins.json");
@@ -201,7 +154,7 @@ fn main() -> AppResult<()> {
                     .into_iter()
                     .filter(|s| s.name != "Default" && s.name != "ASCII")
                     .collect();
-                app.available_skins.extend(custom_skins);
+                app.theme_state.available_skins.extend(custom_skins);
             }
             Err(e) => {
                 eprintln!("Failed to load skins: {}", e);
@@ -215,22 +168,22 @@ fn main() -> AppResult<()> {
                     .into_iter()
                     .filter(|ps| ps.name != "Default" && ps.name != "ASCII")
                     .collect();
-                app.available_piece_styles.extend(custom_piece_styles);
+                app.theme_state.available_piece_styles.extend(custom_piece_styles);
             }
             Err(e) => {
                 eprintln!("Failed to load custom piece styles: {}", e);
             }
         }
         // Sync loaded piece styles to the game UI so rendering can use them
-        app.game.ui.available_piece_styles = app.available_piece_styles.clone();
+        app.game.ui.available_piece_styles = app.theme_state.available_piece_styles.clone();
     }
 
     // Apply selected skin
-    if let Some(skin) = Skin::get_skin_by_name(&app.available_skins, &app.selected_skin_name) {
-        app.loaded_skin = Some(skin.clone());
+    if let Some(skin) = Skin::get_skin_by_name(&app.theme_state.available_skins, &app.theme_state.selected_skin_name) {
+        app.theme_state.loaded_skin = Some(skin.clone());
         app.game.ui.skin = skin.clone();
         // Set display mode based on skin name
-        match app.selected_skin_name.as_str() {
+        match app.theme_state.selected_skin_name.as_str() {
             "Default" => app.game.ui.display_mode = DisplayMode::DEFAULT,
             "ASCII" => app.game.ui.display_mode = DisplayMode::ASCII,
             _ => {
@@ -242,12 +195,12 @@ fn main() -> AppResult<()> {
         }
     } else {
         // Fallback: use the first available skin if selected skin not found
-        if let Some(first_skin) = app.available_skins.first() {
-            app.selected_skin_name = first_skin.name.clone();
-            app.loaded_skin = Some(first_skin.clone());
+        if let Some(first_skin) = app.theme_state.available_skins.first() {
+            app.theme_state.selected_skin_name = first_skin.name.clone();
+            app.theme_state.loaded_skin = Some(first_skin.clone());
             app.game.ui.skin = first_skin.clone();
             // Set display mode based on skin name
-            match app.selected_skin_name.as_str() {
+            match app.theme_state.selected_skin_name.as_str() {
                 "Default" => app.game.ui.display_mode = DisplayMode::DEFAULT,
                 "ASCII" => app.game.ui.display_mode = DisplayMode::ASCII,
                 _ => app.game.ui.display_mode = DisplayMode::CUSTOM,
@@ -257,12 +210,12 @@ fn main() -> AppResult<()> {
 
     // Command line arguments take precedence over configuration file
     if !args.engine_path.is_empty() {
-        app.chess_engine_path = Some(args.engine_path.clone());
+        app.bot_state.chess_engine_path = Some(args.engine_path.clone());
     }
 
     // Command line depth argument takes precedence over configuration file
     if let Some(depth) = args.depth {
-        app.bot_depth = depth;
+        app.bot_state.bot_depth = depth;
     }
 
     // Command line difficulty argument takes precedence over configuration file
@@ -275,13 +228,13 @@ fn main() -> AppResult<()> {
             _ => None,
         };
         if let Some(i) = idx {
-            app.bot_difficulty = Some(i);
+            app.bot_state.bot_difficulty = Some(i);
         }
     }
 
     // Command line lichess token takes precedence over configuration file
     if let Some(token) = &args.lichess_token {
-        app.lichess_token = Some(token.clone());
+        app.lichess_state.token = Some(token.clone());
     }
 
     // Command line no-sound flag takes precedence over configuration file
@@ -292,9 +245,9 @@ fn main() -> AppResult<()> {
 
     // Command line skin takes precedence over configuration file (reproducible theme)
     if let Some(ref skin_name) = args.skin {
-        app.selected_skin_name = skin_name.clone();
-        if let Some(skin) = Skin::get_skin_by_name(&app.available_skins, skin_name) {
-            app.loaded_skin = Some(skin.clone());
+        app.theme_state.selected_skin_name = skin_name.clone();
+        if let Some(skin) = Skin::get_skin_by_name(&app.theme_state.available_skins, skin_name) {
+            app.theme_state.loaded_skin = Some(skin.clone());
             app.game.ui.skin = skin.clone();
             match skin_name.as_str() {
                 "Default" => app.game.ui.display_mode = DisplayMode::DEFAULT,
@@ -402,23 +355,23 @@ fn main() -> AppResult<()> {
         app.check_game_end_status();
 
         // Check if hosting player received game start signal from background thread
-        if let Some(ref game_start_rx) = app.game_start_rx {
+        if let Some(ref game_start_rx) = app.multiplayer_state.game_start_rx {
             if let Ok(()) = game_start_rx.try_recv() {
                 if let Some(opponent) = app.game.logic.opponent.as_mut() {
                     log::info!("Host received game start signal, starting game");
                     opponent.game_started = true;
-                    app.current_popup = None;
+                    app.close_popup();
                 }
             }
         }
 
         // For non-hosting players, check directly on the stream
         if let Some(opponent) = app.game.logic.opponent.as_mut() {
-            if !opponent.game_started && app.game_start_rx.is_none() {
+            if !opponent.game_started && app.multiplayer_state.game_start_rx.is_none() {
                 match wait_for_game_start(opponent) {
                     Ok(true) => {
                         opponent.game_started = true;
-                        app.current_popup = None;
+                        app.close_popup();
                     }
                     Ok(false) => {
                         // Still waiting, do nothing

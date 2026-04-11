@@ -61,7 +61,6 @@ pub struct App {
 
 ### Navigation
 
-- **`go_to_home()`** - Returns to home page and restarts game
 - **`menu_select()`** - Handles menu item selection
 - **`menu_cursor_up/down/left/right(l: u8)`** - Navigates menu cursor
 

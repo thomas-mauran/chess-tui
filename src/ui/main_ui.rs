@@ -43,14 +43,14 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
     else if app.current_page == Pages::Multiplayer {
         // Don't override Error popup
         if app.current_popup != Some(Popups::Error) {
-            if app.hosting.is_none() {
+            if app.multiplayer_state.hosting.is_none() {
                 app.current_popup = Some(Popups::MultiplayerSelection);
             } else if app.game.logic.opponent.is_none() {
-                if app.host_ip.is_none() {
-                    if app.hosting == Some(true) {
+                if app.multiplayer_state.host_ip.is_none() {
+                    if app.multiplayer_state.hosting == Some(true) {
                         if let Some(color) = app.selected_color {
                             app.setup_game_server(color);
-                            app.host_ip = Some("127.0.0.1".to_string());
+                            app.multiplayer_state.host_ip = Some("127.0.0.1".to_string());
                         }
                     } else {
                         app.current_popup = Some(Popups::EnterHostIP);
@@ -79,11 +79,11 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
     else if app.current_page == Pages::Bot {
         // Check if engine path is configured
         if app
-            .chess_engine_path
+            .bot_state.chess_engine_path
             .as_ref()
             .is_none_or(|path| path.is_empty())
         {
-            app.error_message = Some(
+            app.popup_message = Some(
                 "Chess engine path not configured.\n\n".to_string()
                     + "To configure the chess engine follow the documentation: https://thomas-mauran.github.io/chess-tui/docs/Configuration/bot\n\n"
                     + "Example:\n"
@@ -94,12 +94,12 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
             app.current_popup = Some(Popups::Error);
         }
         // Check if engine path exists and is a valid file
-        else if let Some(engine_path) = &app.chess_engine_path {
+        else if let Some(engine_path) = &app.bot_state.chess_engine_path {
             // Extract just the command path (first part before any arguments)
             let command_path = engine_path.split_whitespace().next().unwrap_or(engine_path);
             let path = Path::new(command_path);
             if !path.exists() || !path.is_file() {
-                app.error_message = Some(
+                app.popup_message = Some(
                     format!(
                         "Chess engine path is invalid.\n\n\
                         The configured path does not exist or is not a file:\n\
@@ -169,13 +169,13 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
             render_help_popup(frame, app);
         }
         Some(Popups::Error) => {
-            if let Some(ref error_msg) = app.error_message {
-                render_error_popup(frame, error_msg);
+            if let Some(ref msg) = app.popup_message {
+                render_error_popup(frame, msg);
             }
         }
         Some(Popups::Success) => {
-            if let Some(ref success_msg) = app.error_message {
-                render_success_popup(frame, success_msg);
+            if let Some(ref msg) = app.popup_message {
+                render_success_popup(frame, msg);
             }
         }
         Some(Popups::SeekingLichessGame) => {
@@ -203,14 +203,14 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
         }
         Some(Popups::PuzzleEndScreen) => {
             // Show puzzle completion message
-            let message = if let Some(ref error_msg) = app.error_message {
-                error_msg.clone()
+            let message = if let Some(ref msg) = app.popup_message {
+                msg.clone()
             } else {
                 "Puzzle solved! Well done!".to_string()
             };
 
             // Check if we're still waiting for Elo change calculation
-            let (elo_change, is_calculating) = if let Some(puzzle_game) = &app.puzzle_game {
+            let (elo_change, is_calculating) = if let Some(puzzle_game) = &app.lichess_state.puzzle_game {
                 (
                     puzzle_game.elo_change,
                     puzzle_game.elo_change.is_none() && puzzle_game.elo_change_receiver.is_some(),
@@ -616,7 +616,7 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
 
     //bottom box for white material
     let white_taken = app.game.logic.game_board.white_taken_pieces();
-    let is_puzzle_mode = app.puzzle_game.is_some();
+    let is_puzzle_mode = app.lichess_state.puzzle_game.is_some();
     if is_puzzle_mode {
         app.game.ui.white_material_render_with_puzzle_hint(
             board_block.inner(right_box_layout[2]),

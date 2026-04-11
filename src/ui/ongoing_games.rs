@@ -36,7 +36,7 @@ pub fn render_ongoing_games(frame: &mut Frame, app: &App) {
     frame.render_widget(title, chunks[0]);
 
     // Games list
-    let games = &app.ongoing_games;
+    let games = &app.lichess_state.ongoing_games;
     let mut game_lines = vec![Line::from("")];
 
     if games.is_empty() {

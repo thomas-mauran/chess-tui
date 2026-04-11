@@ -1,8 +1,10 @@
-use crate::constants::DisplayMode;
+use crate::constants::{DisplayMode, config_dir};
 use ratatui::style::Color;
 use serde::{Deserialize, Serialize};
-use std::fs;
+use std::fs::{self, File};
+use std::io::{BufRead, Write};
 use std::path::Path;
+use crate::app::AppResult;
 
 fn default_piece_style_str() -> String {
     DisplayMode::DEFAULT.to_string()
@@ -105,6 +107,56 @@ impl Skin {
         let content = fs::read_to_string(path)?;
         let collection: PieceStyleCollection = serde_json::from_str(&content)?;
         Ok(collection.piece_styles)
+    }
+
+    /// Runs the --update-skins command: prompt for confirmation, archive current skins.json, write default.
+    pub fn run_update_skins() -> AppResult<()> {
+        const DEFAULT_SKINS: &str = include_str!("default_skins.json");
+
+        let config_dir = config_dir()?;
+        let skins_dir = config_dir.join("chess-tui");
+        let skins_path = skins_dir.join("skins.json");
+
+        fs::create_dir_all(&skins_dir).map_err(|e| e.to_string())?;
+
+        if !skins_path.exists() {
+            let mut file = File::create(&skins_path).map_err(|e| e.to_string())?;
+            file.write_all(DEFAULT_SKINS.as_bytes()).map_err(|e| e.to_string())?;
+            println!(
+                "Created skins.json with default content at {}",
+                skins_path.display()
+            );
+            return Ok(());
+        }
+
+        print!(
+            "This will replace your skins config with the default. \
+         Your current file will be archived in the same folder. Continue? (y/n): "
+        );
+        std::io::stdout().flush().map_err(|e| e.to_string())?;
+
+        let mut line = String::new();
+        std::io::stdin().lock().read_line(&mut line).map_err(|e| e.to_string())?;
+        let answer = line.trim().to_lowercase();
+
+        if answer != "y" && answer != "yes" {
+            println!("Aborted.");
+            return Ok(());
+        }
+
+        let timestamp = chrono::Local::now().format("%Y-%m-%d_%H-%M-%S");
+        let archive_name = format!("skins_{}.json", timestamp);
+        let archive_path = skins_dir.join(&archive_name);
+
+        fs::copy(&skins_path, &archive_path).map_err(|e| e.to_string())?;
+        let mut file = File::create(&skins_path).map_err(|e| e.to_string())?;
+        file.write_all(DEFAULT_SKINS.as_bytes()).map_err(|e| e.to_string())?;
+
+        println!(
+            "Archived previous config to {} and updated skins.json with default.",
+            archive_path.display()
+        );
+        Ok(())
     }
 
     /// Creates a special "Default" display mode skin entry

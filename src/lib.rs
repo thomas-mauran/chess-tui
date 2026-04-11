@@ -9,9 +9,6 @@ pub mod ui;
 
 pub mod server;
 
-/// Event handler.
-pub mod handler;
-
 // Game related structures
 pub mod game_logic;
 
@@ -41,3 +38,6 @@ pub mod sound;
 
 // PGN viewer
 pub mod pgn_viewer;
+
+// Input handlers
+pub mod handlers;

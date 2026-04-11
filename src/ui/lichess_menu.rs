@@ -120,7 +120,7 @@ pub fn render_lichess_menu(frame: &mut Frame, app: &App) {
     // User stats panel
     let mut stats_lines = vec![Line::from("")];
 
-    if let Some(profile) = &app.lichess_user_profile {
+    if let Some(profile) = &app.lichess_state.user_profile {
         // Username and title
         let username_display = if let Some(title) = &profile.title {
             format!("{} {}", title, profile.username)
@@ -309,10 +309,10 @@ pub fn render_lichess_menu(frame: &mut Frame, app: &App) {
     frame.render_widget(stats, stats_chunks[0]);
 
     // Statistics graph - show rating history line chart
-    if let Some(history) = &app.lichess_rating_history {
+    if let Some(history) = &app.lichess_state.rating_history {
         render_rating_history_chart(frame, history, stats_chunks[1]);
     } else {
-        let loading_graph = Paragraph::new(if app.lichess_user_profile.is_some() {
+        let loading_graph = Paragraph::new(if app.lichess_state.user_profile.is_some() {
             "Loading rating history..."
         } else {
             "Loading..."

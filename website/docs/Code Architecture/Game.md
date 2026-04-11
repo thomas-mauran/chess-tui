@@ -19,7 +19,6 @@ class App {
 
         +toggle_help_popup()
         +toggle_credit_popup()
-        +go_to_home()
         +tick()
         +quit()
         +start_bot_thinking()

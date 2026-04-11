@@ -8,6 +8,11 @@ use std::thread;
 
 const LICHESS_API_URL: &str = "https://lichess.org/api";
 
+pub enum LichessError {
+    NoToken,
+    NoClient,
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(tag = "type")]
 enum GameEvent {

@@ -1,0 +1,10 @@
+pub mod handler;
+pub mod home;
+pub mod solo;
+pub mod bot;
+pub mod credits;
+pub mod multiplayer;
+pub mod game_mode_menu;
+pub mod popup;
+pub mod lichess;
+pub mod pgn;
