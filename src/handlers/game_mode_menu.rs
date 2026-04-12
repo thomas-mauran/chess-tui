@@ -321,7 +321,7 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                 {
                                     app.game_mode_state.form_cursor = 1;
                                 } else {
-                                    if let Some(seconds) = app.get_time_control_seconds() {
+                                    if let Some(seconds) = app.game_mode_state.get_time_control_seconds() {
                                         use crate::game_logic::clock::Clock;
                                         app.game.logic.clock = Some(Clock::new(seconds));
                                     }
@@ -332,7 +332,7 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                 }
                             }
                             LocalFormField::CustomTime => {
-                                if let Some(seconds) = app.get_time_control_seconds() {
+                                if let Some(seconds) = app.game_mode_state.get_time_control_seconds() {
                                     use crate::game_logic::clock::Clock;
                                     app.game.logic.clock = Some(Clock::new(seconds));
                                 }

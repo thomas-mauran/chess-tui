@@ -427,8 +427,8 @@ fn render_details_panel(frame: &mut Frame, app: &App, area: Rect, game_mode: u8)
                     .fg(Color::Cyan)
                     .add_modifier(Modifier::BOLD),
             )]));
-            let current_time_control = app.get_time_control_name();
-            let time_seconds = app.get_time_control_seconds();
+            let current_time_control = app.game_mode_state.get_time_control_name();
+            let time_seconds = app.game_mode_state.get_time_control_seconds();
             if let Some(seconds) = time_seconds {
                 if seconds < 60 {
                     // Show seconds for UltraBullet
@@ -457,7 +457,7 @@ fn render_details_panel(frame: &mut Frame, app: &App, area: Rect, game_mode: u8)
                 )]));
             }
             info_lines.push(Line::from(""));
-            let description = app.get_time_control_description();
+            let description = app.game_mode_state.get_time_control_description();
             // Add description as a single line - let Paragraph widget handle wrapping
             info_lines.push(Line::from(format!("  {}", description)));
             info_lines.push(Line::from(""));
