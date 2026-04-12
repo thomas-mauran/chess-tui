@@ -48,7 +48,7 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
             } else if app.game.logic.opponent.is_none() {
                 if app.multiplayer_state.host_ip.is_none() {
                     if app.multiplayer_state.hosting == Some(true) {
-                        if let Some(color) = app.selected_color {
+                        if let Some(color) = app.game_mode_state.selected_color {
                             app.setup_game_server(color);
                             app.multiplayer_state.host_ip = Some("127.0.0.1".to_string());
                         }
@@ -120,7 +120,7 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
         // If we passed all validation checks, proceed with bot setup
         if app.current_popup != Some(Popups::Error) {
             // Resolve the selected color before the bot is initialized.
-            app.resolve_selected_color();
+            app.game_mode_state.resolve_selected_color();
             if app.game.logic.bot.is_none() {
                 app.bot_setup();
             } else {

@@ -129,7 +129,7 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                             MultiplayerFormField::ColorSelection => {
                                 // Set to White (only if hosting)
                                 if app.multiplayer_state.hosting == Some(true) {
-                                    app.select_previous_color_option();
+                                    app.game_mode_state.select_previous_color_option();
                                 }
                             }
                         }
@@ -155,7 +155,7 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                     }
                                 } else {
                                     // Color - set to White
-                                    app.select_previous_color_option();
+                                    app.game_mode_state.select_previous_color_option();
                                 }
                             }
                             BotFormField::ColorSelection => {
@@ -163,8 +163,7 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                 if app.game_mode_state.clock_cursor
                                     == crate::constants::TIME_CONTROL_CUSTOM_INDEX
                                 {
-                                    // Color - set to White
-                                    app.select_previous_color_option();
+                                    app.game_mode_state.select_previous_color_option();
                                 } else {
                                     // Bot depth - decrease
                                     if app.bot_state.bot_depth > 1 {
@@ -241,7 +240,7 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                             }
                             MultiplayerFormField::ColorSelection => {
                                 if app.multiplayer_state.hosting == Some(true) {
-                                    app.select_next_color_option();
+                                    app.game_mode_state.select_next_color_option();
                                 }
                             }
                         }
@@ -264,14 +263,14 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                         app.game_mode_state.custom_time_minutes += 1;
                                     }
                                 } else {
-                                    app.select_next_color_option();
+                                    app.game_mode_state.select_next_color_option();
                                 }
                             }
                             BotFormField::ColorSelection => {
                                 if app.game_mode_state.clock_cursor
                                     == crate::constants::TIME_CONTROL_CUSTOM_INDEX
                                 {
-                                    app.select_next_color_option();
+                                    app.game_mode_state.select_next_color_option();
                                 } else if app.bot_state.bot_depth < 20 {
                                     app.bot_state.bot_depth += 1;
                                     app.update_config();
@@ -360,8 +359,8 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                 }
                             }
                             MultiplayerFormField::ColorSelection => {
-                                if app.selected_color.is_none() && !app.is_random_color {
-                                    app.selected_color = Some(shakmaty::Color::White);
+                                if app.game_mode_state.selected_color.is_none() && !app.game_mode_state.is_random_color {
+                                    app.game_mode_state.selected_color = Some(shakmaty::Color::White);
                                 }
                                 app.current_page = Pages::Multiplayer;
                                 app.game_mode_state.selection = None;
@@ -381,8 +380,8 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                     != crate::constants::TIME_CONTROL_CUSTOM_INDEX
                                 {
                                     // Color field (no custom time) - default White if nothing selected
-                                    if app.selected_color.is_none() && !app.is_random_color {
-                                        app.selected_color = Some(shakmaty::Color::White);
+                                    if app.game_mode_state.selected_color.is_none() && !app.game_mode_state.is_random_color {
+                                        app.game_mode_state.selected_color = Some(shakmaty::Color::White);
                                     }
                                 }
                                 app.game_mode_state.form_cursor = 2;
@@ -392,8 +391,8 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                     == crate::constants::TIME_CONTROL_CUSTOM_INDEX
                                 {
                                     // Color field (custom time) - default White if nothing selected
-                                    if app.selected_color.is_none() && !app.is_random_color {
-                                        app.selected_color = Some(shakmaty::Color::White);
+                                    if app.game_mode_state.selected_color.is_none() && !app.game_mode_state.is_random_color {
+                                        app.game_mode_state.selected_color = Some(shakmaty::Color::White);
                                     }
                                 }
                                 app.game_mode_state.form_cursor = 3;
@@ -465,7 +464,7 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                         app.game_mode_state.selection = Some(game_mode);
                         // Reset form state
                         app.multiplayer_state.hosting = None;
-                        app.selected_color = None;
+                        app.game_mode_state.selected_color = None;
                     }
                 }
             }

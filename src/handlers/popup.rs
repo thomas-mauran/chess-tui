@@ -27,7 +27,7 @@ pub fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
                 app.close_popup();
                 if app.current_page == Pages::Multiplayer {
                     app.multiplayer_state.hosting = None;
-                    app.selected_color = None;
+                    app.game_mode_state.selected_color = None;
                     app.menu_cursor = 0;
                 }
                 app.current_page = Pages::Home;

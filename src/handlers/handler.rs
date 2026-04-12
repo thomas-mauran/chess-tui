@@ -95,7 +95,7 @@ pub fn chess_inputs(app: &mut App, key_event: KeyEvent) {
             GameState::Playing => {
                 // In Lichess mode, only allow board cursor movement if it's our turn
                 if app.current_page == Pages::Lichess {
-                    if let Some(my_color) = app.selected_color {
+                    if let Some(my_color) = app.game_mode_state.selected_color {
                         if app.game.logic.player_turn == my_color {
                             app.go_right_in_game();
                         }
@@ -114,7 +114,7 @@ pub fn chess_inputs(app: &mut App, key_event: KeyEvent) {
             GameState::Playing => {
                 // In Lichess mode, only allow board cursor movement if it's our turn
                 if app.current_page == Pages::Lichess {
-                    if let Some(my_color) = app.selected_color {
+                    if let Some(my_color) = app.game_mode_state.selected_color {
                         if app.game.logic.player_turn == my_color {
                             app.go_left_in_game();
                         }
@@ -274,7 +274,7 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
 
         // In Lichess mode, only allow input if it's our turn (but not for promotion, handled above)
         if app.current_page == Pages::Lichess {
-            if let Some(my_color) = app.selected_color {
+            if let Some(my_color) = app.game_mode_state.selected_color {
                 if app.game.logic.player_turn != my_color {
                     return Ok(());
                 }

@@ -9,6 +9,11 @@ use ratatui::{
 use shakmaty::Color as ShakmatyColor;
 
 use crate::constants::TIME_CONTROL_OPTIONS;
+pub enum ColorSelection {
+    White,
+    Black,
+    Random,
+}
 
 /// Renders the time control selection UI (buttons and custom time field if needed)
 /// Returns the updated chunk index after rendering
@@ -205,9 +210,9 @@ fn render_color_selection_ui(
         .split(color_area[1]);
 
     let is_focused = is_active && app.game_mode_state.form_cursor == color_cursor;
-    let white_selected = app.selected_color == Some(ShakmatyColor::White) && !app.is_random_color;
+    let white_selected = app.game_mode_state.selected_color == Some(ShakmatyColor::White) && !app.game_mode_state.is_random_color;
     let white_focused =
-        is_enabled && is_focused && app.selected_color.is_none() && !app.is_random_color;
+        is_enabled && is_focused && app.game_mode_state.selected_color.is_none() && !app.game_mode_state.is_random_color;
     let white_style = if !is_enabled {
         Style::default().fg(grey_color)
     } else if white_selected {
@@ -228,7 +233,7 @@ fn render_color_selection_ui(
         .style(white_style);
     frame.render_widget(white_text, color_button_area[0]);
 
-    let black_selected = app.selected_color == Some(ShakmatyColor::Black) && !app.is_random_color;
+    let black_selected = app.game_mode_state.selected_color == Some(ShakmatyColor::Black) && !app.game_mode_state.is_random_color;
     let black_style = if !is_enabled {
         Style::default().fg(grey_color)
     } else if black_selected {
@@ -244,7 +249,7 @@ fn render_color_selection_ui(
         .style(black_style);
     frame.render_widget(black_text, color_button_area[2]);
 
-    let random_selected = app.is_random_color;
+    let random_selected = app.game_mode_state.is_random_color;
     let random_style = if !is_enabled {
         Style::default().fg(grey_color)
     } else if random_selected {
