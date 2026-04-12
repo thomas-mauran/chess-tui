@@ -69,7 +69,7 @@ pub fn render_lichess_menu(frame: &mut Frame, app: &App) {
     let mut menu_lines = vec![Line::from("")];
 
     for (idx, (option, description)) in menu_items.iter().enumerate() {
-        let is_selected = app.menu_cursor == idx as u8;
+        let is_selected = app.ui_state.menu_cursor == idx as u8;
         let is_disconnect = idx == 4; // Disconnect is the 5th option (index 4)
 
         let style = if is_selected {

@@ -23,6 +23,8 @@ impl Clone for GameLogic {
             player_turn: self.player_turn,
             game_state: self.game_state,
             clock: self.clock.clone(),
+            game_ended_by_time: self.game_ended_by_time,
+            pending_promotion_move: None,
         }
     }
 }
@@ -40,6 +42,12 @@ pub struct GameLogic {
     pub game_state: GameState,
     /// Chess clock for timing games (optional, for local play and bot games)
     pub clock: Option<Clock>,
+    /// Whether the game ended due to time running out
+    pub game_ended_by_time: bool,
+    /// Pending promotion move for puzzle validation (from, to squares)
+    /// This is set when a promotion move is made and cleared after validation
+    pub pending_promotion_move: Option<(shakmaty::Square, shakmaty::Square)>,
+
 }
 
 impl Default for GameLogic {
@@ -51,6 +59,8 @@ impl Default for GameLogic {
             player_turn: Color::White,
             game_state: GameState::Playing,
             clock: None,
+            game_ended_by_time: false,
+            pending_promotion_move: None,
         }
     }
 }

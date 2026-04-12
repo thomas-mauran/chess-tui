@@ -11,8 +11,12 @@ use crate::game_logic::puzzle::PuzzleGame;
 use crate::handlers::game_mode_menu::AvailableGameMode;
 use crate::lichess::{LichessClient, LichessError};
 use crate::server::game_server::get_host_ip;
-use crate::skin::{PieceStyle, Skin};
 use crate::sound::{play_menu_nav_sound, play_move_sound};
+use crate::state::bot_state::BotState;
+use crate::state::game_mode_state::GameModeState;
+use crate::state::multiplayer_state::MultiplayerState;
+use crate::state::theme_state::ThemeState;
+use crate::state::ui_state::UIState;
 use crate::utils::flip_square_if_needed;
 use log::LevelFilter;
 use shakmaty::{Color, Move};
@@ -24,311 +28,6 @@ use std::sync::mpsc::{channel, Receiver};
 
 /// Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
-
-/// Defines every variable related to the theme in the app
-pub struct ThemeState {
-    /// The loaded skin
-    pub loaded_skin: Option<Skin>,
-    /// Available skins loaded from skins.json
-    pub available_skins: Vec<Skin>,
-    /// Available Piece Styles
-    pub available_piece_styles: Vec<PieceStyle>,
-    /// Selected skin name
-    pub selected_skin_name: String,
-}
-
-impl ThemeState {
-    pub fn default() -> Self {
-        Self {
-            loaded_skin: None,
-            available_skins: Vec::new(),
-            available_piece_styles: Vec::new(),
-            selected_skin_name: "Default".to_string(),
-        }
-    }
-
-    /// Gets the previous skin
-    pub fn get_next_skin(&mut self) -> Skin {
-        if self.available_skins.is_empty() {
-            return Skin::default_display_mode();
-        }
-
-        // Find current skin index
-        let current_index = self
-            .available_skins
-            .iter()
-            .position(|s| s.name == self.selected_skin_name)
-            .unwrap_or(0);
-        play_menu_nav_sound();
-
-        // Move to next skin (wrap around)
-        let next_index = (current_index + 1) % self.available_skins.len();
-
-        self.available_skins[next_index].clone()
-    }
-
-    /// Gets the previous skin
-    pub fn get_previous_skin(&mut self) -> Skin {
-        if self.available_skins.is_empty() {
-            return Skin::default_display_mode();
-        }
-
-        // Find current skin index
-        let current_index = self
-            .available_skins
-            .iter()
-            .position(|s| s.name == self.selected_skin_name)
-            .unwrap_or(0);
-        play_menu_nav_sound();
-
-        // Move to next skin (wrap around)
-        let next_index = (current_index + 1) % self.available_skins.len();
-
-        self.available_skins[next_index].clone()
-    }
-
-    pub fn get_skin(&self, next: bool) -> Skin {
-        if self.available_skins.is_empty() {
-            return Skin::default_display_mode();
-        }
-
-        // Find current skin index
-        let current_index = self
-            .available_skins
-            .iter()
-            .position(|s| s.name == self.selected_skin_name)
-            .unwrap_or(0);
-
-        match next {
-            true => {
-                let next_index = (current_index + 1) % self.available_skins.len();
-                return self.available_skins[next_index].clone();
-            }
-            // previous skin
-            false => {
-                let previous_index = if current_index == 0 {
-                    self.available_skins.len() - 1
-                } else {
-                    current_index - 1
-                };
-                return self.available_skins[previous_index].clone();
-            }
-        }
-    }
-}
-
-/// Define every variable related to the bot in the app
-pub struct BotState {
-    /// Bot thinking depth for chess engine (used when difficulty is Off)
-    pub bot_depth: u8,
-    /// Bot difficulty preset: None = Off (full strength), Some(0..=3) = Easy/Medium/Hard/Magnus
-    pub bot_difficulty: Option<u8>,
-    /// Bot thinking channel receiver
-    pub bot_move_receiver: Option<Receiver<Move>>,
-    /// path of the chess engine
-    pub chess_engine_path: Option<String>,
-}
-
-impl BotState {
-    pub fn default() -> Self {
-        Self {
-            bot_depth: 10,
-            bot_difficulty: None,
-            bot_move_receiver: None,
-            chess_engine_path: None,
-        }
-    }
-
-    /// Start bot thinking in a separate thread
-    pub fn start_bot_thinking(&mut self, fen: String, depth: u8, bot_difficulty: Option<u8>) {
-        // Don't start if already thinking
-        if self.bot_move_receiver.is_some() {
-            return;
-        }
-
-        let engine_path = self.chess_engine_path.clone().unwrap_or_default();
-
-        // Create channel for communication
-        let (tx, rx) = channel();
-        self.bot_move_receiver = Some(rx);
-
-        // Spawn thread to compute bot move
-        std::thread::spawn(move || {
-            // Create bot instance in thread
-            let bot = Bot::new(&engine_path, false, depth, bot_difficulty);
-            let uci_move = bot.get_move(&fen);
-
-            // Convert UCI move to shakmaty Move
-            let position: Option<shakmaty::Chess> = shakmaty::fen::Fen::from_ascii(fen.as_bytes())
-                .ok()
-                .and_then(|fen| fen.into_position(shakmaty::CastlingMode::Standard).ok());
-
-            if let Some(pos) = position {
-                if let Ok(chess_move) = uci_move.to_move(&pos) {
-                    let _ = tx.send(chess_move);
-                }
-            }
-        });
-    }
-
-    /// Check if bot is currently thinking
-    pub fn is_bot_thinking(&self) -> bool {
-        self.bot_move_receiver.is_some()
-    }
-}
-
-/// Define every variable related to multiplayer networking in the app
-pub struct MultiplayerState {
-    /// Whether the player is hosting
-    pub hosting: Option<bool>,
-    /// Host IP address with port
-    pub host_ip: Option<String>,
-    /// Gets a signal when the opponent has joined and the game can start
-    pub game_start_rx: Option<std::sync::mpsc::Receiver<()>>,
-}
-
-impl MultiplayerState {
-    pub fn default() -> Self {
-        Self {
-            hosting: None,
-            host_ip: None,
-            game_start_rx: None,
-        }
-    }
-
-    pub fn reset(&mut self) {
-        self.hosting = None;
-        self.host_ip = None;
-        self.game_start_rx = None;
-    }
-}
-
-/// Define every variable related to game mode setup in the app
-pub struct GameModeState {
-    /// Selected game mode in GameModeMenu (0: Local, 1: Multiplayer, 2: Bot)
-    pub selection: Option<AvailableGameMode>,
-    /// Form field cursor for game mode configuration form
-    pub form_cursor: u8,
-    /// Whether the form is active (ungreyed) - user pressed Enter to activate
-    pub form_active: bool,
-    /// Clock time control index (0: UltraBullet, 1: Bullet, 2: Blitz, 3: Rapid, 4: Classical, 5: No clock, 6: Custom)
-    pub clock_cursor: u8,
-    /// Custom time in minutes (used when clock_cursor == TIME_CONTROL_CUSTOM_INDEX)
-    pub custom_time_minutes: u16,
-    /// Whether the player selected the Random color option
-    pub is_random_color: bool,
-    // Selected color when playing against the bot or in multiplayer
-    pub selected_color: Option<Color>,
-}
-
-impl GameModeState {
-    pub fn default() -> Self {
-        Self {
-            selection: None,
-            form_cursor: 0,
-            form_active: false,
-            clock_cursor: 3,         // Default: Rapid (index 3 = 15 minutes)
-            custom_time_minutes: 10, // Default custom time: 10 minutes
-            selected_color: None,
-            is_random_color: false,
-        }
-    }
-
-    pub fn reset_selected_color(&mut self) {
-        // Clear related fields
-        self.selected_color = None;
-        self.is_random_color = false;
-    }
-
-    /// Get the time control name for the current index
-    pub fn get_time_control_name(&self) -> &'static str {
-        match self.clock_cursor {
-            0 => "UltraBullet",
-            1 => "Bullet",
-            2 => "Blitz",
-            3 => "Rapid",
-            4 => "Classical",
-            5 => "No clock",
-            x if x == crate::constants::TIME_CONTROL_CUSTOM_INDEX => "Custom",
-            _ => "Rapid",
-        }
-    }
-
-    /// Get the actual seconds for the current time control index
-    /// Returns None if "No clock" is selected
-    pub fn get_time_control_seconds(&self) -> Option<u32> {
-        match self.clock_cursor {
-            0 => Some(15),      // UltraBullet: 15 seconds
-            1 => Some(60),      // Bullet: 1 minutes = 60 seconds
-            2 => Some(5 * 60),  // Blitz: 5 minutes = 300 seconds
-            3 => Some(10 * 60), // Rapid: 10 minutes = 600 seconds
-            4 => Some(60 * 60), // Classical: 60 minutes = 3600 seconds
-            5 => None,          // No clock
-            x if x == crate::constants::TIME_CONTROL_CUSTOM_INDEX => {
-                Some((self.custom_time_minutes * 60).into())
-            } // Custom: use custom_time_minutes
-            _ => Some(10 * 60), // Default fallback
-        }
-    }
-
-    /// Get the description for the current time control index
-    pub fn get_time_control_description(&self) -> String {
-        match self.clock_cursor {
-            0 => "Lightning fast (15 seconds per side)".to_string(),
-            1 => "Very short games (e.g., 1 minute per side)".to_string(),
-            2 => "Fast games (e.g., 5 minutes)".to_string(),
-            3 => "Medium games (e.g., 10 minutes)".to_string(),
-            4 => "Longer games (e.g., 60 minutes)".to_string(),
-            5 => "Play without any time limits".to_string(),
-            x if x == crate::constants::TIME_CONTROL_CUSTOM_INDEX => {
-                format!("Custom time: {} minutes per side", self.custom_time_minutes)
-            }
-            _ => "Medium games (e.g., 10 minutes)".to_string(), // Default fallback
-        }
-    }
-
-    pub fn select_previous_color_option(&mut self) {
-        if self.selected_color == Some(Color::White)
-            || self.selected_color.is_none() && !self.is_random_color
-        {
-            self.selected_color = None;
-            self.is_random_color = true;
-        } else if self.is_random_color {
-            self.selected_color = Some(Color::Black);
-            self.is_random_color = false;
-        } else if self.selected_color == Some(Color::Black) {
-            self.selected_color = Some(Color::White);
-            self.is_random_color = false;
-        }
-    }
-
-    pub fn select_next_color_option(&mut self) {
-        if self.selected_color == Some(Color::White)
-            || self.selected_color.is_none() && !self.is_random_color
-        {
-            self.selected_color = Some(Color::Black);
-            self.is_random_color = false;
-        } else if self.selected_color == Some(Color::Black) {
-            self.selected_color = None;
-            self.is_random_color = true;
-        } else if self.is_random_color {
-            self.selected_color = Some(Color::White);
-            self.is_random_color = false;
-        }
-    }
-
-    pub fn resolve_selected_color(&mut self) {
-        if self.is_random_color && self.selected_color.is_none() {
-            self.selected_color = Some(if rand::random::<bool>() {
-                Color::White
-            } else {
-                Color::Black
-            });
-        } else if !self.is_random_color && self.selected_color.is_none() {
-            self.selected_color = Some(Color::White);
-        }
-    }
-}
 
 /// Define every variable related to Lichess in the app
 pub struct LichessState {
@@ -409,21 +108,12 @@ pub struct App {
     pub log_level: LevelFilter,
     /// Whether sound effects are enabled
     pub sound_enabled: bool,
-    /// menu current cursor
-    pub menu_cursor: u8,
-
-    /// Current page to render
-    pub current_page: Pages,
-    /// Current popup to render
-    pub current_popup: Option<Popups>,
-
-    /// Error message for Error popup
-    pub popup_message: Option<String>,
 
     /// Everything related to the skin handling through the app
     pub theme_state: ThemeState,
 
     pub bot_state: BotState,
+    pub ui_state: UIState,
 
     /// Everything related to multiplayer networking
     pub multiplayer_state: MultiplayerState,
@@ -434,15 +124,6 @@ pub struct App {
     /// Everything related to Lichess
     pub lichess_state: LichessState,
 
-    /// Pending promotion move for puzzle validation (from, to squares)
-    /// This is set when a promotion move is made and cleared after validation
-    pub pending_promotion_move: Option<(shakmaty::Square, shakmaty::Square)>,
-
-    /// Track if the end screen was dismissed by the user (to prevent re-showing)
-    pub end_screen_dismissed: bool,
-
-    /// Whether the game ended due to time running out
-    pub game_ended_by_time: bool,
     /// PGN viewer: list of games loaded from a PGN file
     pub pgn_viewer_state: Option<Vec<crate::pgn_viewer::PgnViewer>>,
     /// PGN viewer: which game is currently shown
@@ -454,21 +135,15 @@ impl Default for App {
         Self {
             running: true,
             game: Game::default(),
-            current_page: Pages::Home,
-            current_popup: None,
-            menu_cursor: 0,
             log_level: LevelFilter::Off,
-            popup_message: None,
             // TODO: Make a skin::default implem
             theme_state: ThemeState::default(),
             bot_state: BotState::default(),
             multiplayer_state: MultiplayerState::default(),
             game_mode_state: GameModeState::default(),
             lichess_state: LichessState::default(),
-            pending_promotion_move: None,
-            end_screen_dismissed: false,
+            ui_state: UIState::default(),
             sound_enabled: true,
-            game_ended_by_time: false,
             pgn_viewer_state: None,
             pgn_viewer_game_idx: 0,
         }
@@ -476,27 +151,12 @@ impl Default for App {
 }
 
 impl App {
-    pub fn toggle_help_popup(&mut self) {
-        if self.current_popup == Some(Popups::Help) {
-            self.close_popup();
-        } else {
-            self.current_popup = Some(Popups::Help);
-        }
-    }
-
     pub fn show_end_screen(&mut self) {
-        self.current_popup = Some(if self.lichess_state.puzzle_game.is_some() {
+        self.ui_state.current_popup = Some(if self.lichess_state.puzzle_game.is_some() {
             Popups::PuzzleEndScreen
         } else {
             Popups::EndScreen
         })
-    }
-    pub fn toggle_credit_popup(&mut self) {
-        if self.current_page == Pages::Home {
-            self.current_page = Pages::Credit;
-        } else {
-            self.navigate_to_homepage();
-        }
     }
 
     pub fn create_opponent(&mut self) {
@@ -513,7 +173,7 @@ impl App {
                 "Setting up host with color: {:?}",
                 self.game_mode_state.selected_color
             );
-            self.current_popup = Some(Popups::WaitingForOpponentToJoin);
+            self.ui_state.current_popup = Some(Popups::WaitingForOpponentToJoin);
             if let Some(ip) = get_host_ip() {
                 self.multiplayer_state.host_ip = Some(format!("{}:{}", ip, NETWORK_PORT));
             } else {
@@ -598,7 +258,8 @@ impl App {
             Err(e) => {
                 log::error!("Failed to create opponent: {}", e);
                 self.multiplayer_state.host_ip = None;
-                self.show_message_popup(format!("Connection failed: {}", e), Popups::Error);
+                self.ui_state
+                    .show_message_popup(format!("Connection failed: {}", e), Popups::Error);
                 return;
             }
         }
@@ -616,7 +277,7 @@ impl App {
 
     pub fn create_lichess_opponent(&mut self) {
         let Ok(client) = self.lichess_state.require_client() else {
-            self.show_message_popup(
+            self.ui_state.show_message_popup(
                 "Lichess client not properly initialized, did you configure a lichess token ?"
                     .to_string(),
                 Popups::Error,
@@ -631,7 +292,7 @@ impl App {
         let cancellation_token = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
         self.lichess_state.cancellation_token = Some(cancellation_token.clone());
 
-        self.current_popup = Some(Popups::SeekingLichessGame);
+        self.ui_state.current_popup = Some(Popups::SeekingLichessGame);
 
         std::thread::spawn(move || {
             // Seek a correspondence game (no timer) since timer isn't implemented yet
@@ -649,7 +310,7 @@ impl App {
 
     pub fn join_lichess_game_by_code(&mut self, game_code: String) {
         let Ok(client) = self.lichess_state.require_client() else {
-            self.show_message_popup(
+            self.ui_state.show_message_popup(
                 "Lichess client not properly initialized, did you configure a lichess token ?"
                     .to_string(),
                 Popups::Error,
@@ -662,7 +323,7 @@ impl App {
         let (tx, rx) = channel();
         self.lichess_state.seek_receiver = Some(rx);
 
-        self.current_popup = Some(Popups::SeekingLichessGame);
+        self.ui_state.current_popup = Some(Popups::SeekingLichessGame);
 
         std::thread::spawn(move || {
             // Extract game ID from URL if a full URL was provided
@@ -702,7 +363,7 @@ impl App {
         if let Some(rx) = &self.lichess_state.seek_receiver {
             if let Ok(result) = rx.try_recv() {
                 self.lichess_state.seek_receiver = None;
-                self.close_popup();
+                self.ui_state.close_popup();
 
                 // Cancel the seek since we found a game (or got an error)
                 if let Some(cancellation_token) = &self.lichess_state.cancellation_token {
@@ -719,7 +380,7 @@ impl App {
                     }
                     Err(e) => {
                         log::error!("Failed to seek Lichess game: {}", e);
-                        self.show_message_popup(
+                        self.ui_state.show_message_popup(
                             format!("Failed to seek game: {}", e),
                             Popups::Error,
                         );
@@ -753,7 +414,7 @@ impl App {
         // If still not found, try fetching ongoing games to get FEN
         if fen.is_none() {
             let Ok(client) = self.lichess_state.require_client() else {
-                self.show_message_popup(
+                self.ui_state.show_message_popup(
                     "Lichess client not properly initialized, did you configure a lichess token ?"
                         .to_string(),
                     Popups::Error,
@@ -779,7 +440,7 @@ impl App {
             let mut last_move_to_add: Option<String> = None;
 
             let Ok(client) = self.lichess_state.require_client() else {
-                self.show_message_popup(
+                self.ui_state.show_message_popup(
                     "Lichess client not properly initialized, did you configure a lichess token ?"
                         .to_string(),
                     Popups::Error,
@@ -827,7 +488,7 @@ impl App {
                         }
                         Err(e) => {
                             log::error!("Failed to parse FEN position: {}", e);
-                            self.show_message_popup(
+                            self.ui_state.show_message_popup(
                                 format!("Failed to parse FEN: {}", e),
                                 Popups::Error,
                             );
@@ -837,7 +498,8 @@ impl App {
                 }
                 Err(e) => {
                     log::error!("Failed to parse FEN string: {}", e);
-                    self.show_message_popup(format!("Failed to parse FEN: {}", e), Popups::Error);
+                    self.ui_state
+                        .show_message_popup(format!("Failed to parse FEN: {}", e), Popups::Error);
                     return false;
                 }
             }
@@ -858,7 +520,7 @@ impl App {
         immediate_last_move: Option<String>,
     ) {
         let Ok(client) = self.lichess_state.require_client() else {
-            self.show_message_popup(
+            self.ui_state.show_message_popup(
                 "Lichess client not properly initialized, did you configure a lichess token ?"
                     .to_string(),
                 Popups::Error,
@@ -884,7 +546,8 @@ impl App {
         let lichess_to_app_tx_clone = lichess_to_app_tx.clone();
         if let Err(e) = client.stream_game(game_id.clone(), lichess_to_app_tx_clone, Some(color)) {
             log::error!("Failed to stream Lichess game: {}", e);
-            self.show_message_popup(format!("Failed to stream game: {}", e), Popups::Error);
+            self.ui_state
+                .show_message_popup(format!("Failed to stream game: {}", e), Popups::Error);
             return;
         }
 
@@ -922,12 +585,12 @@ impl App {
         }
 
         // Switch to Lichess page to show the game board
-        self.current_page = Pages::Lichess;
+        self.ui_state.current_page = Pages::Lichess;
     }
 
     pub fn fetch_ongoing_games(&mut self) {
         let Ok(client) = self.lichess_state.require_client() else {
-            self.show_message_popup(
+            self.ui_state.show_message_popup(
                 "Lichess client not properly initialized, did you configure a lichess token ?"
                     .to_string(),
                 Popups::Error,
@@ -941,7 +604,7 @@ impl App {
             }
             Err(e) => {
                 log::error!("Failed to fetch ongoing games: {}", e);
-                self.show_message_popup(
+                self.ui_state.show_message_popup(
                     format!("Failed to fetch ongoing games: {}", e),
                     Popups::Error,
                 );
@@ -953,10 +616,10 @@ impl App {
         if self
             .lichess_state
             .ongoing_games
-            .get(self.menu_cursor as usize)
+            .get(self.ui_state.menu_cursor as usize)
             .is_some()
         {
-            self.current_popup = Some(Popups::ResignConfirmation);
+            self.ui_state.current_popup = Some(Popups::ResignConfirmation);
         }
     }
 
@@ -964,13 +627,13 @@ impl App {
         if let Some(game) = self
             .lichess_state
             .ongoing_games
-            .get(self.menu_cursor as usize)
+            .get(self.ui_state.menu_cursor as usize)
         {
             let game_id = game.game_id.clone();
             let opponent_name = game.opponent.username.clone();
 
             let Ok(client) = self.lichess_state.require_client() else {
-                self.show_message_popup(
+                self.ui_state.show_message_popup(
                     "Lichess client not properly initialized, did you configure a lichess token ?"
                         .to_string(),
                     Popups::Error,
@@ -1010,14 +673,14 @@ impl App {
                 }
             });
 
-            self.close_popup();
+            self.ui_state.close_popup();
 
             // Show success message
             let msg = format!(
                     "Game resigned successfully!\n\nYou have resigned the game vs {}.\n\n The game list will be updated shortly.",
                     opponent_name
                 );
-            self.show_message_popup(msg, Popups::Success);
+            self.ui_state.show_message_popup(msg, Popups::Success);
 
             log::info!(
                 "Resignation request sent for game {} vs {}",
@@ -1029,7 +692,7 @@ impl App {
 
     pub fn fetch_lichess_user_profile(&mut self) {
         let Ok(client) = self.lichess_state.require_client() else {
-            self.show_message_popup(
+            self.ui_state.show_message_popup(
                 "Lichess client not properly initialized, did you configure a lichess token ?"
                     .to_string(),
                 Popups::Error,
@@ -1064,13 +727,13 @@ impl App {
     pub fn select_ongoing_game(&mut self) {
         log::debug!(
             "select_ongoing_game called, menu_cursor: {}",
-            self.menu_cursor
+            self.ui_state.menu_cursor
         );
 
         if let Some(game) = self
             .lichess_state
             .ongoing_games
-            .get(self.menu_cursor as usize)
+            .get(self.ui_state.menu_cursor as usize)
         {
             let game_id = game.game_id.clone();
             let color_str = game.color.clone();
@@ -1097,8 +760,8 @@ impl App {
 
     pub fn start_puzzle_mode(&mut self) {
         // Clear any existing popups and error messages when starting a new puzzle
-        self.close_popup();
-        self.popup_message = None;
+        self.ui_state.close_popup();
+        self.ui_state.popup_message = None;
         self.lichess_state.puzzle_game = None;
 
         // Clear opponent - puzzles don't use Lichess multiplayer, so no polling needed
@@ -1116,7 +779,7 @@ impl App {
         self.fetch_lichess_user_profile();
 
         let Ok(client) = self.lichess_state.require_client() else {
-            self.show_message_popup(
+            self.ui_state.show_message_popup(
                 "Lichess client not properly initialized, did you configure a lichess token ?"
                     .to_string(),
                 Popups::Error,
@@ -1138,7 +801,7 @@ impl App {
         let puzzle = match PuzzleGame::load(client, &mut self.game.logic.game_board) {
             Ok(p) => p,
             Err(e) => {
-                self.show_message_popup(e, Popups::Error);
+                self.ui_state.show_message_popup(e, Popups::Error);
                 return;
             }
         };
@@ -1153,7 +816,7 @@ impl App {
             self.game.logic.game_board.is_flipped = false;
         }
         // Switch to Solo page to show the board
-        self.current_page = Pages::Solo;
+        self.ui_state.current_page = Pages::Solo;
     }
 
     /// Validate puzzle move after it has been executed.
@@ -1189,9 +852,10 @@ impl App {
             if let Some(msg) = message {
                 if is_correct {
                     // Success message (puzzle solved)
-                    self.show_message_popup(msg, Popups::PuzzleEndScreen);
+                    self.ui_state
+                        .show_message_popup(msg, Popups::PuzzleEndScreen);
                 } else {
-                    self.show_message_popup(msg, Popups::Error);
+                    self.ui_state.show_message_popup(msg, Popups::Error);
                 }
             }
 
@@ -1210,7 +874,7 @@ impl App {
         }
 
         // Only show hint if it's the player's turn and game is in playing state
-        if self.game.logic.game_state != crate::game_logic::game::GameState::Playing {
+        if self.game.logic.game_state != GameState::Playing {
             return;
         }
 
@@ -1250,7 +914,8 @@ impl App {
             if let Some(success_message) =
                 puzzle_game.check_pending_move(&mut self.game, self.lichess_state.token.clone())
             {
-                self.show_message_popup(success_message, Popups::PuzzleEndScreen);
+                self.ui_state
+                    .show_message_popup(success_message, Popups::PuzzleEndScreen);
             }
 
             self.lichess_state.puzzle_game = Some(puzzle_game);
@@ -1270,7 +935,7 @@ impl App {
                     // Set player_turn to the winner so check_and_show_game_end shows correct winner
                     self.game.logic.player_turn = winner;
                     // Mark that the game ended due to time
-                    self.game_ended_by_time = true;
+                    self.game.logic.game_ended_by_time = true;
                     self.check_and_show_game_end();
                 }
             }
@@ -1404,7 +1069,7 @@ impl App {
         // PGN viewer drives its own game state via sync_pgn_to_board; running
         // update_game_state here would flip it to Checkmate/Draw on the final
         // position and open the EndScreen popup, which blocks viewer navigation.
-        if self.current_page == Pages::PgnViewer {
+        if self.ui_state.current_page == Pages::PgnViewer {
             return;
         }
 
@@ -1417,39 +1082,6 @@ impl App {
         {
             self.show_end_screen();
         }
-    }
-
-    pub fn menu_cursor_up(&mut self, l: u8) {
-        if self.menu_cursor > 0 {
-            self.menu_cursor -= 1;
-        } else {
-            self.menu_cursor = l - 1;
-        }
-        play_menu_nav_sound();
-    }
-    pub fn menu_cursor_right(&mut self, l: u8) {
-        if self.menu_cursor < l - 1 {
-            self.menu_cursor += 1;
-        } else {
-            self.menu_cursor = 0;
-        }
-        play_menu_nav_sound();
-    }
-    pub fn menu_cursor_left(&mut self, l: u8) {
-        if self.menu_cursor > 0 {
-            self.menu_cursor -= 1;
-        } else {
-            self.menu_cursor = l - 1;
-        }
-        play_menu_nav_sound();
-    }
-    pub fn menu_cursor_down(&mut self, l: u8) {
-        if self.menu_cursor < l - 1 {
-            self.menu_cursor += 1;
-        } else {
-            self.menu_cursor = 0;
-        }
-        play_menu_nav_sound();
     }
 
     pub fn bot_setup(&mut self) {
@@ -1516,15 +1148,16 @@ impl App {
     pub fn restart(&mut self) {
         // Clear puzzle state when restarting (for normal games)
         self.lichess_state.puzzle_game = None;
-        self.end_screen_dismissed = false;
-        self.game_ended_by_time = false;
+        self.ui_state.end_screen_dismissed = false;
+        self.game.logic.game_ended_by_time = false;
         let bot = self.game.logic.bot.clone();
         let opponent = self.game.logic.opponent.clone();
         // Preserve skin and display mode
         let current_skin = self.game.ui.skin.clone();
         let display_mode = self.game.ui.display_mode;
         // Check if we're in a local game (Solo page with no bot/opponent) or bot game to preserve clock
-        let is_local_game = self.current_page == Pages::Solo && bot.is_none() && opponent.is_none();
+        let is_local_game =
+            self.ui_state.current_page == Pages::Solo && bot.is_none() && opponent.is_none();
         let is_bot_game = bot.is_some() && opponent.is_none();
 
         if is_bot_game && self.game_mode_state.is_random_color {
@@ -1547,7 +1180,7 @@ impl App {
         self.game.ui.skin = current_skin;
         self.game.ui.display_mode = display_mode;
         self.game.ui.available_piece_styles = self.theme_state.available_piece_styles.clone();
-        self.close_popup();
+        self.ui_state.close_popup();
 
         // Re-initialize clock for local games and bot games
         if is_local_game || is_bot_game {
@@ -1579,16 +1212,16 @@ impl App {
     }
 
     pub fn menu_select(&mut self) {
-        let field: MainMenuItems = MainMenuItems::from(self.menu_cursor);
+        let field: MainMenuItems = MainMenuItems::from(self.ui_state.menu_cursor);
         match field {
             MainMenuItems::GameModeMenu => {
                 // Play Game -> GameModeMenu
                 // Reset everything to ensure cursor starts at first item
-                self.menu_cursor = 0;
+                self.ui_state.menu_cursor = 0;
                 self.game_mode_state.selection = Some(AvailableGameMode::Local);
                 self.game_mode_state.form_cursor = 0;
                 self.game_mode_state.form_active = false;
-                self.current_page = Pages::GameModeMenu;
+                self.ui_state.current_page = Pages::GameModeMenu;
             }
             MainMenuItems::LichessMenu => {
                 // Lichess Online
@@ -1602,13 +1235,13 @@ impl App {
                         .unwrap_or(true)
                 {
                     // Open interactive token entry popup
-                    self.current_popup = Some(Popups::EnterLichessToken);
+                    self.ui_state.current_popup = Some(Popups::EnterLichessToken);
                     self.game.ui.prompt.reset();
                     self.game.ui.prompt.message = "Enter your Lichess API token:".to_string();
                     return;
                 }
-                self.menu_cursor = 0;
-                self.current_page = Pages::LichessMenu;
+                self.ui_state.menu_cursor = 0;
+                self.ui_state.current_page = Pages::LichessMenu;
                 // Fetch user profile when entering Lichess menu
                 self.fetch_lichess_user_profile();
             }
@@ -1628,13 +1261,13 @@ impl App {
                 self.update_config();
             }
             #[cfg(feature = "sound")]
-            MainMenuItems::Help => self.toggle_help_popup(),
+            MainMenuItems::Help => self.ui_state.toggle_help_popup(),
             #[cfg(feature = "sound")]
-            MainMenuItems::Credit => self.current_page = Pages::Credit,
+            MainMenuItems::Credit => self.ui_state.current_page = Pages::Credit,
             #[cfg(not(feature = "sound"))]
             MainMenuItems::Help => self.toggle_help_popup(),
             #[cfg(not(feature = "sound"))]
-            MainMenuItems::Credit => self.current_page = Pages::Credit,
+            MainMenuItems::Credit => self.ui_state.current_page = Pages::Credit,
         }
     }
 
@@ -1695,7 +1328,7 @@ impl App {
         // First, try to validate the token by fetching the user profile
 
         let Ok(client) = self.lichess_state.require_client() else {
-            self.show_message_popup(
+            self.ui_state.show_message_popup(
                 "Lichess client not properly initialized, did you configure a lichess token ?"
                     .to_string(),
                 Popups::Error,
@@ -1714,17 +1347,17 @@ impl App {
                 self.update_config();
 
                 // Navigate to Lichess menu if we're on Home page, otherwise stay on current page
-                if self.current_page == Pages::Home {
-                    self.current_page = Pages::LichessMenu;
+                if self.ui_state.current_page == Pages::Home {
+                    self.ui_state.current_page = Pages::LichessMenu;
                 }
 
                 // Close the popup and show success message
-                self.close_popup();
+                self.ui_state.close_popup();
                 let msg = format!(
                     "Lichess token saved successfully!\n\n Logged in as: {}\n\n You can now use all Lichess features.",
                     profile.username
                 );
-                self.show_message_popup(msg, Popups::Success);
+                self.ui_state.show_message_popup(msg, Popups::Success);
             }
             Err(e) => {
                 // Token is invalid, show error
@@ -1732,8 +1365,8 @@ impl App {
                     "Invalid Lichess token.\n\nError: {}\n\n Please check your token and try again.\n\n Follow the documentation: https://thomas-mauran.github.io/chess-tui/docs/Lichess/setup",
                     e
                 );
-                self.current_popup = Some(Popups::Error);
-                self.show_message_popup(msg, Popups::Error);
+                self.ui_state.current_popup = Some(Popups::Error);
+                self.ui_state.show_message_popup(msg, Popups::Error);
             }
         }
     }
@@ -1752,11 +1385,11 @@ impl App {
         self.update_config();
 
         // Navigate back to home menu
-        self.navigate_to_homepage();
+        self.ui_state.navigate_to_homepage();
 
         // Show success message
         let msg = "Disconnected from Lichess successfully!\n\n Your token has been removed.\n\n You can reconnect anytime from the Lichess menu.".to_string();
-        self.show_message_popup(msg, Popups::Success);
+        self.ui_state.show_message_popup(msg, Popups::Success);
     }
 
     pub fn reset(&mut self) {
@@ -1765,13 +1398,13 @@ impl App {
         if let Some(ref skin) = self.theme_state.loaded_skin {
             self.game.ui.skin = skin.clone();
         }
-        self.close_popup();
+        self.ui_state.close_popup();
         self.game_mode_state.selected_color = None;
         self.game_mode_state.is_random_color = false;
         self.multiplayer_state.hosting = None;
         self.multiplayer_state.host_ip = None;
-        self.menu_cursor = 0;
-        self.end_screen_dismissed = false;
+        self.ui_state.menu_cursor = 0;
+        self.ui_state.end_screen_dismissed = false;
         self.bot_state.chess_engine_path = None;
         self.bot_state.bot_depth = 10;
         self.bot_state.bot_difficulty = None;
@@ -1802,7 +1435,7 @@ impl App {
             let mut move_was_correct = true;
 
             // If we have a pending promotion move, validate it now with the selected promotion piece
-            if let Some((from, to)) = self.pending_promotion_move.take() {
+            if let Some((from, to)) = self.game.logic.pending_promotion_move.take() {
                 // Get the promotion piece from the cursor
                 let promotion_char = match self.game.ui.promotion_cursor {
                     0 => 'q', // Queen
@@ -1829,9 +1462,10 @@ impl App {
 
                         if let Some(msg) = message {
                             if is_correct {
-                                self.show_message_popup(msg, Popups::PuzzleEndScreen);
+                                self.ui_state
+                                    .show_message_popup(msg, Popups::PuzzleEndScreen);
                             } else {
-                                self.show_message_popup(msg, Popups::Error);
+                                self.ui_state.show_message_popup(msg, Popups::Error);
                             }
                         }
                     }
@@ -1860,11 +1494,13 @@ impl App {
             self.check_and_show_game_end();
         } else {
             // In multiplayer/Lichess mode, only allow input if it's our turn (but not for promotion, handled above)
-            if self.current_page == Pages::Multiplayer || self.current_page == Pages::Lichess {
+            if self.ui_state.current_page == Pages::Multiplayer
+                || self.ui_state.current_page == Pages::Lichess
+            {
                 if let Some(my_color) = self.game_mode_state.selected_color {
                     // For TCP multiplayer, additional check is done in handle_cell_click
                     // For Lichess, we need to check here
-                    if self.current_page == Pages::Lichess {
+                    if self.ui_state.current_page == Pages::Lichess {
                         if self.game.logic.player_turn != my_color {
                             return;
                         }
@@ -1921,7 +1557,7 @@ impl App {
             if self.game.logic.game_state == GameState::Promotion {
                 // Store the move info for later validation after promotion piece is selected
                 if let Some(move_info) = puzzle_move_info {
-                    self.pending_promotion_move = Some(move_info);
+                    self.game.logic.pending_promotion_move = Some(move_info);
                 }
             } else {
                 // Validate puzzle move after execution (non-promotion moves)
@@ -1971,8 +1607,8 @@ impl App {
         // Preserve display mode and skin preference
         let display_mode = self.game.ui.display_mode;
         let current_skin = self.game.ui.skin.clone();
-        self.end_screen_dismissed = false;
-        self.game_ended_by_time = false;
+        self.ui_state.end_screen_dismissed = false;
+        self.game.logic.game_ended_by_time = false;
 
         // Cancel any active Lichess seek before resetting
         if let Some(cancellation_token) = &self.lichess_state.cancellation_token {
@@ -2004,11 +1640,11 @@ impl App {
         self.game.ui.display_mode = display_mode;
         self.game.ui.skin = current_skin;
         self.game.ui.available_piece_styles = self.theme_state.available_piece_styles.clone();
-        self.end_screen_dismissed = false;
+        self.ui_state.end_screen_dismissed = false;
         self.game_mode_state.clock_cursor = 3; // Reset to default (Rapid)
         self.game_mode_state.custom_time_minutes = 10; // Reset custom time
-        self.navigate_to_homepage();
-        self.close_popup();
+        self.ui_state.navigate_to_homepage();
+        self.ui_state.close_popup();
     }
 
     /// Checks for game end conditions after a move and shows end screen if needed.
@@ -2021,43 +1657,24 @@ impl App {
             || self.game.logic.game_state == GameState::Draw
         {
             // Game ended - only show end screen if it's not already shown and not dismissed
-            if self.current_popup != Some(Popups::EndScreen)
-                && self.current_popup != Some(Popups::PuzzleEndScreen)
-                && !self.end_screen_dismissed
+            if self.ui_state.current_popup != Some(Popups::EndScreen)
+                && self.ui_state.current_popup != Some(Popups::PuzzleEndScreen)
+                && !self.ui_state.end_screen_dismissed
             {
                 self.show_end_screen();
             }
         } else {
             // Game is no longer ended, reset the dismissed flag
-            self.end_screen_dismissed = false;
+            self.ui_state.end_screen_dismissed = false;
         }
     }
 
     /// Closes popup and navigates to home page.
     /// Used by popups that should return to home when closed.
     pub fn close_popup_and_go_home(&mut self) {
-        self.close_popup();
+        self.ui_state.close_popup();
         self.game_mode_state.clock_cursor = DEFAULT_TIME_CONTROL_SELECTED; // Reset to default (Rapid)
         self.game_mode_state.custom_time_minutes = DEFAULT_CUSTOM_TIME_VALUE; // Reset custom time
-        self.navigate_to_homepage();
-    }
-
-    pub fn show_message_popup(&mut self, message: String, popup_type: Popups) {
-        self.popup_message = Some(message);
-        self.current_popup = Some(popup_type);
-    }
-
-    pub fn show_popup(&mut self, popup_type: Popups) {
-        self.current_popup = Some(popup_type);
-    }
-
-    pub fn close_popup(&mut self) {
-        self.current_popup = None;
-        self.popup_message = None;
-    }
-
-    pub fn navigate_to_homepage(&mut self) {
-        self.current_page = Pages::Home;
-        self.menu_cursor = 0;
+        self.ui_state.navigate_to_homepage();
     }
 }

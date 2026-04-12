@@ -70,11 +70,11 @@ impl From<u8> for BotFormField {
 /// Supports navigation through menu items, form fields, and selection.
 pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
     // Ensure cursor is valid (0-2)
-    if app.menu_cursor > 2 {
-        app.menu_cursor = 0;
+    if app.ui_state.menu_cursor > 2 {
+        app.ui_state.menu_cursor = 0;
     }
 
-    let game_mode = match app.menu_cursor {
+    let game_mode = match app.ui_state.menu_cursor {
         0 => AvailableGameMode::Local,
         1 => AvailableGameMode::Multiplayer,
         2 => AvailableGameMode::Bot,
@@ -324,7 +324,7 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                         use crate::game_logic::clock::Clock;
                                         app.game.logic.clock = Some(Clock::new(seconds));
                                     }
-                                    app.current_page = Pages::Solo;
+                                    app.ui_state.current_page = Pages::Solo;
                                     app.game_mode_state.selection = None;
                                     app.game_mode_state.form_cursor = 0;
                                     app.game_mode_state.form_active = false;
@@ -335,7 +335,7 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                     use crate::game_logic::clock::Clock;
                                     app.game.logic.clock = Some(Clock::new(seconds));
                                 }
-                                app.current_page = Pages::Solo;
+                                app.ui_state.current_page = Pages::Solo;
                                 app.game_mode_state.selection = None;
                                 app.game_mode_state.form_cursor = 0;
                                 app.game_mode_state.form_active = false;
@@ -352,7 +352,7 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                 if app.multiplayer_state.hosting == Some(true) {
                                     app.game_mode_state.form_cursor = 1;
                                 } else {
-                                    app.current_page = Pages::Multiplayer;
+                                    app.ui_state.current_page = Pages::Multiplayer;
                                     app.game_mode_state.selection = None;
                                     app.game_mode_state.form_cursor = 0;
                                     app.game_mode_state.form_active = false;
@@ -362,7 +362,7 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                 if app.game_mode_state.selected_color.is_none() && !app.game_mode_state.is_random_color {
                                     app.game_mode_state.selected_color = Some(shakmaty::Color::White);
                                 }
-                                app.current_page = Pages::Multiplayer;
+                                app.ui_state.current_page = Pages::Multiplayer;
                                 app.game_mode_state.selection = None;
                                 app.game_mode_state.form_cursor = 0;
                                 app.game_mode_state.form_active = false;
@@ -403,14 +403,14 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                 {
                                     app.game_mode_state.form_cursor = 4;
                                 } else {
-                                    app.current_page = Pages::Bot;
+                                    app.ui_state.current_page = Pages::Bot;
                                     app.game_mode_state.selection = None;
                                     app.game_mode_state.form_cursor = 0;
                                     app.game_mode_state.form_active = false;
                                 }
                             }
                             BotFormField::DifficultySelection => {
-                                app.current_page = Pages::Bot;
+                                app.ui_state.current_page = Pages::Bot;
                                 app.game_mode_state.selection = None;
                                 app.game_mode_state.form_cursor = 0;
                                 app.game_mode_state.form_active = false;
@@ -425,21 +425,21 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
         // Menu navigation mode (form not active)
         match key_event.code {
             KeyCode::Up | KeyCode::Char('k') => {
-                app.menu_cursor_up(3);
+                app.ui_state.menu_cursor_up(3);
             }
             KeyCode::Down | KeyCode::Char('j') => {
-                app.menu_cursor_down(3);
+                app.ui_state.menu_cursor_down(3);
             }
             KeyCode::Left | KeyCode::Char('h') => {
                 // Change game mode selection
-                if app.menu_cursor > 0 {
-                    app.menu_cursor -= 1;
+                if app.ui_state.menu_cursor > 0 {
+                    app.ui_state.menu_cursor -= 1;
                 }
             }
             KeyCode::Right | KeyCode::Char('l') => {
                 // Change game mode selection
-                if app.menu_cursor < 2 {
-                    app.menu_cursor += 1;
+                if app.ui_state.menu_cursor < 2 {
+                    app.ui_state.menu_cursor += 1;
                 }
             }
             KeyCode::Char(' ') | KeyCode::Enter => {
@@ -470,15 +470,15 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
             }
             KeyCode::Esc | KeyCode::Char('b') => {
                 // Return to home menu
-                app.menu_cursor = 0;
+                app.ui_state.menu_cursor = 0;
                 app.game_mode_state.selection = None;
                 app.game_mode_state.form_cursor = 0;
                 app.game_mode_state.form_active = false;
                 app.game_mode_state.clock_cursor = 3; // Reset to default (Rapid)
                 app.game_mode_state.custom_time_minutes = 10; // Reset custom time
-                app.current_page = Pages::Home;
+                app.ui_state.current_page = Pages::Home;
             }
-            KeyCode::Char('?') => app.toggle_help_popup(),
+            KeyCode::Char('?') => app.ui_state.toggle_help_popup(),
             _ => fallback_key_handler(app, key_event),
         }
     }

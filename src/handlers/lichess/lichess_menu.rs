@@ -6,11 +6,11 @@ use crate::{app::App, constants::{Pages, Popups}, handlers::handler::fallback_ke
 /// Supports navigation through menu items and selection.
 pub fn handle_lichess_menu_page_events(app: &mut App, key_event: KeyEvent) {
     match key_event.code {
-        KeyCode::Up | KeyCode::Char('k') => app.menu_cursor_up(5), // 5 menu options
-        KeyCode::Down | KeyCode::Char('j') => app.menu_cursor_down(5),
+        KeyCode::Up | KeyCode::Char('k') => app.ui_state.menu_cursor_up(5), // 5 menu options
+        KeyCode::Down | KeyCode::Char('j') => app.ui_state.menu_cursor_down(5),
         KeyCode::Char(' ') | KeyCode::Enter => {
             // Handle menu selection
-            match app.menu_cursor {
+            match app.ui_state.menu_cursor {
                 0 => {
                     // Seek Game
                     if app.lichess_state.token.is_none()
@@ -21,13 +21,13 @@ pub fn handle_lichess_menu_page_events(app: &mut App, key_event: KeyEvent) {
                             .unwrap_or(true)
                     {
                         // Open interactive token entry popup
-                        app.current_popup = Some(Popups::EnterLichessToken);
+                        app.ui_state.current_popup = Some(Popups::EnterLichessToken);
                         app.game.ui.prompt.reset();
                         app.game.ui.prompt.message = "Enter your Lichess API token:".to_string();
                         return;
                     }
-                    app.menu_cursor = 0;
-                    app.current_page = Pages::Lichess;
+                    app.ui_state.menu_cursor = 0;
+                    app.ui_state.current_page = Pages::Lichess;
                     app.create_lichess_opponent();
                 }
                 1 => {
@@ -40,7 +40,7 @@ pub fn handle_lichess_menu_page_events(app: &mut App, key_event: KeyEvent) {
                             .unwrap_or(true)
                     {
                         // Open interactive token entry popup
-                        app.current_popup = Some(Popups::EnterLichessToken);
+                        app.ui_state.current_popup = Some(Popups::EnterLichessToken);
                         app.game.ui.prompt.reset();
                         app.game.ui.prompt.message = "Enter your Lichess API token:".to_string();
                         return;
@@ -57,14 +57,14 @@ pub fn handle_lichess_menu_page_events(app: &mut App, key_event: KeyEvent) {
                             .unwrap_or(true)
                     {
                         // Open interactive token entry popup
-                        app.current_popup = Some(Popups::EnterLichessToken);
+                        app.ui_state.current_popup = Some(Popups::EnterLichessToken);
                         app.game.ui.prompt.reset();
                         app.game.ui.prompt.message = "Enter your Lichess API token:".to_string();
                         return;
                     }
                     app.fetch_ongoing_games();
-                    app.current_page = Pages::OngoingGames;
-                    app.menu_cursor = 0;
+                    app.ui_state.current_page = Pages::OngoingGames;
+                    app.ui_state.menu_cursor = 0;
                 }
                 3 => {
                     // Join by Code
@@ -76,12 +76,12 @@ pub fn handle_lichess_menu_page_events(app: &mut App, key_event: KeyEvent) {
                             .unwrap_or(true)
                     {
                         // Open interactive token entry popup
-                        app.current_popup = Some(Popups::EnterLichessToken);
+                        app.ui_state.current_popup = Some(Popups::EnterLichessToken);
                         app.game.ui.prompt.reset();
                         app.game.ui.prompt.message = "Enter your Lichess API token:".to_string();
                         return;
                     }
-                    app.current_popup = Some(Popups::EnterGameCode);
+                    app.ui_state.current_popup = Some(Popups::EnterGameCode);
                     app.game.ui.prompt.reset();
                 }
                 4 => {
@@ -93,10 +93,10 @@ pub fn handle_lichess_menu_page_events(app: &mut App, key_event: KeyEvent) {
         }
         KeyCode::Esc | KeyCode::Char('b') => {
             // Return to home menu
-            app.menu_cursor = 0;
-            app.current_page = Pages::Home;
+            app.ui_state.menu_cursor = 0;
+            app.ui_state.current_page = Pages::Home;
         }
-        KeyCode::Char('?') => app.toggle_help_popup(),
+        KeyCode::Char('?') => app.ui_state.toggle_help_popup(),
         _ => fallback_key_handler(app, key_event),
     }
 }

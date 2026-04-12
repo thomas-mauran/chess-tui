@@ -49,7 +49,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
 
     // If a popup is active, the key should affect the popup and not the page,
     // therefore, if there is some popup active, handle it, if not, handle the page event
-    match app.current_popup {
+    match app.ui_state.current_popup {
         Some(popup) => handle_popup_input(app, key_event, popup),
         None => handle_page_input(app, key_event),
     }
@@ -60,7 +60,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
 
 /// Routes keyboard input to the appropriate page handler based on current page.
 pub fn handle_page_input(app: &mut App, key_event: KeyEvent) {
-    match &app.current_page {
+    match &app.ui_state.current_page {
         Pages::Home => handle_home_page_events(app, key_event),
         Pages::Solo => handle_solo_page_events(app, key_event),
         Pages::Multiplayer => handle_multiplayer_page_events(app, key_event),
@@ -94,7 +94,7 @@ pub fn chess_inputs(app: &mut App, key_event: KeyEvent) {
             }
             GameState::Playing => {
                 // In Lichess mode, only allow board cursor movement if it's our turn
-                if app.current_page == Pages::Lichess {
+                if app.ui_state.current_page == Pages::Lichess {
                     if let Some(my_color) = app.game_mode_state.selected_color {
                         if app.game.logic.player_turn == my_color {
                             app.go_right_in_game();
@@ -113,7 +113,7 @@ pub fn chess_inputs(app: &mut App, key_event: KeyEvent) {
             }
             GameState::Playing => {
                 // In Lichess mode, only allow board cursor movement if it's our turn
-                if app.current_page == Pages::Lichess {
+                if app.ui_state.current_page == Pages::Lichess {
                     if let Some(my_color) = app.game_mode_state.selected_color {
                         if app.game.logic.player_turn == my_color {
                             app.go_left_in_game();
@@ -126,13 +126,13 @@ pub fn chess_inputs(app: &mut App, key_event: KeyEvent) {
             GameState::Checkmate | GameState::Draw => {
                 // Toggle end screen visibility when game is over
                 // If popup is shown, hide it; if hidden and dismissed, show it again
-                if app.current_popup == Some(Popups::EndScreen) {
+                if app.ui_state.current_popup == Some(Popups::EndScreen) {
                     // Hide the end screen
-                    app.close_popup();
-                    app.end_screen_dismissed = true;
-                } else if app.end_screen_dismissed {
+                    app.ui_state.close_popup();
+                    app.ui_state.end_screen_dismissed = true;
+                } else if app.ui_state.end_screen_dismissed {
                     // Show the end screen again if it was dismissed (toggle back)
-                    app.end_screen_dismissed = false;
+                    app.ui_state.end_screen_dismissed = false;
                     app.show_end_screen();
                 } else {
                     // Show the end screen if it hasn't been shown yet
@@ -145,14 +145,14 @@ pub fn chess_inputs(app: &mut App, key_event: KeyEvent) {
             // In Lichess mode, only allow input if it's our turn
             app.process_cell_click();
         }
-        KeyCode::Char('?') => app.toggle_help_popup(), // Toggle help popup
+        KeyCode::Char('?') => app.ui_state.toggle_help_popup(), // Toggle help popup
         KeyCode::Char('s' | 'S') => {
             app.cycle_skin(true); // Cycle through available skins
             app.update_config();
         }
         KeyCode::Char('m') => {
             app.game.ui.prompt.reset();
-            app.current_popup = Some(Popups::MoveInputSelection)
+            app.ui_state.current_popup = Some(Popups::MoveInputSelection)
         }
         KeyCode::Esc => app.game.ui.unselect_cell(), // Deselect piece
         _ => fallback_key_handler(app, key_event),
@@ -177,13 +177,13 @@ pub fn fallback_key_handler(app: &mut App, key_event: KeyEvent) {
 /// Handles both board clicks and promotion selection clicks.
 pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<()> {
     // Handle clicks on GameModeMenu page for documentation links
-    if app.current_page == Pages::GameModeMenu {
+    if app.ui_state.current_page == Pages::GameModeMenu {
         // Documentation links are opened via keyboard shortcut ('d')
         return Ok(());
     }
 
     // Mouse control only implemented for game pages, not home or credits
-    if app.current_page == Pages::Home || app.current_page == Pages::Credit {
+    if app.ui_state.current_page == Pages::Home || app.ui_state.current_page == Pages::Credit {
         return Ok(());
     }
 
@@ -196,7 +196,7 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
             return Ok(());
         }
         // Ignore clicks when a popup is active
-        if app.current_popup.is_some() {
+        if app.ui_state.current_popup.is_some() {
             return Ok(());
         }
 
@@ -216,7 +216,7 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
             let mut move_was_correct = true;
 
             // If we have a pending promotion move, validate it now with the selected promotion piece
-            if let Some((from, to)) = app.pending_promotion_move.take() {
+            if let Some((from, to)) = app.game.logic.pending_promotion_move.take() {
                 // Get the promotion piece from the cursor
                 let promotion_char = match app.game.ui.promotion_cursor {
                     0 => 'q', // Queen
@@ -243,9 +243,9 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
 
                         if let Some(msg) = message {
                             if is_correct {
-                                app.show_message_popup(msg, Popups::PuzzleEndScreen);
+                                app.ui_state.show_message_popup(msg, Popups::PuzzleEndScreen);
                             } else {
-                                app.show_message_popup(msg, Popups::Error);
+                                app.ui_state.show_message_popup(msg, Popups::Error);
                             }
                         }
                     }
@@ -273,7 +273,7 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
         }
 
         // In Lichess mode, only allow input if it's our turn (but not for promotion, handled above)
-        if app.current_page == Pages::Lichess {
+        if app.ui_state.current_page == Pages::Lichess {
             if let Some(my_color) = app.game_mode_state.selected_color {
                 if app.game.logic.player_turn != my_color {
                     return Ok(());

@@ -270,7 +270,7 @@ pub fn render_game_mode_menu(frame: &mut Frame, app: &App) {
     let area = frame.area();
 
     // Get selected game mode (use menu_cursor)
-    let game_mode = app.menu_cursor;
+    let game_mode = app.ui_state.menu_cursor;
 
     // Create main layout: title, content (menu+form | details), footer
     let main_chunks = Layout::default()
@@ -329,7 +329,7 @@ pub fn render_game_mode_menu(frame: &mut Frame, app: &App) {
     let mut menu_lines = vec![Line::from("")];
 
     for (idx, (option, description)) in menu_items.iter().enumerate() {
-        let is_selected = app.menu_cursor == idx as u8;
+        let is_selected = app.ui_state.menu_cursor == idx as u8;
 
         let style = if is_selected {
             Style::default()

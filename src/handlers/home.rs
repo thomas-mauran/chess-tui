@@ -17,19 +17,19 @@ pub fn handle_home_page_events(app: &mut App, key_event: KeyEvent) {
     };
 
     match key_event.code {
-        KeyCode::Up | KeyCode::Char('k') => app.menu_cursor_up(MENU_ITEMS),
-        KeyCode::Down | KeyCode::Char('j') => app.menu_cursor_down(MENU_ITEMS),
+        KeyCode::Up | KeyCode::Char('k') => app.ui_state.menu_cursor_up(MENU_ITEMS),
+        KeyCode::Down | KeyCode::Char('j') => app.ui_state.menu_cursor_down(MENU_ITEMS),
         // If on skin selection menu item (index 2), use left/right to cycle skins
-        KeyCode::Left | KeyCode::Char('h') if app.menu_cursor == 2 => {
+        KeyCode::Left | KeyCode::Char('h') if app.ui_state.menu_cursor == 2 => {
             app.cycle_skin(false);
             app.update_config();
         }
-        KeyCode::Right | KeyCode::Char('l') if app.menu_cursor == 2 => {
+        KeyCode::Right | KeyCode::Char('l') if app.ui_state.menu_cursor == 2 => {
             app.cycle_skin(true);
             app.update_config();
         }
         KeyCode::Char(' ') | KeyCode::Enter => app.menu_select(),
-        KeyCode::Char('?') => app.toggle_help_popup(),
+        KeyCode::Char('?') => app.ui_state.toggle_help_popup(),
         _ => fallback_key_handler(app, key_event),
     }
 }

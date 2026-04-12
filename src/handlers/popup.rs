@@ -13,10 +13,10 @@ pub fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
             KeyCode::Enter => {
                 // Submit the entered IP address and store it
                 app.game.ui.prompt.submit_message();
-                if app.current_page == Pages::Multiplayer {
+                if app.ui_state.current_page == Pages::Multiplayer {
                     app.multiplayer_state.host_ip = Some(app.game.ui.prompt.message.clone());
                 }
-                app.close_popup();
+                app.ui_state.close_popup();
             }
             KeyCode::Char(to_insert) => app.game.ui.prompt.enter_char(to_insert),
             KeyCode::Backspace => app.game.ui.prompt.delete_char(),
@@ -24,20 +24,20 @@ pub fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
             KeyCode::Right => app.game.ui.prompt.move_cursor_right(),
             KeyCode::Esc => {
                 // Cancel IP entry and return to home menu, resetting multiplayer state
-                app.close_popup();
-                if app.current_page == Pages::Multiplayer {
+                app.ui_state.close_popup();
+                if app.ui_state.current_page == Pages::Multiplayer {
                     app.multiplayer_state.hosting = None;
                     app.game_mode_state.selected_color = None;
-                    app.menu_cursor = 0;
+                    app.ui_state.menu_cursor = 0;
                 }
-                app.current_page = Pages::Home;
+                app.ui_state.current_page = Pages::Home;
             }
             _ => fallback_key_handler(app, key_event),
         },
         // Help popup - shows game controls and key bindings
         Popups::Help => match key_event.code {
-            KeyCode::Char('?') => app.toggle_help_popup(),
-            KeyCode::Esc => app.toggle_help_popup(),
+            KeyCode::Char('?') => app.ui_state.toggle_help_popup(),
+            KeyCode::Esc => app.ui_state.toggle_help_popup(),
             _ => fallback_key_handler(app, key_event),
         },
         Popups::EnginePathError => match key_event.code {
@@ -55,19 +55,19 @@ pub fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
         Popups::EndScreen => match key_event.code {
             KeyCode::Char('h' | 'H') => {
                 // Hide the end screen (can be toggled back with H when not in popup)
-                app.close_popup();
-                app.end_screen_dismissed = true;
+                app.ui_state.close_popup();
+                app.ui_state.end_screen_dismissed = true;
             }
             KeyCode::Esc => {
                 // Also allow Esc to hide the end screen and mark as dismissed
-                app.close_popup();
-                app.end_screen_dismissed = true;
+                app.ui_state.close_popup();
+                app.ui_state.end_screen_dismissed = true;
             }
             KeyCode::Char('r' | 'R') => {
                 // Restart the game (only for non-multiplayer games)
                 if app.game.logic.opponent.is_none() {
                     app.restart();
-                    app.close_popup();
+                    app.ui_state.close_popup();
                 }
             }
             KeyCode::Char('b' | 'B') => {
@@ -80,15 +80,15 @@ pub fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
         Popups::PuzzleEndScreen => match key_event.code {
             KeyCode::Char('h' | 'H') => {
                 // Hide the puzzle end screen
-                app.close_popup();
+                app.ui_state.close_popup();
             }
             KeyCode::Esc => {
                 // Also allow Esc to hide the puzzle end screen
-                app.close_popup();
+                app.ui_state.close_popup();
             }
             KeyCode::Char('n' | 'N') => {
                 // Start a new puzzle
-                app.close_popup();
+                app.ui_state.close_popup();
                 app.start_puzzle_mode();
             }
             KeyCode::Char('b' | 'B') => {
@@ -100,23 +100,23 @@ pub fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
         // Error popup - displays error messages
         Popups::Error => match key_event.code {
             KeyCode::Esc | KeyCode::Enter | KeyCode::Char(' ') => {
-                app.close_popup();
+                app.ui_state.close_popup();
                 // Navigate back to an appropriate page based on current context
-                match app.current_page {
+                match app.ui_state.current_page {
                     Pages::Lichess | Pages::OngoingGames => {
                         // If we're on Lichess-related pages, go back to Lichess menu
-                        app.current_page = Pages::LichessMenu;
+                        app.ui_state.current_page = Pages::LichessMenu;
                     }
                     Pages::Multiplayer | Pages::Bot => {
                         // If we're on multiplayer or bot page, go back to home
-                        app.current_page = Pages::Home;
+                        app.ui_state.current_page = Pages::Home;
                     }
                     _ => {
                         // For other pages, stay on current page or go to home
                         // Only change if we're in a weird state
-                        if app.current_page == Pages::Solo && app.game.logic.opponent.is_some() {
+                        if app.ui_state.current_page == Pages::Solo && app.game.logic.opponent.is_some() {
                             // If we're in solo but have an opponent (shouldn't happen), reset
-                            app.current_page = Pages::Home;
+                            app.ui_state.current_page = Pages::Home;
                         }
                     }
                 }
@@ -126,30 +126,30 @@ pub fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
         // Success popup - displays success messages
         Popups::Success => match key_event.code {
             KeyCode::Esc | KeyCode::Enter | KeyCode::Char(' ') => {
-                app.close_popup();
+                app.ui_state.close_popup();
                 // Navigate back to an appropriate page based on current context
-                match app.current_page {
+                match app.ui_state.current_page {
                     Pages::Lichess => {
                         // If we're on Lichess-related pages, go back to Lichess menu
-                        app.current_page = Pages::LichessMenu;
+                        app.ui_state.current_page = Pages::LichessMenu;
                     }
                     Pages::OngoingGames => {
                         // If we're on Ongoing Games page, stay in Ongoing Games menu,
                         // and after resign success, refetch the list of ongoing games
                         app.fetch_ongoing_games();
-                        app.current_page = Pages::OngoingGames;
-                        app.menu_cursor = 0;
+                        app.ui_state.current_page = Pages::OngoingGames;
+                        app.ui_state.menu_cursor = 0;
                     }
                     Pages::Multiplayer | Pages::Bot => {
                         // If we're on multiplayer or bot page, go back to home
-                        app.current_page = Pages::Home;
+                        app.ui_state.current_page = Pages::Home;
                     }
                     _ => {
                         // For other pages, stay on current page or go to home
                         // Only change if we're in a weird state
-                        if app.current_page == Pages::Solo && app.game.logic.opponent.is_some() {
+                        if app.ui_state.current_page == Pages::Solo && app.game.logic.opponent.is_some() {
                             // If we're in solo but have an opponent (shouldn't happen), reset
-                            app.current_page = Pages::Home;
+                            app.ui_state.current_page = Pages::Home;
                         }
                     }
                 }
@@ -197,12 +197,12 @@ pub fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
 
                 if !game_code.is_empty() {
                     // Join the game with the entered code
-                    app.current_page = Pages::Lichess;
+                    app.ui_state.current_page = Pages::Lichess;
                     app.join_lichess_game_by_code(game_code);
                 } else {
                     // No code entered, return to menu
-                    app.close_popup();
-                    app.current_page = Pages::LichessMenu;
+                    app.ui_state.close_popup();
+                    app.ui_state.current_page = Pages::LichessMenu;
                 }
             }
             KeyCode::Char(to_insert) => app.game.ui.prompt.enter_char(to_insert),
@@ -211,8 +211,8 @@ pub fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
             KeyCode::Right => app.game.ui.prompt.move_cursor_right(),
             KeyCode::Esc => {
                 // Cancel game code entry and return to Lichess menu
-                app.close_popup();
-                app.current_page = Pages::LichessMenu;
+                app.ui_state.close_popup();
+                app.ui_state.current_page = Pages::LichessMenu;
             }
             _ => fallback_key_handler(app, key_event),
         },
@@ -227,7 +227,7 @@ pub fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
                     app.save_and_validate_lichess_token(token);
                 } else {
                     // No token entered, return to previous page
-                    app.close_popup();
+                    app.ui_state.close_popup();
                 }
             }
             KeyCode::Char(to_insert) => app.game.ui.prompt.enter_char(to_insert),
@@ -236,7 +236,7 @@ pub fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
             KeyCode::Right => app.game.ui.prompt.move_cursor_right(),
             KeyCode::Esc => {
                 // Cancel token entry
-                app.close_popup();
+                app.ui_state.close_popup();
             }
             _ => fallback_key_handler(app, key_event),
         },
@@ -247,8 +247,8 @@ pub fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
                 }
                 app.lichess_state.seek_receiver = None; // Cancel the receiver (thread continues but result ignored)
                 app.lichess_state.cancellation_token = None;
-                app.close_popup();
-                app.current_page = Pages::Home; // Go back to home
+                app.ui_state.close_popup();
+                app.ui_state.current_page = Pages::Home; // Go back to home
             }
             _ => fallback_key_handler(app, key_event),
         },
@@ -257,7 +257,7 @@ pub fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
                 app.confirm_resign_game();
             }
             KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
-                app.close_popup();
+                app.ui_state.close_popup();
             }
             _ => fallback_key_handler(app, key_event),
         },
@@ -271,14 +271,14 @@ pub fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
                 player_move = normalize_lowercase_to_san(&player_move);
 
                 if player_move.is_empty() {
-                    app.close_popup();
+                    app.ui_state.close_popup();
                     return;
                 }
 
                 let san = match San::from_ascii(player_move.as_bytes()) {
                     Ok(san) => san,
                     Err(_) => {
-                        app.close_popup();
+                        app.ui_state.close_popup();
                         return;
                     }
                 };
@@ -288,7 +288,7 @@ pub fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
                 let chess_move = match san.to_move(&position) {
                     Ok(chess_move) => chess_move,
                     Err(_) => {
-                        app.close_popup();
+                        app.ui_state.close_popup();
                         return;
                     }
                 };
@@ -296,7 +296,7 @@ pub fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
                 let from = match chess_move.from() {
                     Some(from) => from,
                     None => {
-                        app.close_popup();
+                        app.ui_state.close_popup();
                         return;
                     }
                 };
@@ -305,14 +305,14 @@ pub fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
                 let promotion = chess_move.promotion();
 
                 app.game.apply_player_move(from, to, promotion);
-                app.close_popup();
+                app.ui_state.close_popup();
             }
             KeyCode::Char(to_insert) => app.game.ui.prompt.enter_char(to_insert),
             KeyCode::Backspace => app.game.ui.prompt.delete_char(),
             KeyCode::Left => app.game.ui.prompt.move_cursor_left(),
             KeyCode::Right => app.game.ui.prompt.move_cursor_right(),
             KeyCode::Esc => {
-                app.close_popup();
+                app.ui_state.close_popup();
             }
             _ => fallback_key_handler(app, key_event),
         },

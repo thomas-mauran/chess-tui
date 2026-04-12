@@ -34,14 +34,14 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
     let main_area = frame.area();
 
     // Solo game
-    if app.current_page == Pages::Solo {
+    if app.ui_state.current_page == Pages::Solo {
         render_game_ui(frame, app, main_area);
     }
     // Multiplayer game
-    else if app.current_page == Pages::Multiplayer {
+    else if app.ui_state.current_page == Pages::Multiplayer {
         app.game_mode_state.resolve_selected_color();
         // Don't override Error popup
-        if app.current_popup != Some(Popups::Error) {
+        if app.ui_state.current_popup != Some(Popups::Error) {
             if app.game.logic.opponent.is_none() {
                 if app.multiplayer_state.host_ip.is_none() {
                     if app.multiplayer_state.hosting == Some(true) {
@@ -50,7 +50,7 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
                             app.multiplayer_state.host_ip = Some("127.0.0.1".to_string());
                         }
                     } else {
-                        app.current_popup = Some(Popups::EnterHostIP);
+                        app.ui_state.current_popup = Some(Popups::EnterHostIP);
                     }
                 } else {
                     app.create_opponent();
@@ -67,20 +67,20 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
         }
     }
     // Lichess game
-    else if app.current_page == Pages::Lichess {
+    else if app.ui_state.current_page == Pages::Lichess {
         if app.game.logic.opponent.is_some() {
             render_game_ui(frame, app, main_area);
         }
     }
     // Play against bot
-    else if app.current_page == Pages::Bot {
+    else if app.ui_state.current_page == Pages::Bot {
         // Check if engine path is configured
         if app
             .bot_state.chess_engine_path
             .as_ref()
             .is_none_or(|path| path.is_empty())
         {
-            app.popup_message = Some(
+            app.ui_state.popup_message = Some(
                 "Chess engine path not configured.\n\n".to_string()
                     + "To configure the chess engine follow the documentation: https://thomas-mauran.github.io/chess-tui/docs/Configuration/bot\n\n"
                     + "Example:\n"
@@ -88,7 +88,7 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
                     + " or execute the script: ./scripts/install-stockfish.sh\n"
                     + "to install stockfish automatically and set it as the chess engine path \n"
             );
-            app.current_popup = Some(Popups::Error);
+            app.ui_state.current_popup = Some(Popups::Error);
         }
         // Check if engine path exists and is a valid file
         else if let Some(engine_path) = &app.bot_state.chess_engine_path {
@@ -96,7 +96,7 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
             let command_path = engine_path.split_whitespace().next().unwrap_or(engine_path);
             let path = Path::new(command_path);
             if !path.exists() || !path.is_file() {
-                app.popup_message = Some(
+                app.ui_state.popup_message = Some(
                     format!(
                         "Chess engine path is invalid.\n\n\
                         The configured path does not exist or is not a file:\n\
@@ -110,12 +110,12 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
                         command_path
                     )
                 );
-                app.current_popup = Some(Popups::Error);
+                app.ui_state.current_popup = Some(Popups::Error);
             }
         }
 
         // If we passed all validation checks, proceed with bot setup
-        if app.current_popup != Some(Popups::Error) {
+        if app.ui_state.current_popup != Some(Popups::Error) {
             // Resolve the selected color before the bot is initialized.
             app.game_mode_state.resolve_selected_color();
             if app.game.logic.bot.is_none() {
@@ -126,15 +126,15 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
         }
     }
     // Lichess menu
-    else if app.current_page == Pages::LichessMenu {
+    else if app.ui_state.current_page == Pages::LichessMenu {
         render_lichess_menu(frame, app);
     }
     // Game mode menu
-    else if app.current_page == Pages::GameModeMenu {
+    else if app.ui_state.current_page == Pages::GameModeMenu {
         crate::ui::game_mode_menu::render_game_mode_menu(frame, app);
     }
     // Ongoing games list
-    else if app.current_page == Pages::OngoingGames {
+    else if app.ui_state.current_page == Pages::OngoingGames {
         render_ongoing_games(frame, app);
     }
     // PGN viewer
@@ -146,12 +146,12 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
         render_menu_ui(frame, app, main_area);
     }
 
-    if app.current_page == Pages::Credit {
+    if app.ui_state.current_page == Pages::Credit {
         render_credit_popup(frame);
     }
 
     // Render popups
-    match app.current_popup {
+    match app.ui_state.current_popup {
         Some(Popups::EnterHostIP) => {
             render_enter_multiplayer_ip(frame, &app.game.ui.prompt);
         }
@@ -163,12 +163,12 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
             render_help_popup(frame, app);
         }
         Some(Popups::Error) => {
-            if let Some(ref msg) = app.popup_message {
+            if let Some(ref msg) = app.ui_state.popup_message {
                 render_error_popup(frame, msg);
             }
         }
         Some(Popups::Success) => {
-            if let Some(ref msg) = app.popup_message {
+            if let Some(ref msg) = app.ui_state.popup_message {
                 render_success_popup(frame, msg);
             }
         }
@@ -197,7 +197,7 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
         }
         Some(Popups::PuzzleEndScreen) => {
             // Show puzzle completion message
-            let message = if let Some(ref msg) = app.popup_message {
+            let message = if let Some(ref msg) = app.ui_state.popup_message {
                 msg.clone()
             } else {
                 "Puzzle solved! Well done!".to_string()
@@ -348,7 +348,7 @@ pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
     let mut menu_lines: Vec<Line<'_>> = vec![];
 
     for (i, (item, description)) in menu_items.iter().enumerate() {
-        let is_selected = app.menu_cursor == i as u8;
+        let is_selected = app.ui_state.menu_cursor == i as u8;
 
         // Create styled menu item
         let item_style = if is_selected {
@@ -636,7 +636,7 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
     if app.game.logic.game_state == GameState::Checkmate {
         // When game ended by time, player_turn is already set to the winner
         // For checkmate, the winner is the other player (the one who delivered checkmate)
-        let victorious_player = if app.game_ended_by_time {
+        let victorious_player = if app.game.logic.game_ended_by_time {
             app.game.logic.player_turn
         } else {
             app.game.logic.player_turn.other()
@@ -647,7 +647,7 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
             shakmaty::Color::Black => "Black",
         };
 
-        if app.current_popup == Some(Popups::EndScreen) {
+        if app.ui_state.current_popup == Some(Popups::EndScreen) {
             // Check if it's Lichess multiplayer (restart not available in Lichess)
             let is_lichess = app
                 .game
@@ -658,7 +658,7 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
                 .unwrap_or(false);
 
             // Check if game ended due to time
-            let message = if app.game_ended_by_time {
+            let message = if app.game.logic.game_ended_by_time {
                 let time_up_color = match victorious_player {
                     shakmaty::Color::White => "Black",
                     shakmaty::Color::Black => "White",
@@ -672,7 +672,7 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
         }
     }
 
-    if app.game.logic.game_state == GameState::Draw && app.current_popup == Some(Popups::EndScreen)
+    if app.game.logic.game_state == GameState::Draw && app.ui_state.current_popup == Some(Popups::EndScreen)
     {
         // Check if it's Lichess multiplayer (restart not available in Lichess)
         let is_lichess = app

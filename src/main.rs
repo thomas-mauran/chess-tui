@@ -362,7 +362,7 @@ fn main() -> AppResult<()> {
                 if let Some(opponent) = app.game.logic.opponent.as_mut() {
                     log::info!("Host received game start signal, starting game");
                     opponent.game_started = true;
-                    app.close_popup();
+                    app.ui_state.close_popup();
                 }
             }
         }
@@ -373,7 +373,7 @@ fn main() -> AppResult<()> {
                 match wait_for_game_start(opponent) {
                     Ok(true) => {
                         opponent.game_started = true;
-                        app.close_popup();
+                        app.ui_state.close_popup();
                     }
                     Ok(false) => {
                         // Still waiting, do nothing

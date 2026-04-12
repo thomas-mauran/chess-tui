@@ -41,3 +41,5 @@ pub mod pgn_viewer;
 
 // Input handlers
 pub mod handlers;
+
+pub mod state;

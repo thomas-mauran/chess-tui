@@ -46,7 +46,7 @@ pub fn render_ongoing_games(frame: &mut Frame, app: &App) {
         game_lines.push(Line::from("Use 'Seek Game' to start a new game."));
     } else {
         for (idx, game) in games.iter().enumerate() {
-            let is_selected = app.menu_cursor == idx as u8;
+            let is_selected = app.ui_state.menu_cursor == idx as u8;
 
             let style = if is_selected {
                 Style::default()

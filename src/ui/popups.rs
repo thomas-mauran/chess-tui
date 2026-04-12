@@ -26,7 +26,7 @@ pub fn render_resign_confirmation_popup(frame: &mut Frame, app: &App) {
         .border_style(Style::default().fg(WHITE));
     let area = centered_rect(50, 30, frame.area());
 
-    let opponent_name = if let Some(game) = app.lichess_state.ongoing_games.get(app.menu_cursor as usize) {
+    let opponent_name = if let Some(game) = app.lichess_state.ongoing_games.get(app.ui_state.menu_cursor as usize) {
         format!("vs {}", game.opponent.username)
     } else {
         "this game".to_string()
