@@ -16,7 +16,7 @@ pub fn handle_solo_page_events(app: &mut App, key_event: KeyEvent) {
                 && app.game.logic.game_state != GameState::Checkmate
                 && app.game.logic.game_state != GameState::Draw
             {
-                app.navigate_history_next();
+                app.game.logic.navigate_history_next();
             }
         }
         KeyCode::Char('p' | 'P') => {
@@ -25,7 +25,7 @@ pub fn handle_solo_page_events(app: &mut App, key_event: KeyEvent) {
                 && app.game.logic.game_state != GameState::Checkmate
                 && app.game.logic.game_state != GameState::Draw
             {
-                app.navigate_history_previous();
+                app.game.logic.navigate_history_previous();
             }
         }
         KeyCode::Char('t' | 'T') if app.lichess_state.puzzle_game.is_some() && app.current_popup.is_none() => {

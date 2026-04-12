@@ -1216,4 +1216,29 @@ impl GameLogic {
             }
         }
     }
+
+    /// Navigate to the next position in history (forward in time)
+    pub fn navigate_history_next(&mut self) {
+        // Check if we're in solo mode (no bot, no opponent)
+        let is_solo_mode = self.bot.is_none() && self.opponent.is_none();
+        if self.game_board
+            .navigate_history_next(is_solo_mode)
+        {
+            // Update player_turn to match the position's turn
+            self.sync_player_turn_with_position();
+        }
+    }
+
+    /// Navigate to the previous position in history (backward in time)
+    pub fn navigate_history_previous(&mut self) {
+        // Check if we're in solo mode (no bot, no opponent)
+        let is_solo_mode = self.bot.is_none() && self.opponent.is_none();
+        if self.game_board
+            .navigate_history_previous(is_solo_mode)
+        {
+            // Update player_turn to match the position's turn
+            self.sync_player_turn_with_position();
+        }
+    }
+
 }

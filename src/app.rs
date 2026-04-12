@@ -2024,37 +2024,7 @@ impl App {
         self.game_mode_state.custom_time_minutes = 10; // Reset custom time
         self.navigate_to_homepage();
     }
-
-    /// Navigate to the next position in history (forward in time)
-    pub fn navigate_history_next(&mut self) {
-        // Check if we're in solo mode (no bot, no opponent)
-        let is_solo_mode = self.game.logic.bot.is_none() && self.game.logic.opponent.is_none();
-        if self
-            .game
-            .logic
-            .game_board
-            .navigate_history_next(is_solo_mode)
-        {
-            // Update player_turn to match the position's turn
-            self.game.logic.sync_player_turn_with_position();
-        }
-    }
-
-    /// Navigate to the previous position in history (backward in time)
-    pub fn navigate_history_previous(&mut self) {
-        // Check if we're in solo mode (no bot, no opponent)
-        let is_solo_mode = self.game.logic.bot.is_none() && self.game.logic.opponent.is_none();
-        if self
-            .game
-            .logic
-            .game_board
-            .navigate_history_previous(is_solo_mode)
-        {
-            // Update player_turn to match the position's turn
-            self.game.logic.sync_player_turn_with_position();
-        }
-    }
-
+    
     pub fn show_message_popup(&mut self, message: String, popup_type: Popups) {
         self.popup_message = Some(message);
         self.current_popup = Some(popup_type);
