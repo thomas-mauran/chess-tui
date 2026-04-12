@@ -15,7 +15,7 @@ pub const SLEEP_DURATION_LONG_MS: u64 = 100;
 
 // Time control constants
 // Time control indices: 0: UltraBullet, 1: Bullet, 2: Blitz, 3: Rapid, 4: Classical, 5: No clock, 6: Custom
-pub const TIME_CONTROL_CUSTOM_INDEX: u32 = 6;
+pub const TIME_CONTROL_CUSTOM_INDEX: u8 = 6;
 
 // Bot difficulty presets (name, UCI_Elo, depth, movetime_ms).
 // Lower depth and movetime make the bot weaker for engines without UCI_Elo.
@@ -36,6 +36,9 @@ pub const TIME_CONTROL_OPTIONS: &[&str] = &[
     "No clock",
     "Custom",
 ];
+
+pub const DEFAULT_TIME_CONTROL_SELECTED: u8 = 3;
+pub const DEFAULT_CUSTOM_TIME_VALUE: u16 = 10;
 
 pub const TITLE: &str = r"
  ██████╗██╗  ██╗███████╗███████╗███████╗   ████████╗██╗   ██╗██╗

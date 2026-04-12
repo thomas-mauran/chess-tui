@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::constants::config_dir;
+use crate::constants::{DEFAULT_CUSTOM_TIME_VALUE, DEFAULT_TIME_CONTROL_SELECTED, config_dir};
 use crate::constants::{DisplayMode, Pages, Popups, NETWORK_PORT};
 use crate::game_logic::bot::Bot;
 use crate::game_logic::coord::Coord;
@@ -127,6 +127,7 @@ pub struct BotState {
     /// path of the chess engine
     pub chess_engine_path: Option<String>,
 }
+
 impl BotState {
     pub fn default() -> Self {
         Self {
@@ -147,6 +148,7 @@ pub struct MultiplayerState {
     /// Gets a signal when the opponent has joined and the game can start
     pub game_start_rx: Option<std::sync::mpsc::Receiver<()>>,
 }
+
 impl MultiplayerState {
     pub fn default() -> Self {
         Self {
@@ -172,14 +174,15 @@ pub struct GameModeState {
     /// Whether the form is active (ungreyed) - user pressed Enter to activate
     pub form_active: bool,
     /// Clock time control index (0: UltraBullet, 1: Bullet, 2: Blitz, 3: Rapid, 4: Classical, 5: No clock, 6: Custom)
-    pub clock_cursor: u32,
+    pub clock_cursor: u8,
     /// Custom time in minutes (used when clock_cursor == TIME_CONTROL_CUSTOM_INDEX)
-    pub custom_time_minutes: u32,
+    pub custom_time_minutes: u16,
     /// Whether the player selected the Random color option
     pub is_random_color: bool,
     // Selected color when playing against the bot or in multiplayer
     pub selected_color: Option<Color>,
 }
+
 impl GameModeState {
     pub fn default() -> Self {
         Self {
@@ -224,7 +227,7 @@ impl GameModeState {
             4 => Some(60 * 60), // Classical: 60 minutes = 3600 seconds
             5 => None,          // No clock
             x if x == crate::constants::TIME_CONTROL_CUSTOM_INDEX => {
-                Some(self.custom_time_minutes * 60)
+                Some((self.custom_time_minutes * 60).into())
             } // Custom: use custom_time_minutes
             _ => Some(10 * 60), // Default fallback
         }
@@ -308,6 +311,7 @@ pub struct LichessState {
     /// Puzzle game state
     pub puzzle_game: Option<PuzzleGame>,
 }
+
 impl LichessState {
     pub fn default() -> Self {
         Self {
@@ -333,6 +337,30 @@ impl LichessState {
         self.client.as_ref().ok_or(LichessError::NoToken)
     }
 }
+
+pub enum MainMenuItems {
+    GameModeMenu,
+    LichessMenu,
+    SkinSelector,
+    SoundSelector,
+    Help,
+    Credit,
+}
+
+impl From<u8> for MainMenuItems {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => MainMenuItems::GameModeMenu,
+            1 => MainMenuItems::LichessMenu,
+            2 => MainMenuItems::SkinSelector,
+            3 => MainMenuItems::SoundSelector,
+            4 => MainMenuItems::Help,
+            5 => MainMenuItems::Credit,
+            _ => MainMenuItems::GameModeMenu,
+        }
+    }
+}
+
 
 /// Application.
 pub struct App {
@@ -420,12 +448,11 @@ impl App {
     }
 
     pub fn show_end_screen(&mut self) {
-        // Use puzzle-specific end screen if in puzzle mode
-        if self.lichess_state.puzzle_game.is_some() {
-            self.current_popup = Some(Popups::PuzzleEndScreen);
+        self.current_popup = Some(if self.lichess_state.puzzle_game.is_some() {
+            Popups::PuzzleEndScreen
         } else {
-            self.current_popup = Some(Popups::EndScreen);
-        }
+            Popups::EndScreen
+        })
     }
     pub fn toggle_credit_popup(&mut self) {
         if self.current_page == Pages::Home {
@@ -892,7 +919,7 @@ impl App {
             .get(self.menu_cursor as usize)
             .is_some()
         {
-            self.current_popup = Some(crate::constants::Popups::ResignConfirmation);
+            self.current_popup = Some(Popups::ResignConfirmation);
         }
     }
 
@@ -1549,8 +1576,9 @@ impl App {
     }
 
     pub fn menu_select(&mut self) {
-        match self.menu_cursor {
-            0 => {
+        let field: MainMenuItems = MainMenuItems::from(self.menu_cursor);
+        match field {
+            MainMenuItems::GameModeMenu => {
                 // Play Game -> GameModeMenu
                 // Reset everything to ensure cursor starts at first item
                 self.menu_cursor = 0;
@@ -1559,7 +1587,7 @@ impl App {
                 self.game_mode_state.form_active = false;
                 self.current_page = Pages::GameModeMenu;
             }
-            1 => {
+            MainMenuItems::LichessMenu => {
                 // Lichess Online
                 // Check if Lichess token is configured
                 if self.lichess_state.token.is_none()
@@ -1581,27 +1609,26 @@ impl App {
                 // Fetch user profile when entering Lichess menu
                 self.fetch_lichess_user_profile();
             }
-            2 => {
+            MainMenuItems::SkinSelector => {
                 // Cycle through available skins
                 self.cycle_skin(true);
                 self.update_config();
             }
             #[cfg(feature = "sound")]
-            3 => {
+            MainMenuItems::SoundSelector => {
                 // Toggle sound
                 self.sound_enabled = !self.sound_enabled;
                 crate::sound::set_sound_enabled(self.sound_enabled);
                 self.update_config();
             }
             #[cfg(feature = "sound")]
-            4 => self.toggle_help_popup(),
+            MainMenuItems::Help => self.toggle_help_popup(),
             #[cfg(feature = "sound")]
-            5 => self.current_page = Pages::Credit,
+            MainMenuItems::Credit => self.current_page = Pages::Credit,
             #[cfg(not(feature = "sound"))]
-            3 => self.toggle_help_popup(),
+            MainMenuItems::Help => self.toggle_help_popup(),
             #[cfg(not(feature = "sound"))]
-            4 => self.current_page = Pages::Credit,
-            _ => {}
+            MainMenuItems::Credit => self.current_page = Pages::Credit,
         }
     }
 
@@ -2004,8 +2031,8 @@ impl App {
     /// Used by popups that should return to home when closed.
     pub fn close_popup_and_go_home(&mut self) {
         self.close_popup();
-        self.game_mode_state.clock_cursor = 3; // Reset to default (Rapid)
-        self.game_mode_state.custom_time_minutes = 10; // Reset custom time
+        self.game_mode_state.clock_cursor = DEFAULT_TIME_CONTROL_SELECTED; // Reset to default (Rapid)
+        self.game_mode_state.custom_time_minutes = DEFAULT_CUSTOM_TIME_VALUE; // Reset custom time
         self.navigate_to_homepage();
     }
 
