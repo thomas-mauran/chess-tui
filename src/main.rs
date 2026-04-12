@@ -330,7 +330,7 @@ fn main() -> AppResult<()> {
         }
 
         // Check if bot should start thinking
-        if !app.is_bot_thinking()
+        if !app.bot_state.is_bot_thinking()
             && app
                 .game
                 .logic
@@ -338,14 +338,16 @@ fn main() -> AppResult<()> {
                 .as_ref()
                 .is_some_and(|bot| bot.bot_will_move)
         {
-            app.start_bot_thinking();
+            if let Some(bot) = &app.game.logic.bot {
+                app.bot_state.start_bot_thinking(app.game.logic.game_board.fen_position(), bot.depth, bot.difficulty);
+            }
             if let Some(bot) = app.game.logic.bot.as_mut() {
                 bot.bot_will_move = false;
             }
         }
 
         // Check if bot move is ready
-        if app.check_bot_move() {
+        if app.check_and_apply_bot_move() {
             app.check_and_show_game_end();
         }
         // Check if Lichess seek is done

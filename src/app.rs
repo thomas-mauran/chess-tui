@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::constants::{DEFAULT_CUSTOM_TIME_VALUE, DEFAULT_TIME_CONTROL_SELECTED, config_dir};
+use crate::constants::{config_dir, DEFAULT_CUSTOM_TIME_VALUE, DEFAULT_TIME_CONTROL_SELECTED};
 use crate::constants::{DisplayMode, Pages, Popups, NETWORK_PORT};
 use crate::game_logic::bot::Bot;
 use crate::game_logic::coord::Coord;
@@ -12,6 +12,7 @@ use crate::handlers::game_mode_menu::AvailableGameMode;
 use crate::lichess::{LichessClient, LichessError};
 use crate::server::game_server::get_host_ip;
 use crate::skin::{PieceStyle, Skin};
+use crate::sound::{play_menu_nav_sound, play_move_sound};
 use crate::utils::flip_square_if_needed;
 use log::LevelFilter;
 use shakmaty::{Color, Move};
@@ -58,7 +59,7 @@ impl ThemeState {
             .iter()
             .position(|s| s.name == self.selected_skin_name)
             .unwrap_or(0);
-        crate::sound::play_menu_nav_sound();
+        play_menu_nav_sound();
 
         // Move to next skin (wrap around)
         let next_index = (current_index + 1) % self.available_skins.len();
@@ -78,7 +79,7 @@ impl ThemeState {
             .iter()
             .position(|s| s.name == self.selected_skin_name)
             .unwrap_or(0);
-        crate::sound::play_menu_nav_sound();
+        play_menu_nav_sound();
 
         // Move to next skin (wrap around)
         let next_index = (current_index + 1) % self.available_skins.len();
@@ -136,6 +137,43 @@ impl BotState {
             bot_move_receiver: None,
             chess_engine_path: None,
         }
+    }
+
+    /// Start bot thinking in a separate thread
+    pub fn start_bot_thinking(&mut self, fen: String, depth: u8, bot_difficulty: Option<u8>) {
+        // Don't start if already thinking
+        if self.bot_move_receiver.is_some() {
+            return;
+        }
+
+        let engine_path = self.chess_engine_path.clone().unwrap_or_default();
+
+        // Create channel for communication
+        let (tx, rx) = channel();
+        self.bot_move_receiver = Some(rx);
+
+        // Spawn thread to compute bot move
+        std::thread::spawn(move || {
+            // Create bot instance in thread
+            let bot = Bot::new(&engine_path, false, depth, bot_difficulty);
+            let uci_move = bot.get_move(&fen);
+
+            // Convert UCI move to shakmaty Move
+            let position: Option<shakmaty::Chess> = shakmaty::fen::Fen::from_ascii(fen.as_bytes())
+                .ok()
+                .and_then(|fen| fen.into_position(shakmaty::CastlingMode::Standard).ok());
+
+            if let Some(pos) = position {
+                if let Ok(chess_move) = uci_move.to_move(&pos) {
+                    let _ = tx.send(chess_move);
+                }
+            }
+        });
+    }
+
+    /// Check if bot is currently thinking
+    pub fn is_bot_thinking(&self) -> bool {
+        self.bot_move_receiver.is_some()
     }
 }
 
@@ -360,7 +398,6 @@ impl From<u8> for MainMenuItems {
         }
     }
 }
-
 
 /// Application.
 pub struct App {
@@ -1276,49 +1313,8 @@ impl App {
         }
     }
 
-    /// Start bot thinking in a separate thread
-    pub fn start_bot_thinking(&mut self) {
-        // Don't start if already thinking
-        if self.bot_state.bot_move_receiver.is_some() {
-            return;
-        }
-
-        let bot = match &self.game.logic.bot {
-            Some(b) => b,
-            None => return,
-        };
-
-        // Get current game state
-        let fen = self.game.logic.game_board.fen_position();
-        let engine_path = self.bot_state.chess_engine_path.clone().unwrap_or_default();
-        let depth = bot.depth;
-        let bot_difficulty = bot.difficulty;
-
-        // Create channel for communication
-        let (tx, rx) = channel();
-        self.bot_state.bot_move_receiver = Some(rx);
-
-        // Spawn thread to compute bot move
-        std::thread::spawn(move || {
-            // Create bot instance in thread
-            let bot = Bot::new(&engine_path, false, depth, bot_difficulty);
-            let uci_move = bot.get_move(&fen);
-
-            // Convert UCI move to shakmaty Move
-            let position: Option<shakmaty::Chess> = shakmaty::fen::Fen::from_ascii(fen.as_bytes())
-                .ok()
-                .and_then(|fen| fen.into_position(shakmaty::CastlingMode::Standard).ok());
-
-            if let Some(pos) = position {
-                if let Ok(chess_move) = uci_move.to_move(&pos) {
-                    let _ = tx.send(chess_move);
-                }
-            }
-        });
-    }
-
     /// Check if bot move is ready and apply it
-    pub fn check_bot_move(&mut self) -> bool {
+    pub fn check_and_apply_bot_move(&mut self) -> bool {
         if let Some(rx) = &self.bot_state.bot_move_receiver {
             if let Ok(bot_move) = rx.try_recv() {
                 // Apply the bot move
@@ -1391,12 +1387,7 @@ impl App {
         self.game.logic.switch_player_turn();
 
         // Play move sound
-        crate::sound::play_move_sound();
-    }
-
-    /// Check if bot is currently thinking
-    pub fn is_bot_thinking(&self) -> bool {
-        self.bot_state.bot_move_receiver.is_some()
+        play_move_sound();
     }
 
     /// Set running to false to quit the application.
@@ -1434,7 +1425,7 @@ impl App {
         } else {
             self.menu_cursor = l - 1;
         }
-        crate::sound::play_menu_nav_sound();
+        play_menu_nav_sound();
     }
     pub fn menu_cursor_right(&mut self, l: u8) {
         if self.menu_cursor < l - 1 {
@@ -1442,7 +1433,7 @@ impl App {
         } else {
             self.menu_cursor = 0;
         }
-        crate::sound::play_menu_nav_sound();
+        play_menu_nav_sound();
     }
     pub fn menu_cursor_left(&mut self, l: u8) {
         if self.menu_cursor > 0 {
@@ -1450,7 +1441,7 @@ impl App {
         } else {
             self.menu_cursor = l - 1;
         }
-        crate::sound::play_menu_nav_sound();
+        play_menu_nav_sound();
     }
     pub fn menu_cursor_down(&mut self, l: u8) {
         if self.menu_cursor < l - 1 {
@@ -1458,7 +1449,7 @@ impl App {
         } else {
             self.menu_cursor = 0;
         }
-        crate::sound::play_menu_nav_sound();
+        play_menu_nav_sound();
     }
 
     pub fn bot_setup(&mut self) {
@@ -1483,8 +1474,14 @@ impl App {
                 // Flip the board once so Black player sees from their perspective
                 self.game.logic.game_board.flip_the_board();
 
-                if self.game.logic.bot.is_some() && self.game.logic.player_turn != color {
-                    self.start_bot_thinking();
+                if let Some(bot) = &self.game.logic.bot {
+                    if self.game.logic.player_turn != color {
+                        self.bot_state.start_bot_thinking(
+                            self.game.logic.game_board.fen_position(),
+                            bot.depth,
+                            bot.difficulty,
+                        );
+                    }
                 }
                 // Don't set player_turn to Black here - the bot (White) moves first,
                 // so player_turn should remain White until after the bot's first move
@@ -1569,7 +1566,13 @@ impl App {
         {
             // Flip the board once so Black player sees from their perspective
             self.game.logic.game_board.flip_the_board();
-            self.start_bot_thinking();
+            if let Some(bot) = &self.game.logic.bot {
+                self.bot_state.start_bot_thinking(
+                    self.game.logic.game_board.fen_position(),
+                    bot.depth,
+                    bot.difficulty,
+                );
+            }
             // Don't set player_turn to Black here - the bot (White) moves first,
             // so player_turn should remain White until after the bot's first move
         }
@@ -1617,8 +1620,11 @@ impl App {
             #[cfg(feature = "sound")]
             MainMenuItems::SoundSelector => {
                 // Toggle sound
+
+                use crate::sound::set_sound_enabled;
+
                 self.sound_enabled = !self.sound_enabled;
-                crate::sound::set_sound_enabled(self.sound_enabled);
+                set_sound_enabled(self.sound_enabled);
                 self.update_config();
             }
             #[cfg(feature = "sound")]
@@ -1636,7 +1642,7 @@ impl App {
         let future_skin = self.theme_state.get_skin(next);
         let future_skin_name = future_skin.clone().name;
 
-        crate::sound::play_menu_nav_sound(); // move
+        play_menu_nav_sound(); // move
 
         // Update selected skin name and apply it
         self.theme_state.loaded_skin = Some(future_skin.clone());
