@@ -97,7 +97,6 @@ impl Pages {
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Popups {
-    MultiplayerSelection,
     EnterHostIP,
     WaitingForOpponentToJoin,
     EnginePathError,

@@ -1,6 +1,6 @@
 use crate::config::Config;
 use crate::constants::config_dir;
-use crate::constants::{DisplayMode, Pages, Popups, NETWORK_PORT, SLEEP_DURATION_LONG_MS};
+use crate::constants::{DisplayMode, Pages, Popups, NETWORK_PORT};
 use crate::game_logic::bot::Bot;
 use crate::game_logic::coord::Coord;
 use crate::game_logic::game::Game;
@@ -10,7 +10,7 @@ use crate::game_logic::opponent::{Opponent, OpponentKind};
 use crate::game_logic::puzzle::PuzzleGame;
 use crate::handlers::game_mode_menu::AvailableGameMode;
 use crate::lichess::{LichessClient, LichessError};
-use crate::server::game_server::GameServer;
+use crate::server::game_server::get_host_ip;
 use crate::skin::{PieceStyle, Skin};
 use crate::utils::flip_square_if_needed;
 use log::LevelFilter;
@@ -18,10 +18,8 @@ use shakmaty::{Color, Move};
 use std::error;
 use std::fs::{self, File};
 use std::io::Write;
-use std::net::{IpAddr, UdpSocket};
+use std::net::UdpSocket;
 use std::sync::mpsc::{channel, Receiver};
-use std::thread::sleep;
-use std::time::Duration;
 
 /// Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
@@ -157,6 +155,12 @@ impl MultiplayerState {
             game_start_rx: None,
         }
     }
+
+    pub fn reset(&mut self) {
+        self.hosting = None;
+        self.host_ip = None;
+        self.game_start_rx = None;
+    }
 }
 
 /// Define every variable related to game mode setup in the app
@@ -187,6 +191,12 @@ impl GameModeState {
             selected_color: None,
             is_random_color: false,
         }
+    }
+
+    pub fn reset_selected_color(&mut self) {
+        // Clear related fields
+        self.selected_color = None;
+        self.is_random_color = false;
     }
 
     /// Get the time control name for the current index
@@ -237,7 +247,6 @@ impl GameModeState {
     }
 
     pub fn select_previous_color_option(&mut self) {
-
         if self.selected_color == Some(Color::White)
             || self.selected_color.is_none() && !self.is_random_color
         {
@@ -268,15 +277,14 @@ impl GameModeState {
     }
 
     pub fn resolve_selected_color(&mut self) {
-        if self.is_random_color {
+        if self.is_random_color && self.selected_color.is_none() {
             self.selected_color = Some(if rand::random::<bool>() {
                 Color::White
             } else {
                 Color::Black
             });
-        } else if self.selected_color.is_none() {
+        } else if !self.is_random_color && self.selected_color.is_none() {
             self.selected_color = Some(Color::White);
-            self.is_random_color = false;
         }
     }
 }
@@ -427,22 +435,14 @@ impl App {
         }
     }
 
-    pub fn setup_game_server(&mut self, host_color: Color) {
-        let is_host_white = host_color == Color::White;
-
-        log::info!("Starting game server with host color: {:?}", host_color);
-
-        std::thread::spawn(move || {
-            let game_server = GameServer::new(is_host_white);
-            log::info!("Game server created, starting server...");
-            game_server.run();
-        });
-
-        sleep(Duration::from_millis(SLEEP_DURATION_LONG_MS));
-    }
-
     pub fn create_opponent(&mut self) {
-        let other_player_color = self.game_mode_state.selected_color.map(|c| c.other());
+        // Host passes their opponent's color so the server knows the assignment.
+        // Guest always passes None so get_color_from_stream fetches the real color from the server.
+        let other_player_color = if self.multiplayer_state.hosting.unwrap_or(false) {
+            self.game_mode_state.selected_color.map(|c| c.other())
+        } else {
+            None
+        };
 
         if self.multiplayer_state.hosting.unwrap_or(false) {
             log::info!(
@@ -450,7 +450,7 @@ impl App {
                 self.game_mode_state.selected_color
             );
             self.current_popup = Some(Popups::WaitingForOpponentToJoin);
-            if let Some(ip) = self.get_host_ip() {
+            if let Some(ip) = get_host_ip() {
                 self.multiplayer_state.host_ip = Some(format!("{}:{}", ip, NETWORK_PORT));
             } else {
                 log::error!("Could not get local IP, defaulting to 127.0.0.1");
@@ -1167,13 +1167,6 @@ impl App {
         }
     }
 
-    pub fn get_host_ip(&self) -> Option<IpAddr> {
-        let socket = UdpSocket::bind("0.0.0.0:0").ok()?;
-        socket.connect("8.8.8.8:80").ok()?; // Use an external IP to identify the default route
-
-        socket.local_addr().ok().map(|addr| addr.ip())
-    }
-
     /// Handles the tick event of the terminal.
     pub fn tick(&mut self) {
         // Advance PGN viewer auto-play
@@ -1479,12 +1472,6 @@ impl App {
         self.update_config();
     }
 
-    pub fn hosting_selection(&mut self) {
-        let choice = self.menu_cursor == 0;
-        self.multiplayer_state.hosting = Some(choice);
-        self.close_popup();
-    }
-
     pub fn cancel_hosting_cleanup(&mut self) {
         log::info!("Cancelling hosting and cleaning multiplayer state");
 
@@ -1495,14 +1482,9 @@ impl App {
             }
         }
 
-        // Clear related fields
-        self.multiplayer_state.hosting = None;
-        self.multiplayer_state.host_ip = None;
-        self.game_mode_state.selected_color = None;
-        self.game_mode_state.is_random_color = false;
-        self.multiplayer_state.game_start_rx = None;
-
         self.game.logic.opponent = None;
+        self.multiplayer_state.reset();
+        self.game_mode_state.reset_selected_color();
         self.game.logic.game_board.reset();
         self.game.ui.reset();
     }

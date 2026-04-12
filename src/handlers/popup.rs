@@ -40,14 +40,6 @@ pub fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
             KeyCode::Esc => app.toggle_help_popup(),
             _ => fallback_key_handler(app, key_event),
         },
-        // Multiplayer selection popup - choose to host or join a game
-        Popups::MultiplayerSelection => match key_event.code {
-            KeyCode::Esc => app.close_popup_and_go_home(),
-            KeyCode::Right | KeyCode::Char('l') => app.menu_cursor_right(2),
-            KeyCode::Left | KeyCode::Char('h') => app.menu_cursor_left(2),
-            KeyCode::Char(' ') | KeyCode::Enter => app.hosting_selection(),
-            _ => fallback_key_handler(app, key_event),
-        },
         Popups::EnginePathError => match key_event.code {
             KeyCode::Esc | KeyCode::Enter | KeyCode::Char(' ') => app.close_popup_and_go_home(),
             _ => fallback_key_handler(app, key_event),
