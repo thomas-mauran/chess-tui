@@ -167,6 +167,100 @@ fn render_time_control_ui(
     }
 }
 
+fn render_color_selection_ui(
+    frame: &mut Frame,
+    app: &App,
+    color_area: Rect,
+    is_active: bool,
+    is_enabled: bool,
+    grey_color: Color,
+    color_cursor: u8,
+) {
+    let color_area = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(1), Constraint::Length(1)])
+        .split(color_area);
+
+    let color_label_style = if !is_enabled {
+        Style::default().fg(grey_color)
+    } else {
+        Style::default()
+            .fg(Color::Cyan)
+            .add_modifier(Modifier::BOLD)
+    };
+    let color_label = Paragraph::new("Color:")
+        .style(color_label_style)
+        .alignment(Alignment::Left);
+    frame.render_widget(color_label, color_area[0]);
+
+    let color_button_area = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Length(8),
+            Constraint::Length(2),
+            Constraint::Length(8),
+            Constraint::Length(2),
+            Constraint::Length(8),
+        ])
+        .split(color_area[1]);
+
+    let is_focused = is_active && app.game_mode_form_cursor == color_cursor;
+    let white_selected = app.selected_color == Some(ShakmatyColor::White) && !app.is_random_color;
+    let white_focused =
+        is_enabled && is_focused && app.selected_color.is_none() && !app.is_random_color;
+    let white_style = if !is_enabled {
+        Style::default().fg(grey_color)
+    } else if white_selected {
+        Style::default()
+            .fg(Color::Black)
+            .bg(Color::White)
+            .add_modifier(Modifier::BOLD)
+    } else if white_focused {
+        Style::default()
+            .fg(Color::Black)
+            .bg(Color::Cyan)
+            .add_modifier(Modifier::BOLD)
+    } else {
+        Style::default().fg(Color::White)
+    };
+    let white_text = Paragraph::new("WHITE")
+        .alignment(Alignment::Center)
+        .style(white_style);
+    frame.render_widget(white_text, color_button_area[0]);
+
+    let black_selected = app.selected_color == Some(ShakmatyColor::Black) && !app.is_random_color;
+    let black_style = if !is_enabled {
+        Style::default().fg(grey_color)
+    } else if black_selected {
+        Style::default()
+            .fg(Color::Black)
+            .bg(Color::White)
+            .add_modifier(Modifier::BOLD)
+    } else {
+        Style::default().fg(Color::White)
+    };
+    let black_text = Paragraph::new("BLACK")
+        .alignment(Alignment::Center)
+        .style(black_style);
+    frame.render_widget(black_text, color_button_area[2]);
+
+    let random_selected = app.is_random_color;
+    let random_style = if !is_enabled {
+        Style::default().fg(grey_color)
+    } else if random_selected {
+        Style::default()
+            .fg(Color::Black)
+            .bg(Color::White)
+            .add_modifier(Modifier::BOLD)
+    } else {
+        Style::default().fg(Color::White)
+    };
+    let random_text = Paragraph::new("RANDOM")
+        .alignment(Alignment::Center)
+        .style(random_style);
+    frame.render_widget(random_text, color_button_area[4]);
+}
+
 pub fn render_game_mode_menu(frame: &mut Frame, app: &App) {
     let area = frame.area();
 
@@ -685,74 +779,15 @@ fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: u8
             chunk_idx += 1;
 
             // Color selection (always visible, but grayed out if not hosting)
-            let color_area = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([Constraint::Length(1), Constraint::Length(1)])
-                .split(form_chunks[chunk_idx]);
-
-            let color_label_style = if !is_active || app.hosting != Some(true) {
-                Style::default().fg(grey_color)
-            } else {
-                Style::default()
-                    .fg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD)
-            };
-            let color_label = Paragraph::new("Color:")
-                .style(color_label_style)
-                .alignment(Alignment::Left);
-            frame.render_widget(color_label, color_area[0]);
-
-            let color_button_area = Layout::default()
-                .direction(Direction::Horizontal)
-                .constraints([
-                    Constraint::Length(8),
-                    Constraint::Length(2),
-                    Constraint::Length(8),
-                ])
-                .split(color_area[1]);
-
-            // White button
-            let is_focused = is_active && app.game_mode_form_cursor == 1;
-            let white_selected = app.selected_color == Some(ShakmatyColor::White);
-            let white_focused =
-                is_focused && app.selected_color.is_none() && app.hosting == Some(true);
-            let white_style = if !is_active || !app.hosting.unwrap_or(false) {
-                Style::default().fg(grey_color)
-            } else if white_selected {
-                Style::default()
-                    .fg(Color::Black)
-                    .bg(Color::White)
-                    .add_modifier(Modifier::BOLD)
-            } else if white_focused || (is_focused && app.selected_color.is_none()) {
-                // Show focus when cursor is on this field
-                Style::default()
-                    .fg(Color::Black)
-                    .bg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD)
-            } else {
-                Style::default().fg(Color::White)
-            };
-            let white_text = Paragraph::new("WHITE")
-                .alignment(Alignment::Center)
-                .style(white_style);
-            frame.render_widget(white_text, color_button_area[0]);
-
-            // Black button
-            let black_selected = app.selected_color == Some(ShakmatyColor::Black);
-            let black_style = if !is_active || !app.hosting.unwrap_or(false) {
-                Style::default().fg(grey_color)
-            } else if black_selected {
-                Style::default()
-                    .fg(Color::Black)
-                    .bg(Color::White)
-                    .add_modifier(Modifier::BOLD)
-            } else {
-                Style::default().fg(Color::White)
-            };
-            let black_text = Paragraph::new("BLACK")
-                .alignment(Alignment::Center)
-                .style(black_style);
-            frame.render_widget(black_text, color_button_area[2]);
+            render_color_selection_ui(
+                frame,
+                app,
+                form_chunks[chunk_idx],
+                is_active,
+                is_active && app.hosting == Some(true),
+                grey_color,
+                1,
+            );
         }
         2 => {
             // Bot: time control selection
@@ -767,82 +802,22 @@ fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: u8
             );
             chunk_idx += 1;
 
-            // Bot: color buttons
-            let color_area = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([Constraint::Length(1), Constraint::Length(1)])
-                .split(form_chunks[chunk_idx]);
-
-            let color_label = Paragraph::new("Color:")
-                .style(
-                    Style::default()
-                        .fg(if is_active { Color::Cyan } else { grey_color })
-                        .add_modifier(if is_active {
-                            Modifier::BOLD
-                        } else {
-                            Modifier::empty()
-                        }),
-                )
-                .alignment(Alignment::Left);
-            frame.render_widget(color_label, color_area[0]);
-
-            let color_button_area = Layout::default()
-                .direction(Direction::Horizontal)
-                .constraints([
-                    Constraint::Length(8),
-                    Constraint::Length(2),
-                    Constraint::Length(8),
-                ])
-                .split(color_area[1]);
-            chunk_idx += 1;
-
-            // White button
             let color_cursor =
                 if app.clock_form_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX {
                     2
                 } else {
                     1
                 };
-            let is_focused = is_active && app.game_mode_form_cursor == color_cursor;
-            let white_selected = app.selected_color == Some(ShakmatyColor::White);
-            let white_focused = is_focused && app.selected_color.is_none();
-            let white_style = if !is_active {
-                Style::default().fg(grey_color)
-            } else if white_selected {
-                Style::default()
-                    .fg(Color::Black)
-                    .bg(Color::White)
-                    .add_modifier(Modifier::BOLD)
-            } else if white_focused || (is_focused && app.selected_color.is_none()) {
-                // Show focus when cursor is on this field
-                Style::default()
-                    .fg(Color::Black)
-                    .bg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD)
-            } else {
-                Style::default().fg(Color::White)
-            };
-            let white_text = Paragraph::new("WHITE")
-                .alignment(Alignment::Center)
-                .style(white_style);
-            frame.render_widget(white_text, color_button_area[0]);
-
-            // Black button
-            let black_selected = app.selected_color == Some(ShakmatyColor::Black);
-            let black_style = if !is_active {
-                Style::default().fg(grey_color)
-            } else if black_selected {
-                Style::default()
-                    .fg(Color::Black)
-                    .bg(Color::White)
-                    .add_modifier(Modifier::BOLD)
-            } else {
-                Style::default().fg(Color::White)
-            };
-            let black_text = Paragraph::new("BLACK")
-                .alignment(Alignment::Center)
-                .style(black_style);
-            frame.render_widget(black_text, color_button_area[2]);
+            render_color_selection_ui(
+                frame,
+                app,
+                form_chunks[chunk_idx],
+                is_active,
+                is_active,
+                grey_color,
+                color_cursor,
+            );
+            chunk_idx += 1;
 
             // Bot depth field
             let depth_cursor =
