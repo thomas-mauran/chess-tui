@@ -111,4 +111,5 @@ pub enum Popups {
     EnterLichessToken,
     ResignConfirmation,
     MoveInputSelection,
+    LoadPgnPath,
 }

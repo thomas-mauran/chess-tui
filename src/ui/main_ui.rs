@@ -22,8 +22,8 @@ use super::lichess_menu::render_lichess_menu;
 use super::ongoing_games::render_ongoing_games;
 use super::pgn_viewer_ui::render_pgn_viewer;
 use super::popups::{
-    render_enter_multiplayer_ip, render_move_input_popup, render_multiplayer_selection_popup,
-    render_wait_for_other_player,
+    render_enter_multiplayer_ip, render_load_pgn_popup, render_move_input_popup,
+    render_multiplayer_selection_popup, render_wait_for_other_player,
 };
 use crate::{
     app::App,
@@ -143,7 +143,6 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
     // PGN viewer
     else if app.current_page == Pages::PgnViewer {
         render_pgn_viewer(frame, app);
-        return; // skip popup rendering while viewing PGN
     }
     // Render menu
     else {
@@ -192,6 +191,9 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
         }
         Some(Popups::EnterGameCode) => {
             render_enter_game_code_popup(frame, &app.game.ui.prompt);
+        }
+        Some(Popups::LoadPgnPath) => {
+            render_load_pgn_popup(frame, &app.game.ui.prompt);
         }
         Some(Popups::EnterLichessToken) => {
             render_enter_lichess_token_popup(frame, &app.game.ui.prompt);

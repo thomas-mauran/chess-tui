@@ -286,6 +286,39 @@ fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
             }
             _ => fallback_key_handler(app, key_event),
         },
+        Popups::LoadPgnPath => match key_event.code {
+            KeyCode::Enter => {
+                app.game.ui.prompt.submit_message();
+                let path = app.game.ui.prompt.message.clone().trim().to_string();
+                if path.is_empty() {
+                    app.current_popup = None;
+                    return;
+                }
+                match crate::pgn_viewer::PgnViewer::from_file(&path) {
+                    Ok(games) => {
+                        app.pgn_viewer_state = Some(games);
+                        app.pgn_viewer_game_idx = 0;
+                        app.current_page = Pages::PgnViewer;
+                        app.current_popup = None;
+                        app.game.ui.prompt.reset();
+                    }
+                    Err(e) => {
+                        app.error_message = Some(format!("Failed to load PGN:\n{}", e));
+                        app.current_popup = Some(Popups::Error);
+                        app.game.ui.prompt.reset();
+                    }
+                }
+            }
+            KeyCode::Char(to_insert) => app.game.ui.prompt.enter_char(to_insert),
+            KeyCode::Backspace => app.game.ui.prompt.delete_char(),
+            KeyCode::Left => app.game.ui.prompt.move_cursor_left(),
+            KeyCode::Right => app.game.ui.prompt.move_cursor_right(),
+            KeyCode::Esc => {
+                app.current_popup = None;
+                app.game.ui.prompt.reset();
+            }
+            _ => fallback_key_handler(app, key_event),
+        },
         Popups::MoveInputSelection => match key_event.code {
             KeyCode::Enter => {
                 // Submit the entered move
@@ -373,7 +406,7 @@ fn handle_pgn_viewer_events(app: &mut App, key_event: KeyEvent) {
         }
 
         // Next move
-        KeyCode::Right | KeyCode::Char('l') => {
+        KeyCode::Right | KeyCode::Char('l' | 'n' | 'N') => {
             if let Some(ref mut games) = app.pgn_viewer_state {
                 if let Some(v) = games.get_mut(app.pgn_viewer_game_idx) {
                     v.next();
@@ -382,13 +415,16 @@ fn handle_pgn_viewer_events(app: &mut App, key_event: KeyEvent) {
         }
 
         // Previous move
-        KeyCode::Left | KeyCode::Char('h') => {
+        KeyCode::Left | KeyCode::Char('h' | 'p' | 'P') => {
             if let Some(ref mut games) = app.pgn_viewer_state {
                 if let Some(v) = games.get_mut(app.pgn_viewer_game_idx) {
                     v.prev();
                 }
             }
         }
+
+        // Help popup
+        KeyCode::Char('?') => app.toggle_help_popup(),
 
         // Go to start
         KeyCode::Char('g') => {
@@ -993,8 +1029,8 @@ fn handle_lichess_menu_page_events(app: &mut App, key_event: KeyEvent) {
 /// Handles keyboard input on the Game Mode menu page.
 /// Supports navigation through menu items, form fields, and selection.
 fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
-    // Ensure cursor is valid (0-2)
-    if app.menu_cursor > 2 {
+    // Ensure cursor is valid (0-3)
+    if app.menu_cursor > 3 {
         app.menu_cursor = 0;
     }
 
@@ -1386,10 +1422,10 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
         // Menu navigation mode (form not active)
         match key_event.code {
             KeyCode::Up | KeyCode::Char('k') => {
-                app.menu_cursor_up(3);
+                app.menu_cursor_up(4);
             }
             KeyCode::Down | KeyCode::Char('j') => {
-                app.menu_cursor_down(3);
+                app.menu_cursor_down(4);
             }
             KeyCode::Left | KeyCode::Char('h') => {
                 // Change game mode selection
@@ -1399,27 +1435,19 @@ fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
             }
             KeyCode::Right | KeyCode::Char('l') => {
                 // Change game mode selection
-                if app.menu_cursor < 2 {
+                if app.menu_cursor < 3 {
                     app.menu_cursor += 1;
                 }
             }
             KeyCode::Char(' ') | KeyCode::Enter => {
-                // Activate the form for all modes
-                app.game_mode_form_active = true;
-                app.game_mode_form_cursor = 0;
-                app.game_mode_selection = Some(game_mode);
-                // Reset form state
-                if game_mode == 0 {
-                    // Local game: reset clock time to default if needed
-                    if app.clock_form_cursor > crate::constants::TIME_CONTROL_CUSTOM_INDEX {
-                        app.clock_form_cursor = 3; // Default: Rapid
-                    }
+                if game_mode == 3 {
+                    // Load PGN: skip the form and go straight to a path prompt
+                    app.game.ui.prompt.reset();
+                    app.current_popup = Some(Popups::LoadPgnPath);
                 } else {
-                    // Activate the form for modes with configuration
                     app.game_mode_form_active = true;
-                    app.game_mode_form_cursor = 0; // Start at first form field
+                    app.game_mode_form_cursor = 0;
                     app.game_mode_selection = Some(game_mode);
-                    // Reset form state
                     app.hosting = None;
                     app.selected_color = None;
                     app.is_random_color = false;

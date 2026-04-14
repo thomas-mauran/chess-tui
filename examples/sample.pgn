@@ -1,0 +1,22 @@
+[Event "Live Chess"]
+[Site "Chess.com"]
+[Date "2026.03.07"]
+[Round "?"]
+[White "Player A"]
+[Black "Player B"]
+[Result "0-1"]
+[TimeControl "600"]
+[WhiteElo "703"]
+[BlackElo "1181"]
+[Termination "Player B won by checkmate"]
+[ECO "D10"]
+[EndTime "4:40:03 GMT+0000"]
+
+1. d4 c6 2. c4 d5 3. e4 e6 4. e5 dxc4 5. Bxc4 f6 6. Nf3 c5 7. exf6 Nxf6 8. Bg5
+h6 9. Bf4 Be7 10. O-O O-O 11. Nc3 a6 12. Ne5 b5 13. Be2 Qxd4 14. Qxd4 cxd4 15.
+Nb1 Nbd7 16. Ng6 Rf7 17. Nxe7+ Rxe7 18. Bd6 Rf7 19. Nd2 Bb7 20. Rac1 Rc8 21.
+Rxc8+ Bxc8 22. Bf3 Nb6 23. Re1 Nc4 24. Ne4 Nxe4 25. Bxe4 Nxd6 26. Bg6 Rf6 27.
+Bc2 Bb7 28. Bb3 Bc8 29. g4 Rg6 30. h3 h5 31. f3 Nf7 32. Rc1 Bb7 33. a4 bxa4 34.
+Bxa4 Bxf3 35. Rc8+ Kh7 36. Bc2 hxg4 37. Bxg6+ Kxg6 38. h4 Kh5 39. Rf8 Ne5 40. b4
+Kxh4 41. Rf5 exf5 42. Kf2 g3+ 43. Kf1 g2+ 44. Kf2 Kh3 45. Kg1 d3 46. b5 d2 47.
+b6 d1=Q+ 48. Kf2 Qe2+ 49. Kg1 Qf1# 0-1

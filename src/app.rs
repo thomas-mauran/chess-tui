@@ -1256,6 +1256,13 @@ impl App {
     }
 
     pub fn check_game_end_status(&mut self) {
+        // PGN viewer drives its own game state via sync_pgn_to_board; running
+        // update_game_state here would flip it to Checkmate/Draw on the final
+        // position and open the EndScreen popup, which blocks viewer navigation.
+        if self.current_page == Pages::PgnViewer {
+            return;
+        }
+
         let previous_state = self.game.logic.game_state;
         self.game.logic.update_game_state();
         let new_state = self.game.logic.game_state;

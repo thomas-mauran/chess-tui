@@ -30,6 +30,8 @@ pub struct PgnViewer {
     pub white: String,
     pub black: String,
     pub result: String,
+    /// Termination reason (e.g. "Normal", "Time forfeit", "Player A won by checkmate")
+    pub termination: String,
 }
 
 impl PgnViewer {
@@ -92,6 +94,20 @@ impl PgnViewer {
 
     pub fn total_plies(&self) -> usize {
         self.moves.len()
+    }
+
+    pub fn is_at_end(&self) -> bool {
+        !self.moves.is_empty() && self.current_ply == self.moves.len()
+    }
+
+    /// Human-readable result string for display (e.g. "White won", "Draw").
+    pub fn result_summary(&self) -> String {
+        match self.result.as_str() {
+            "1-0" => format!("{} (White) won", self.white),
+            "0-1" => format!("{} (Black) won", self.black),
+            "1/2-1/2" => "Draw".to_string(),
+            _ => self.result.clone(),
+        }
     }
 
     /// Called every app tick — advances ply when auto-play is on.
@@ -158,6 +174,7 @@ fn parse_single_game(pgn: &str) -> Result<PgnViewer, String> {
     let mut white = String::from("?");
     let mut black = String::from("?");
     let mut result = String::from("*");
+    let mut termination = String::new();
 
     for line in pgn.lines() {
         let t = line.trim();
@@ -165,14 +182,17 @@ fn parse_single_game(pgn: &str) -> Result<PgnViewer, String> {
             continue;
         }
         if let Some(val) = extract_header_value(t) {
-            if t.to_lowercase().starts_with("[event") {
+            let lower = t.to_lowercase();
+            if lower.starts_with("[event") {
                 title = val;
-            } else if t.to_lowercase().starts_with("[white") {
+            } else if lower.starts_with("[white ") || lower.starts_with("[white\"") {
                 white = val;
-            } else if t.to_lowercase().starts_with("[black") {
+            } else if lower.starts_with("[black ") || lower.starts_with("[black\"") {
                 black = val;
-            } else if t.to_lowercase().starts_with("[result") {
+            } else if lower.starts_with("[result") {
                 result = val;
+            } else if lower.starts_with("[termination") {
+                termination = val;
             }
         }
     }
@@ -237,6 +257,7 @@ fn parse_single_game(pgn: &str) -> Result<PgnViewer, String> {
         white,
         black,
         result,
+        termination,
     })
 }
 
@@ -329,4 +350,41 @@ fn extract_san_tokens(movetext: &str) -> Vec<String> {
         }
     }
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const CHECKMATE_PGN: &str = r#"[Event "Live"]
+[White "A"]
+[Black "B"]
+[Result "0-1"]
+[Termination "B won by checkmate"]
+
+1. e4 e5 2. Qh5 Nc6 3. Bc4 Nf6 4. Qxf7# 0-1
+"#;
+
+    #[test]
+    fn parses_headers_and_termination() {
+        let games = PgnViewer::from_pgn_str(CHECKMATE_PGN).expect("parse PGN");
+        let v = &games[0];
+        assert_eq!(v.white, "A");
+        assert_eq!(v.black, "B");
+        assert_eq!(v.result, "0-1");
+        assert_eq!(v.termination, "B won by checkmate");
+        assert_eq!(v.result_summary(), "B (Black) won");
+    }
+
+    #[test]
+    fn navigates_back_from_final_position() {
+        let mut games = PgnViewer::from_pgn_str(CHECKMATE_PGN).expect("parse PGN");
+        let v = &mut games[0];
+        v.goto_end();
+        assert!(v.is_at_end());
+        let end_ply = v.current_ply;
+        v.prev();
+        assert_eq!(v.current_ply, end_ply - 1);
+        assert!(!v.is_at_end());
+    }
 }
