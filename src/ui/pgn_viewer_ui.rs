@@ -224,8 +224,8 @@ fn render_end_banner(frame: &mut Frame, app: &App, board_area: Rect) {
             Style::default()
                 .fg(Color::Yellow)
                 .add_modifier(Modifier::BOLD),
-        ))
-        .alignment(Alignment::Center),
+        )),
+
         Line::from(""),
         Line::from(Span::styled(
             viewer.result_summary(),
@@ -234,6 +234,10 @@ fn render_end_banner(frame: &mut Frame, app: &App, board_area: Rect) {
                 .add_modifier(Modifier::BOLD),
         ))
         .alignment(Alignment::Center),
+        Line::from(""),
+        Line::from("Press `H` to hide this screen")
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(Color::LightBlue)),
     ];
     if !viewer.termination.is_empty() {
         lines.push(Line::from(""));

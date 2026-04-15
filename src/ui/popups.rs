@@ -495,7 +495,7 @@ fn render_pgn_help_popup(frame: &mut Frame) {
 
 // This render the help popup
 pub fn render_help_popup(frame: &mut Frame, app: &crate::app::App) {
-    if app.current_page == crate::constants::Pages::PgnViewer {
+    if app.ui_state.current_page == crate::constants::Pages::PgnViewer {
         render_pgn_help_popup(frame);
         return;
     }

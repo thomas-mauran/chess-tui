@@ -19,6 +19,7 @@ use crate::handlers::bot::handle_bot_page_events;
 use crate::handlers::credits::handle_credit_page_events;
 use crate::handlers::lichess::lichess_menu::handle_lichess_menu_page_events;
 use crate::handlers::lichess::ongoing_games::handle_ongoing_games_page_events;
+use crate::handlers::pgn::handle_pgn_viewer_events;
 
 /// Handles keyboard input events and updates the application state accordingly.
 ///

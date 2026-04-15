@@ -161,20 +161,20 @@ pub fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
                 app.game.ui.prompt.submit_message();
                 let path = app.game.ui.prompt.message.clone().trim().to_string();
                 if path.is_empty() {
-                    app.current_popup = None;
+                    app.ui_state.current_popup = None;
                     return;
                 }
                 match crate::pgn_viewer::PgnViewer::from_file(&path) {
                     Ok(games) => {
                         app.pgn_viewer_state = Some(games);
                         app.pgn_viewer_game_idx = 0;
-                        app.current_page = Pages::PgnViewer;
-                        app.current_popup = None;
+                        app.ui_state.current_page = Pages::PgnViewer;
+                        app.ui_state.current_popup = None;
                         app.game.ui.prompt.reset();
                     }
                     Err(e) => {
-                        app.error_message = Some(format!("Failed to load PGN:\n{}", e));
-                        app.current_popup = Some(Popups::Error);
+                        app.ui_state.popup_message = Some(format!("Failed to load PGN:\n{}", e));
+                        app.ui_state.current_popup = Some(Popups::Error);
                         app.game.ui.prompt.reset();
                     }
                 }
@@ -184,7 +184,7 @@ pub fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
             KeyCode::Left => app.game.ui.prompt.move_cursor_left(),
             KeyCode::Right => app.game.ui.prompt.move_cursor_right(),
             KeyCode::Esc => {
-                app.current_popup = None;
+                app.ui_state.current_popup = None;
                 app.game.ui.prompt.reset();
             }
             _ => fallback_key_handler(app, key_event),

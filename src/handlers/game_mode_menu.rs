@@ -1,6 +1,6 @@
 use crate::{
     app::App,
-    constants::{Pages, BOT_DIFFICULTY_COUNT},
+    constants::{BOT_DIFFICULTY_COUNT, Pages, Popups},
     handlers::handler::fallback_key_handler,
 };
 use ratatui::crossterm::event::{KeyCode, KeyEvent};
@@ -10,12 +10,17 @@ pub enum AvailableGameMode {
     Local,
     Multiplayer,
     Bot,
+    PGNLoader,
+}
+
+impl AvailableGameMode {
+    pub const COUNT: u8 = 4;
 }
 
 #[derive(PartialEq, Clone, Copy)]
 pub enum LocalFormField {
     TimeControl,
-    CustomTime
+    CustomTime,
 }
 
 impl From<u8> for LocalFormField {
@@ -31,7 +36,7 @@ impl From<u8> for LocalFormField {
 #[derive(PartialEq, Clone, Copy)]
 pub enum MultiplayerFormField {
     HostSelection,
-    ColorSelection
+    ColorSelection,
 }
 
 impl From<u8> for MultiplayerFormField {
@@ -50,7 +55,7 @@ pub enum BotFormField {
     CustomTime,
     ColorSelection,
     BotDepthSelection,
-    DifficultySelection
+    DifficultySelection,
 }
 
 impl From<u8> for BotFormField {
@@ -69,8 +74,8 @@ impl From<u8> for BotFormField {
 /// Handles keyboard input on the Game Mode menu page.
 /// Supports navigation through menu items, form fields, and selection.
 pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
-    // Ensure cursor is valid (0-2)
-    if app.ui_state.menu_cursor > 2 {
+    // Ensure cursor is valid (0-3)
+    if app.ui_state.menu_cursor > AvailableGameMode::COUNT {
         app.ui_state.menu_cursor = 0;
     }
 
@@ -78,6 +83,7 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
         0 => AvailableGameMode::Local,
         1 => AvailableGameMode::Multiplayer,
         2 => AvailableGameMode::Bot,
+        3 => AvailableGameMode::PGNLoader,
         _ => return,
     };
 
@@ -144,7 +150,7 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                     app.game_mode_state.clock_cursor -= 1;
                                 }
                             }
-                            BotFormField::CustomTime=> {
+                            BotFormField::CustomTime => {
                                 // Custom time or Color
                                 if app.game_mode_state.clock_cursor
                                     == crate::constants::TIME_CONTROL_CUSTOM_INDEX
@@ -208,94 +214,83 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                             }
                         }
                     }
+                    _ => {}
                 }
             }
-            KeyCode::Right | KeyCode::Char('l') => {
-                match game_mode {
-                    AvailableGameMode::Local => {
-                        let field = LocalFormField::from(app.game_mode_state.form_cursor);
-                        match field {
-                            LocalFormField::TimeControl => {
-                                if app.game_mode_state.clock_cursor
-                                    < crate::constants::TIME_CONTROL_CUSTOM_INDEX
-                                {
-                                    app.game_mode_state.clock_cursor += 1;
-                                }
+            KeyCode::Right | KeyCode::Char('l') => match game_mode {
+                AvailableGameMode::Local => {
+                    let field = LocalFormField::from(app.game_mode_state.form_cursor);
+                    match field {
+                        LocalFormField::TimeControl => {
+                            if app.game_mode_state.clock_cursor
+                                < crate::constants::TIME_CONTROL_CUSTOM_INDEX
+                            {
+                                app.game_mode_state.clock_cursor += 1;
                             }
-                            LocalFormField::CustomTime => {
-                                if app.game_mode_state.clock_cursor
-                                    == crate::constants::TIME_CONTROL_CUSTOM_INDEX
-                                    && app.game_mode_state.custom_time_minutes < 120
-                                {
+                        }
+                        LocalFormField::CustomTime => {
+                            if app.game_mode_state.clock_cursor
+                                == crate::constants::TIME_CONTROL_CUSTOM_INDEX
+                                && app.game_mode_state.custom_time_minutes < 120
+                            {
+                                app.game_mode_state.custom_time_minutes += 1;
+                            }
+                        }
+                    }
+                }
+                AvailableGameMode::Multiplayer => {
+                    let field = MultiplayerFormField::from(app.game_mode_state.form_cursor);
+                    match field {
+                        MultiplayerFormField::HostSelection => {
+                            app.multiplayer_state.hosting = Some(false);
+                        }
+                        MultiplayerFormField::ColorSelection => {
+                            if app.multiplayer_state.hosting == Some(true) {
+                                app.game_mode_state.select_next_color_option();
+                            }
+                        }
+                    }
+                }
+                AvailableGameMode::Bot => {
+                    let field = BotFormField::from(app.game_mode_state.form_cursor);
+                    match field {
+                        BotFormField::TimeControl => {
+                            if app.game_mode_state.clock_cursor
+                                < crate::constants::TIME_CONTROL_CUSTOM_INDEX
+                            {
+                                app.game_mode_state.clock_cursor += 1;
+                            }
+                        }
+                        BotFormField::CustomTime => {
+                            if app.game_mode_state.clock_cursor
+                                == crate::constants::TIME_CONTROL_CUSTOM_INDEX
+                            {
+                                if app.game_mode_state.custom_time_minutes < 120 {
                                     app.game_mode_state.custom_time_minutes += 1;
                                 }
+                            } else {
+                                app.game_mode_state.select_next_color_option();
                             }
                         }
-                    }
-                    AvailableGameMode::Multiplayer => {
-                        let field = MultiplayerFormField::from(app.game_mode_state.form_cursor);
-                        match field {
-                            MultiplayerFormField::HostSelection => {
-                                app.multiplayer_state.hosting = Some(false);
-                            }
-                            MultiplayerFormField::ColorSelection => {
-                                if app.multiplayer_state.hosting == Some(true) {
-                                    app.game_mode_state.select_next_color_option();
-                                }
+                        BotFormField::ColorSelection => {
+                            if app.game_mode_state.clock_cursor
+                                == crate::constants::TIME_CONTROL_CUSTOM_INDEX
+                            {
+                                app.game_mode_state.select_next_color_option();
+                            } else if app.bot_state.bot_depth < 20 {
+                                app.bot_state.bot_depth += 1;
+                                app.update_config();
                             }
                         }
-                    }
-                    AvailableGameMode::Bot => {
-                        let field = BotFormField::from(app.game_mode_state.form_cursor);
-                        match field {
-                            BotFormField::TimeControl => {
-                                if app.game_mode_state.clock_cursor
-                                    < crate::constants::TIME_CONTROL_CUSTOM_INDEX
-                                {
-                                    app.game_mode_state.clock_cursor += 1;
-                                }
-                            }
-                            BotFormField::CustomTime => {
-                                if app.game_mode_state.clock_cursor
-                                    == crate::constants::TIME_CONTROL_CUSTOM_INDEX
-                                {
-                                    if app.game_mode_state.custom_time_minutes < 120 {
-                                        app.game_mode_state.custom_time_minutes += 1;
-                                    }
-                                } else {
-                                    app.game_mode_state.select_next_color_option();
-                                }
-                            }
-                            BotFormField::ColorSelection => {
-                                if app.game_mode_state.clock_cursor
-                                    == crate::constants::TIME_CONTROL_CUSTOM_INDEX
-                                {
-                                    app.game_mode_state.select_next_color_option();
-                                } else if app.bot_state.bot_depth < 20 {
+                        BotFormField::BotDepthSelection => {
+                            if app.game_mode_state.clock_cursor
+                                == crate::constants::TIME_CONTROL_CUSTOM_INDEX
+                            {
+                                if app.bot_state.bot_depth < 20 {
                                     app.bot_state.bot_depth += 1;
                                     app.update_config();
                                 }
-                            }
-                            BotFormField::BotDepthSelection => {
-                                if app.game_mode_state.clock_cursor
-                                    == crate::constants::TIME_CONTROL_CUSTOM_INDEX
-                                {
-                                    if app.bot_state.bot_depth < 20 {
-                                        app.bot_state.bot_depth += 1;
-                                        app.update_config();
-                                    }
-                                } else {
-                                    match app.bot_state.bot_difficulty {
-                                        None => app.bot_state.bot_difficulty = Some(0),
-                                        Some(i) if i + 1 >= BOT_DIFFICULTY_COUNT as u8 => {
-                                            app.bot_state.bot_difficulty = None
-                                        }
-                                        Some(i) => app.bot_state.bot_difficulty = Some(i + 1),
-                                    }
-                                    app.update_config();
-                                }
-                            }
-                            BotFormField::DifficultySelection => {
+                            } else {
                                 match app.bot_state.bot_difficulty {
                                     None => app.bot_state.bot_difficulty = Some(0),
                                     Some(i) if i + 1 >= BOT_DIFFICULTY_COUNT as u8 => {
@@ -306,9 +301,20 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                 app.update_config();
                             }
                         }
+                        BotFormField::DifficultySelection => {
+                            match app.bot_state.bot_difficulty {
+                                None => app.bot_state.bot_difficulty = Some(0),
+                                Some(i) if i + 1 >= BOT_DIFFICULTY_COUNT as u8 => {
+                                    app.bot_state.bot_difficulty = None
+                                }
+                                Some(i) => app.bot_state.bot_difficulty = Some(i + 1),
+                            }
+                            app.update_config();
+                        }
                     }
                 }
-            }
+                _ => {}
+            },
             KeyCode::Char(' ') | KeyCode::Enter => {
                 match game_mode {
                     AvailableGameMode::Local => {
@@ -320,7 +326,9 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                 {
                                     app.game_mode_state.form_cursor = 1;
                                 } else {
-                                    if let Some(seconds) = app.game_mode_state.get_time_control_seconds() {
+                                    if let Some(seconds) =
+                                        app.game_mode_state.get_time_control_seconds()
+                                    {
                                         use crate::game_logic::clock::Clock;
                                         app.game.logic.clock = Some(Clock::new(seconds));
                                     }
@@ -331,7 +339,9 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                 }
                             }
                             LocalFormField::CustomTime => {
-                                if let Some(seconds) = app.game_mode_state.get_time_control_seconds() {
+                                if let Some(seconds) =
+                                    app.game_mode_state.get_time_control_seconds()
+                                {
                                     use crate::game_logic::clock::Clock;
                                     app.game.logic.clock = Some(Clock::new(seconds));
                                 }
@@ -359,8 +369,11 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                 }
                             }
                             MultiplayerFormField::ColorSelection => {
-                                if app.game_mode_state.selected_color.is_none() && !app.game_mode_state.is_random_color {
-                                    app.game_mode_state.selected_color = Some(shakmaty::Color::White);
+                                if app.game_mode_state.selected_color.is_none()
+                                    && !app.game_mode_state.is_random_color
+                                {
+                                    app.game_mode_state.selected_color =
+                                        Some(shakmaty::Color::White);
                                 }
                                 app.ui_state.current_page = Pages::Multiplayer;
                                 app.game_mode_state.selection = None;
@@ -380,8 +393,11 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                     != crate::constants::TIME_CONTROL_CUSTOM_INDEX
                                 {
                                     // Color field (no custom time) - default White if nothing selected
-                                    if app.game_mode_state.selected_color.is_none() && !app.game_mode_state.is_random_color {
-                                        app.game_mode_state.selected_color = Some(shakmaty::Color::White);
+                                    if app.game_mode_state.selected_color.is_none()
+                                        && !app.game_mode_state.is_random_color
+                                    {
+                                        app.game_mode_state.selected_color =
+                                            Some(shakmaty::Color::White);
                                     }
                                 }
                                 app.game_mode_state.form_cursor = 2;
@@ -391,8 +407,11 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                     == crate::constants::TIME_CONTROL_CUSTOM_INDEX
                                 {
                                     // Color field (custom time) - default White if nothing selected
-                                    if app.game_mode_state.selected_color.is_none() && !app.game_mode_state.is_random_color {
-                                        app.game_mode_state.selected_color = Some(shakmaty::Color::White);
+                                    if app.game_mode_state.selected_color.is_none()
+                                        && !app.game_mode_state.is_random_color
+                                    {
+                                        app.game_mode_state.selected_color =
+                                            Some(shakmaty::Color::White);
                                     }
                                 }
                                 app.game_mode_state.form_cursor = 3;
@@ -417,6 +436,7 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                             }
                         }
                     }
+                    _ => {}
                 }
             }
             _ => fallback_key_handler(app, key_event),
@@ -425,10 +445,10 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
         // Menu navigation mode (form not active)
         match key_event.code {
             KeyCode::Up | KeyCode::Char('k') => {
-                app.ui_state.menu_cursor_up(3);
+                app.ui_state.menu_cursor_up(AvailableGameMode::COUNT);
             }
             KeyCode::Down | KeyCode::Char('j') => {
-                app.ui_state.menu_cursor_down(3);
+                app.ui_state.menu_cursor_down(AvailableGameMode::COUNT);
             }
             KeyCode::Left | KeyCode::Char('h') => {
                 // Change game mode selection
@@ -456,6 +476,10 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                         {
                             app.game_mode_state.clock_cursor = 3; // Default: Rapid
                         }
+                    }
+                    AvailableGameMode::PGNLoader => {
+                        app.game.ui.prompt.reset();
+                        app.ui_state.current_popup = Some(Popups::LoadPgnPath);
                     }
                     _ => {
                         // Activate the form for modes with configuration

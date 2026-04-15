@@ -1,6 +1,9 @@
+use ratatui::crossterm::event::{KeyCode, KeyEvent};
+use crate::app::App;
+
 
 /// Handles keyboard input in PGN viewer mode.
-fn handle_pgn_viewer_events(app: &mut App, key_event: KeyEvent) {
+pub fn handle_pgn_viewer_events(app: &mut App, key_event: KeyEvent) {
     let game_count = app.pgn_viewer_state.as_ref().map(|g| g.len()).unwrap_or(0);
 
     match key_event.code {
@@ -36,7 +39,7 @@ fn handle_pgn_viewer_events(app: &mut App, key_event: KeyEvent) {
         }
 
         // Help popup
-        KeyCode::Char('?') => app.toggle_help_popup(),
+        KeyCode::Char('?') => app.ui_state.toggle_help_popup(),
 
         // Go to start
         KeyCode::Char('g') => {

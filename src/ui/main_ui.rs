@@ -138,7 +138,7 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
         render_ongoing_games(frame, app);
     }
     // PGN viewer
-    else if app.current_page == Pages::PgnViewer {
+    else if app.ui_state.current_page == Pages::PgnViewer {
         render_pgn_viewer(frame, app);
     }
     // Render menu

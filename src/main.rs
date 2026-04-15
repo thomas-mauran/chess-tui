@@ -293,7 +293,7 @@ fn main() -> AppResult<()> {
             Ok(games) => {
                 app.pgn_viewer_state = Some(games);
                 app.pgn_viewer_game_idx = 0;
-                app.current_page = Pages::PgnViewer;
+                app.ui_state.current_page = Pages::PgnViewer;
             }
             Err(e) => {
                 eprintln!("Failed to load PGN '{}': {}", pgn_path, e);
