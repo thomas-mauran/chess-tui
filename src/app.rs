@@ -1016,7 +1016,7 @@ impl App {
                 // Convert the square to a coord, accounting for board flip
                 use crate::utils::get_coord_from_square;
                 let coord =
-                    get_coord_from_square(Some(from_square), self.game.logic.game_board.is_flipped);
+                    get_coord_from_square(from_square, self.game.logic.game_board.is_flipped);
 
                 // Set cursor to that position
                 self.game.ui.cursor_coordinates = coord;
@@ -1623,41 +1623,20 @@ impl App {
         self.loaded_skin = loaded_skin;
     }
 
-    fn get_authorized_positions_flipped(&self) -> Vec<Coord> {
-        let authorized_positions = if let Some(selected_square) = self.game.ui.selected_square {
-            self.game.logic.game_board.get_authorized_positions(
-                self.game.logic.player_turn,
-                &flip_square_if_needed(selected_square, self.game.logic.game_board.is_flipped),
-            )
-        } else {
-            vec![]
-        };
-
-        authorized_positions
-            .iter()
-            .map(|s| flip_square_if_needed(*s, self.game.logic.game_board.is_flipped))
-            .map(Coord::from_square)
-            .collect()
-    }
-
     pub fn go_left_in_game(&mut self) {
-        let authorized_positions = self.get_authorized_positions_flipped();
-        self.game.ui.cursor_left(authorized_positions);
+        self.game.ui.cursor_left();
     }
 
     pub fn go_right_in_game(&mut self) {
-        let authorized_positions = self.get_authorized_positions_flipped();
-        self.game.ui.cursor_right(authorized_positions);
+        self.game.ui.cursor_right();
     }
 
     pub fn go_up_in_game(&mut self) {
-        let authorized_positions = self.get_authorized_positions_flipped();
-        self.game.ui.cursor_up(authorized_positions);
+        self.game.ui.cursor_up();
     }
 
     pub fn go_down_in_game(&mut self) {
-        let authorized_positions = self.get_authorized_positions_flipped();
-        self.game.ui.cursor_down(authorized_positions);
+        self.game.ui.cursor_down();
     }
 
     pub fn process_cell_click(&mut self) {
@@ -1747,19 +1726,31 @@ impl App {
                 }
             }
 
+            // Check authorized positions before taking any action.
+
             // Store move info before execution for puzzle validation
             let puzzle_move_info = if self.puzzle_game.is_some() && self.game.ui.is_cell_selected()
             {
                 if let Some(selected_square) = self.game.ui.selected_square {
-                    if let Some(cursor_square) = self.game.ui.cursor_coordinates.to_square() {
-                        let from = flip_square_if_needed(
-                            selected_square,
-                            self.game.logic.game_board.is_flipped,
-                        );
-                        let to = flip_square_if_needed(
-                            cursor_square,
-                            self.game.logic.game_board.is_flipped,
-                        );
+                    let cursor_square = self.game.ui.cursor_coordinates.into();
+
+                    let from = flip_square_if_needed(
+                        selected_square,
+                        self.game.logic.game_board.is_flipped,
+                    );
+                    let to =
+                        flip_square_if_needed(cursor_square, self.game.logic.game_board.is_flipped);
+
+                    // Check if it is a valid move. This could be improved by having a single source
+                    // of truth. Maybe the game return an Option<(Square, Square)> so anyone can see
+                    // if a move was actually made by a movement.
+                    let authorized_positions = self
+                        .game
+                        .logic
+                        .game_board
+                        .get_authorized_positions(self.game.logic.player_turn, &from);
+
+                    if authorized_positions.contains(&to) {
                         Some((from, to))
                     } else {
                         None

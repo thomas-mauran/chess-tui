@@ -6,6 +6,7 @@ use super::{
 };
 use crate::{
     constants::{DisplayMode, BLACK, WHITE},
+    game_logic::coord::MoveDirection,
     pieces::{role_to_utf_enum, PieceSize},
     skin::{PieceStyle, Skin},
     ui::{main_ui::render_cell, prompt::Prompt},
@@ -33,7 +34,6 @@ struct CellRenderContext<'a> {
 }
 
 // Constants moved to top of file
-const BLINK_INTERVAL_TICKS: u8 = 2;
 const BIG_MODE_WIDTH: usize = 21; // 5 + 8 + 8 (with numbers, 2 moves on one line)
 const MEDIUM_MODE_WIDTH: usize = 16; // 8 + 8 (no numbers, 2 moves on one line)
 
@@ -48,7 +48,7 @@ pub struct UI {
     /// The cursor for The promotion popup
     pub promotion_cursor: i8,
     /// The old cursor position used when unslecting a cell
-    pub old_cursor_position: Coord,
+    pub old_cursor_position: Option<Coord>,
     /// coordinates of the interactable part of the screen (either normal chess board or promotion screen)
     pub top_x: u16,
     pub top_y: u16,
@@ -74,11 +74,11 @@ pub struct UI {
 impl Default for UI {
     fn default() -> Self {
         UI {
-            cursor_coordinates: Coord::new(4, 4),
+            cursor_coordinates: Coord::default(),
             selected_square: None,
             selected_piece_cursor: 0,
             promotion_cursor: 0,
-            old_cursor_position: Coord::undefined(),
+            old_cursor_position: None,
             top_x: 0,
             top_y: 0,
             width: 0,
@@ -96,11 +96,11 @@ impl Default for UI {
 
 impl UI {
     pub fn reset(&mut self) {
-        self.cursor_coordinates = Coord::new(4, 4);
+        self.cursor_coordinates = Coord::default();
         self.selected_square = None;
         self.selected_piece_cursor = 0;
         self.promotion_cursor = 0;
-        self.old_cursor_position = Coord::undefined();
+        self.old_cursor_position = None;
         self.top_x = 0;
         self.top_y = 0;
         self.width = 0;
@@ -113,17 +113,7 @@ impl UI {
     /// Update the cursor blink state. This is called from the global tick handler.
     /// When a piece is selected, the cursor cell will toggle visibility every few ticks.
     pub fn update_cursor_blink(&mut self) {
-        if self.is_cell_selected() {
-            self.cursor_blink_counter = self.cursor_blink_counter.wrapping_add(1);
-            if self.cursor_blink_counter >= BLINK_INTERVAL_TICKS {
-                self.cursor_blink_visible = !self.cursor_blink_visible;
-                self.cursor_blink_counter = 0;
-            }
-        } else {
-            // Ensure cursor is always visible when nothing is selected
-            self.cursor_blink_visible = true;
-            self.cursor_blink_counter = 0;
-        }
+        self.cursor_blink_visible = true;
     }
 
     /// Check if a cell has been selected
@@ -142,7 +132,7 @@ impl UI {
         mut authorized_positions: Vec<Coord>,
     ) {
         if authorized_positions.is_empty() {
-            self.cursor_coordinates = Coord::undefined();
+            self.cursor_coordinates = Coord::default();
         } else {
             // Safe conversion: authorized_positions.len() is bounded by 64 (max chess moves)
             let len = authorized_positions.len().min(127) as i8;
@@ -170,30 +160,18 @@ impl UI {
 
     // CURSOR MOVEMENT
     /// Move the cursor up
-    pub fn cursor_up(&mut self, authorized_positions: Vec<Coord>) {
-        if self.is_cell_selected() {
-            self.move_selected_piece_cursor(false, -1, authorized_positions);
-        } else if self.cursor_coordinates.row > 0 {
-            self.cursor_coordinates.row -= 1;
-        }
+    pub fn cursor_up(&mut self) {
+        self.cursor_coordinates.move_to(MoveDirection::Up);
     }
 
     /// Move the cursor down
-    pub fn cursor_down(&mut self, authorized_positions: Vec<Coord>) {
-        if self.is_cell_selected() {
-            self.move_selected_piece_cursor(false, 1, authorized_positions);
-        } else if self.cursor_coordinates.row < 7 {
-            self.cursor_coordinates.row += 1;
-        }
+    pub fn cursor_down(&mut self) {
+        self.cursor_coordinates.move_to(MoveDirection::Down);
     }
 
     /// Move the cursor to the left
-    pub fn cursor_left(&mut self, authorized_positions: Vec<Coord>) {
-        if self.is_cell_selected() {
-            self.move_selected_piece_cursor(false, -1, authorized_positions);
-        } else if self.cursor_coordinates.col > 0 {
-            self.cursor_coordinates.col -= 1;
-        }
+    pub fn cursor_left(&mut self) {
+        self.cursor_coordinates.move_to(MoveDirection::Left);
     }
 
     /// Move the cursor to the left when we are showing the promotion popup
@@ -206,12 +184,8 @@ impl UI {
     }
 
     /// Move the cursor to the right
-    pub fn cursor_right(&mut self, authorized_positions: Vec<Coord>) {
-        if self.is_cell_selected() {
-            self.move_selected_piece_cursor(false, 1, authorized_positions);
-        } else if self.cursor_coordinates.col < 7 {
-            self.cursor_coordinates.col += 1;
-        }
+    pub fn cursor_right(&mut self) {
+        self.cursor_coordinates.move_to(MoveDirection::Right);
     }
 
     /// Move the cursor to the right when we are doing a promotion
@@ -224,7 +198,6 @@ impl UI {
         if self.is_cell_selected() {
             self.selected_square = None;
             self.selected_piece_cursor = 0;
-            self.cursor_coordinates = self.old_cursor_position;
         }
     }
 
@@ -628,7 +601,7 @@ impl UI {
                     .game_board
                     .get_authorized_positions(logic.player_turn, &square)
                     .iter()
-                    .map(|s| Coord::from_square(*s))
+                    .map(|&s| Coord::from(s))
                     .collect();
 
                 if logic.game_board.is_flipped {
@@ -758,6 +731,15 @@ impl UI {
             authorized_positions,
         } = *ctx;
 
+        let current_rendering_coord = Coord::new(i, j);
+        let current_rendering_square =
+            get_square_from_coord(current_rendering_coord, logic.game_board.is_flipped);
+
+        // Safely determine if this specific cell is the one selected by the player
+        let is_selected_cell = actual_square.is_some_and(|s| {
+            get_coord_from_square(s, logic.game_board.is_flipped) == current_rendering_coord
+        });
+
         // Color of the cell to draw the board
         let cell_color: Color = if (i + j).is_multiple_of(2) {
             match self.display_mode {
@@ -771,9 +753,7 @@ impl UI {
             }
         };
 
-        let is_cell_in_positions = |positions: &[Coord], i: u8, j: u8| {
-            positions.iter().any(|&coord| coord == Coord::new(i, j))
-        };
+        let is_cell_in_positions = authorized_positions.contains(&current_rendering_coord);
 
         // Here we have all the possibilities for a cell:
         // - selected cell: green
@@ -783,43 +763,18 @@ impl UI {
         // - last move cell: green
         // - default cell: white or black
         // Draw the cell blue if this is the current cursor cell
-        if i == self.cursor_coordinates.row
-            && j == self.cursor_coordinates.col
-            && !self.mouse_used
-            // When a piece is selected, only draw the cursor cell on "visible" ticks
-            // so that it appears to flicker. On "hidden" ticks, we let the other
-            // branches below (selected cell, available moves, etc.) handle the cell.
-            && (!self.is_cell_selected() || self.cursor_blink_visible)
-        {
-            let cursor_color = match self.display_mode {
-                DisplayMode::CUSTOM => self.skin.cursor_color,
-                _ => Color::LightBlue,
-            };
-            render_cell(frame, square, cursor_color, None);
-        }
-        // Draw the cell magenta if the king is getting checked
-        else if logic.game_board.is_getting_checked(logic.player_turn)
-            && Coord::new(i, j) == logic.game_board.get_king_coordinates(logic.player_turn)
+        if logic.game_board.is_getting_checked(logic.player_turn)
+            && current_rendering_coord == logic.game_board.get_king_coordinates(logic.player_turn)
         {
             render_cell(frame, square, Color::Magenta, Some(Modifier::SLOW_BLINK));
-        }
-        // Draw the cell green if this is the selected cell or if the cell is part of the last move
-        else if (i == get_coord_from_square(actual_square, logic.game_board.is_flipped).row
-            && j == get_coord_from_square(actual_square, logic.game_board.is_flipped).col)
-            || (last_move_from
-                == get_square_from_coord(Coord::new(i, j), logic.game_board.is_flipped))
-            || (last_move_to
-                == get_square_from_coord(Coord::new(i, j), logic.game_board.is_flipped))
-                && !is_cell_in_positions(authorized_positions, i, j)
-        // and not in the authorized positions (grey instead of green)
+            // Draw the cell green if this is the selected cell or if the cell is part of the last move
+        } else if is_selected_cell
+            || last_move_to == Some(current_rendering_square)
+            || last_move_from == Some(current_rendering_square) && !is_cell_in_positions
         {
             let highlight_color = match self.display_mode {
                 DisplayMode::CUSTOM => {
-                    // Use selection color for selected square, last move color for last move
-                    if i == get_coord_from_square(actual_square, logic.game_board.is_flipped).row
-                        && j == get_coord_from_square(actual_square, logic.game_board.is_flipped)
-                            .col
-                    {
+                    if is_selected_cell {
                         self.skin.selection_color
                     } else {
                         self.skin.last_move_color
@@ -828,11 +783,10 @@ impl UI {
                 _ => Color::LightGreen,
             };
             render_cell(frame, square, highlight_color, None);
-        } else if is_cell_in_positions(authorized_positions, i, j) {
+        } else if is_cell_in_positions {
             render_cell(frame, square, Color::Rgb(100, 100, 100), None);
-        }
-        // else as a last resort we draw the cell with the default color either white or black
-        else {
+            // else as a last resort we draw the cell with the default color either white or black
+        } else {
             let mut cell = Block::default();
             cell = match self.display_mode {
                 DisplayMode::DEFAULT | DisplayMode::CUSTOM => cell.bg(cell_color),
@@ -842,20 +796,29 @@ impl UI {
                     _ => cell.bg(cell_color),
                 },
             };
-            frame.render_widget(cell.clone(), square);
+            frame.render_widget(cell, square);
+        }
+
+        if current_rendering_coord == self.cursor_coordinates {
+            let cursor_color = match self.display_mode {
+                DisplayMode::CUSTOM => self.skin.cursor_color,
+                _ => Color::LightBlue,
+            };
+
+            let cell = Block::default().bg(cursor_color);
+
+            frame.render_widget(cell, square);
         }
 
         // Get piece and color
         let coord = Coord::new(i, j);
-        if let Some(square_index) = get_square_from_coord(coord, logic.game_board.is_flipped) {
-            let piece_color = logic.game_board.get_piece_color_at_square(&square_index);
-            let piece_type = logic.game_board.get_role_at_square(&square_index);
+        let square_index = get_square_from_coord(coord, logic.game_board.is_flipped);
+        let piece_color = logic.game_board.get_piece_color_at_square(&square_index);
+        let piece_type = logic.game_board.get_role_at_square(&square_index);
 
-            let (paragraph, line_count) =
-                self.render_piece_paragraph(piece_type, piece_color, square);
-            let piece_area = Self::piece_centered_rect(square, line_count);
-            frame.render_widget(paragraph, piece_area);
-        }
+        let (paragraph, line_count) = self.render_piece_paragraph(piece_type, piece_color, square);
+        let piece_area = Self::piece_centered_rect(square, line_count);
+        frame.render_widget(paragraph, piece_area);
     }
 
     /// Render rank labels (1-8) on the left side of the board
