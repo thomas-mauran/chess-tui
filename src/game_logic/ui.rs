@@ -9,10 +9,7 @@ use crate::{
     game_logic::coord::MoveDirection,
     pieces::{role_to_utf_enum, PieceSize},
     skin::{PieceStyle, Skin},
-    ui::{
-        main_ui::{render_cell, render_cell_outline},
-        prompt::Prompt,
-    },
+    ui::{main_ui::render_cell, prompt::Prompt},
     utils::{flip_square_if_needed, get_coord_from_square, get_square_from_coord},
 };
 use ratatui::{
@@ -802,6 +799,17 @@ impl UI {
             frame.render_widget(cell, square);
         }
 
+        if current_rendering_coord == self.cursor_coordinates {
+            let cursor_color = match self.display_mode {
+                DisplayMode::CUSTOM => self.skin.cursor_color,
+                _ => Color::LightBlue,
+            };
+
+            let cell = Block::default().bg(cursor_color);
+
+            frame.render_widget(cell, square);
+        }
+
         // Get piece and color
         let coord = Coord::new(i, j);
         let square_index = get_square_from_coord(coord, logic.game_board.is_flipped);
@@ -811,15 +819,6 @@ impl UI {
         let (paragraph, line_count) = self.render_piece_paragraph(piece_type, piece_color, square);
         let piece_area = Self::piece_centered_rect(square, line_count);
         frame.render_widget(paragraph, piece_area);
-
-        if current_rendering_coord == self.cursor_coordinates {
-            let cursor_color = match self.display_mode {
-                DisplayMode::CUSTOM => self.skin.cursor_color,
-                _ => Color::LightBlue,
-            };
-
-            render_cell_outline(frame, square, cursor_color);
-        }
     }
 
     /// Render rank labels (1-8) on the left side of the board

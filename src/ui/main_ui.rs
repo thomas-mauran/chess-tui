@@ -268,15 +268,6 @@ pub fn render_cell(frame: &mut Frame, square: Rect, color: Color, modifier: Opti
     frame.render_widget(cell, square);
 }
 
-pub fn render_cell_outline(frame: &mut Frame, area: Rect, color: Color) {
-    let outline = Block::default()
-        .borders(Borders::ALL)
-        .border_type(BorderType::QuadrantOutside)
-        .border_style(Style::default().fg(color));
-
-    frame.render_widget(outline, area);
-}
-
 // Method to render the home menu and the options
 pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
     // Determine the "skin" text
