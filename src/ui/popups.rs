@@ -448,8 +448,58 @@ pub fn render_credit_popup(frame: &mut Frame) {
     frame.render_widget(paragraph, area);
 }
 
+/// Help popup shown while the PGN viewer is active. Covers only the controls
+/// that make sense for a read-only replay - no piece-selection or skin cycling.
+fn render_pgn_help_popup(frame: &mut Frame) {
+    let block = Block::default()
+        .title("PGN viewer - controls")
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .padding(Padding::horizontal(1))
+        .border_style(Style::default().fg(WHITE));
+    let area = centered_rect(45, 55, frame.area());
+
+    let text = vec![
+        Line::from("Navigation".underlined().bold()),
+        Line::from(""),
+        Line::from("→ / N / l : Next move"),
+        Line::from("← / P / h : Previous move"),
+        Line::from("g         : Jump to start"),
+        Line::from("G         : Jump to end"),
+        Line::from("Tab       : Next game (multi-game PGN)"),
+        Line::from(""),
+        Line::from("Auto-play".underlined().bold()),
+        Line::from(""),
+        Line::from("Space     : Play / Pause"),
+        Line::from("+  /  -   : Speed up / slow down"),
+        Line::from("            (0.5x, 1x, 1.5x, 2x, 2.5x, 3x, 4x)"),
+        Line::from(""),
+        Line::from("Other".underlined().bold()),
+        Line::from(""),
+        Line::from("h         : Hide the end-of-game banner"),
+        Line::from("?         : Toggle this help"),
+        Line::from("Esc / q   : Exit the viewer"),
+        Line::from(""),
+        Line::from("Press `Esc` or `?` to close.").alignment(Alignment::Center),
+    ];
+
+    let paragraph = Paragraph::new(text)
+        .block(block.clone())
+        .alignment(Alignment::Left)
+        .wrap(Wrap { trim: true });
+
+    frame.render_widget(Clear, area);
+    frame.render_widget(block, area);
+    frame.render_widget(paragraph, area);
+}
+
 // This render the help popup
 pub fn render_help_popup(frame: &mut Frame, app: &crate::app::App) {
+    if app.current_page == crate::constants::Pages::PgnViewer {
+        render_pgn_help_popup(frame);
+        return;
+    }
+
     let block = Block::default()
         .title("Help menu")
         .borders(Borders::ALL)

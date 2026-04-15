@@ -1,10 +1,9 @@
-//! PGN viewer UI — renders the chess board + move history for a saved game.
+//! PGN viewer UI - renders the chess board + move history for a saved game.
 //!
 //! Re-uses the existing `render_game_ui` layout by syncing the PgnViewer's current
 //! position into `app.game.logic.game_board` before rendering.
 
 use crate::app::App;
-use crate::game_logic::coord::Coord;
 use crate::game_logic::game::GameState;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -37,8 +36,8 @@ pub fn sync_pgn_to_board(app: &mut App) {
     app.game.logic.game_board.history_position_index = None;
     app.game.ui.selected_square = None;
     app.game.logic.game_state = GameState::Playing;
-    // Hide the square cursor — viewer is read-only, nothing to select.
-    app.game.ui.cursor_coordinates = Coord::undefined();
+    // Hide the square cursor - viewer is read-only, nothing to select.
+    app.game.ui.hide_cursor = true;
     // Set player_turn so history panel colouring is correct
     app.game.logic.player_turn = if current_ply % 2 == 0 {
         shakmaty::Color::White
@@ -80,7 +79,7 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
         .as_ref()
         .and_then(|v| v.get(app.pgn_viewer_game_idx));
 
-    let (current_ply, total_plies, auto_play, speed, title, white, black, result, game_count) =
+    let (current_ply, total_plies, auto_play, speed_label, title, white, black, result, game_count) =
         if let Some(v) = viewer_opt {
             let count = app
                 .pgn_viewer_state
@@ -91,7 +90,7 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
                 v.current_ply,
                 v.total_plies(),
                 v.auto_play,
-                v.auto_play_speed,
+                v.speed_label(),
                 v.title.as_str(),
                 v.white.as_str(),
                 v.black.as_str(),
@@ -113,11 +112,6 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
     };
 
     let play_label = if auto_play { "Pause" } else { "Play" };
-    let speed_str = match speed {
-        1 => "Fast",
-        2..=4 => "Normal",
-        _ => "Slow",
-    };
 
     let mut nav_spans = vec![
         Span::styled("←/→", Style::default().fg(Color::Cyan)),
@@ -127,7 +121,7 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
         Span::styled("Space", Style::default().fg(Color::Cyan)),
         Span::raw(format!(" {}  ", play_label)),
         Span::styled("+/-", Style::default().fg(Color::Cyan)),
-        Span::raw(format!(" Speed:{speed_str}  ")),
+        Span::raw(format!(" Speed:{speed_label}  ")),
         Span::styled("g/G", Style::default().fg(Color::Cyan)),
         Span::raw(" Start/End  "),
     ];
@@ -206,7 +200,7 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
 }
 
 /// When the viewer sits on the final position, overlay a small banner with
-/// the final result and termination reason. Non-modal — navigation keys
+/// the final result and termination reason. Non-modal - navigation keys
 /// continue to work and the banner disappears as soon as the user steps back.
 fn render_end_banner(frame: &mut Frame, app: &App, board_area: Rect) {
     let Some(viewer) = app
@@ -217,7 +211,7 @@ fn render_end_banner(frame: &mut Frame, app: &App, board_area: Rect) {
         return;
     };
 
-    if !viewer.is_at_end() {
+    if !viewer.is_at_end() || viewer.end_banner_dismissed {
         return;
     }
 
@@ -254,7 +248,7 @@ fn render_end_banner(frame: &mut Frame, app: &App, board_area: Rect) {
     lines.extend([
         Line::from(""),
         Line::from(Span::styled(
-            "← / P to step back",
+            "h: hide  ·  ← / P: step back",
             Style::default().fg(Color::DarkGray),
         ))
         .alignment(Alignment::Center),

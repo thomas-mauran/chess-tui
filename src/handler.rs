@@ -397,11 +397,12 @@ fn handle_pgn_viewer_events(app: &mut App, key_event: KeyEvent) {
     let game_count = app.pgn_viewer_state.as_ref().map(|g| g.len()).unwrap_or(0);
 
     match key_event.code {
-        // Quit viewer
+        // Quit viewer - full reset so the injected board state does not leak
+        // into the next game (position history, hidden cursor, etc.).
         KeyCode::Esc | KeyCode::Char('q') => {
-            app.current_page = Pages::Home;
             app.pgn_viewer_state = None;
             app.pgn_viewer_game_idx = 0;
+            app.reset_home();
         }
 
         // Next move
@@ -413,11 +414,16 @@ fn handle_pgn_viewer_events(app: &mut App, key_event: KeyEvent) {
             }
         }
 
-        // Previous move
+        // Previous move - or dismiss end-of-game banner when it's visible
         KeyCode::Left | KeyCode::Char('h' | 'p' | 'P') => {
             if let Some(ref mut games) = app.pgn_viewer_state {
                 if let Some(v) = games.get_mut(app.pgn_viewer_game_idx) {
-                    v.prev();
+                    let is_h = matches!(key_event.code, KeyCode::Char('h' | 'H'));
+                    if is_h && v.is_at_end() && !v.end_banner_dismissed {
+                        v.end_banner_dismissed = true;
+                    } else {
+                        v.prev();
+                    }
                 }
             }
         }
@@ -448,7 +454,7 @@ fn handle_pgn_viewer_events(app: &mut App, key_event: KeyEvent) {
             if let Some(ref mut games) = app.pgn_viewer_state {
                 if let Some(v) = games.get_mut(app.pgn_viewer_game_idx) {
                     v.auto_play = !v.auto_play;
-                    v.auto_play_tick = 0;
+                    v.auto_play_accum = 0.0;
                 }
             }
         }

@@ -3,11 +3,12 @@ extern crate chess_tui;
 
 use chess_tui::app::{App, AppResult};
 use chess_tui::config::Config;
-use chess_tui::constants::{config_dir, DisplayMode};
+use chess_tui::constants::{config_dir, DisplayMode, Pages};
 use chess_tui::event::{Event, EventHandler};
 use chess_tui::game_logic::opponent::wait_for_game_start;
 use chess_tui::handler::{handle_key_events, handle_mouse_events};
 use chess_tui::logging;
+use chess_tui::pgn_viewer::PgnViewer;
 use chess_tui::skin::{PieceStyle, Skin};
 use chess_tui::ui::tui::Tui;
 use clap::Parser;
@@ -310,10 +311,6 @@ fn main() -> AppResult<()> {
 
     // Load PGN file(s) if --pgn was provided
     if let Some(ref pgn_path) = args.pgn {
-        use chess_tui::constants::Pages;
-        use chess_tui::pgn_viewer::PgnViewer;
-        use std::path::Path;
-
         let path = Path::new(pgn_path);
         let load_result: Result<Vec<PgnViewer>, String> = if path.is_dir() {
             // Load all .pgn files from the directory

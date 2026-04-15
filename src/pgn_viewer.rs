@@ -1,4 +1,4 @@
-//! PGN viewer state — parses a PGN file into a sequence of board positions
+//! PGN viewer state - parses a PGN file into a sequence of board positions
 //! and provides navigation + auto-play controls.
 //!
 //! Supports multi-game PGN files (e.g. multiple training games saved by watch.py).
@@ -7,24 +7,37 @@
 use shakmaty::san::San;
 use shakmaty::{Chess, Move, Position};
 
-// Auto-play tick speeds (event loop fires ~4 ticks/sec)
-pub const SPEED_FAST: u64 = 1;
-pub const SPEED_NORMAL: u64 = 4;
-pub const SPEED_SLOW: u64 = 8;
+/// Auto-play rate multipliers (1x ≈ one move per second).
+///
+/// The event loop ticks every 250ms, so at each tick we advance the
+/// accumulator by `rate * 0.25`; when it reaches 1.0 the next ply plays.
+pub const SPEEDS: &[(f32, &str)] = &[
+    (0.5, "0.5x"),
+    (1.0, "1x"),
+    (1.5, "1.5x"),
+    (2.0, "2x"),
+    (2.5, "2.5x"),
+    (3.0, "3x"),
+    (4.0, "4x"),
+];
+pub const DEFAULT_SPEED_IDX: usize = 1; // 1x
 
 pub struct PgnViewer {
     /// positions[0] = starting position, positions[i] = position after moves[i-1]
     pub positions: Vec<Chess>,
-    /// shakmaty Move objects — for board highlighting
+    /// shakmaty Move objects - for board highlighting
     pub moves: Vec<Move>,
-    /// SAN strings — for display in the history panel
+    /// SAN strings - for display in the history panel
     pub sans: Vec<String>,
     /// Which ply is currently shown (0 = start)
     pub current_ply: usize,
     /// Auto-play state
     pub auto_play: bool,
-    pub auto_play_speed: u64,
-    pub auto_play_tick: u64,
+    pub speed_idx: usize,
+    pub auto_play_accum: f32,
+    /// Set to true when the user presses `h` on the end-of-game banner.
+    /// Reset when the viewer moves off the final ply.
+    pub end_banner_dismissed: bool,
     /// Metadata from PGN headers
     pub title: String,
     pub white: String,
@@ -81,11 +94,13 @@ impl PgnViewer {
     pub fn prev(&mut self) {
         if self.current_ply > 0 {
             self.current_ply -= 1;
+            self.end_banner_dismissed = false;
         }
     }
 
     pub fn goto_start(&mut self) {
         self.current_ply = 0;
+        self.end_banner_dismissed = false;
     }
 
     pub fn goto_end(&mut self) {
@@ -110,28 +125,39 @@ impl PgnViewer {
         }
     }
 
-    /// Called every app tick — advances ply when auto-play is on.
+    /// Called every app tick (250ms) - advances ply when auto-play is on.
     pub fn tick(&mut self) {
         if !self.auto_play {
             return;
         }
-        self.auto_play_tick += 1;
-        if self.auto_play_tick >= self.auto_play_speed {
-            self.auto_play_tick = 0;
+        let rate = SPEEDS[self.speed_idx].0;
+        self.auto_play_accum += rate * 0.25;
+        while self.auto_play_accum >= 1.0 {
+            self.auto_play_accum -= 1.0;
             if self.current_ply < self.moves.len() {
                 self.current_ply += 1;
             } else {
-                self.auto_play = false; // stop at end
+                self.auto_play = false;
+                self.auto_play_accum = 0.0;
+                break;
             }
         }
     }
 
+    pub fn speed_label(&self) -> &'static str {
+        SPEEDS[self.speed_idx].1
+    }
+
     pub fn speed_up(&mut self) {
-        self.auto_play_speed = self.auto_play_speed.saturating_sub(1).max(SPEED_FAST);
+        if self.speed_idx + 1 < SPEEDS.len() {
+            self.speed_idx += 1;
+        }
     }
 
     pub fn speed_down(&mut self) {
-        self.auto_play_speed = (self.auto_play_speed + 1).min(16);
+        if self.speed_idx > 0 {
+            self.speed_idx -= 1;
+        }
     }
 }
 
@@ -221,7 +247,7 @@ fn parse_single_game(pgn: &str) -> Result<PgnViewer, String> {
     let mut pos = Chess::default();
 
     for san_str in &san_strings {
-        // Strip check/checkmate annotations — shakmaty's San parser handles them
+        // Strip check/checkmate annotations - shakmaty's San parser handles them
         // but being explicit avoids issues with non-standard suffixes
         let clean: &str = san_str.trim_end_matches(['+', '#']);
         match clean.parse::<San>() {
@@ -251,8 +277,9 @@ fn parse_single_game(pgn: &str) -> Result<PgnViewer, String> {
         sans,
         current_ply: 0,
         auto_play: false,
-        auto_play_speed: SPEED_NORMAL,
-        auto_play_tick: 0,
+        speed_idx: DEFAULT_SPEED_IDX,
+        auto_play_accum: 0.0,
+        end_banner_dismissed: false,
         title,
         white,
         black,
@@ -286,7 +313,7 @@ fn extract_san_tokens(movetext: &str) -> Vec<String> {
         }
     }
 
-    // Remove variations (…) — handle nesting
+    // Remove variations (…) - handle nesting
     loop {
         let mut found = false;
         let chars: Vec<char> = text.chars().collect();
@@ -386,5 +413,32 @@ mod tests {
         v.prev();
         assert_eq!(v.current_ply, end_ply - 1);
         assert!(!v.is_at_end());
+    }
+
+    #[test]
+    fn speed_is_clamped_at_bounds() {
+        let mut games = PgnViewer::from_pgn_str(CHECKMATE_PGN).expect("parse PGN");
+        let v = &mut games[0];
+        assert_eq!(v.speed_label(), "1x");
+        for _ in 0..20 {
+            v.speed_up();
+        }
+        assert_eq!(v.speed_idx, SPEEDS.len() - 1);
+        assert_eq!(v.speed_label(), "4x");
+        for _ in 0..20 {
+            v.speed_down();
+        }
+        assert_eq!(v.speed_idx, 0);
+        assert_eq!(v.speed_label(), "0.5x");
+    }
+
+    #[test]
+    fn prev_clears_end_banner_dismissal() {
+        let mut games = PgnViewer::from_pgn_str(CHECKMATE_PGN).expect("parse PGN");
+        let v = &mut games[0];
+        v.goto_end();
+        v.end_banner_dismissed = true;
+        v.prev();
+        assert!(!v.end_banner_dismissed);
     }
 }
