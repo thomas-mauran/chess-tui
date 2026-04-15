@@ -290,7 +290,7 @@ pub fn render_game_mode_menu(frame: &mut Frame, app: &App) {
     let left_chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(12), // Menu
+            Constraint::Length(15), // Menu (4 items × 3 rows + borders)
             Constraint::Min(10),    // Form
         ])
         .split(content_chunks[0]);
@@ -318,6 +318,7 @@ pub fn render_game_mode_menu(frame: &mut Frame, app: &App) {
         ),
         ("Multiplayer", "Play with friends over network"),
         ("Play Bot", "Challenge a chess engine"),
+        ("Load PGN", "Open a .pgn file and step through the game"),
     ];
 
     let mut menu_lines = vec![Line::from("")];
@@ -605,6 +606,40 @@ fn render_details_panel(frame: &mut Frame, app: &App, area: Rect, game_mode: u8)
                 "  https://thomas-mauran.github.io/chess-tui/docs/intro",
             ));
         }
+        3 => {
+            // Load PGN details
+            info_lines.push(Line::from(vec![Span::styled(
+                "Load PGN",
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            )]));
+            info_lines.push(Line::from(""));
+            info_lines.push(Line::from("Open a PGN file and step through the"));
+            info_lines.push(Line::from("game move by move, with auto-play and"));
+            info_lines.push(Line::from("multi-game navigation."));
+            info_lines.push(Line::from(""));
+            info_lines.push(Line::from(vec![Span::styled(
+                "Usage:",
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            )]));
+            info_lines.push(Line::from("  Press Enter, then paste the"));
+            info_lines.push(Line::from("  absolute path to a .pgn file."));
+            info_lines.push(Line::from(""));
+            info_lines.push(Line::from(vec![Span::styled(
+                "Controls in viewer:",
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            )]));
+            info_lines.push(Line::from("  ← / P: Previous move"));
+            info_lines.push(Line::from("  → / N: Next move"));
+            info_lines.push(Line::from("  Space: Toggle auto-play"));
+            info_lines.push(Line::from("  g / G: Jump to start / end"));
+            info_lines.push(Line::from("  Tab:   Cycle games (multi-game PGN)"));
+        }
         _ => {}
     }
 
@@ -626,14 +661,17 @@ fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: u8
 
     // Form content area
     let form_area = area;
+    let form_title = if game_mode == 3 {
+        "Press Enter to open a PGN file"
+    } else if is_active {
+        "Configuration"
+    } else {
+        "Configuration (Press Enter to activate)"
+    };
     let form_block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .title(if is_active {
-            "Configuration"
-        } else {
-            "Configuration (Press Enter to activate)"
-        });
+        .title(form_title);
     let inner_form_area = form_block.inner(form_area);
     frame.render_widget(form_block, form_area);
 

@@ -69,6 +69,8 @@ pub struct UI {
     pub cursor_blink_counter: u8,
     /// The piece styles of the game
     pub available_piece_styles: Vec<PieceStyle>,
+    /// When true the cursor cell is not drawn (used by the PGN viewer, which is read-only).
+    pub hide_cursor: bool,
 }
 
 impl Default for UI {
@@ -90,6 +92,7 @@ impl Default for UI {
             cursor_blink_visible: true,
             cursor_blink_counter: 0,
             available_piece_styles: Vec::new(),
+            hide_cursor: false,
         }
     }
 }
@@ -799,7 +802,7 @@ impl UI {
             frame.render_widget(cell, square);
         }
 
-        if current_rendering_coord == self.cursor_coordinates {
+        if !self.hide_cursor && current_rendering_coord == self.cursor_coordinates {
             let cursor_color = match self.display_mode {
                 DisplayMode::CUSTOM => self.skin.cursor_color,
                 _ => Color::LightBlue,

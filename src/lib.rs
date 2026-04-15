@@ -38,3 +38,6 @@ pub mod lichess;
 
 // Sound effects
 pub mod sound;
+
+// PGN viewer
+pub mod pgn_viewer;

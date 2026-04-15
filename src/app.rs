@@ -101,6 +101,10 @@ pub struct App {
     pub custom_time_minutes: u32,
     /// Whether the game ended due to time running out
     pub game_ended_by_time: bool,
+    /// PGN viewer: list of games loaded from a PGN file
+    pub pgn_viewer_state: Option<Vec<crate::pgn_viewer::PgnViewer>>,
+    /// PGN viewer: which game is currently shown
+    pub pgn_viewer_game_idx: usize,
 }
 
 impl Default for App {
@@ -142,6 +146,8 @@ impl Default for App {
             clock_form_cursor: 3,    // Default: Rapid (index 3 = 15 minutes)
             custom_time_minutes: 10, // Default custom time: 10 minutes
             game_ended_by_time: false,
+            pgn_viewer_state: None,
+            pgn_viewer_game_idx: 0,
         }
     }
 }
@@ -1035,6 +1041,13 @@ impl App {
 
     /// Handles the tick event of the terminal.
     pub fn tick(&mut self) {
+        // Advance PGN viewer auto-play
+        if let Some(ref mut games) = self.pgn_viewer_state {
+            if let Some(viewer) = games.get_mut(self.pgn_viewer_game_idx) {
+                viewer.tick();
+            }
+        }
+
         // Update cursor blink state (used to flicker the cursor cell when a piece is selected)
         self.game.ui.update_cursor_blink();
 
@@ -1243,6 +1256,13 @@ impl App {
     }
 
     pub fn check_game_end_status(&mut self) {
+        // PGN viewer drives its own game state via sync_pgn_to_board; running
+        // update_game_state here would flip it to Checkmate/Draw on the final
+        // position and open the EndScreen popup, which blocks viewer navigation.
+        if self.current_page == Pages::PgnViewer {
+            return;
+        }
+
         let previous_state = self.game.logic.game_state;
         self.game.logic.update_game_state();
         let new_state = self.game.logic.game_state;
