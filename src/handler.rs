@@ -31,12 +31,11 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         if let Some(selected_square) = app.game.ui.selected_square {
             // If a piece was selected via mouse, move cursor to that square
             app.game.ui.cursor_coordinates =
-                get_coord_from_square(Some(selected_square), app.game.logic.game_board.is_flipped);
+                get_coord_from_square(selected_square, app.game.logic.game_board.is_flipped);
             app.game.ui.selected_square = None;
         } else {
+            app.game.ui.cursor_coordinates = Coord::default();
             // Otherwise, reset cursor to center of board (e4/e5)
-            app.game.ui.cursor_coordinates.col = 4;
-            app.game.ui.cursor_coordinates.row = 4;
         }
     }
 
@@ -689,10 +688,7 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
         let coords: Coord = Coord::new(y as u8, x as u8);
 
         // Convert coordinates to board square, handling board flip if needed
-        let square = match coords.try_to_square() {
-            Some(s) => s,
-            None => return Ok(()), // Invalid coordinates, ignore click
-        };
+        let square: Square = coords.into();
 
         // Get piece color at clicked square (accounting for board flip)
         let piece_color =
@@ -763,7 +759,7 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
 
                     if authorized_positions.contains(&castling_dest) {
                         // Castling is legal, execute it
-                        let castling_coords = Coord::from_square(flip_square_if_needed(
+                        let castling_coords = Coord::from(flip_square_if_needed(
                             castling_dest,
                             app.game.logic.game_board.is_flipped,
                         ));

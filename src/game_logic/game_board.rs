@@ -210,16 +210,15 @@ impl GameBoard {
         let king_square = match self.position_ref().board().king_of(color) {
             Some(sq) => sq,
             None => {
-                log::error!("King not found for color {:?} (invalid board state)", color);
-                // Return undefined coordinate as fallback
-                return Coord::undefined();
+                // King should always be in a square.
+                panic!("King not found for color {:?} (invalid board state)", color);
             }
         };
-        let mut coord = Coord::from_square(king_square);
+        let mut coord = Coord::from(king_square);
 
         // If board is flipped, flip the coordinate for display
         if self.is_flipped {
-            coord = Coord::new(7 - coord.row, 7 - coord.col);
+            coord = coord.reverse();
         }
 
         coord
