@@ -82,12 +82,18 @@ fn h_dismisses_end_banner_and_step_back_restores_it() -> AppResult<()> {
     let end_ply = app.pgn_viewer_state.as_ref().unwrap()[0].current_ply;
     send(&mut app, &[KeyCode::Char('h')])?;
     let v = &app.pgn_viewer_state.as_ref().unwrap()[0];
-    assert_eq!(v.current_ply, end_ply, "h must not step back when banner is visible");
+    assert_eq!(
+        v.current_ply, end_ply,
+        "h must not step back when banner is visible"
+    );
     assert!(v.end_banner_dismissed);
 
     // After dismissal, `h` falls through to Previous move.
     send(&mut app, &[KeyCode::Char('h')])?;
-    assert_eq!(app.pgn_viewer_state.as_ref().unwrap()[0].current_ply, end_ply - 1);
+    assert_eq!(
+        app.pgn_viewer_state.as_ref().unwrap()[0].current_ply,
+        end_ply - 1
+    );
 
     // Stepping back clears the dismissal so re-entering the end shows it again.
     assert!(!app.pgn_viewer_state.as_ref().unwrap()[0].end_banner_dismissed);
@@ -100,24 +106,48 @@ fn h_dismisses_end_banner_and_step_back_restores_it() -> AppResult<()> {
 #[test]
 fn speed_steps_through_multipliers() -> AppResult<()> {
     let mut app = load_sample_viewer();
-    assert_eq!(app.pgn_viewer_state.as_ref().unwrap()[0].speed_label(), "1x");
+    assert_eq!(
+        app.pgn_viewer_state.as_ref().unwrap()[0].speed_label(),
+        "1x"
+    );
 
     send(&mut app, &[KeyCode::Char('+')])?;
-    assert_eq!(app.pgn_viewer_state.as_ref().unwrap()[0].speed_label(), "1.5x");
+    assert_eq!(
+        app.pgn_viewer_state.as_ref().unwrap()[0].speed_label(),
+        "1.5x"
+    );
     send(&mut app, &[KeyCode::Char('+')])?;
-    assert_eq!(app.pgn_viewer_state.as_ref().unwrap()[0].speed_label(), "2x");
+    assert_eq!(
+        app.pgn_viewer_state.as_ref().unwrap()[0].speed_label(),
+        "2x"
+    );
     send(&mut app, &[KeyCode::Char('+')])?;
-    assert_eq!(app.pgn_viewer_state.as_ref().unwrap()[0].speed_label(), "2.5x");
+    assert_eq!(
+        app.pgn_viewer_state.as_ref().unwrap()[0].speed_label(),
+        "2.5x"
+    );
     send(&mut app, &[KeyCode::Char('+')])?;
-    assert_eq!(app.pgn_viewer_state.as_ref().unwrap()[0].speed_label(), "3x");
+    assert_eq!(
+        app.pgn_viewer_state.as_ref().unwrap()[0].speed_label(),
+        "3x"
+    );
     send(&mut app, &[KeyCode::Char('+')])?;
-    assert_eq!(app.pgn_viewer_state.as_ref().unwrap()[0].speed_label(), "4x");
+    assert_eq!(
+        app.pgn_viewer_state.as_ref().unwrap()[0].speed_label(),
+        "4x"
+    );
     // Capped
     send(&mut app, &[KeyCode::Char('+')])?;
-    assert_eq!(app.pgn_viewer_state.as_ref().unwrap()[0].speed_label(), "4x");
+    assert_eq!(
+        app.pgn_viewer_state.as_ref().unwrap()[0].speed_label(),
+        "4x"
+    );
 
     send(&mut app, &[KeyCode::Char('-')])?;
-    assert_eq!(app.pgn_viewer_state.as_ref().unwrap()[0].speed_label(), "3x");
+    assert_eq!(
+        app.pgn_viewer_state.as_ref().unwrap()[0].speed_label(),
+        "3x"
+    );
     Ok(())
 }
 
@@ -137,7 +167,10 @@ fn esc_returns_home_and_does_not_leave_stale_state() -> AppResult<()> {
     assert_eq!(app.current_page, Pages::Home);
     assert!(app.pgn_viewer_state.is_none());
     // The critical checks - nothing from the viewer leaks into a fresh game.
-    assert!(!app.game.ui.hide_cursor, "cursor must be visible after exit");
+    assert!(
+        !app.game.ui.hide_cursor,
+        "cursor must be visible after exit"
+    );
     assert_eq!(
         app.game.logic.game_board.position_history.len(),
         1,
@@ -158,10 +191,7 @@ fn can_start_new_local_game_after_viewing_pgn() -> AppResult<()> {
     assert_eq!(app.current_page, Pages::Home);
 
     // Home → Play Game → Local → start game
-    send(
-        &mut app,
-        &[KeyCode::Enter, KeyCode::Enter, KeyCode::Enter],
-    )?;
+    send(&mut app, &[KeyCode::Enter, KeyCode::Enter, KeyCode::Enter])?;
     assert_eq!(app.current_page, Pages::Solo);
     assert!(!app.game.ui.hide_cursor);
     Ok(())
