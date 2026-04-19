@@ -1,4 +1,4 @@
-use crate::app::App;
+use crate::{app::App, lichess::models::RatingHistoryEntry};
 use chrono::{DateTime, NaiveDate, Utc};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -348,7 +348,7 @@ pub fn render_lichess_menu(frame: &mut Frame, app: &App) {
 
 fn render_rating_history_chart(
     frame: &mut Frame,
-    history: &[crate::lichess::RatingHistoryEntry],
+    history: &[RatingHistoryEntry],
     area: Rect,
 ) {
     let cutoff_days = (Utc::now() - chrono::Duration::days(90)).timestamp() as f64 / 86400.0;
@@ -441,7 +441,7 @@ type ProcessedRatingData = (Vec<Vec<(f64, f64)>>, Vec<String>, ChartBounds);
 
 /// Process rating history data and filter to last 90 days
 fn process_rating_data(
-    history: &[crate::lichess::RatingHistoryEntry],
+    history: &[RatingHistoryEntry],
     cutoff_days: f64,
 ) -> Option<ProcessedRatingData> {
     let mut datasets_data = Vec::new();

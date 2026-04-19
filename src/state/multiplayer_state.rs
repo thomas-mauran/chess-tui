@@ -1,4 +1,5 @@
 /// Define every variable related to multiplayer networking in the app
+#[derive(Default)]
 pub struct MultiplayerState {
     /// Whether the player is hosting
     pub hosting: Option<bool>,
@@ -6,16 +7,6 @@ pub struct MultiplayerState {
     pub host_ip: Option<String>,
     /// Gets a signal when the opponent has joined and the game can start
     pub game_start_rx: Option<std::sync::mpsc::Receiver<()>>,
-}
-
-impl Default for MultiplayerState {
-    fn default() -> Self {
-        Self {
-            hosting: None,
-            host_ip: None,
-            game_start_rx: None,
-        }
-    }
 }
 
 impl MultiplayerState {

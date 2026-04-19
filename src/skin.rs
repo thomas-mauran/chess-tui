@@ -96,6 +96,21 @@ impl Skin {
         Ok(collection.skins)
     }
 
+    pub fn create_default_skins_file(skins_path: &Path) -> AppResult<()> {
+    // Ensure the directory exists
+    if let Some(parent) = skins_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+
+    // Default skins.json content (embedded at compile time)
+    const DEFAULT_SKINS: &str = include_str!("default_skins.json");
+
+    let mut file = File::create(skins_path)?;
+    file.write_all(DEFAULT_SKINS.as_bytes())?;
+
+    Ok(())
+}
+
     #[must_use]
     pub fn get_skin_by_name(skins: &[Skin], name: &str) -> Option<Skin> {
         skins.iter().find(|s| s.name == name).cloned()

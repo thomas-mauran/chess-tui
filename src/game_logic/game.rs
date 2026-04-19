@@ -94,16 +94,6 @@ impl Game {
         }
     }
 
-    /// Allows you to pass a specific GameBoard
-    pub fn set_board(&mut self, game_board: GameBoard) {
-        self.logic.game_board = game_board;
-    }
-
-    /// Allows you to set the player turn
-    pub fn set_player_turn(&mut self, player_turn: Color) {
-        self.logic.player_turn = player_turn;
-    }
-
     /// Switch the player turn
     pub fn switch_player_turn(&mut self) {
         self.logic.switch_player_turn();

@@ -16,8 +16,8 @@ use std::fs::{self, File};
 use std::io::{self, Write};
 use std::panic;
 use std::path::Path;
-use chess_tui::lichess::LichessClient;
 use chess_tui::handlers::handler::{handle_key_events, handle_mouse_events};
+use chess_tui::lichess::models::LichessClient;
 
 /// Simple program to greet a person
 #[derive(Parser, Debug)]
@@ -142,7 +142,7 @@ fn main() -> AppResult<()> {
 
     // Create skins.json if it doesn't exist
     if !skins_path.exists() {
-        if let Err(e) = create_default_skins_file(&skins_path) {
+        if let Err(e) = Skin::create_default_skins_file(&skins_path) {
             eprintln!("Failed to create default skins.json: {}", e);
         }
     }
@@ -537,21 +537,6 @@ fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResu
             handle_config_write_error(e, config_path);
         }
     }
-
-    Ok(())
-}
-
-fn create_default_skins_file(skins_path: &Path) -> AppResult<()> {
-    // Ensure the directory exists
-    if let Some(parent) = skins_path.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
-
-    // Default skins.json content (embedded at compile time)
-    const DEFAULT_SKINS: &str = include_str!("default_skins.json");
-
-    let mut file = File::create(skins_path)?;
-    file.write_all(DEFAULT_SKINS.as_bytes())?;
 
     Ok(())
 }

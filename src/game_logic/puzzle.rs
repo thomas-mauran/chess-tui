@@ -1,9 +1,9 @@
 use crate::game_logic::game::Game;
 use crate::game_logic::game_board::GameBoard;
-use crate::lichess::{LichessClient, Puzzle};
 use shakmaty::{Position, Square};
 use std::sync::mpsc::Receiver;
 use std::time::{Duration, Instant};
+use crate::lichess::models::{LichessClient, Puzzle};
 
 pub struct PuzzleGame {
     pub puzzle: Puzzle,
@@ -339,10 +339,10 @@ impl PuzzleGame {
                 game_board.move_history = move_history;
                 game_board.history_position_index = None;
 
-                return Ok(puzzle);
+                Ok(puzzle)
             }
             Err(e) => {
-                return Err(e.to_string());
+                Err(e.to_string())
             }
         }
     }

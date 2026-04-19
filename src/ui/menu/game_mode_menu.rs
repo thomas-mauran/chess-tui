@@ -412,7 +412,7 @@ fn render_details_panel(frame: &mut Frame, app: &App, area: Rect, game_mode: u8)
     frame.render_widget(panel_block, area);
 
     let mut info_lines = vec![Line::from("")];
-
+    //TODO: Use enums 
     match game_mode {
         0 => {
             // Local Game details

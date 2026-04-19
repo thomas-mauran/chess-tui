@@ -5,11 +5,11 @@ use super::{
     game::{Game, GameLogic},
 };
 use crate::{
-    constants::{DisplayMode, BLACK, WHITE},
+    constants::{BLACK, DisplayMode, WHITE},
     game_logic::coord::MoveDirection,
-    pieces::{role_to_utf_enum, PieceSize},
+    pieces::{PieceSize, role_to_utf_enum},
     skin::{PieceStyle, Skin},
-    ui::{main_ui::render_cell, prompt::Prompt},
+    ui::{components::cell::render_cell, prompt::Prompt},
     utils::{flip_square_if_needed, get_coord_from_square, get_square_from_coord},
 };
 use ratatui::{

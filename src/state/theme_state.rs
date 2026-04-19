@@ -39,7 +39,7 @@ impl ThemeState {
         match next {
             true => {
                 let next_index = (current_index + 1) % self.available_skins.len();
-                return self.available_skins[next_index].clone();
+                self.available_skins[next_index].clone()
             }
             // previous skin
             false => {
@@ -48,7 +48,7 @@ impl ThemeState {
                 } else {
                     current_index - 1
                 };
-                return self.available_skins[previous_index].clone();
+                self.available_skins[previous_index].clone()
             }
         }
     }

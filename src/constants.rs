@@ -115,3 +115,5 @@ pub enum Popups {
     MoveInputSelection,
     LoadPgnPath,
 }
+
+pub const LICHESS_API_URL: &str = "https://lichess.org/api";

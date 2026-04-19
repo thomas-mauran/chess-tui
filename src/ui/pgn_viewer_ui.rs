@@ -3,8 +3,7 @@
 //! Re-uses the existing `render_game_ui` layout by syncing the PgnViewer's current
 //! position into `app.game.logic.game_board` before rendering.
 
-use crate::app::App;
-use crate::game_logic::game::GameState;
+use crate::{app::App, game_logic::game::GameState, ui::game_ui::render_game_ui};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
@@ -12,8 +11,7 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Wrap},
     Frame,
 };
-
-use super::main_ui::centered_rect;
+use crate::ui::components::centered_rect::centered_rect;
 
 /// Sync the PgnViewer's current ply into `app.game.logic.game_board` so that
 /// existing board/history render functions see the right position.
@@ -63,7 +61,7 @@ pub fn render_pgn_viewer(frame: &mut Frame, app: &mut App) {
     sync_pgn_to_board(app);
 
     // Render the board using the existing game UI
-    super::main_ui::render_game_ui(frame, app, layout[0]);
+    render_game_ui(frame, app, layout[0]);
 
     // Footer
     render_footer(frame, app, layout[1]);
