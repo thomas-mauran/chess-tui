@@ -8,6 +8,7 @@ use std::borrow::Cow;
 use std::process::Command;
 use std::str::FromStr;
 
+/// UCI engine wrapper and bot difficulty config.
 #[derive(Clone)]
 pub struct Bot {
     pub engine_path: String,
