@@ -1,3 +1,5 @@
+//! Board coordinate type.
+
 use shakmaty::Square;
 
 /// A coordinate on the chess board (row, col format)

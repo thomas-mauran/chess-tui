@@ -22,7 +22,12 @@ const sidebars: SidebarsConfig = {
     {
       type: "category",
       label: "Configuration",
-      items: ["Configuration/configuration-intro", "Configuration/skins", "Configuration/logging", "Configuration/bot"],
+      items: ["Configuration/configuration-intro", "Configuration/skins", "Configuration/logging", "Configuration/sound"],
+    },
+    {
+      type: "category",
+      label: "Bot",
+      items: ["Configuration/bot", "Configuration/bot-engines", "Configuration/bot-settings"],
     },
     {
       type: "category",
@@ -34,20 +39,17 @@ const sidebars: SidebarsConfig = {
       label: "Lichess",
       items: ["Lichess/features", "Lichess/setup"],
     },
+    "Usage/keyboard-shortcuts",
+    "faq",
     {
-      type: "category",
-      label: "Code Architecture",
-      items: [
-        "Code Architecture/Intro",
-        "Code Architecture/Game",
-        "Code Architecture/Pieces",
-        "Code Architecture/App",
-        "Code Architecture/GameLogic",
-        "Code Architecture/GameBoard",
-        "Code Architecture/UI",
-        "Code Architecture/Bot",
-        "Code Architecture/Opponent",
-      ],
+      type: "link",
+      label: "Contributing",
+      href: "https://github.com/thomas-mauran/chess-tui/blob/main/CONTRIBUTING.md",
+    },
+    {
+      type: "link",
+      label: "API Documentation",
+      href: "https://docs.rs/chess-tui/latest/chess_tui/",
     },
   ],
 };

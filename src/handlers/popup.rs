@@ -1,3 +1,5 @@
+//! Takes priority over page input; routes each key to the active popup's dismiss or text-entry handler.
+
 use crate::{app::App, constants::{Pages, Popups}, handlers::handler::fallback_key_handler, utils::normalize_lowercase_to_san};
 use ratatui::crossterm::event::{KeyCode, KeyEvent};
 use shakmaty::san::San;

@@ -2,7 +2,7 @@
 extern crate chess_tui;
 
 use chess_tui::app::{App, AppResult};
-use chess_tui::config::Config;
+use chess_tui::config::{Args, Config};
 use chess_tui::constants::{config_dir, DisplayMode, Pages};
 use chess_tui::event::{Event, EventHandler};
 use chess_tui::game_logic::opponent::wait_for_game_start;
@@ -12,44 +12,11 @@ use chess_tui::skin::{PieceStyle, Skin};
 use chess_tui::ui::tui::Tui;
 use clap::Parser;
 use log::LevelFilter;
-use std::fs::{self, File};
-use std::io::{self, Write};
+use std::fs;
 use std::panic;
 use std::path::Path;
 use chess_tui::handlers::handler::{handle_key_events, handle_mouse_events};
 use chess_tui::lichess::models::LichessClient;
-
-/// Simple program to greet a person
-#[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
-struct Args {
-    /// Path for the chess engine
-    #[arg(short, long, default_value = "")]
-    engine_path: String,
-    /// Bot thinking depth for chess engine (1-255)
-    #[arg(short, long)]
-    depth: Option<u8>,
-    /// Bot difficulty: easy, medium, hard, or magnus. Omit for full strength (Off).
-    #[arg(long)]
-    difficulty: Option<String>,
-    /// Lichess API token
-    #[arg(short, long)]
-    lichess_token: Option<String>,
-    /// Disable sound effects
-    #[arg(long)]
-    no_sound: bool,
-    /// Skin/theme name (e.g. Default, ASCII). Overrides config for reproducible demos.
-    #[arg(long)]
-    skin: Option<String>,
-    /// Update skin config with built-in default (prompts for confirmation, archives current file)
-    #[arg(long)]
-    update_skins: bool,
-    /// Open a PGN file or directory of .pgn files directly in the viewer.
-    /// Example: chess-tui --pgn game.pgn
-    ///          chess-tui --pgn outputs/chess/games/step-000500/
-    #[arg(short = 'p', long)]
-    pgn: Option<String>,
-}
 
 fn main() -> AppResult<()> {
     // Parse the cli arguments first (this will handle --version and exit early if needed)
@@ -71,7 +38,7 @@ fn main() -> AppResult<()> {
     let config_path = config_dir.join("chess-tui/config.toml");
 
     // Create the configuration file
-    config_create(&args, &folder_path, &config_path)?;
+    Config::config_create(&args, &folder_path, &config_path)?;
 
     // Create an application.
     let mut app = App::default();
@@ -424,123 +391,6 @@ fn main() -> AppResult<()> {
     Ok(())
 }
 
-/// Checks if an IO error indicates a read-only filesystem or permission issue.
-/// This handles both EROFS (error code 30) and permission denied errors.
-fn is_readonly_error(e: &io::Error) -> bool {
-    // EROFS = 30 on Unix systems (Read-only file system)
-    e.raw_os_error() == Some(30) || e.kind() == io::ErrorKind::PermissionDenied
-}
-
-/// Handles config file write errors gracefully, printing appropriate warnings.
-/// This allows the application to work with read-only config files (e.g., from NixOS/home-manager).
-fn handle_config_write_error(e: io::Error, config_path: &Path) {
-    if is_readonly_error(&e) {
-        eprintln!(
-            "Warning: Config file at {:?} is read-only. The application will continue with the existing read-only config.",
-            config_path
-        );
-    } else {
-        eprintln!(
-            "Warning: Could not write to config file at {:?}: {}. The application will continue with the existing config.",
-            config_path, e
-        );
-    }
-}
-
-fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResult<()> {
-    std::fs::create_dir_all(folder_path)?;
-
-    // Attempt to read the configuration file and parse it as a TOML Value.
-    // If we encounter any issues (like the file not being readable or not being valid TOML), we start with a new, empty TOML table instead.
-    let mut config: Config = match fs::read_to_string(config_path) {
-        Ok(content) => toml::from_str(&content).unwrap_or_default(),
-        Err(_) => Config::default(),
-    };
-
-    // We update the configuration with the engine_path and display_mode.
-    // If these keys are already in the configuration, we leave them as they are.
-    // If they're not, we add them with default values.
-    if config.engine_path.as_ref().is_none_or(|s| s.is_empty()) {
-        if args.engine_path.is_empty() {
-            config.engine_path = Some(String::new());
-        } else {
-            config.engine_path = Some(args.engine_path.clone());
-        }
-    }
-
-    if config.display_mode.is_none() {
-        config.display_mode = Some("DEFAULT".to_string());
-    }
-    if config.log_level.is_none() {
-        config.log_level = Some(LevelFilter::Off.to_string());
-    }
-    if config.bot_depth.is_none() {
-        config.bot_depth = Some(10);
-    }
-    if config.selected_skin_name.is_none() {
-        config.selected_skin_name = Some("Default".to_string());
-    }
-    if config.sound_enabled.is_none() {
-        config.sound_enabled = Some(true);
-    }
-
-    // Always update engine_path if provided via command line (command line takes precedence)
-    if !args.engine_path.is_empty() {
-        config.engine_path = Some(args.engine_path.clone());
-    }
-
-    // Always update Lichess token if provided via command line
-    if let Some(token) = &args.lichess_token {
-        config.lichess_token = Some(token.clone());
-    }
-
-    // Update bot_depth if provided via command line
-    if let Some(depth) = args.depth {
-        config.bot_depth = Some(depth);
-    }
-
-    // Update bot_difficulty if provided via command line
-    if let Some(ref d) = args.difficulty {
-        let idx = match d.to_lowercase().as_str() {
-            "easy" => Some(0),
-            "medium" => Some(1),
-            "hard" => Some(2),
-            "magnus" => Some(3),
-            _ => None,
-        };
-        if let Some(i) = idx {
-            config.bot_difficulty = Some(i);
-        }
-    }
-
-    // Always update sound_enabled if --no-sound flag is provided via command line (command line takes precedence)
-    if args.no_sound {
-        config.sound_enabled = Some(false);
-    }
-
-    // Try to write the config file, but don't fail if it's read-only
-    // This allows the application to work with read-only config files (e.g., from NixOS/home-manager)
-    let toml_string = toml::to_string(&config).map_err(|e| {
-        io::Error::new(
-            io::ErrorKind::InvalidData,
-            format!("Failed to serialize config to TOML: {e}"),
-        )
-    })?;
-
-    match File::create(config_path) {
-        Ok(mut file) => {
-            if let Err(e) = file.write_all(toml_string.as_bytes()) {
-                handle_config_write_error(e, config_path);
-            }
-        }
-        Err(e) => {
-            handle_config_write_error(e, config_path);
-        }
-    }
-
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -563,7 +413,7 @@ mod tests {
         let folder_path = config_dir.join(".test/chess-tui");
         let config_path = config_dir.join(".test/chess-tui/config.toml");
 
-        let result = config_create(&args, &folder_path, &config_path);
+        let result = Config::config_create(&args, &folder_path, &config_path);
 
         assert!(result.is_ok());
         assert!(config_path.exists());

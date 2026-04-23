@@ -1,7 +1,14 @@
+//! Captures the game mode, color choice, clock settings, and bot difficulty selected during game configuration.
+
 use crate::handlers::game_mode_menu::AvailableGameMode;
 use shakmaty::Color;
 
-/// Define every variable related to game mode setup in the app
+/// Form state and settings captured during game-mode configuration.
+///
+/// Drives the two-phase game-mode menu: first the player picks a mode
+/// (`selection`), then fills in a configuration form (`form_active`,
+/// `form_cursor`). The chosen clock preset and player color are also held here
+/// until the game starts.
 pub struct GameModeState {
     /// Selected game mode in GameModeMenu (0: Local, 1: Multiplayer, 2: Bot)
     pub selection: Option<AvailableGameMode>,
@@ -34,6 +41,7 @@ impl Default for GameModeState {
 }
 
 impl GameModeState {
+    /// Clears the selected color and random-color flag.
     pub fn reset_selected_color(&mut self) {
         // Clear related fields
         self.selected_color = None;
@@ -87,6 +95,7 @@ impl GameModeState {
         }
     }
 
+    /// Cycles the color selection backward: White -> Random -> Black -> White.
     pub fn select_previous_color_option(&mut self) {
         if self.selected_color == Some(Color::White)
             || self.selected_color.is_none() && !self.is_random_color
@@ -102,6 +111,7 @@ impl GameModeState {
         }
     }
 
+    /// Cycles the color selection forward: White -> Black -> Random -> White.
     pub fn select_next_color_option(&mut self) {
         if self.selected_color == Some(Color::White)
             || self.selected_color.is_none() && !self.is_random_color
@@ -117,6 +127,8 @@ impl GameModeState {
         }
     }
 
+    /// Materialises the color choice before game start: picks a random color if
+    /// `is_random_color` is set, or defaults to White if nothing was selected.
     pub fn resolve_selected_color(&mut self) {
         if self.is_random_color && self.selected_color.is_none() {
             self.selected_color = Some(if rand::random::<bool>() {

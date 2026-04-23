@@ -1,3 +1,5 @@
+//! Lichess menu keyboard handler.
+
 use ratatui::crossterm::event::{KeyCode, KeyEvent};
 use crate::{app::App, constants::{Pages, Popups}, handlers::handler::fallback_key_handler};
 

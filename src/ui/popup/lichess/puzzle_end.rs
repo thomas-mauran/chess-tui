@@ -1,3 +1,5 @@
+//! Puzzle-completion result popup with optional Elo change.
+
 use ratatui::{
     layout::Alignment,
     style::{Color, Modifier, Style},
@@ -7,7 +9,10 @@ use ratatui::{
 };
 use crate::ui::components::centered_rect::centered_rect;
 
-// This renders a popup for puzzle completion
+/// Renders the puzzle-end popup showing the result, Elo delta, and next-action hints.
+///
+/// `elo_change` is `None` while the rating update is still being fetched from Lichess;
+/// `is_calculating` should be `true` in that interval to show a "Calculating..." message.
 pub fn render_puzzle_end_popup(
     frame: &mut Frame,
     sentence: &str,

@@ -1,8 +1,14 @@
+//! Holds the [`Bot`] configuration and the `mpsc::Receiver` used to collect moves computed off-thread.
+
 use std::sync::mpsc::{channel, Receiver};
 use shakmaty::Move;
 use crate::game_logic::bot::Bot;
 
-/// Define every variable related to the bot in the app
+/// Engine configuration and the channel used to receive moves computed off-thread.
+///
+/// `start_bot_thinking` spawns a thread that runs the engine and sends the chosen
+/// move back through `bot_move_receiver`. [`crate::app::App`] polls that receiver
+/// each tick via `check_and_apply_bot_move`.
 pub struct BotState {
     /// Bot thinking depth for chess engine (used when difficulty is Off)
     pub bot_depth: u8,
@@ -60,7 +66,7 @@ impl BotState {
         });
     }
 
-    /// Check if bot is currently thinking
+    /// Returns `true` while the engine thread is running and a move has not yet arrived.
     pub fn is_bot_thinking(&self) -> bool {
         self.bot_move_receiver.is_some()
     }

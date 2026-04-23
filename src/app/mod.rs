@@ -1,28 +1,29 @@
+//! Single mutable root passed to every handler; owns all game logic, state structs, and global settings.
+
 use crate::constants::Popups;
 use crate::game_logic::game::Game;
 use crate::game_logic::game::GameState;
 use crate::state::bot_state::BotState;
 use crate::state::game_mode_state::GameModeState;
+use crate::state::lichess_state::LichessState;
 use crate::state::multiplayer_state::MultiplayerState;
 use crate::state::theme_state::ThemeState;
 use crate::state::ui_state::UIState;
 use log::LevelFilter;
 use std::error;
-use crate::state::lichess_state::LichessState;
 
-pub mod lichess;
 pub mod bot;
-pub mod game;
-pub mod multiplayer;
 pub mod config;
-pub mod menu;
+pub mod game;
 pub mod input;
+pub mod lichess;
+pub mod menu;
+pub mod multiplayer;
 
 /// Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 
-
-/// Application.
+/// Top-level application context that owns all runtime state.
 pub struct App {
     /// Is the application running?
     pub running: bool,
@@ -32,22 +33,18 @@ pub struct App {
     pub log_level: LevelFilter,
     /// Whether sound effects are enabled
     pub sound_enabled: bool,
-
     /// Everything related to the skin handling through the app
     pub theme_state: ThemeState,
-
+    /// Bot engine state (path, depth, difficulty, move channel)
     pub bot_state: BotState,
+    /// UI navigation state (current page, popup, menu cursor)
     pub ui_state: UIState,
-
     /// Everything related to multiplayer networking
     pub multiplayer_state: MultiplayerState,
-
     /// Everything related to game mode setup
     pub game_mode_state: GameModeState,
-
     /// Everything related to Lichess
     pub lichess_state: LichessState,
-
     /// PGN viewer: list of games loaded from a PGN file
     pub pgn_viewer_state: Option<Vec<crate::pgn_viewer::PgnViewer>>,
     /// PGN viewer: which game is currently shown
@@ -75,11 +72,6 @@ impl Default for App {
 }
 
 impl App {
-
-
-    
-
-
     /// Handles the tick event of the terminal.
     pub fn tick(&mut self) {
         // Advance PGN viewer auto-play
@@ -163,9 +155,6 @@ impl App {
         }
     }
 
- 
-    
-
     /// Set running to false to quit the application.
     pub fn quit(&mut self) {
         // Cancel any active Lichess seek before quitting
@@ -175,11 +164,4 @@ impl App {
         }
         self.running = false;
     }
-
-
-
-
-
-
-
 }

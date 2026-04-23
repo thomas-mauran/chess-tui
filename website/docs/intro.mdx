@@ -15,7 +15,7 @@ import Logo from '/img/logo.png';
 
     Chess-tui is a simple chess game you can play from your terminal. It supports local 2 players mode, online multiplayer, playing against any UCI compatible chess engine, Lichess integration, custom skins and more!
 
-    This documentation will guide you through the different features of the game, how to install it, and the code architecture of the project if you want to contribute.
+    This documentation will guide you through the different features of the game and how to install it. For keyboard shortcuts, see the [Keyboard Shortcuts](/docs/Usage/keyboard-shortcuts) page.
   </div>
 </div>
 
@@ -37,29 +37,3 @@ cargo install chess-tui
 ```
 
 For installation via package managers or other methods, see the [Installation Guide](/docs/Installation/Packaging%20status).
-
-## Game Controls
-
-### Basic Controls
-
-- **Arrow keys** or **h/j/k/l**: Move the cursor (you can also use the mouse)
-- **Space**: Select a piece
-- **Esc**: Deselect a piece or hide popups
-- **?**: Show help menu with all controls
-- **q**: Quit the game
-- **b**: Go to the home menu / reset the game
-- **s**: Cycle through available skins
-- **r**: Restart the current game (solo mode only)
-- **p/P**: Navigate to previous position in history (solo mode only, not in puzzle mode)
-- **n/N**: Navigate to next position in history (solo mode only, not in puzzle mode)
-- **t/T**: Show hint in puzzle mode (select the piece to move)
-- **Ctrl +** or **Ctrl -**: Zoom in or out to adjust piece sizes (may differ in certain terminals)
-
-### Color Codes
-
-- **Blue cell**: Your cursor
-- **Green cell**: Selected piece
-- **Purple cell**: The king is getting checked
-- **Grey cell**: Available cells for the selected piece
-
-Press **?** during gameplay to see all available controls in the help menu.

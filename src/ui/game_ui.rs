@@ -1,3 +1,5 @@
+//! In-game board and piece rendering.
+
 use ratatui::{
     layout::{Constraint, Direction, Layout},
     prelude::{Rect},
@@ -13,7 +15,7 @@ use crate::{
     ui::popup::end::render_end_popup,
     ui::popup::promotion::render_promotion_popup,
 };
-// Method to render the game board and handle game popups
+/// Renders the game board, clock, move history, and any in-game popups.
 pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
     let main_layout_horizontal = Layout::default()
         .direction(Direction::Vertical)

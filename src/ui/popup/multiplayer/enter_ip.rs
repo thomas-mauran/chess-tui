@@ -1,3 +1,5 @@
+//! IP address entry popup for joining a hosted multiplayer game.
+
 use crate::{
     constants::{NETWORK_PORT, WHITE}, ui::components::centered_rect::centered_rect,
 };
@@ -10,7 +12,7 @@ use ratatui::{
 };
 use crate::ui::prompt::Prompt;
 
-// This renders a popup allowing us to get a user input
+/// Renders a text input for entering the host's IP address and port.
 pub fn render_enter_multiplayer_ip(frame: &mut Frame, prompt: &Prompt) {
     let block = Block::default()
         .title("Join a game")

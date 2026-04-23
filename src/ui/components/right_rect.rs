@@ -1,6 +1,8 @@
+//! Calculates a right-aligned [`Rect`] sized as a percentage of a parent area.
+
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 
-/// helper to align pop up to the right of the screen
+/// Returns a rect anchored to the right of `r`, sized to `percent_x` × `percent_y` of `r`.
 pub fn right_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
     let popup_layout = Layout::default()
         .direction(Direction::Vertical)

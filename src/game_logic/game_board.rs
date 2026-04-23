@@ -1,3 +1,5 @@
+//! Board representation and move generation.
+
 use super::coord::Coord;
 use shakmaty::{san::San, Chess, Color, Move, Piece, Position, Rank, Role, Square};
 

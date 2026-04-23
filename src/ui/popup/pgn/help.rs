@@ -1,3 +1,5 @@
+//! PGN viewer key-bindings help popup.
+
 use crate::{
     constants::WHITE, ui::components::centered_rect::centered_rect,
 };
@@ -9,10 +11,7 @@ use ratatui::{
     Frame,
 };
 
-
-
-/// Help popup shown while the PGN viewer is active. Covers only the controls
-/// that make sense for a read-only replay - no piece-selection or skin cycling.
+/// Renders the read-only PGN viewer controls popup (navigation, auto-play, speed).
 pub fn render_pgn_help_popup(frame: &mut Frame) {
     let block = Block::default()
         .title("PGN viewer - controls")

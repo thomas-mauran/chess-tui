@@ -1,3 +1,5 @@
+//! API types and HTTP client.
+
 use reqwest::blocking::Client;
 use serde::Deserialize;
 

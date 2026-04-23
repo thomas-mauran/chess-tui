@@ -1,3 +1,5 @@
+//! Lichess API token entry popup (input masked for security).
+
 use crate::{
     constants::WHITE, ui::components::centered_rect::centered_rect,
 };
@@ -10,7 +12,7 @@ use ratatui::{
 };
 use crate::ui::prompt::Prompt;
 
-// This renders a popup allowing us to enter a Lichess API token
+/// Renders a masked text input for entering and saving a Lichess API token.
 pub fn render_enter_lichess_token_popup(frame: &mut Frame, prompt: &Prompt) {
     let block = Block::default()
         .title("Enter Lichess API Token")

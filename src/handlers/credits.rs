@@ -1,3 +1,5 @@
+//! Credits page keyboard handler.
+
 use ratatui::crossterm::event::{KeyCode, KeyEvent};
 use crate::{app::App, handlers::handler::fallback_key_handler};
 

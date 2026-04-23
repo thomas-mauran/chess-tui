@@ -1,3 +1,5 @@
+//! Queen ASCII art.
+
 use crate::pieces::PieceSize;
 use crate::skin::PieceStyle;
 use shakmaty::Color;

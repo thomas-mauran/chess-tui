@@ -1,7 +1,8 @@
+//! Calculates a centered [`Rect`] sized as a percentage of a parent area.
+
 use ratatui::{layout::{Constraint, Direction, Layout, Rect}};
 
-
-/// Helper function to create a centered rect using up certain percentage of the available rect `r`
+/// Returns a rect centered in `r`, sized to `percent_x` × `percent_y` of `r`.
 pub fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
     let popup_layout = Layout::default()
         .direction(Direction::Vertical)

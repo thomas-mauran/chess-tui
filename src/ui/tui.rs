@@ -1,3 +1,5 @@
+//! Terminal lifecycle wrapper.
+
 use crate::app::{App, AppResult};
 use crate::event::EventHandler;
 use crate::ui::main_ui;
@@ -22,13 +24,8 @@ impl<B: Backend> Tui<B> {
         Self { terminal, events }
     }
 
-    /// [`Draw`] the terminal interface by [`rendering`] the widgets.
-    ///
-    /// [`Draw`]: ratatui::Terminal::draw
-    /// [`rendering`]: crate::ui:render
-    // Créer une fonction async pour le rendu
+    /// Draws one frame by calling [`main_ui::render`] inside a `terminal.draw` closure.
     pub fn draw(&mut self, app: &mut App) -> AppResult<()> {
-        // Passe une closure synchrone qui appelle la fonction async
         self.terminal.draw(|frame| main_ui::render(app, frame))?;
         Ok(())
     }

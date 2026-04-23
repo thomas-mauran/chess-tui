@@ -1,3 +1,5 @@
+//! Persisting settings to `config.toml`.
+
 use crate::app::App;
 use crate::config::Config;
 use crate::constants::config_dir;
@@ -5,13 +7,15 @@ use std::fs::{self, File};
 use std::io::Write;
 
 impl App {
-
-    pub fn update_config(&self) {
+    /// Persists runtime app state back to the config file. Intentionally infallible
+    /// failure is logged/warned but never propagated, so a read-only config never crashes the app.
+    pub fn update_config_from_app(&self) {
         let Ok(config_dir) = config_dir() else {
             log::error!("Failed to get config directory");
             return;
         };
         let config_path = config_dir.join("chess-tui/config.toml");
+        // Re-read first so fields not tracked by App (e.g. engine_path) are preserved.
         let mut config: Config = match fs::read_to_string(&config_path) {
             Ok(content) => toml::from_str(&content).unwrap_or_default(),
             Err(_) => Config::default(),

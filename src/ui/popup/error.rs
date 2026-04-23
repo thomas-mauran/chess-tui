@@ -1,3 +1,5 @@
+//! Generic error message popup.
+
 use ratatui::{
     layout::Alignment,
     style::{Color, Style},
@@ -7,7 +9,7 @@ use ratatui::{
 };
 use crate::ui::components::centered_rect::centered_rect;
 
-// This renders a generic error popup with a custom message
+/// Renders a centered red-bordered popup displaying `error_message`.
 pub fn render_error_popup(frame: &mut Frame, error_message: &str) {
     let block = Block::default()
         .title("Error")

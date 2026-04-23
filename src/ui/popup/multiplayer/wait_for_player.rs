@@ -1,3 +1,5 @@
+//! Waiting-for-opponent popup shown while the host listens for a connection.
+
 use crate::{
     constants::{NETWORK_PORT, WHITE}, ui::components::centered_rect::centered_rect,
 };
@@ -10,7 +12,7 @@ use ratatui::{
 };
 use std::net::IpAddr;
 
-// This renders a popup indicating we are waiting for the other player
+/// Renders a "Waiting for other player" popup displaying the host's IP and port.
 pub fn render_wait_for_other_player(frame: &mut Frame, ip: Option<IpAddr>) {
     let block = Block::default()
         .title("Waiting ...")

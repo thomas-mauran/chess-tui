@@ -1,3 +1,5 @@
+//! TCP multiplayer session setup and teardown.
+
 use crate::app::App;
 use crate::constants::{Popups, NETWORK_PORT};
 use crate::game_logic::opponent::wait_for_game_start;
@@ -7,6 +9,8 @@ use shakmaty::Color;
 use std::net::UdpSocket;
 
 impl App {
+    /// Connects to a TCP multiplayer game. If hosting, opens a waiting popup and resolves the local IP.
+    /// If joining, fetches the assigned color from the server. Flips the board for the Black player.
     pub fn create_opponent(&mut self) {
         // Host passes their opponent's color so the server knows the assignment.
         // Guest always passes None so get_color_from_stream fetches the real color from the server.
@@ -124,6 +128,8 @@ impl App {
     }
 
 
+    /// Cancels an in-progress hosting session. Shuts down the TCP socket and resets
+    /// multiplayer, board, and UI state.
     pub fn cancel_hosting_cleanup(&mut self) {
         log::info!("Cancelling hosting and cleaning multiplayer state");
 

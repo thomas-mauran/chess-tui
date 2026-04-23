@@ -1,3 +1,5 @@
+//! Lichess game-code / URL entry popup.
+
 use crate::{
     constants::WHITE, ui::components::centered_rect::centered_rect,
 };
@@ -10,7 +12,7 @@ use ratatui::{
 };
 use crate::ui::prompt::Prompt;
 
-// This renders a popup allowing us to enter a game code to join a Lichess game
+/// Renders a text input for entering a Lichess game ID or URL to join.
 pub fn render_enter_game_code_popup(frame: &mut Frame, prompt: &Prompt) {
     let block = Block::default()
         .title("Join Lichess Game")

@@ -1,8 +1,4 @@
-//! PGN viewer state - parses a PGN file into a sequence of board positions
-//! and provides navigation + auto-play controls.
-//!
-//! Supports multi-game PGN files (e.g. multiple training games saved by watch.py).
-//! Games are stored as `Vec<PgnViewer>` and the caller cycles between them.
+//! PGN file parsing and playback.
 
 use shakmaty::san::San;
 use shakmaty::{Chess, Move, Position};
@@ -72,6 +68,7 @@ impl PgnViewer {
 
     // ── Navigation ──────────────────────────────────────────────────────────
 
+    /// Returns the board position at the current ply.
     pub fn current_position(&self) -> &Chess {
         &self.positions[self.current_ply]
     }
@@ -85,12 +82,14 @@ impl PgnViewer {
         }
     }
 
+    /// Advances one ply forward, clamped at the final position.
     pub fn next(&mut self) {
         if self.current_ply < self.moves.len() {
             self.current_ply += 1;
         }
     }
 
+    /// Steps one ply back and clears `end_banner_dismissed`.
     pub fn prev(&mut self) {
         if self.current_ply > 0 {
             self.current_ply -= 1;
@@ -98,19 +97,23 @@ impl PgnViewer {
         }
     }
 
+    /// Jumps to the starting position (ply 0).
     pub fn goto_start(&mut self) {
         self.current_ply = 0;
         self.end_banner_dismissed = false;
     }
 
+    /// Jumps to the final position (last ply).
     pub fn goto_end(&mut self) {
         self.current_ply = self.moves.len();
     }
 
+    /// Returns the total number of plies (half-moves) in the game.
     pub fn total_plies(&self) -> usize {
         self.moves.len()
     }
 
+    /// Returns `true` when the viewer is on the final position.
     pub fn is_at_end(&self) -> bool {
         !self.moves.is_empty() && self.current_ply == self.moves.len()
     }
@@ -144,16 +147,19 @@ impl PgnViewer {
         }
     }
 
+    /// Returns the human-readable label for the current auto-play speed (e.g. `"1x"`).
     pub fn speed_label(&self) -> &'static str {
         SPEEDS[self.speed_idx].1
     }
 
+    /// Increases auto-play speed by one step, clamped at the maximum.
     pub fn speed_up(&mut self) {
         if self.speed_idx + 1 < SPEEDS.len() {
             self.speed_idx += 1;
         }
     }
 
+    /// Decreases auto-play speed by one step, clamped at the minimum.
     pub fn speed_down(&mut self) {
         if self.speed_idx > 0 {
             self.speed_idx -= 1;

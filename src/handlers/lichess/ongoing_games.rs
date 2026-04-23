@@ -1,6 +1,9 @@
+//! Ongoing games keyboard handler.
+
 use ratatui::crossterm::event::{KeyCode, KeyEvent};
 use crate::{app::App, constants::Pages, handlers::handler::fallback_key_handler};
 
+/// Handles keyboard input on the ongoing Lichess games list page.
 pub fn handle_ongoing_games_page_events(app: &mut App, key_event: KeyEvent) {
     match key_event.code {
         KeyCode::Up | KeyCode::Char('k') => {

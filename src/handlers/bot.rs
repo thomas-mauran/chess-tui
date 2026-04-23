@@ -1,3 +1,5 @@
+//! Bot game keyboard handler.
+
 use ratatui::crossterm::event::{KeyCode, KeyEvent};
 use crate::{app::App, handlers::handler::chess_inputs};
 

@@ -1,3 +1,5 @@
+//! End-of-game result popup.
+
 use ratatui::{
     layout::Alignment,
     style::{Color, Modifier, Style},
@@ -7,7 +9,10 @@ use ratatui::{
 };
 use crate::ui::components::centered_rect::centered_rect;
 
-// This renders a popup for a promotion
+/// Renders the "Game Over" popup showing `sentence` as the result message.
+///
+/// When `is_lichess` is `true` the restart option is hidden, since Lichess
+/// games cannot be restarted from within the client.
 pub fn render_end_popup(frame: &mut Frame, sentence: &str, is_lichess: bool) {
     let block = Block::default()
         .title("Game Over")

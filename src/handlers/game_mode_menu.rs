@@ -1,3 +1,5 @@
+//! Menu navigation and form filling for the game-mode picker; field enums make match arms readable.
+
 use crate::{
     app::App,
     constants::{BOT_DIFFICULTY_COUNT, Pages, Popups},
@@ -5,6 +7,7 @@ use crate::{
 };
 use ratatui::crossterm::event::{KeyCode, KeyEvent};
 
+/// The four game modes available from the game-mode selection menu.
 #[derive(PartialEq, Clone, Copy)]
 pub enum AvailableGameMode {
     Local,
@@ -17,6 +20,7 @@ impl AvailableGameMode {
     pub const COUNT: u8 = 4;
 }
 
+/// Form fields for the local two-player game configuration.
 #[derive(PartialEq, Clone, Copy)]
 pub enum LocalFormField {
     TimeControl,
@@ -33,6 +37,7 @@ impl From<u8> for LocalFormField {
     }
 }
 
+/// Form fields for the TCP multiplayer game configuration.
 #[derive(PartialEq, Clone, Copy)]
 pub enum MultiplayerFormField {
     HostSelection,
@@ -49,6 +54,7 @@ impl From<u8> for MultiplayerFormField {
     }
 }
 
+/// Form fields for the bot game configuration.
 #[derive(PartialEq, Clone, Copy)]
 pub enum BotFormField {
     TimeControl,
@@ -174,7 +180,7 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                     // Bot depth - decrease
                                     if app.bot_state.bot_depth > 1 {
                                         app.bot_state.bot_depth -= 1;
-                                        app.update_config();
+                                        app.update_config_from_app();
                                     }
                                 }
                             }
@@ -185,7 +191,7 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                 {
                                     if app.bot_state.bot_depth > 1 {
                                         app.bot_state.bot_depth -= 1;
-                                        app.update_config();
+                                        app.update_config_from_app();
                                     }
                                 } else {
                                     // Difficulty - previous: Off -> Magnus -> Hard -> Medium -> Easy -> Off
@@ -197,7 +203,7 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                         Some(0) => app.bot_state.bot_difficulty = None,
                                         Some(i) => app.bot_state.bot_difficulty = Some(i - 1),
                                     }
-                                    app.update_config();
+                                    app.update_config_from_app();
                                 }
                             }
                             BotFormField::DifficultySelection => {
@@ -210,7 +216,7 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                     Some(0) => app.bot_state.bot_difficulty = None,
                                     Some(i) => app.bot_state.bot_difficulty = Some(i - 1),
                                 }
-                                app.update_config();
+                                app.update_config_from_app();
                             }
                         }
                     }
@@ -279,7 +285,7 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                 app.game_mode_state.select_next_color_option();
                             } else if app.bot_state.bot_depth < 20 {
                                 app.bot_state.bot_depth += 1;
-                                app.update_config();
+                                app.update_config_from_app();
                             }
                         }
                         BotFormField::BotDepthSelection => {
@@ -288,7 +294,7 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                             {
                                 if app.bot_state.bot_depth < 20 {
                                     app.bot_state.bot_depth += 1;
-                                    app.update_config();
+                                    app.update_config_from_app();
                                 }
                             } else {
                                 match app.bot_state.bot_difficulty {
@@ -298,7 +304,7 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                     }
                                     Some(i) => app.bot_state.bot_difficulty = Some(i + 1),
                                 }
-                                app.update_config();
+                                app.update_config_from_app();
                             }
                         }
                         BotFormField::DifficultySelection => {
@@ -309,7 +315,7 @@ pub fn handle_game_mode_menu_page_events(app: &mut App, key_event: KeyEvent) {
                                 }
                                 Some(i) => app.bot_state.bot_difficulty = Some(i + 1),
                             }
-                            app.update_config();
+                            app.update_config_from_app();
                         }
                     }
                 }

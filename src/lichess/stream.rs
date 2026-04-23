@@ -1,3 +1,5 @@
+//! Board event streaming.
+
 use crate::constants::LICHESS_API_URL;
 use crate::lichess::models::{
     EventStreamEvent, GameEvent, LichessClient};

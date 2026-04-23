@@ -1,0 +1,28 @@
+.starsLink {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ifm-navbar-link-color);
+  text-decoration: none;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
+.starsLink:hover {
+  color: var(--ifm-navbar-link-hover-color);
+  text-decoration: none;
+}
+
+.icon {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.star {
+  width: 14px;
+  height: 14px;
+  fill: #e3b341;
+}

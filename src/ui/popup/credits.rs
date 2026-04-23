@@ -1,3 +1,5 @@
+//! Project credits overlay.
+
 use crate::{
     constants::WHITE, ui::components::centered_rect::centered_rect,
 };
@@ -9,9 +11,7 @@ use ratatui::{
     Frame,
 };
 
-
-
-// This render the credit popup
+/// Renders a centered popup listing contributors and project information.
 pub fn render_credit_popup(frame: &mut Frame) {
     let block = Block::default()
         .title("Credits")

@@ -1,3 +1,5 @@
+//! Routes raw crossterm events to the active page handler and shared chess input bindings.
+
 use crate::constants::Popups;
 use crate::game_logic::coord::Coord;
 use crate::game_logic::game::GameState;
@@ -149,7 +151,7 @@ pub fn chess_inputs(app: &mut App, key_event: KeyEvent) {
         KeyCode::Char('?') => app.ui_state.toggle_help_popup(), // Toggle help popup
         KeyCode::Char('s' | 'S') => {
             app.cycle_skin(true); // Cycle through available skins
-            app.update_config();
+            app.update_config_from_app();
         }
         KeyCode::Char('m') => {
             app.game.ui.prompt.reset();

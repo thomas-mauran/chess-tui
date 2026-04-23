@@ -1,3 +1,5 @@
+//! Sound effect synthesis and playback.
+
 use std::sync::atomic::{AtomicBool, Ordering};
 
 // Global sound enabled state

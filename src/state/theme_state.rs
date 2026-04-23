@@ -1,6 +1,12 @@
+//! Holds the loaded [`Skin`] list, the active skin index, and the current display mode.
+
 use crate::skin::{PieceStyle, Skin};
 
-/// Defines every variable related to the theme in the app
+/// Skin and piece-style state held by [`crate::app::App`].
+///
+/// `available_skins` is populated at startup from `skins.json`. The active
+/// skin is tracked by name in `selected_skin_name` and by value in
+/// `loaded_skin` so it can be cheaply applied to the board UI.
 pub struct ThemeState {
     /// The loaded skin
     pub loaded_skin: Option<Skin>,
@@ -24,6 +30,8 @@ impl Default for ThemeState {
 }
 
 impl ThemeState {
+    /// Returns the next (`true`) or previous (`false`) skin relative to the
+    /// currently selected one, wrapping around the available skins list.
     pub fn get_skin(&self, next: bool) -> Skin {
         if self.available_skins.is_empty() {
             return Skin::default_display_mode();

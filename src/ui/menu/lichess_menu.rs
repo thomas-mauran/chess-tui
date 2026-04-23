@@ -1,3 +1,5 @@
+//! Renders the user profile, rating sparkline, and menu options for the Lichess landing page.
+
 use crate::{app::App, lichess::models::RatingHistoryEntry};
 use chrono::{DateTime, NaiveDate, Utc};
 use ratatui::{
@@ -721,7 +723,7 @@ fn draw_elo_labels(
         .collect();
 
     // Sort by Y position and group by proximity
-    label_positions.sort_by(|a, b| a.1.cmp(&b.1));
+    label_positions.sort_by_key(|a| a.1);
     let groups = group_labels_by_proximity(&label_positions, 2);
 
     // Draw labels

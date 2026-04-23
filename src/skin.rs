@@ -1,3 +1,5 @@
+//! Board skin and piece style types.
+
 use crate::constants::{DisplayMode, config_dir};
 use ratatui::style::Color;
 use serde::{Deserialize, Serialize};
@@ -61,11 +63,13 @@ impl Default for Skin {
     }
 }
 
+/// JSON top-level wrapper for a list of [`Skin`] entries in `skins.json`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SkinCollection {
     pub skins: Vec<Skin>,
 }
 
+/// JSON top-level wrapper for a list of [`PieceStyle`] entries.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PieceStyleCollection {
     pub piece_styles: Vec<PieceStyle>,
@@ -96,6 +100,7 @@ impl Skin {
         Ok(collection.skins)
     }
 
+    /// Writes the built-in `default_skins.json` to `skins_path`, creating parent dirs as needed.
     pub fn create_default_skins_file(skins_path: &Path) -> AppResult<()> {
     // Ensure the directory exists
     if let Some(parent) = skins_path.parent() {
@@ -116,6 +121,7 @@ impl Skin {
         skins.iter().find(|s| s.name == name).cloned()
     }
 
+    /// Loads all piece styles from a JSON file containing a [`PieceStyleCollection`].
     pub fn load_all_piece_styles<P: AsRef<Path>>(
         path: P,
     ) -> Result<Vec<PieceStyle>, Box<dyn std::error::Error>> {

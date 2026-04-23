@@ -1,3 +1,5 @@
+//! PGN viewer keyboard handler.
+
 use ratatui::crossterm::event::{KeyCode, KeyEvent};
 use crate::app::App;
 

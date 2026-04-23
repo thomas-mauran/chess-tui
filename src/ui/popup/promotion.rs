@@ -1,3 +1,5 @@
+//! Pawn promotion piece-selection popup.
+
 use crate::{
     app::App,
     constants::WHITE,
@@ -11,8 +13,10 @@ use ratatui::{
     Frame,
 };
 
-
-// This renders a popup for a promotion
+/// Renders a 4-option piece grid (Queen / Rook / Bishop / Knight) for pawn promotion.
+///
+/// Also writes the popup cell geometry into `app.game.ui` so that mouse clicks
+/// on the pieces are handled correctly by the input layer.
 pub fn render_promotion_popup(frame: &mut Frame, app: &mut App) {
     let block = Block::default()
         .title("Pawn promotion")

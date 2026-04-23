@@ -1,3 +1,5 @@
+//! Resignation confirmation popup.
+
 use crate::{
     app::App,
     constants::WHITE, ui::components::centered_rect::centered_rect,
@@ -10,7 +12,7 @@ use ratatui::{
     Frame,
 };
 
-// This renders a confirmation popup for resigning a game
+/// Renders a "Yes / No" confirmation dialog before resigning the current game.
 pub fn render_resign_confirmation_popup(frame: &mut Frame, app: &App) {
     let block = Block::default()
         .title("Resign Game")

@@ -1,3 +1,5 @@
+//! Lichess authentication, game streaming, and puzzle management.
+
 use crate::app::App;
 use crate::constants::{Pages, Popups};
 use crate::game_logic::game::GameState;
@@ -8,6 +10,8 @@ use shakmaty::Color;
 use std::sync::mpsc::channel;
 
 impl App {
+    /// Validates a Lichess API token by fetching the user profile, then saves it to config and
+    /// navigates to the Lichess menu on success, or shows an error popup on failure.
     pub fn save_and_validate_lichess_token(&mut self, token: String) {
         // First, try to validate the token by fetching the user profile
 
@@ -28,7 +32,7 @@ impl App {
                 self.lichess_state.user_profile = Some(profile.clone());
 
                 // Save to config file
-                self.update_config();
+                self.update_config_from_app();
 
                 // Navigate to Lichess menu if we're on Home page, otherwise stay on current page
                 if self.ui_state.current_page == Pages::Home {
@@ -55,6 +59,7 @@ impl App {
         }
     }
 
+    /// Clears the Lichess token and user profile, persists the change, and returns to the home page.
     pub fn disconnect_lichess(&mut self) {
         // Clear the token
         self.lichess_state.token = None;
@@ -66,7 +71,7 @@ impl App {
         self.lichess_state.ongoing_games.clear();
 
         // Save to config file
-        self.update_config();
+        self.update_config_from_app();
 
         // Navigate back to home menu
         self.ui_state.navigate_to_homepage();
@@ -76,6 +81,8 @@ impl App {
         self.ui_state.show_message_popup(msg, Popups::Success);
     }
 
+    /// Starts a background thread to seek a Lichess correspondence game and opens the seeking popup.
+    /// The result is polled each tick via `check_lichess_seek`.
     pub fn create_lichess_opponent(&mut self) {
         let Ok(client) = self.lichess_state.require_client() else {
             self.ui_state.show_message_popup(
@@ -109,6 +116,8 @@ impl App {
         });
     }
 
+    /// Joins an existing Lichess game by ID or full URL. Fetches the player color from the server
+    /// and sends the result through the seek channel so `check_lichess_seek` can finalize setup.
     pub fn join_lichess_game_by_code(&mut self, game_code: String) {
         let Ok(client) = self.lichess_state.require_client() else {
             self.ui_state.show_message_popup(
@@ -160,6 +169,8 @@ impl App {
         });
     }
 
+    /// Polls the seek channel once per tick. On success, sets up the game board and switches to
+    /// the Lichess page. On error, shows an error popup.
     pub fn check_lichess_seek(&mut self) {
         if let Some(rx) = &self.lichess_state.seek_receiver {
             if let Ok(result) = rx.try_recv() {
@@ -191,8 +202,9 @@ impl App {
         }
     }
 
-    /// Setup a Lichess game by fetching FEN and setting up board state
-    /// This handles the common logic for joining games (by code or from ongoing games list)
+    /// Shared setup path for joining a Lichess game by any means (seek, code, ongoing list).
+    /// Resolves the starting FEN (from cache, the ongoing-games list, or the API), parses it,
+    /// and calls [`Self::setup_lichess_game`]. Returns `false` if setup cannot proceed.
     fn setup_lichess_game_with_state(
         &mut self,
         game_id: String,
@@ -313,6 +325,8 @@ impl App {
         true
     }
 
+    /// Wires up channels, starts the game-event stream thread and the outgoing-move thread,
+    /// sets the player color, flips the board for Black, and navigates to the Lichess page.
     fn setup_lichess_game(
         &mut self,
         game_id: String,
@@ -389,6 +403,7 @@ impl App {
         self.ui_state.current_page = Pages::Lichess;
     }
 
+    /// Fetches the list of ongoing Lichess games and stores them in `lichess_state`.
     pub fn fetch_ongoing_games(&mut self) {
         let Ok(client) = self.lichess_state.require_client() else {
             self.ui_state.show_message_popup(
@@ -413,6 +428,7 @@ impl App {
         }
     }
 
+    /// Opens the resign confirmation popup if a game is selected in the ongoing games list.
     pub fn show_resign_confirmation(&mut self) {
         if self
             .lichess_state
@@ -424,6 +440,7 @@ impl App {
         }
     }
 
+    /// Resigns the currently selected game in a background thread and shows a success popup.
     pub fn confirm_resign_game(&mut self) {
         if let Some(game) = self
             .lichess_state
@@ -491,6 +508,7 @@ impl App {
         }
     }
 
+    /// Fetches the user profile and rating history from Lichess and stores them in `lichess_state`.
     pub fn fetch_lichess_user_profile(&mut self) {
         let Ok(client) = self.lichess_state.require_client() else {
             self.ui_state.show_message_popup(
@@ -525,6 +543,7 @@ impl App {
         }
     }
 
+    /// Joins the ongoing Lichess game at the current menu cursor position, restoring board state from FEN.
     pub fn select_ongoing_game(&mut self) {
         log::debug!(
             "select_ongoing_game called, menu_cursor: {}",
@@ -559,6 +578,7 @@ impl App {
         }
     }
 
+    /// Fetches a daily Lichess puzzle, resets game state, and switches to the Solo page in puzzle mode.
     pub fn start_puzzle_mode(&mut self) {
         // Clear any existing popups and error messages when starting a new puzzle
         self.ui_state.close_popup();
@@ -620,12 +640,8 @@ impl App {
         self.ui_state.current_page = Pages::Solo;
     }
 
-    /// Validate puzzle move after it has been executed.
-    /// Returns true if the move was correct, false if it was wrong.
-    /// Always auto-plays the opponent's next move regardless of correctness.
-    /// Validate puzzle move after it has been executed.
-    /// Returns true if the move was correct, false if it was wrong.
-    /// Always auto-plays the opponent's next move regardless of correctness.
+    /// Validates a puzzle move after execution. Returns `true` if correct.
+    /// Always auto-plays the opponent's response regardless of whether the move was right or wrong.
     pub fn validate_puzzle_move_after_execution(
         &mut self,
         from: shakmaty::Square,
@@ -664,36 +680,5 @@ impl App {
         }
 
         true
-    }
-
-    // PUZZLE
-    /// Show a hint by selecting the piece that should move next in the puzzle.
-    /// Only works in puzzle mode and when it's the player's turn.
-    pub fn show_puzzle_hint(&mut self) {
-        // Only work in puzzle mode
-        if self.lichess_state.puzzle_game.is_none() {
-            return;
-        }
-
-        // Only show hint if it's the player's turn and game is in playing state
-        if self.game.logic.game_state != GameState::Playing {
-            return;
-        }
-
-        // Get the next move's from square
-        if let Some(puzzle_game) = &self.lichess_state.puzzle_game {
-            if let Some(from_square) = puzzle_game.get_next_move_from_square() {
-                // Convert the square to a coord, accounting for board flip
-                use crate::utils::get_coord_from_square;
-                let coord =
-                    get_coord_from_square(from_square, self.game.logic.game_board.is_flipped);
-
-                // Set cursor to that position
-                self.game.ui.cursor_coordinates = coord;
-
-                // Try to select the cell (this will validate that it's a valid piece to move)
-                self.game.select_cell();
-            }
-        }
     }
 }

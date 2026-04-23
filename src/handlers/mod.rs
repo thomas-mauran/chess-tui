@@ -1,3 +1,5 @@
+//! Input event handlers.
+
 pub mod handler;
 pub mod home;
 pub mod solo;

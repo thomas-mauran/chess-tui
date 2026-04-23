@@ -1,3 +1,5 @@
+//! Key-bindings help overlay, context-sensitive per active page.
+
 use crate::{
     constants::WHITE, ui::components::centered_rect::centered_rect,
 };
@@ -10,7 +12,7 @@ use ratatui::{
 };
 use crate::ui::popup::pgn::help::render_pgn_help_popup;
 
-// This render the help popup
+/// Renders the help popup, delegating to the PGN-specific variant when in the PGN viewer.
 pub fn render_help_popup(frame: &mut Frame, app: &crate::app::App) {
     if app.ui_state.current_page == crate::constants::Pages::PgnViewer {
         render_pgn_help_popup(frame);

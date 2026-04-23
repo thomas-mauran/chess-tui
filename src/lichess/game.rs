@@ -1,3 +1,5 @@
+//! Game seek, join, and resign endpoints.
+
 use crate::constants::LICHESS_API_URL;
 use crate::lichess::models::{
     GameEvent, LichessClient

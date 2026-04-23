@@ -1,3 +1,5 @@
+//! UI rendering layer.
+
 pub mod main_ui;
 pub mod ongoing_games;
 pub mod pgn_viewer_ui;

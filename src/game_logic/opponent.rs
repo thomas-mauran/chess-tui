@@ -1,3 +1,5 @@
+//! Opponent type: local, bot, TCP peer, or Lichess.
+
 use crate::constants::NETWORK_BUFFER_SIZE;
 use log;
 use shakmaty::{Color, Move, Role, Square};

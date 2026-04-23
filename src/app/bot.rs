@@ -1,11 +1,15 @@
+//! Engine thread and move application.
+
 use crate::app::App;
 use crate::game_logic::bot::Bot;
 use crate::sound::play_move_sound;
 use shakmaty::{Color, Move};
 
 impl App {
-
+    /// Initializes the bot for a new game. Creates the `Bot` instance, sets up the clock,
+    /// flips the board if the human plays Black, and triggers the bot's first move if it starts.
     pub fn bot_setup(&mut self) {
+        // Bot starts (plays White) when the human chose Black.
         let is_bot_starting =
             self.game_mode_state.selected_color.unwrap_or(Color::White) == shakmaty::Color::Black;
         let path = self.bot_state.chess_engine_path.as_deref().unwrap_or("");
@@ -46,10 +50,10 @@ impl App {
             self.game.ui.skin = skin.clone();
         }
 
-        self.update_config();
+        self.update_config_from_app();
     }
 
-       /// Check if bot move is ready and apply it
+    /// Polls the bot move channel and applies the move if one is ready. Returns `true` if a move was applied.
     pub fn check_and_apply_bot_move(&mut self) -> bool {
         if let Some(rx) = &self.bot_state.bot_move_receiver {
             if let Ok(bot_move) = rx.try_recv() {
@@ -62,8 +66,7 @@ impl App {
         false
     }
 
-
-    /// Apply a bot move to the game
+    /// Applies a bot move. Records captures, updates position history, switches turn, and plays the move sound.
     pub fn apply_bot_move(&mut self, bot_move: Move) {
         use shakmaty::Position;
 
@@ -84,6 +87,7 @@ impl App {
             }
             Move::EnPassant { .. } => {
                 if let (Some(from_square), to_square) = (bot_move.from(), bot_move.to()) {
+                    // Captured pawn sits on the destination file but the origin rank (behind the passing pawn).
                     let captured_pawn_square =
                         shakmaty::Square::from_coords(to_square.file(), from_square.rank());
                     if let Some(captured_piece) =
@@ -101,6 +105,7 @@ impl App {
             log::error!("Bot move has no from square");
             return;
         };
+        // Normalize all move types to Normal for history display (castles/en-passant share the same fields).
         self.game.logic.game_board.move_history.push(Move::Normal {
             role: bot_move.role(),
             from: from_square,
@@ -118,7 +123,7 @@ impl App {
             .game_board
             .position_history
             .push(new_position);
-        // Reset history navigation when a new move is made
+        // Reset history navigation. A new move invalidates any in-progress replay and restores board orientation.
         self.game.logic.game_board.history_position_index = None;
         self.game.logic.game_board.original_flip_state = None;
         self.game.logic.switch_player_turn();

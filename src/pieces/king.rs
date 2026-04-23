@@ -1,3 +1,5 @@
+//! King ASCII art.
+
 use crate::{pieces::PieceSize, skin::PieceStyle};
 use shakmaty::Color;
 

@@ -1,5 +1,7 @@
-use ratatui::crossterm::event::{KeyCode, KeyEvent};
+//! Solo game keyboard handler.
+
 use crate::{app::App, game_logic::game::GameState, handlers::handler::chess_inputs};
+use ratatui::crossterm::event::{KeyCode, KeyEvent};
 
 /// Handles keyboard input during solo (two-player) game mode.
 pub fn handle_solo_page_events(app: &mut App, key_event: KeyEvent) {
@@ -28,9 +30,13 @@ pub fn handle_solo_page_events(app: &mut App, key_event: KeyEvent) {
                 app.game.logic.navigate_history_previous();
             }
         }
-        KeyCode::Char('t' | 'T') if app.lichess_state.puzzle_game.is_some() && app.ui_state.current_popup.is_none() => {
+        KeyCode::Char('t' | 'T')
+            if app.lichess_state.puzzle_game.is_some() && app.ui_state.current_popup.is_none() =>
+        {
             // Show hint in puzzle mode (only when no popup is active)
-            app.show_puzzle_hint();
+            if let Some(puzzle_game) = &app.lichess_state.puzzle_game {
+                puzzle_game.show_hint(&mut app.game);
+            }
         }
         _ => chess_inputs(app, key_event), // Delegate chess-specific inputs
     }

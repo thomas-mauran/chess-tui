@@ -1,3 +1,5 @@
+//! TCP peer-to-peer game server.
+
 use std::{
     io::{Read, Write},
     net::{IpAddr, TcpListener, TcpStream, UdpSocket},

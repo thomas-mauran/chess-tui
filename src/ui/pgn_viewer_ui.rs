@@ -1,7 +1,4 @@
-//! PGN viewer UI - renders the chess board + move history for a saved game.
-//!
-//! Re-uses the existing `render_game_ui` layout by syncing the PgnViewer's current
-//! position into `app.game.logic.game_board` before rendering.
+//! PGN viewer page renderer.
 
 use crate::{app::App, game_logic::game::GameState, ui::game_ui::render_game_ui};
 use ratatui::{
@@ -44,6 +41,8 @@ pub fn sync_pgn_to_board(app: &mut App) {
     };
 }
 
+/// Renders the PGN viewer page: game board synced to the current ply, move history, and a footer
+/// showing playback controls and speed.
 pub fn render_pgn_viewer(frame: &mut Frame, app: &mut App) {
     let area = frame.area();
 
@@ -136,8 +135,7 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
         Span::raw(" Back"),
     ]);
 
-    let progress = if total_plies > 0 {
-        let pct = current_ply * 20 / total_plies;
+    let progress = if let Some(pct) = (current_ply * 20).checked_div(total_plies) {
         format!(
             "[{}{}] {}/{}",
             "█".repeat(pct),

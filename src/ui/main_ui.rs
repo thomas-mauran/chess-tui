@@ -1,3 +1,5 @@
+//! Top-level frame composition.
+
 use ratatui::{
     prelude::Alignment,
     style::{Color, Style},

@@ -1,3 +1,5 @@
+//! Popup overlays.
+
 pub mod credits;
 pub mod end;
 pub mod error;

@@ -1,7 +1,11 @@
+//! Board coordinate helpers.
+
 use crate::game_logic::coord::Coord;
 use ratatui::style::Color;
 use shakmaty::Square;
 
+/// Converts a shakmaty piece color to the corresponding ratatui [`Color`].
+/// Returns `Color::Red` when the square is empty (`None`).
 #[must_use]
 pub fn color_to_ratatui_enum(piece_color: Option<shakmaty::Color>) -> Color {
     match piece_color {
@@ -11,6 +15,7 @@ pub fn color_to_ratatui_enum(piece_color: Option<shakmaty::Color>) -> Color {
     }
 }
 
+/// Returns the mirror square when the board is flipped, otherwise the original square.
 #[must_use]
 pub fn flip_square_if_needed(square: Square, is_flipped: bool) -> Square {
     if is_flipped {
@@ -20,6 +25,7 @@ pub fn flip_square_if_needed(square: Square, is_flipped: bool) -> Square {
     }
 }
 
+/// Converts a [`Coord`] to a [`Square`], mirroring it when the board is flipped.
 #[must_use]
 pub fn get_square_from_coord(coord: Coord, is_flipped: bool) -> Square {
     if is_flipped {
@@ -29,6 +35,7 @@ pub fn get_square_from_coord(coord: Coord, is_flipped: bool) -> Square {
     }
 }
 
+/// Converts a [`Square`] to a [`Coord`], mirroring it when the board is flipped.
 #[must_use]
 pub fn get_coord_from_square(square: Square, is_flipped: bool) -> Coord {
     if is_flipped {
@@ -53,6 +60,7 @@ pub fn get_int_from_char(c: Option<char>) -> u8 {
     }
 }
 
+/// Returns the square on the opposite side of the board, or `None` if the input is `None`.
 #[must_use]
 pub fn get_opposite_square(square: Option<Square>) -> Option<Square> {
     square.map(|s| Coord::from(s).reverse().into())

@@ -1,8 +1,16 @@
+//! Holds the API token, the [`LichessClient`], incoming event channels, and the active puzzle game if any.
+
 use crate::{game_logic::puzzle::PuzzleGame, lichess::models::{LichessClient, LichessError, OngoingGame, RatingHistoryEntry, UserProfile}};
 use std::sync::mpsc::Receiver;
 use shakmaty::Color;
 
-/// Define every variable related to Lichess in the app
+/// All Lichess-related runtime state held by [`crate::app::App`].
+///
+/// Keeps the API token and client together so that any method needing a
+/// authenticated request can call `require_client` in one line. The seek
+/// channel and cancellation token coordinate the background game-seeking
+/// thread with the main loop.
+#[derive(Default)]
 pub struct LichessState {
     /// Lichess API token
     pub token: Option<String>,
@@ -20,34 +28,20 @@ pub struct LichessState {
     pub client: Option<LichessClient>,
     /// Puzzle game state
     pub puzzle_game: Option<PuzzleGame>,
-
-
-}
-
-impl Default for LichessState {
-    fn default() -> Self {
-       Self {
-            token: None,
-            seek_receiver: None,
-            cancellation_token: None,
-            ongoing_games: Vec::new(),
-            user_profile: None,
-            rating_history: None,
-            client: None,
-            puzzle_game: None,
-        }
-    }
 }
 
 impl LichessState {
+    /// Returns the API token if one is stored.
     pub fn get_token(&self) -> Option<&String> {
         self.token.as_ref()
     }
 
+    /// Returns the API token or `Err(NoToken)` if none is configured.
     pub fn require_token(&self) -> Result<&String, LichessError> {
         self.token.as_ref().ok_or(LichessError::NoToken)
     }
 
+    /// Returns the API client or `Err(NoToken)` if the client was not initialised.
     pub fn require_client(&self) -> Result<&LichessClient, LichessError> {
         self.client.as_ref().ok_or(LichessError::NoToken)
     }

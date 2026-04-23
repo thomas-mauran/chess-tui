@@ -1,3 +1,5 @@
+//! Ongoing Lichess games list.
+
 use crate::app::App;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},
@@ -7,6 +9,7 @@ use ratatui::{
     Frame,
 };
 
+/// Renders the ongoing Lichess games list with navigation hints.
 pub fn render_ongoing_games(frame: &mut Frame, app: &App) {
     let area = frame.area();
 

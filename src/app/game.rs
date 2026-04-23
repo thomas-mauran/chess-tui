@@ -1,3 +1,5 @@
+//! Game end detection and restart.
+
 use crate::app::App;
 use crate::constants::{Pages, Popups};
 use crate::game_logic::game::Game;
@@ -5,24 +7,7 @@ use crate::game_logic::game::GameState;
 use shakmaty::Color;
 
 impl App {
-    pub fn reset(&mut self) {
-        self.game = Game::default();
-        self.game.ui.available_piece_styles = self.theme_state.available_piece_styles.clone();
-        if let Some(ref skin) = self.theme_state.loaded_skin {
-            self.game.ui.skin = skin.clone();
-        }
-        self.ui_state.close_popup();
-        self.game_mode_state.selected_color = None;
-        self.game_mode_state.is_random_color = false;
-        self.multiplayer_state.hosting = None;
-        self.multiplayer_state.host_ip = None;
-        self.ui_state.menu_cursor = 0;
-        self.ui_state.end_screen_dismissed = false;
-        self.bot_state.chess_engine_path = None;
-        self.bot_state.bot_depth = 10;
-        self.bot_state.bot_difficulty = None;
-    }
-
+    /// Shows the end screen popup. Uses the puzzle variant if a puzzle is active.
     pub fn show_end_screen(&mut self) {
         self.ui_state.current_popup = Some(if self.lichess_state.puzzle_game.is_some() {
             Popups::PuzzleEndScreen
@@ -31,6 +16,8 @@ impl App {
         })
     }
 
+    /// Updates game state and shows the end screen if the state just transitioned to checkmate or draw.
+    /// Skipped on the PGN viewer page to avoid interfering with replay navigation.
     pub fn check_game_end_status(&mut self) {
         // PGN viewer drives its own game state via sync_pgn_to_board; running
         // update_game_state here would flip it to Checkmate/Draw on the final
@@ -50,6 +37,9 @@ impl App {
         }
     }
 
+    /// Restarts the current game while keeping the same opponent and bot.
+    /// Re-randomizes color if random color mode is active, re-initializes the clock, and
+    /// triggers the bot's first move if it starts as White.
     pub fn restart(&mut self) {
         // Clear puzzle state when restarting (for normal games)
         self.lichess_state.puzzle_game = None;

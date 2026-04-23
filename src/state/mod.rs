@@ -1,3 +1,5 @@
+//! Runtime state containers.
+
 pub mod bot_state;
 pub mod theme_state;
 pub mod game_mode_state;

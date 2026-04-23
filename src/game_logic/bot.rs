@@ -1,3 +1,5 @@
+//! UCI engine wrapper and bot difficulty config.
+
 use crate::constants::{BOT_DIFFICULTY_DEPTH, BOT_DIFFICULTY_ELO, BOT_DIFFICULTY_MOVETIME_MS};
 use ruci::{Engine, Go};
 use shakmaty::fen::Fen;

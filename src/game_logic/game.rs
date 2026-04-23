@@ -1,3 +1,5 @@
+//! Game state and move execution.
+
 use super::{
     bot::Bot, clock::Clock, coord::Coord, game_board::GameBoard, opponent::Opponent, ui::UI,
 };

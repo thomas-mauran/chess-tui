@@ -1,9 +1,12 @@
+//! Menu navigation and skin cycling.
+
 use crate::app::App;
 use crate::constants::{DEFAULT_CUSTOM_TIME_VALUE, DEFAULT_TIME_CONTROL_SELECTED};
 use crate::constants::{DisplayMode, Pages, Popups};
 use crate::game_logic::game::Game;
 use crate::handlers::game_mode_menu::AvailableGameMode;
 use crate::sound::play_menu_nav_sound;
+/// Typed representation of the main-menu entries, indexed by `menu_cursor`.
 pub enum MainMenuItems {
     GameModeMenu,
     LichessMenu,
@@ -29,6 +32,7 @@ impl From<u8> for MainMenuItems {
 }
 impl App {
 
+    /// Handles a selection on the main menu. Navigates to the chosen section or toggles a setting.
     pub fn menu_select(&mut self) {
         let field: MainMenuItems = MainMenuItems::from(self.ui_state.menu_cursor);
         match field {
@@ -66,7 +70,7 @@ impl App {
             MainMenuItems::SkinSelector => {
                 // Cycle through available skins
                 self.cycle_skin(true);
-                self.update_config();
+                self.update_config_from_app();
             }
             #[cfg(feature = "sound")]
             MainMenuItems::SoundSelector => {
@@ -76,7 +80,7 @@ impl App {
 
                 self.sound_enabled = !self.sound_enabled;
                 set_sound_enabled(self.sound_enabled);
-                self.update_config();
+                self.update_config_from_app();
             }
             #[cfg(feature = "sound")]
             MainMenuItems::Help => self.ui_state.toggle_help_popup(),
@@ -89,6 +93,8 @@ impl App {
         }
     }
 
+    /// Cycles to the next or previous skin and updates the display mode to match.
+    /// Pass `true` to advance forward, `false` to go back.
     pub fn cycle_skin(&mut self, next: bool) {
         let future_skin = self.theme_state.get_skin(next);
         let future_skin_name = future_skin.clone().name;

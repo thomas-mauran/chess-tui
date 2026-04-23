@@ -1,3 +1,5 @@
+//! SAN move-entry popup anchored to the right side of the screen.
+
 use crate::{constants::WHITE, ui::components::right_rect::right_rect};
 use ratatui::{
     layout::{Alignment, Position},
@@ -8,7 +10,7 @@ use ratatui::{
 };
 use crate::ui::prompt::Prompt;
 
-// allow user to input moves by input text
+/// Renders a right-anchored text input box for typing a move in SAN notation.
 pub fn render_move_input_popup(frame: &mut Frame, prompt: &Prompt) {
     let block = Block::default()
         .title("Input a move")

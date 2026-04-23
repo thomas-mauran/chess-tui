@@ -1,3 +1,5 @@
+//! Home screen keyboard handler.
+
 use ratatui::crossterm::event::{KeyCode, KeyEvent};
 use crate::{app::App, handlers::handler::fallback_key_handler};
 
@@ -22,11 +24,11 @@ pub fn handle_home_page_events(app: &mut App, key_event: KeyEvent) {
         // If on skin selection menu item (index 2), use left/right to cycle skins
         KeyCode::Left | KeyCode::Char('h') if app.ui_state.menu_cursor == 2 => {
             app.cycle_skin(false);
-            app.update_config();
+            app.update_config_from_app();
         }
         KeyCode::Right | KeyCode::Char('l') if app.ui_state.menu_cursor == 2 => {
             app.cycle_skin(true);
-            app.update_config();
+            app.update_config_from_app();
         }
         KeyCode::Char(' ') | KeyCode::Enter => app.menu_select(),
         KeyCode::Char('?') => app.ui_state.toggle_help_popup(),

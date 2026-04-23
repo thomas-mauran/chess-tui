@@ -1,3 +1,5 @@
+//! Generic success message popup.
+
 use ratatui::{
     layout::Alignment,
     style::{Color, Style},
@@ -7,7 +9,7 @@ use ratatui::{
 };
 use crate::ui::components::centered_rect::centered_rect;
 
-// This renders a generic success popup with a custom message
+/// Renders a centered green-bordered popup displaying `success_message`.
 pub fn render_success_popup(frame: &mut Frame, success_message: &str) {
     let block = Block::default()
         .title("Success")

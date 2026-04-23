@@ -1,3 +1,5 @@
+//! Board cursor movement and move submission.
+
 use crate::app::App;
 use crate::constants::{Pages, Popups};
 use crate::game_logic::coord::Coord;
@@ -5,22 +7,28 @@ use crate::game_logic::game::GameState;
 use crate::utils::flip_square_if_needed;
 
 impl App {
+    /// Moves the board cursor one square to the left.
     pub fn go_left_in_game(&mut self) {
         self.game.ui.cursor_left();
     }
 
+    /// Moves the board cursor one square to the right.
     pub fn go_right_in_game(&mut self) {
         self.game.ui.cursor_right();
     }
 
+    /// Moves the board cursor one square up.
     pub fn go_up_in_game(&mut self) {
         self.game.ui.cursor_up();
     }
 
+    /// Moves the board cursor one square down.
     pub fn go_down_in_game(&mut self) {
         self.game.ui.cursor_down();
     }
 
+    /// Handles a confirm/select action on the current cursor square. Dispatches to promotion
+    /// handling or normal move logic depending on game state, and validates puzzle moves after execution.
     pub fn process_cell_click(&mut self) {
         // Handle promotion directly (like mouse handler does)
         // Note: Promotion state should always allow input, even if turn has switched
@@ -171,6 +179,8 @@ impl App {
         }
     }
 
+    /// Attempts to move the selected piece to `target_square` via mouse click.
+    /// Returns `true` if the target is a legal destination and the move was executed.
     pub fn try_mouse_move(&mut self, target_square: shakmaty::Square, coords: Coord) -> bool {
         if self.game.ui.selected_square.is_none() {
             return false;

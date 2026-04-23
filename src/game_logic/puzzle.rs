@@ -1,5 +1,9 @@
+//! Lichess puzzle state and move validation.
+
 use crate::game_logic::game::Game;
+use crate::game_logic::game::GameState;
 use crate::game_logic::game_board::GameBoard;
+use crate::utils::get_coord_from_square;
 use shakmaty::{Position, Square};
 use std::sync::mpsc::Receiver;
 use std::time::{Duration, Instant};
@@ -222,6 +226,17 @@ impl PuzzleGame {
                 self.elo_change = Some(elo_change);
                 self.elo_change_receiver = None;
             }
+        }
+    }
+
+    pub fn show_hint(&self, game: &mut Game) {
+        if game.logic.game_state != GameState::Playing {
+            return;
+        }
+        if let Some(from_square) = self.get_next_move_from_square() {
+            let coord = get_coord_from_square(from_square, game.logic.game_board.is_flipped);
+            game.ui.cursor_coordinates = coord;
+            game.select_cell();
         }
     }
 

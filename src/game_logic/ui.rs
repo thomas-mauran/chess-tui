@@ -1,3 +1,5 @@
+//! Board rendering state and cell context.
+
 use std::fmt::Write as _;
 
 use super::{

@@ -1,3 +1,5 @@
+//! Renders the two-phase game-mode screen: mode list then the per-mode configuration form.
+
 use crate::app::App;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -9,6 +11,7 @@ use ratatui::{
 use shakmaty::Color as ShakmatyColor;
 
 use crate::constants::TIME_CONTROL_OPTIONS;
+/// The three color options shown in the bot and multiplayer configuration forms.
 pub enum ColorSelection {
     White,
     Black,

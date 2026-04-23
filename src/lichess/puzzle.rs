@@ -1,3 +1,5 @@
+//! Puzzle fetch endpoint.
+
 use crate::{constants::LICHESS_API_URL, lichess::models::{LichessClient, Puzzle}};
 use std::error::Error;
 
