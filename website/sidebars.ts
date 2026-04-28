@@ -27,20 +27,21 @@ const sidebars: SidebarsConfig = {
     {
       type: "category",
       label: "Bot",
-      items: ["Configuration/bot", "Configuration/bot-engines", "Configuration/bot-settings"],
+      items: ["Bot/bot-intro", "Bot/bot-engines", "Bot/bot-settings"],
     },
     {
       type: "category",
       label: "Multiplayer",
-      items: ["Multiplayer/Local multiplayer", "Multiplayer/Online multiplayer"],
+      items: ["Multiplayer/multiplayer-intro", "Multiplayer/Local multiplayer", "Multiplayer/Online multiplayer"],
     },
     {
       type: "category",
       label: "Lichess",
-      items: ["Lichess/features", "Lichess/setup"],
+      items: ["Lichess/lichess-intro", "Lichess/features", "Lichess/setup"],
     },
     "Usage/keyboard-shortcuts",
     "faq",
+    "credits",
     {
       type: "link",
       label: "Contributing",

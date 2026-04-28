@@ -163,22 +163,21 @@ impl Game {
     }
 
     pub fn handle_promotion(&mut self, should_flip: bool) {
-        // Validate promotion cursor is in valid range (0-3)
-        if self.ui.promotion_cursor >= 0 && self.ui.promotion_cursor <= 3 {
-            if let Ok(promotion_cursor_u8) = self.ui.promotion_cursor.try_into() {
-                self.logic.promote_piece(promotion_cursor_u8, should_flip);
-            } else {
+        let role = match self.ui.promotion_cursor {
+            0 => Role::Queen,
+            1 => Role::Rook,
+            2 => Role::Bishop,
+            3 => Role::Knight,
+            _ => {
                 log::error!(
-                    "Failed to convert promotion cursor {} to u8",
+                    "Promotion cursor {} is out of valid range (0-3)",
                     self.ui.promotion_cursor
                 );
+                self.ui.promotion_cursor = 0;
+                return;
             }
-        } else {
-            log::error!(
-                "Promotion cursor {} is out of valid range (0-3)",
-                self.ui.promotion_cursor
-            );
-        }
+        };
+        self.logic.promote_piece(role, should_flip);
         self.ui.promotion_cursor = 0;
 
         // Switch player turn (this will start the opponent's clock)
@@ -479,11 +478,17 @@ impl GameLogic {
         let fen_position = self.game_board.fen_position();
 
         // Retrieve the bot move from the bot
-        let bot_move = bot.get_move(&fen_position);
+        let uci_move = match bot.get_move(&fen_position) {
+            Ok(m) => m,
+            Err(e) => {
+                log::error!("Engine error: {e}");
+                return;
+            }
+        };
 
         // Convert UCI move to a shakmaty Move using the current position
         let current_position = self.game_board.position_ref().clone();
-        let bot_actual_move = match bot_move.to_move(&current_position) {
+        let bot_actual_move = match uci_move.to_move(&current_position) {
             Ok(m) => m,
             Err(e) => {
                 log::error!("Engine returned illegal UCI move: {}", e);
@@ -541,15 +546,9 @@ impl GameLogic {
     }
 
     // Method to promote a pawn
-    pub fn promote_piece(&mut self, promotion_cursor: u8, should_flip: bool) {
+    pub fn promote_piece(&mut self, role: Role, should_flip: bool) {
         if let Some(last_move) = self.game_board.move_history.last().cloned() {
-            let new_piece = match promotion_cursor {
-                0 => Role::Queen,
-                1 => Role::Rook,
-                2 => Role::Bishop,
-                3 => Role::Knight,
-                _ => unreachable!("Promotion cursor out of boundaries"),
-            };
+            let new_piece = role;
 
             // Promotion moves are always pawn moves, so they should have a from square
             let from_square = match last_move.from() {

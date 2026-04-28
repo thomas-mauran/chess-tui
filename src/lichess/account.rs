@@ -2,32 +2,11 @@
 
 use crate::constants::LICHESS_API_URL;
 use crate::lichess::models::{
-    LichessClient, OngoingGame, OngoingGamesResponse, Player, RatingHistoryEntry, UserProfile,
+    LichessClient, OngoingGame, OngoingGamesResponse, RatingHistoryEntry, UserProfile,
 };
 use std::error::Error;
 
 impl LichessClient {
-    //TODO: check why we hve this and get_user_profile
-    pub fn get_my_profile(&self) -> Result<String, Box<dyn Error>> {
-        let url = format!("{}/account", LICHESS_API_URL);
-        let response = self
-            .client
-            .get(&url)
-            .header(
-                "User-Agent",
-                "chess-tui (https://github.com/thomas-mauran/chess-tui)",
-            )
-            .bearer_auth(&self.token)
-            .send()?;
-
-        if !response.status().is_success() {
-            return Err(format!("Failed to fetch profile: {}", response.status()).into());
-        }
-
-        let player: Player = response.json()?;
-        player.id.ok_or("Profile missing ID".into())
-    }
-
     pub fn get_user_profile(&self) -> Result<UserProfile, Box<dyn Error>> {
         let url = format!("{}/account", LICHESS_API_URL);
         log::info!("Fetching user profile from: {}", url);

@@ -124,7 +124,7 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} Thomas Mauran, Inc. Built with Docusaurus.`,
+      copyright: `Free and Opensource <3.`,
     },
   } satisfies Preset.ThemeConfig,
 

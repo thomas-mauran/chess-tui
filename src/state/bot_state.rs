@@ -14,8 +14,8 @@ pub struct BotState {
     pub bot_depth: u8,
     /// Bot difficulty preset: None = Off (full strength), Some(0..=3) = Easy/Medium/Hard/Magnus
     pub bot_difficulty: Option<u8>,
-    /// Bot thinking channel receiver
-    pub bot_move_receiver: Option<Receiver<Move>>,
+    /// Bot thinking channel receiver; carries `Ok(move)` or `Err(message)` from engine thread
+    pub bot_move_receiver: Option<Receiver<Result<Move, String>>>,
     /// path of the chess engine
     pub chess_engine_path: Option<String>,
 }
@@ -49,9 +49,14 @@ impl BotState {
 
         // Spawn thread to compute bot move
         std::thread::spawn(move || {
-            // Create bot instance in thread
             let bot = Bot::new(&engine_path, false, depth, bot_difficulty);
-            let uci_move = bot.get_move(&fen);
+            let uci_move = match bot.get_move(&fen) {
+                Ok(m) => m,
+                Err(e) => {
+                    let _ = tx.send(Err(e));
+                    return;
+                }
+            };
 
             // Convert UCI move to shakmaty Move
             let position: Option<shakmaty::Chess> = shakmaty::fen::Fen::from_ascii(fen.as_bytes())
@@ -60,7 +65,7 @@ impl BotState {
 
             if let Some(pos) = position {
                 if let Ok(chess_move) = uci_move.to_move(&pos) {
-                    let _ = tx.send(chess_move);
+                    let _ = tx.send(Ok(chess_move));
                 }
             }
         });

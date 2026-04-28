@@ -29,7 +29,8 @@ impl App {
                 // Token is valid, save it
                 self.lichess_state.token = Some(token.clone());
                 self.lichess_state.client = Some(LichessClient::new(token));
-                self.lichess_state.user_profile = Some(profile.clone());
+                let username = profile.username.clone();
+                self.lichess_state.user_profile = Some(profile);
 
                 // Save to config file
                 self.update_config_from_app();
@@ -43,7 +44,7 @@ impl App {
                 self.ui_state.close_popup();
                 let msg = format!(
                     "Lichess token saved successfully!\n\n Logged in as: {}\n\n You can now use all Lichess features.",
-                    profile.username
+                    username
                 );
                 self.ui_state.show_message_popup(msg, Popups::Success);
             }
@@ -148,9 +149,8 @@ impl App {
                 game_code
             };
 
-            // Fetch user profile to know our ID
-            let my_id = match client.get_my_profile() {
-                Ok(id) => id,
+            let my_id = match client.get_user_profile() {
+                Ok(profile) => profile.id,
                 Err(e) => {
                     let _ = tx.send(Err(format!("Failed to fetch profile: {}", e)));
                     return;
@@ -264,12 +264,12 @@ impl App {
             match client.get_game_turn_count_and_last_move(&game_id) {
                 Ok((turns, last_move)) => {
                     initial_move_count = turns;
-                    last_move_to_add = last_move.clone();
                     log::info!(
                         "Got turn count from API: {} (half-moves), last move: {:?}",
                         initial_move_count,
                         last_move
                     );
+                    last_move_to_add = last_move;
                 }
                 Err(e) => {
                     log::warn!(
@@ -348,9 +348,9 @@ impl App {
 
         // Send last move immediately if we have it (before starting stream)
         // This ensures it shows in green right away instead of waiting for first poll
-        if let Some(ref last_move) = immediate_last_move {
+        if let Some(last_move) = immediate_last_move {
             log::info!("Sending last move immediately: {}", last_move);
-            let _ = lichess_to_app_tx.send(last_move.clone());
+            let _ = lichess_to_app_tx.send(last_move);
             // Also send INIT_MOVES to set the initial move count correctly
             if initial_move_count > 0 {
                 let _ = lichess_to_app_tx.send(format!("INIT_MOVES:{}", initial_move_count));

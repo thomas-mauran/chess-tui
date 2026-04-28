@@ -1,6 +1,7 @@
 //! Engine thread and move application.
 
 use crate::app::App;
+use crate::constants::Popups;
 use crate::game_logic::bot::Bot;
 use crate::sound::play_move_sound;
 use shakmaty::{Color, Move};
@@ -56,11 +57,19 @@ impl App {
     /// Polls the bot move channel and applies the move if one is ready. Returns `true` if a move was applied.
     pub fn check_and_apply_bot_move(&mut self) -> bool {
         if let Some(rx) = &self.bot_state.bot_move_receiver {
-            if let Ok(bot_move) = rx.try_recv() {
-                // Apply the bot move
-                self.apply_bot_move(bot_move);
-                self.bot_state.bot_move_receiver = None;
-                return true;
+            match rx.try_recv() {
+                Ok(Ok(bot_move)) => {
+                    self.apply_bot_move(bot_move);
+                    self.bot_state.bot_move_receiver = None;
+                    return true;
+                }
+                Ok(Err(e)) => {
+                    log::error!("Bot engine error: {e}");
+                    self.ui_state
+                        .show_message_popup(format!("Chess engine error:\n{e}"), Popups::Error);
+                    self.bot_state.bot_move_receiver = None;
+                }
+                Err(_) => {}
             }
         }
         false

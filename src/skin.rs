@@ -180,22 +180,6 @@ impl Skin {
         Ok(())
     }
 
-    /// Creates a special "Default" display mode skin entry
-    #[must_use]
-    pub fn default_display_mode() -> Self {
-        Self {
-            name: "Default".to_string(),
-            piece_style: DisplayMode::DEFAULT.to_string(),
-            board_white_color: Color::Rgb(160, 160, 160),
-            board_black_color: Color::Rgb(128, 95, 69),
-            piece_white_color: Color::White,
-            piece_black_color: Color::Black,
-            cursor_color: Color::LightBlue,
-            selection_color: Color::LightGreen,
-            last_move_color: Color::LightGreen,
-        }
-    }
-
     /// Creates a special "ASCII" display mode skin entry
     #[must_use]
     pub fn ascii_display_mode() -> Self {

@@ -1,6 +1,7 @@
 //! Renders the two-phase game-mode screen: mode list then the per-mode configuration form.
 
 use crate::app::App;
+use crate::handlers::game_mode_menu::AvailableGameMode;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
@@ -272,8 +273,12 @@ fn render_color_selection_ui(
 pub fn render_game_mode_menu(frame: &mut Frame, app: &App) {
     let area = frame.area();
 
-    // Get selected game mode (use menu_cursor)
-    let game_mode = app.ui_state.menu_cursor;
+    let game_mode = match app.ui_state.menu_cursor {
+        0 => AvailableGameMode::Local,
+        1 => AvailableGameMode::Multiplayer,
+        2 => AvailableGameMode::Bot,
+        _ => AvailableGameMode::PGNLoader,
+    };
 
     // Create main layout: title, content (menu+form | details), footer
     let main_chunks = Layout::default()
@@ -406,7 +411,139 @@ pub fn render_game_mode_menu(frame: &mut Frame, app: &App) {
     frame.render_widget(footer, main_chunks[2]);
 }
 
-fn render_details_panel(frame: &mut Frame, app: &App, area: Rect, game_mode: u8) {
+fn build_local_detail_lines(app: &App) -> Vec<Line<'static>> {
+    let mut lines = vec![
+        Line::from(vec![Span::styled("Local Game", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))]),
+        Line::from(""),
+        Line::from("Perfect for practicing chess alone or"),
+        Line::from("playing with your friend on a single computer."),
+        Line::from(""),
+        Line::from(vec![Span::styled("Time Control:", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))]),
+    ];
+
+    let current_time_control = app.game_mode_state.get_time_control_name();
+    let time_label = if let Some(seconds) = app.game_mode_state.get_time_control_seconds() {
+        if seconds < 60 {
+            format!("  {} ({} sec)", current_time_control, seconds)
+        } else {
+            format!("  {} ({} min)", current_time_control, seconds / 60)
+        }
+    } else {
+        format!("  {}", current_time_control)
+    };
+    lines.push(Line::from(vec![Span::styled(time_label, Style::default().fg(Color::White).add_modifier(Modifier::BOLD))]));
+    lines.push(Line::from(""));
+    lines.push(Line::from(format!("  {}", app.game_mode_state.get_time_control_description())));
+    lines.push(Line::from(""));
+    lines.extend([
+        Line::from(vec![Span::styled("Features:", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))]),
+        Line::from("  • Play both sides"),
+        Line::from("  • Practice openings"),
+        Line::from("  • Play offline."),
+        Line::from(""),
+        Line::from(vec![Span::styled("Controls:", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))]),
+        Line::from("  Arrow keys: Move cursor"),
+        Line::from("  Enter: Select piece/move"),
+        Line::from("  R: Restart game"),
+        Line::from("  B: Back to menu"),
+    ]);
+    lines
+}
+
+fn build_multiplayer_detail_lines() -> Vec<Line<'static>> {
+    vec![
+        Line::from(vec![Span::styled("Multiplayer", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))]),
+        Line::from(""),
+        Line::from("Play chess with friends on different devices."),
+        Line::from(""),
+        Line::from(vec![Span::styled("Hosting:", Style::default().fg(Color::Green).add_modifier(Modifier::BOLD))]),
+        Line::from("  • Choose your color"),
+        Line::from("  • Share your IP"),
+        Line::from("  • Wait for opponent"),
+        Line::from(""),
+        Line::from(vec![Span::styled("Joining:", Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD))]),
+        Line::from("  • Enter host IP"),
+        Line::from("  • Connect instantly"),
+        Line::from("  • Color assigned"),
+        Line::from(""),
+        Line::from(vec![Span::styled("Port:", Style::default().fg(Color::Cyan))]),
+        Line::from("  2308 (default)"),
+        Line::from(""),
+        Line::from("For setting up multiplayer on different networks, see the documentation:"),
+        Line::from("  https://thomas-mauran.github.io/chess-tui/docs/Multiplayer/Online%20multiplayer"),
+    ]
+}
+
+fn build_bot_detail_lines(app: &App) -> Vec<Line<'static>> {
+    let mut lines = vec![
+        Line::from(vec![Span::styled("Play Bot", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))]),
+        Line::from(""),
+        Line::from("Challenge a chess engine"),
+        Line::from("and improve your skills."),
+        Line::from(""),
+        Line::from(vec![Span::styled("Features:", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))]),
+        Line::from("  • Choose your color"),
+        Line::from("  • Adjustable difficulty"),
+        Line::from("  • UCI engine support"),
+        Line::from("  • Play offline."),
+        Line::from(""),
+    ];
+
+    if let Some(ref path) = app.bot_state.chess_engine_path {
+        let display_path = if path.len() > 25 {
+            format!("...{}", &path[path.len() - 22..])
+        } else {
+            path.clone()
+        };
+        lines.push(Line::from(vec![Span::styled("Engine:", Style::default().fg(Color::Green).add_modifier(Modifier::BOLD))]));
+        lines.push(Line::from(vec![Span::raw(format!("  {}", display_path))]));
+    } else {
+        lines.push(Line::from(vec![Span::styled("Engine:", Style::default().fg(Color::Red).add_modifier(Modifier::BOLD))]));
+        lines.push(Line::from(vec![Span::styled("  Not configured", Style::default().fg(Color::Red))]));
+    }
+
+    let difficulty_display = app.bot_state.bot_difficulty
+        .and_then(|i| ((i as usize) < crate::constants::BOT_DIFFICULTY_NAMES.len()).then_some(crate::constants::BOT_DIFFICULTY_NAMES[i as usize]))
+        .unwrap_or("Off (full strength)");
+    lines.extend([
+        Line::from(""),
+        Line::from(vec![Span::styled("Bot Depth:", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))]),
+        Line::from(format!("  {}", app.bot_state.bot_depth)),
+        Line::from(""),
+        Line::from(vec![Span::styled("Difficulty:", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))]),
+        Line::from(format!("  {}", difficulty_display)),
+        Line::from(""),
+        Line::from("  Controls how many moves"),
+        Line::from("  ahead the bot thinks."),
+        Line::from("  Higher = stronger but slower."),
+        Line::from(""),
+        Line::from("  https://thomas-mauran.github.io/chess-tui/docs/intro"),
+    ]);
+    lines
+}
+
+fn build_pgn_detail_lines() -> Vec<Line<'static>> {
+    vec![
+        Line::from(vec![Span::styled("Load PGN", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))]),
+        Line::from(""),
+        Line::from("Open a PGN file and step through the"),
+        Line::from("game move by move, with auto-play and"),
+        Line::from("multi-game navigation."),
+        Line::from(""),
+        Line::from(vec![Span::styled("Usage:", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))]),
+        Line::from("  Press Enter, then paste the"),
+        Line::from("  absolute path to a .pgn file."),
+        Line::from(""),
+        Line::from(vec![Span::styled("Controls in viewer:", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))]),
+        Line::from("  ← / P: Previous move"),
+        Line::from("  → / N: Next move"),
+        Line::from("  Space: Toggle auto-play"),
+        Line::from("  g / G: Jump to start / end"),
+        Line::from("  Tab:   Cycle games (multi-game PGN)"),
+    ]
+}
+
+fn render_details_panel(frame: &mut Frame, app: &App, area: Rect, game_mode: AvailableGameMode) {
     let panel_block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
@@ -415,241 +552,12 @@ fn render_details_panel(frame: &mut Frame, app: &App, area: Rect, game_mode: u8)
     frame.render_widget(panel_block, area);
 
     let mut info_lines = vec![Line::from("")];
-    //TODO: Use enums 
-    match game_mode {
-        0 => {
-            // Local Game details
-            info_lines.push(Line::from(vec![Span::styled(
-                "Local Game",
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            )]));
-            info_lines.push(Line::from(""));
-            info_lines.push(Line::from("Perfect for practicing chess alone or"));
-            info_lines.push(Line::from("playing with your friend on a single computer."));
-            info_lines.push(Line::from(""));
-            info_lines.push(Line::from(vec![Span::styled(
-                "Time Control:",
-                Style::default()
-                    .fg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD),
-            )]));
-            let current_time_control = app.game_mode_state.get_time_control_name();
-            let time_seconds = app.game_mode_state.get_time_control_seconds();
-            if let Some(seconds) = time_seconds {
-                if seconds < 60 {
-                    // Show seconds for UltraBullet
-                    info_lines.push(Line::from(vec![Span::styled(
-                        format!("  {} ({} sec)", current_time_control, seconds),
-                        Style::default()
-                            .fg(Color::White)
-                            .add_modifier(Modifier::BOLD),
-                    )]));
-                } else {
-                    // Show minutes for others
-                    let minutes = seconds / 60;
-                    info_lines.push(Line::from(vec![Span::styled(
-                        format!("  {} ({} min)", current_time_control, minutes),
-                        Style::default()
-                            .fg(Color::White)
-                            .add_modifier(Modifier::BOLD),
-                    )]));
-                }
-            } else {
-                info_lines.push(Line::from(vec![Span::styled(
-                    format!("  {}", current_time_control),
-                    Style::default()
-                        .fg(Color::White)
-                        .add_modifier(Modifier::BOLD),
-                )]));
-            }
-            info_lines.push(Line::from(""));
-            let description = app.game_mode_state.get_time_control_description();
-            // Add description as a single line - let Paragraph widget handle wrapping
-            info_lines.push(Line::from(format!("  {}", description)));
-            info_lines.push(Line::from(""));
-            info_lines.push(Line::from(vec![Span::styled(
-                "Features:",
-                Style::default()
-                    .fg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD),
-            )]));
-            info_lines.push(Line::from("  • Play both sides"));
-            info_lines.push(Line::from("  • Practice openings"));
-            info_lines.push(Line::from("  • Play offline."));
-            info_lines.push(Line::from(""));
-            info_lines.push(Line::from(vec![Span::styled(
-                "Controls:",
-                Style::default()
-                    .fg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD),
-            )]));
-            info_lines.push(Line::from("  Arrow keys: Move cursor"));
-            info_lines.push(Line::from("  Enter: Select piece/move"));
-            info_lines.push(Line::from("  R: Restart game"));
-            info_lines.push(Line::from("  B: Back to menu"));
-        }
-        1 => {
-            // Multiplayer details
-            info_lines.push(Line::from(vec![Span::styled(
-                "Multiplayer",
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            )]));
-            info_lines.push(Line::from(""));
-            info_lines.push(Line::from("Play chess with friends on different devices."));
-            info_lines.push(Line::from(""));
-            info_lines.push(Line::from(vec![Span::styled(
-                "Hosting:",
-                Style::default()
-                    .fg(Color::Green)
-                    .add_modifier(Modifier::BOLD),
-            )]));
-            info_lines.push(Line::from("  • Choose your color"));
-            info_lines.push(Line::from("  • Share your IP"));
-            info_lines.push(Line::from("  • Wait for opponent"));
-            info_lines.push(Line::from(""));
-            info_lines.push(Line::from(vec![Span::styled(
-                "Joining:",
-                Style::default()
-                    .fg(Color::Magenta)
-                    .add_modifier(Modifier::BOLD),
-            )]));
-            info_lines.push(Line::from("  • Enter host IP"));
-            info_lines.push(Line::from("  • Connect instantly"));
-            info_lines.push(Line::from("  • Color assigned"));
-            info_lines.push(Line::from(""));
-            info_lines.push(Line::from(vec![Span::styled(
-                "Port:",
-                Style::default().fg(Color::Cyan),
-            )]));
-            info_lines.push(Line::from("  2308 (default)"));
-            info_lines.push(Line::from(""));
-            info_lines.push(Line::from(
-                "For setting up multiplayer on different networks, see the documentation:",
-            ));
-            info_lines.push(Line::from(
-                "  https://thomas-mauran.github.io/chess-tui/docs/Multiplayer/Online%20multiplayer",
-            ));
-        }
-        2 => {
-            // Bot details
-            info_lines.push(Line::from(vec![Span::styled(
-                "Play Bot",
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            )]));
-            info_lines.push(Line::from(""));
-            info_lines.push(Line::from("Challenge a chess engine"));
-            info_lines.push(Line::from("and improve your skills."));
-            info_lines.push(Line::from(""));
-            info_lines.push(Line::from(vec![Span::styled(
-                "Features:",
-                Style::default()
-                    .fg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD),
-            )]));
-            info_lines.push(Line::from("  • Choose your color"));
-            info_lines.push(Line::from("  • Adjustable difficulty"));
-            info_lines.push(Line::from("  • UCI engine support"));
-            info_lines.push(Line::from("  • Play offline."));
-            info_lines.push(Line::from(""));
-            if app.bot_state.chess_engine_path.is_some() {
-                info_lines.push(Line::from(vec![Span::styled(
-                    "Engine:",
-                    Style::default()
-                        .fg(Color::Green)
-                        .add_modifier(Modifier::BOLD),
-                )]));
-                if let Some(ref path) = app.bot_state.chess_engine_path {
-                    let display_path = if path.len() > 25 {
-                        format!("...{}", &path[path.len() - 22..])
-                    } else {
-                        path.clone()
-                    };
-                    info_lines.push(Line::from(vec![Span::raw(format!("  {}", display_path))]));
-                }
-            } else {
-                info_lines.push(Line::from(vec![Span::styled(
-                    "Engine:",
-                    Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
-                )]));
-                info_lines.push(Line::from(vec![Span::styled(
-                    "  Not configured",
-                    Style::default().fg(Color::Red),
-                )]));
-            }
-            info_lines.push(Line::from(""));
-            info_lines.push(Line::from(vec![Span::styled(
-                "Bot Depth:",
-                Style::default()
-                    .fg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD),
-            )]));
-            info_lines.push(Line::from(format!("  {}", app.bot_state.bot_depth)));
-            info_lines.push(Line::from(""));
-            info_lines.push(Line::from(vec![Span::styled(
-                "Difficulty:",
-                Style::default()
-                    .fg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD),
-            )]));
-            let difficulty_display = app
-                .bot_state.bot_difficulty
-                .and_then(|i| {
-                    ((i as usize) < crate::constants::BOT_DIFFICULTY_NAMES.len())
-                        .then_some(crate::constants::BOT_DIFFICULTY_NAMES[i as usize])
-                })
-                .unwrap_or("Off (full strength)");
-            info_lines.push(Line::from(format!("  {}", difficulty_display)));
-            info_lines.push(Line::from(""));
-            info_lines.push(Line::from("  Controls how many moves"));
-            info_lines.push(Line::from("  ahead the bot thinks."));
-            info_lines.push(Line::from("  Higher = stronger but slower."));
-            info_lines.push(Line::from(""));
-            info_lines.push(Line::from(
-                "  https://thomas-mauran.github.io/chess-tui/docs/intro",
-            ));
-        }
-        3 => {
-            // Load PGN details
-            info_lines.push(Line::from(vec![Span::styled(
-                "Load PGN",
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            )]));
-            info_lines.push(Line::from(""));
-            info_lines.push(Line::from("Open a PGN file and step through the"));
-            info_lines.push(Line::from("game move by move, with auto-play and"));
-            info_lines.push(Line::from("multi-game navigation."));
-            info_lines.push(Line::from(""));
-            info_lines.push(Line::from(vec![Span::styled(
-                "Usage:",
-                Style::default()
-                    .fg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD),
-            )]));
-            info_lines.push(Line::from("  Press Enter, then paste the"));
-            info_lines.push(Line::from("  absolute path to a .pgn file."));
-            info_lines.push(Line::from(""));
-            info_lines.push(Line::from(vec![Span::styled(
-                "Controls in viewer:",
-                Style::default()
-                    .fg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD),
-            )]));
-            info_lines.push(Line::from("  ← / P: Previous move"));
-            info_lines.push(Line::from("  → / N: Next move"));
-            info_lines.push(Line::from("  Space: Toggle auto-play"));
-            info_lines.push(Line::from("  g / G: Jump to start / end"));
-            info_lines.push(Line::from("  Tab:   Cycle games (multi-game PGN)"));
-        }
-        _ => {}
-    }
+    info_lines.extend(match game_mode {
+        AvailableGameMode::Local => build_local_detail_lines(app),
+        AvailableGameMode::Multiplayer => build_multiplayer_detail_lines(),
+        AvailableGameMode::Bot => build_bot_detail_lines(app),
+        AvailableGameMode::PGNLoader => build_pgn_detail_lines(),
+    });
 
     let details = Paragraph::new(info_lines)
         .block(Block::default())
@@ -658,385 +566,181 @@ fn render_details_panel(frame: &mut Frame, app: &App, area: Rect, game_mode: u8)
     frame.render_widget(details, inner_area);
 }
 
-fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: u8) {
-    // Check if form should be greyed out
-    let is_active = app.game_mode_state.form_active;
-    let grey_color = if is_active {
-        Color::White
+fn render_spinner(
+    frame: &mut Frame,
+    label: &str,
+    value: &str,
+    area: Rect,
+    is_active: bool,
+    is_focused: bool,
+    grey_color: Color,
+    value_width: u16,
+) {
+    let rows = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(1), Constraint::Length(1)])
+        .split(area);
+
+    let label_style = if !is_active {
+        Style::default().fg(grey_color)
     } else {
-        Color::DarkGray
+        Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)
+    };
+    frame.render_widget(
+        Paragraph::new(format!("{}:", label)).style(label_style).alignment(Alignment::Left),
+        rows[0],
+    );
+
+    let ctrl_style = if !is_active {
+        Style::default().fg(grey_color)
+    } else if is_focused {
+        Style::default().fg(Color::Black).bg(Color::Cyan).add_modifier(Modifier::BOLD)
+    } else {
+        Style::default().fg(Color::White)
     };
 
-    // Form content area
-    let form_area = area;
-    let form_title = if game_mode == 3 {
+    let cols = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Length(4), Constraint::Length(value_width), Constraint::Length(4)])
+        .split(rows[1]);
+
+    frame.render_widget(Paragraph::new("  -").alignment(Alignment::Center).style(ctrl_style), cols[0]);
+    frame.render_widget(Paragraph::new(format!("  {}", value)).alignment(Alignment::Center).style(ctrl_style), cols[1]);
+    frame.render_widget(Paragraph::new("  +").alignment(Alignment::Center).style(ctrl_style), cols[2]);
+}
+
+fn render_multiplayer_form(
+    frame: &mut Frame,
+    app: &App,
+    form_chunks: &[Rect],
+    chunk_idx: &mut usize,
+    is_active: bool,
+    grey_color: Color,
+) {
+    let mode_area = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(1), Constraint::Length(1)])
+        .split(form_chunks[*chunk_idx]);
+
+    let mode_label_style = Style::default()
+        .fg(if is_active { Color::Cyan } else { grey_color })
+        .add_modifier(if is_active { Modifier::BOLD } else { Modifier::empty() });
+    frame.render_widget(Paragraph::new("Mode:").style(mode_label_style).alignment(Alignment::Left), mode_area[0]);
+
+    let button_area = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Length(8), Constraint::Length(2), Constraint::Length(8)])
+        .split(mode_area[1]);
+
+    let is_focused = is_active && app.game_mode_state.form_cursor == 0;
+    let host_selected = app.multiplayer_state.hosting == Some(true);
+    let host_focused = is_focused && app.multiplayer_state.hosting.is_none();
+    let host_style = if !is_active {
+        Style::default().fg(grey_color)
+    } else if host_selected {
+        Style::default().fg(Color::Black).bg(Color::White).add_modifier(Modifier::BOLD)
+    } else if host_focused {
+        Style::default().fg(Color::Black).bg(Color::Cyan).add_modifier(Modifier::BOLD)
+    } else {
+        Style::default().fg(Color::White)
+    };
+    frame.render_widget(Paragraph::new("HOST").alignment(Alignment::Center).style(host_style), button_area[0]);
+
+    let join_selected = app.multiplayer_state.hosting == Some(false);
+    let join_style = if !is_active {
+        Style::default().fg(grey_color)
+    } else if join_selected {
+        Style::default().fg(Color::Black).bg(Color::White).add_modifier(Modifier::BOLD)
+    } else {
+        Style::default().fg(Color::White)
+    };
+    frame.render_widget(Paragraph::new("JOIN").alignment(Alignment::Center).style(join_style), button_area[2]);
+    *chunk_idx += 1;
+
+    render_color_selection_ui(
+        frame, app, form_chunks[*chunk_idx], is_active,
+        is_active && app.multiplayer_state.hosting == Some(true),
+        grey_color, 1,
+    );
+}
+
+fn render_bot_form(
+    frame: &mut Frame,
+    app: &App,
+    form_chunks: &[Rect],
+    chunk_idx: &mut usize,
+    is_active: bool,
+    grey_color: Color,
+) {
+    render_time_control_ui(frame, app, form_chunks[*chunk_idx], form_chunks, chunk_idx, is_active, 0);
+    *chunk_idx += 1;
+
+    let is_custom = app.game_mode_state.clock_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX;
+    let color_cursor = if is_custom { 2 } else { 1 };
+    render_color_selection_ui(frame, app, form_chunks[*chunk_idx], is_active, is_active, grey_color, color_cursor);
+    *chunk_idx += 1;
+
+    let depth_cursor = if is_custom { 3 } else { 2 };
+    render_spinner(
+        frame, "Bot Depth", &format!("{}", app.bot_state.bot_depth),
+        form_chunks[*chunk_idx], is_active,
+        is_active && app.game_mode_state.form_cursor == depth_cursor,
+        grey_color, 6,
+    );
+    *chunk_idx += 1;
+
+    let elo_cursor = if is_custom { 4 } else { 3 };
+    let elo_display = app.bot_state.bot_difficulty
+        .and_then(|i| ((i as usize) < crate::constants::BOT_DIFFICULTY_NAMES.len()).then_some(crate::constants::BOT_DIFFICULTY_NAMES[i as usize]))
+        .unwrap_or("Off")
+        .to_string();
+    render_spinner(
+        frame, "Difficulty", &elo_display,
+        form_chunks[*chunk_idx], is_active,
+        is_active && app.game_mode_state.form_cursor == elo_cursor,
+        grey_color, 16,
+    );
+}
+
+fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: AvailableGameMode) {
+    let is_active = app.game_mode_state.form_active;
+    let grey_color = if is_active { Color::White } else { Color::DarkGray };
+
+    let form_title = if game_mode == AvailableGameMode::PGNLoader {
         "Press Enter to open a PGN file"
     } else if is_active {
         "Configuration"
     } else {
         "Configuration (Press Enter to activate)"
     };
-    let form_block = Block::default()
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .title(form_title);
-    let inner_form_area = form_block.inner(form_area);
-    frame.render_widget(form_block, form_area);
+    let form_block = Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title(form_title);
+    let inner_form_area = form_block.inner(area);
+    frame.render_widget(form_block, area);
 
-    // Split form area into sections - all fields visible, adapting based on selections
+    let is_custom = app.game_mode_state.clock_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX;
     let form_chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints(match game_mode {
-            0 => {
-                // Show custom time field if Custom is selected
-                if app.game_mode_state.clock_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX {
-                    vec![
-                        Constraint::Length(3), // Time control selection
-                        Constraint::Length(3), // Custom time adjustment
-                        Constraint::Min(1),
-                    ]
-                } else {
-                    vec![
-                        Constraint::Length(3), // Time control selection
-                        Constraint::Min(1),
-                    ]
-                }
-            }
-            1 => vec![
-                Constraint::Length(3), // Mode (host/join)
-                Constraint::Length(3), // Color (if hosting)
-                Constraint::Min(1),
-            ],
-            2 => {
-                // Show custom time field if Custom is selected
-                if app.game_mode_state.clock_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX {
-                    vec![
-                        Constraint::Length(3), // Time control selection
-                        Constraint::Length(3), // Custom time adjustment
-                        Constraint::Length(3), // Color
-                        Constraint::Length(3), // Bot depth
-                        Constraint::Length(3), // Bot ELO
-                        Constraint::Min(1),
-                    ]
-                } else {
-                    vec![
-                        Constraint::Length(3), // Time control selection
-                        Constraint::Length(3), // Color
-                        Constraint::Length(3), // Bot depth
-                        Constraint::Length(3), // Bot ELO
-                        Constraint::Min(1),
-                    ]
-                }
-            }
-            _ => vec![Constraint::Min(3)],
+            AvailableGameMode::Local => if is_custom {
+                vec![Constraint::Length(3), Constraint::Length(3), Constraint::Min(1)]
+            } else {
+                vec![Constraint::Length(3), Constraint::Min(1)]
+            },
+            AvailableGameMode::Multiplayer => vec![Constraint::Length(3), Constraint::Length(3), Constraint::Min(1)],
+            AvailableGameMode::Bot => if is_custom {
+                vec![Constraint::Length(3), Constraint::Length(3), Constraint::Length(3), Constraint::Length(3), Constraint::Length(3), Constraint::Min(1)]
+            } else {
+                vec![Constraint::Length(3), Constraint::Length(3), Constraint::Length(3), Constraint::Length(3), Constraint::Min(1)]
+            },
+            AvailableGameMode::PGNLoader => vec![Constraint::Min(3)],
         })
         .split(inner_form_area);
 
     let mut chunk_idx = 0;
-
     match game_mode {
-        0 => {
-            // Local game: time control selection
-            render_time_control_ui(
-                frame,
-                app,
-                form_chunks[chunk_idx],
-                &form_chunks,
-                &mut chunk_idx,
-                is_active,
-                0, // time_control_cursor
-            );
-        }
-        1 => {
-            // Multiplayer: host/join buttons
-            let mode_area = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([Constraint::Length(1), Constraint::Length(1)])
-                .split(form_chunks[chunk_idx]);
-
-            let mode_label = Paragraph::new("Mode:")
-                .style(
-                    Style::default()
-                        .fg(if is_active { Color::Cyan } else { grey_color })
-                        .add_modifier(if is_active {
-                            Modifier::BOLD
-                        } else {
-                            Modifier::empty()
-                        }),
-                )
-                .alignment(Alignment::Left);
-            frame.render_widget(mode_label, mode_area[0]);
-
-            let button_area = Layout::default()
-                .direction(Direction::Horizontal)
-                .constraints([
-                    Constraint::Length(8),
-                    Constraint::Length(2),
-                    Constraint::Length(8),
-                ])
-                .split(mode_area[1]);
-
-            // Host button
-            let is_focused = is_active && app.game_mode_state.form_cursor == 0;
-            let host_selected = app.multiplayer_state.hosting == Some(true);
-            let host_focused = is_focused && app.multiplayer_state.hosting.is_none();
-            let host_style = if !is_active {
-                Style::default().fg(grey_color)
-            } else if host_selected {
-                Style::default()
-                    .fg(Color::Black)
-                    .bg(Color::White)
-                    .add_modifier(Modifier::BOLD)
-            } else if host_focused || (is_focused && app.multiplayer_state.hosting.is_none()) {
-                // Show focus when cursor is on this field
-                Style::default()
-                    .fg(Color::Black)
-                    .bg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD)
-            } else {
-                Style::default().fg(Color::White)
-            };
-            let host_text = Paragraph::new("HOST")
-                .alignment(Alignment::Center)
-                .style(host_style);
-            frame.render_widget(host_text, button_area[0]);
-
-            // Join button
-            let is_focused_join = is_active && app.game_mode_state.form_cursor == 0;
-            let join_selected = app.multiplayer_state.hosting == Some(false);
-            let join_focused = is_focused_join && app.multiplayer_state.hosting.is_none();
-            let join_style = if !is_active {
-                Style::default().fg(grey_color)
-            } else if join_selected {
-                Style::default()
-                    .fg(Color::Black)
-                    .bg(Color::White)
-                    .add_modifier(Modifier::BOLD)
-            } else if join_focused {
-                // Don't show focus on Join when Host is focused by default
-                Style::default().fg(Color::White)
-            } else {
-                Style::default().fg(Color::White)
-            };
-            let join_text = Paragraph::new("JOIN")
-                .alignment(Alignment::Center)
-                .style(join_style);
-            frame.render_widget(join_text, button_area[2]);
-            chunk_idx += 1;
-
-            // Color selection (always visible, but grayed out if not hosting)
-            render_color_selection_ui(
-                frame,
-                app,
-                form_chunks[chunk_idx],
-                is_active,
-                is_active && app.multiplayer_state.hosting == Some(true),
-                grey_color,
-                1,
-            );
-        }
-        2 => {
-            // Bot: time control selection
-            render_time_control_ui(
-                frame,
-                app,
-                form_chunks[chunk_idx],
-                &form_chunks,
-                &mut chunk_idx,
-                is_active,
-                0, // time_control_cursor
-            );
-            chunk_idx += 1;
-
-            let color_cursor =
-                if app.game_mode_state.clock_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX {
-                    2
-                } else {
-                    1
-                };
-            render_color_selection_ui(
-                frame,
-                app,
-                form_chunks[chunk_idx],
-                is_active,
-                is_active,
-                grey_color,
-                color_cursor,
-            );
-            chunk_idx += 1;
-
-            // Bot depth field
-            let depth_cursor =
-                if app.game_mode_state.clock_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX {
-                    3
-                } else {
-                    2
-                };
-            let is_depth_field_focused = is_active && app.game_mode_state.form_cursor == depth_cursor;
-            let depth_area = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([Constraint::Length(1), Constraint::Length(1)])
-                .split(form_chunks[chunk_idx]);
-
-            let depth_label_style = if !is_active {
-                Style::default().fg(grey_color)
-            } else {
-                Style::default()
-                    .fg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD)
-            };
-            let depth_label = Paragraph::new("Bot Depth:")
-                .style(depth_label_style)
-                .alignment(Alignment::Left);
-            frame.render_widget(depth_label, depth_area[0]);
-
-            let depth_value_area = Layout::default()
-                .direction(Direction::Horizontal)
-                .constraints([
-                    Constraint::Length(4), // - button
-                    Constraint::Length(6), // Depth value (wider for 2-digit numbers)
-                    Constraint::Length(4), // + button
-                ])
-                .split(depth_area[1]);
-
-            // Decrease button
-            let decrease_style = if !is_active {
-                Style::default().fg(grey_color)
-            } else if is_depth_field_focused {
-                Style::default()
-                    .fg(Color::Black)
-                    .bg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD)
-            } else {
-                Style::default().fg(Color::White)
-            };
-            let decrease_text = Paragraph::new("  -")
-                .alignment(Alignment::Center)
-                .style(decrease_style);
-            frame.render_widget(decrease_text, depth_value_area[0]);
-
-            // Depth value display (centered between + and -)
-            let depth_value_style = if !is_active {
-                Style::default().fg(grey_color)
-            } else if is_depth_field_focused {
-                Style::default()
-                    .fg(Color::Black)
-                    .bg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD)
-            } else {
-                Style::default().fg(Color::White)
-            };
-            let depth_value_text = Paragraph::new(format!("  {}", app.bot_state.bot_depth))
-                .alignment(Alignment::Center)
-                .style(depth_value_style);
-            frame.render_widget(depth_value_text, depth_value_area[1]);
-
-            // Increase button
-            let increase_style = if !is_active {
-                Style::default().fg(grey_color)
-            } else if is_depth_field_focused {
-                Style::default()
-                    .fg(Color::Black)
-                    .bg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD)
-            } else {
-                Style::default().fg(Color::White)
-            };
-            let increase_text = Paragraph::new("  +")
-                .alignment(Alignment::Center)
-                .style(increase_style);
-            frame.render_widget(increase_text, depth_value_area[2]);
-
-            chunk_idx += 1;
-
-            // Bot ELO field
-            let elo_cursor = if app.game_mode_state.clock_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX
-            {
-                4
-            } else {
-                3
-            };
-            let is_elo_field_focused = is_active && app.game_mode_state.form_cursor == elo_cursor;
-            let elo_area = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([Constraint::Length(1), Constraint::Length(1)])
-                .split(form_chunks[chunk_idx]);
-
-            let elo_label_style = if !is_active {
-                Style::default().fg(grey_color)
-            } else {
-                Style::default()
-                    .fg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD)
-            };
-            let elo_label = Paragraph::new("Difficulty:")
-                .style(elo_label_style)
-                .alignment(Alignment::Left);
-            frame.render_widget(elo_label, elo_area[0]);
-
-            let elo_value_area = Layout::default()
-                .direction(Direction::Horizontal)
-                .constraints([
-                    Constraint::Length(4),  // - button
-                    Constraint::Length(16), // "Off" or "Easy (400)" / "Magnus (2700)"
-                    Constraint::Length(4),  // + button
-                ])
-                .split(elo_area[1]);
-
-            let elo_display = app
-                .bot_state.bot_difficulty
-                .and_then(|i| {
-                    ((i as usize) < crate::constants::BOT_DIFFICULTY_NAMES.len())
-                        .then_some(crate::constants::BOT_DIFFICULTY_NAMES[i as usize])
-                })
-                .unwrap_or("Off")
-                .to_string();
-
-            let decrease_elo_style = if !is_active {
-                Style::default().fg(grey_color)
-            } else if is_elo_field_focused {
-                Style::default()
-                    .fg(Color::Black)
-                    .bg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD)
-            } else {
-                Style::default().fg(Color::White)
-            };
-            let decrease_elo_text = Paragraph::new("  -")
-                .alignment(Alignment::Center)
-                .style(decrease_elo_style);
-            frame.render_widget(decrease_elo_text, elo_value_area[0]);
-
-            let elo_value_style = if !is_active {
-                Style::default().fg(grey_color)
-            } else if is_elo_field_focused {
-                Style::default()
-                    .fg(Color::Black)
-                    .bg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD)
-            } else {
-                Style::default().fg(Color::White)
-            };
-            let elo_value_text = Paragraph::new(format!("  {}", elo_display))
-                .alignment(Alignment::Center)
-                .style(elo_value_style);
-            frame.render_widget(elo_value_text, elo_value_area[1]);
-
-            let increase_elo_style = if !is_active {
-                Style::default().fg(grey_color)
-            } else if is_elo_field_focused {
-                Style::default()
-                    .fg(Color::Black)
-                    .bg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD)
-            } else {
-                Style::default().fg(Color::White)
-            };
-            let increase_elo_text = Paragraph::new("  +")
-                .alignment(Alignment::Center)
-                .style(increase_elo_style);
-            frame.render_widget(increase_elo_text, elo_value_area[2]);
-        }
-        _ => {}
+        AvailableGameMode::Local => render_time_control_ui(frame, app, form_chunks[chunk_idx], &form_chunks, &mut chunk_idx, is_active, 0),
+        AvailableGameMode::Multiplayer => render_multiplayer_form(frame, app, &form_chunks, &mut chunk_idx, is_active, grey_color),
+        AvailableGameMode::Bot => render_bot_form(frame, app, &form_chunks, &mut chunk_idx, is_active, grey_color),
+        AvailableGameMode::PGNLoader => {}
     }
 }

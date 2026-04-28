@@ -21,7 +21,7 @@ pub struct ThemeState {
 impl Default for ThemeState {
     fn default() -> Self {
         Self {
-            loaded_skin: None,
+            loaded_skin: Some(Skin::default()),
             available_skins: Vec::new(),
             available_piece_styles: Vec::new(),
             selected_skin_name: "Default".to_string(),
@@ -34,7 +34,7 @@ impl ThemeState {
     /// currently selected one, wrapping around the available skins list.
     pub fn get_skin(&self, next: bool) -> Skin {
         if self.available_skins.is_empty() {
-            return Skin::default_display_mode();
+            return Skin::default();
         }
 
         // Find current skin index

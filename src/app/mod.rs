@@ -57,7 +57,6 @@ impl Default for App {
             running: true,
             game: Game::default(),
             log_level: LevelFilter::Off,
-            // TODO: Make a skin::default implem
             theme_state: ThemeState::default(),
             bot_state: BotState::default(),
             multiplayer_state: MultiplayerState::default(),

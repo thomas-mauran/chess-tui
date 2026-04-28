@@ -72,17 +72,7 @@ impl Bot {
     }
 
     /// Get the best move from the chess engine.
-    ///
-    /// # Panics
-    ///
-    /// Panics if:
-    /// - The engine process fails to spawn
-    /// - The engine fails to initialize
-    /// - The FEN string is invalid
-    /// - The engine fails to return a move
-    pub fn get_move(&self, fen: &str) -> UciMove {
-        // Parse engine_path to support command-line arguments
-        // Split by spaces, treating first part as command and rest as args
+    pub fn get_move(&self, fen: &str) -> Result<UciMove, String> {
         let parts: Vec<&str> = self.engine_path.split_whitespace().collect();
         let (command, args) = if parts.is_empty() {
             (self.engine_path.as_str(), &[] as &[&str])
@@ -99,15 +89,15 @@ impl Bot {
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped())
             .spawn()
-            .unwrap_or_else(|e| panic!("Failed to spawn engine process: {e}"));
+            .map_err(|e| format!("Failed to spawn engine process: {e}"))?;
 
         let mut engine = Engine::from_process(&mut process, false)
-            .unwrap_or_else(|e| panic!("Failed to initialize engine: {e}"));
+            .map_err(|e| format!("Failed to initialize engine: {e}"))?;
 
         // UCI handshake (required before setoption/position). Discard options.
         engine
             .use_uci(|_| {})
-            .unwrap_or_else(|e| panic!("Failed UCI handshake: {e}"));
+            .map_err(|e| format!("Failed UCI handshake: {e}"))?;
 
         // Optional ELO limit via UCI options (UCI_LimitStrength + UCI_Elo) when difficulty is set
         if let Some(elo) = self.elo() {
@@ -116,24 +106,24 @@ impl Bot {
                     name: Cow::Borrowed("UCI_LimitStrength"),
                     value: Some(Cow::Borrowed("true")),
                 })
-                .unwrap_or_else(|e| panic!("Failed to set UCI_LimitStrength: {e}"));
+                .map_err(|e| format!("Failed to set UCI_LimitStrength: {e}"))?;
             engine
                 .send(ruci::gui::SetOption {
                     name: Cow::Borrowed("UCI_Elo"),
                     value: Some(Cow::Owned(elo.to_string())),
                 })
-                .unwrap_or_else(|e| panic!("Failed to set UCI_Elo: {e}"));
+                .map_err(|e| format!("Failed to set UCI_Elo: {e}"))?;
         }
 
         let fen_parsed =
-            Fen::from_str(fen).unwrap_or_else(|e| panic!("Failed to parse FEN '{fen}': {e}"));
+            Fen::from_str(fen).map_err(|e| format!("Failed to parse FEN '{fen}': {e}"))?;
 
         engine
             .send(ruci::Position::Fen {
                 fen: Cow::Owned(fen_parsed),
                 moves: Cow::Borrowed(&[]),
             })
-            .unwrap_or_else(|e| panic!("Failed to send position to engine: {e}"));
+            .map_err(|e| format!("Failed to send position to engine: {e}"))?;
 
         let depth = self.effective_depth();
         let move_time_ms = self.movetime_ms();
@@ -147,9 +137,9 @@ impl Bot {
                 },
                 |_| {},
             )
-            .unwrap_or_else(|e| panic!("Engine failed to compute move: {e}"))
+            .map_err(|e| format!("Engine failed to compute move: {e}"))?
             .take_normal()
-            .unwrap_or_else(|| panic!("Engine returned non-normal move"))
-            .r#move
+            .ok_or_else(|| "Engine returned non-normal move".to_string())
+            .map(|r| r.r#move)
     }
 }

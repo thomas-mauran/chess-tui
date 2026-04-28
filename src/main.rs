@@ -101,7 +101,7 @@ fn main() -> AppResult<()> {
     }
 
     // Always start with Default and ASCII display modes at the beginning
-    app.theme_state.available_skins.push(Skin::default_display_mode());
+    app.theme_state.available_skins.push(Skin::default());
     app.theme_state.available_skins.push(Skin::ascii_display_mode());
 
     // Load all available skins from skins.json
