@@ -103,16 +103,8 @@ impl GameBoard {
     /// Panics if the position history is empty. This should never happen
     /// as the game always starts with an initial position.
     pub fn position_ref(&self) -> &Chess {
-        if let Some(index) = self.history_position_index {
-            self.position_history
-                .get(index)
-                .or_else(|| self.position_history.last())
-                .expect("Position history is empty — board was not initialized correctly")
-        } else {
-            self.position_history
-                .last()
-                .expect("Position history is empty — board was not initialized correctly")
-        }
+        self.current_position()
+            .unwrap_or_else(|| panic!("Position history is empty: board was not initialized correctly"))
     }
 
     /// Gets a read-only reference to the current position, or None if history is empty
