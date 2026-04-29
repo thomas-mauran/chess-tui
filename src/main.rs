@@ -6,6 +6,8 @@ use chess_tui::config::{Args, Config};
 use chess_tui::constants::{config_dir, DisplayMode, Pages, SKIN_NAME_ASCII, SKIN_NAME_DEFAULT};
 use chess_tui::event::{Event, EventHandler};
 use chess_tui::game_logic::opponent::wait_for_game_start;
+use chess_tui::handlers::handler::{handle_key_events, handle_mouse_events};
+use chess_tui::lichess::models::LichessClient;
 use chess_tui::logging;
 use chess_tui::pgn_viewer::PgnViewer;
 use chess_tui::skin::{PieceStyle, Skin};
@@ -15,8 +17,6 @@ use log::LevelFilter;
 use std::fs;
 use std::panic;
 use std::path::Path;
-use chess_tui::handlers::handler::{handle_key_events, handle_mouse_events};
-use chess_tui::lichess::models::LichessClient;
 
 fn main() -> AppResult<()> {
     // Parse the cli arguments first (this will handle --version and exit early if needed)
@@ -88,7 +88,6 @@ fn main() -> AppResult<()> {
             if let Some(lichess_token) = config.lichess_token {
                 app.lichess_state.token = Some(lichess_token.clone());
                 app.lichess_state.client = Some(LichessClient::new(lichess_token));
-
             }
             // Add sound enabled handling
             if let Some(sound_enabled) = config.sound_enabled {
@@ -102,7 +101,9 @@ fn main() -> AppResult<()> {
 
     // Always start with Default and ASCII display modes at the beginning
     app.theme_state.available_skins.push(Skin::default());
-    app.theme_state.available_skins.push(Skin::ascii_display_mode());
+    app.theme_state
+        .available_skins
+        .push(Skin::ascii_display_mode());
 
     // Load all available skins from skins.json
     let skins_path = config_dir.join("chess-tui/skins.json");
@@ -135,7 +136,9 @@ fn main() -> AppResult<()> {
                     .into_iter()
                     .filter(|ps| ps.name != SKIN_NAME_DEFAULT && ps.name != SKIN_NAME_ASCII)
                     .collect();
-                app.theme_state.available_piece_styles.extend(custom_piece_styles);
+                app.theme_state
+                    .available_piece_styles
+                    .extend(custom_piece_styles);
             }
             Err(e) => {
                 eprintln!("Failed to load custom piece styles: {}", e);
@@ -146,7 +149,10 @@ fn main() -> AppResult<()> {
     }
 
     // Apply selected skin
-    if let Some(skin) = Skin::get_skin_by_name(&app.theme_state.available_skins, &app.theme_state.selected_skin_name) {
+    if let Some(skin) = Skin::get_skin_by_name(
+        &app.theme_state.available_skins,
+        &app.theme_state.selected_skin_name,
+    ) {
         app.theme_state.loaded_skin = Some(skin.clone());
         app.game.ui.skin = skin.clone();
         // Set display mode based on skin name
@@ -306,7 +312,11 @@ fn main() -> AppResult<()> {
                 .is_some_and(|bot| bot.bot_will_move)
         {
             if let Some(bot) = &app.game.logic.bot {
-                app.bot_state.start_bot_thinking(app.game.logic.game_board.fen_position(), bot.depth, bot.difficulty);
+                app.bot_state.start_bot_thinking(
+                    app.game.logic.game_board.fen_position(),
+                    bot.depth,
+                    bot.difficulty,
+                );
             }
             if let Some(bot) = app.game.logic.bot.as_mut() {
                 bot.bot_will_move = false;

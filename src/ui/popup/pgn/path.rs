@@ -1,16 +1,14 @@
 //! PGN file path entry popup.
 
-use crate::{
-    constants::WHITE, ui::components::centered_rect::centered_rect,
-};
+use crate::ui::prompt::Prompt;
+use crate::{constants::WHITE, ui::components::centered_rect::centered_rect};
 use ratatui::{
     layout::{Alignment, Position},
-    style::{Style},
+    style::Style,
     text::Line,
     widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Wrap},
     Frame,
 };
-use crate::ui::prompt::Prompt;
 
 /// Renders a text input for typing an absolute path to a `.pgn` file.
 pub fn render_load_pgn_popup(frame: &mut Frame, prompt: &Prompt) {

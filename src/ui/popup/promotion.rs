@@ -3,7 +3,8 @@
 use crate::{
     app::App,
     constants::WHITE,
-    pieces::{PieceSize, bishop::Bishop, knight::Knight, queen::Queen, rook::Rook}, ui::components::centered_rect::centered_rect,
+    pieces::{bishop::Bishop, knight::Knight, queen::Queen, rook::Rook, PieceSize},
+    ui::components::centered_rect::centered_rect,
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},

@@ -1,8 +1,11 @@
 //! Holds the API token, the [`LichessClient`], incoming event channels, and the active puzzle game if any.
 
-use crate::{game_logic::puzzle::PuzzleGame, lichess::models::{LichessClient, LichessError, OngoingGame, RatingHistoryEntry, UserProfile}};
-use std::sync::mpsc::Receiver;
+use crate::{
+    game_logic::puzzle::PuzzleGame,
+    lichess::models::{LichessClient, LichessError, OngoingGame, RatingHistoryEntry, UserProfile},
+};
 use shakmaty::Color;
+use std::sync::mpsc::Receiver;
 
 /// All Lichess-related runtime state held by [`crate::app::App`].
 ///
@@ -46,4 +49,3 @@ impl LichessState {
         self.client.as_ref().ok_or(LichessError::NoToken)
     }
 }
-

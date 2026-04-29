@@ -1,16 +1,14 @@
 //! Lichess API token entry popup (input masked for security).
 
-use crate::{
-    constants::WHITE, ui::components::centered_rect::centered_rect,
-};
+use crate::ui::prompt::Prompt;
+use crate::{constants::WHITE, ui::components::centered_rect::centered_rect};
 use ratatui::{
     layout::{Alignment, Position},
-    style::{Style},
+    style::Style,
     text::Line,
     widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Wrap},
     Frame,
 };
-use crate::ui::prompt::Prompt;
 
 /// Renders a masked text input for entering and saving a Lichess API token.
 pub fn render_enter_lichess_token_popup(frame: &mut Frame, prompt: &Prompt) {

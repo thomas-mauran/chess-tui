@@ -1,7 +1,7 @@
 //! Ongoing games keyboard handler.
 
-use ratatui::crossterm::event::{KeyCode, KeyEvent};
 use crate::{app::App, constants::Pages, handlers::handler::fallback_key_handler};
+use ratatui::crossterm::event::{KeyCode, KeyEvent};
 
 /// Handles keyboard input on the ongoing Lichess games list page.
 pub fn handle_ongoing_games_page_events(app: &mut App, key_event: KeyEvent) {
@@ -12,7 +12,9 @@ pub fn handle_ongoing_games_page_events(app: &mut App, key_event: KeyEvent) {
             }
         }
         KeyCode::Down | KeyCode::Char('j') => {
-            if (app.ui_state.menu_cursor as usize) < app.lichess_state.ongoing_games.len().saturating_sub(1) {
+            if (app.ui_state.menu_cursor as usize)
+                < app.lichess_state.ongoing_games.len().saturating_sub(1)
+            {
                 app.ui_state.menu_cursor += 1;
             }
         }

@@ -1,12 +1,12 @@
 //! Input event handlers.
 
-pub mod handler;
-pub mod home;
-pub mod solo;
 pub mod bot;
 pub mod credits;
-pub mod multiplayer;
 pub mod game_mode_menu;
-pub mod popup;
+pub mod handler;
+pub mod home;
 pub mod lichess;
+pub mod multiplayer;
 pub mod pgn;
+pub mod popup;
+pub mod solo;

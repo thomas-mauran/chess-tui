@@ -1,8 +1,8 @@
 //! Menu navigation and skin cycling.
 
 use crate::app::App;
-use crate::constants::{DEFAULT_CUSTOM_TIME_VALUE, DEFAULT_TIME_CONTROL_SELECTED};
 use crate::constants::{DisplayMode, Pages, Popups};
+use crate::constants::{DEFAULT_CUSTOM_TIME_VALUE, DEFAULT_TIME_CONTROL_SELECTED};
 use crate::game_logic::game::Game;
 use crate::handlers::game_mode_menu::AvailableGameMode;
 use crate::sound::play_menu_nav_sound;
@@ -15,7 +15,6 @@ pub enum MainMenuItems {
     Help,
     Credit,
 }
-
 
 impl From<u8> for MainMenuItems {
     fn from(value: u8) -> Self {
@@ -31,7 +30,6 @@ impl From<u8> for MainMenuItems {
     }
 }
 impl App {
-
     /// Handles a selection on the main menu. Navigates to the chosen section or toggles a setting.
     pub fn menu_select(&mut self) {
         let field: MainMenuItems = MainMenuItems::from(self.ui_state.menu_cursor);
@@ -114,7 +112,6 @@ impl App {
         }
     }
 
-
     /// Resets the application state and returns to the home page.
     /// Preserves display mode preference while cleaning up all game state,
     /// bot state, and multiplayer connections.
@@ -161,7 +158,6 @@ impl App {
         self.ui_state.navigate_to_homepage();
         self.ui_state.close_popup();
     }
-
 
     /// Closes popup and navigates to home page.
     /// Used by popups that should return to home when closed.

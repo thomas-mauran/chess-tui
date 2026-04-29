@@ -1,5 +1,6 @@
 //! End-of-game result popup.
 
+use crate::ui::components::centered_rect::centered_rect;
 use ratatui::{
     layout::Alignment,
     style::{Color, Modifier, Style},
@@ -7,7 +8,6 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Wrap},
     Frame,
 };
-use crate::ui::components::centered_rect::centered_rect;
 
 /// Renders the "Game Over" popup showing `sentence` as the result message.
 ///

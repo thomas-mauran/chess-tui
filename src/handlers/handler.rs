@@ -3,6 +3,16 @@
 use crate::constants::Popups;
 use crate::game_logic::coord::Coord;
 use crate::game_logic::game::GameState;
+use crate::handlers::bot::handle_bot_page_events;
+use crate::handlers::credits::handle_credit_page_events;
+use crate::handlers::game_mode_menu::handle_game_mode_menu_page_events;
+use crate::handlers::home::handle_home_page_events;
+use crate::handlers::lichess::lichess_menu::handle_lichess_menu_page_events;
+use crate::handlers::lichess::ongoing_games::handle_ongoing_games_page_events;
+use crate::handlers::multiplayer::handle_multiplayer_page_events;
+use crate::handlers::pgn::handle_pgn_viewer_events;
+use crate::handlers::popup::handle_popup_input;
+use crate::handlers::solo::handle_solo_page_events;
 use crate::utils::{flip_square_if_needed, get_coord_from_square};
 use crate::{
     app::{App, AppResult},
@@ -12,16 +22,6 @@ use ratatui::crossterm::event::{
     KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
 };
 use shakmaty::{Role, Square};
-use crate::handlers::popup::handle_popup_input;
-use crate::handlers::home::handle_home_page_events;
-use crate::handlers::solo::handle_solo_page_events;
-use crate::handlers::multiplayer::handle_multiplayer_page_events;
-use crate::handlers::game_mode_menu::handle_game_mode_menu_page_events;
-use crate::handlers::bot::handle_bot_page_events;
-use crate::handlers::credits::handle_credit_page_events;
-use crate::handlers::lichess::lichess_menu::handle_lichess_menu_page_events;
-use crate::handlers::lichess::ongoing_games::handle_ongoing_games_page_events;
-use crate::handlers::pgn::handle_pgn_viewer_events;
 
 /// Handles keyboard input events and updates the application state accordingly.
 ///
@@ -59,7 +59,6 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
 
     Ok(())
 }
-
 
 /// Routes keyboard input to the appropriate page handler based on current page.
 pub fn handle_page_input(app: &mut App, key_event: KeyEvent) {
@@ -162,7 +161,6 @@ pub fn chess_inputs(app: &mut App, key_event: KeyEvent) {
     }
 }
 
-
 /// Fallback handler for keys that aren't handled by specific page/popup handlers.
 /// Provides global shortcuts like quit that work from anywhere.
 pub fn fallback_key_handler(app: &mut App, key_event: KeyEvent) {
@@ -170,7 +168,7 @@ pub fn fallback_key_handler(app: &mut App, key_event: KeyEvent) {
         KeyCode::Char('q') => app.quit(), // Quit application
         KeyCode::Char('c' | 'C') if key_event.modifiers == KeyModifiers::CONTROL => app.quit(), // Ctrl+C to quit
         KeyCode::Char('s') => app.cycle_skin(true), // Cycle through available skins
-        _ => (),                                // Ignore other keys
+        _ => (),                                    // Ignore other keys
     }
 }
 
@@ -246,7 +244,8 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
 
                         if let Some(msg) = message {
                             if is_correct {
-                                app.ui_state.show_message_popup(msg, Popups::PuzzleEndScreen);
+                                app.ui_state
+                                    .show_message_popup(msg, Popups::PuzzleEndScreen);
                             } else {
                                 app.ui_state.show_message_popup(msg, Popups::Error);
                             }
@@ -409,4 +408,3 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
     }
     Ok(())
 }
-

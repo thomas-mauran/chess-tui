@@ -2,17 +2,14 @@
 
 use ratatui::{
     layout::{Constraint, Direction, Layout},
-    prelude::{Rect},
-    style::{Style},
-    widgets::{Block},
+    prelude::Rect,
+    style::Style,
+    widgets::Block,
     Frame,
 };
 
 use crate::{
-    app::App,
-    constants::Popups,
-    game_logic::game::GameState,
-    ui::popup::end::render_end_popup,
+    app::App, constants::Popups, game_logic::game::GameState, ui::popup::end::render_end_popup,
     ui::popup::promotion::render_promotion_popup,
 };
 /// Renders the game board, clock, move history, and any in-game popups.

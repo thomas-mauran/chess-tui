@@ -1,7 +1,16 @@
 //! Renders the title banner, navigation menu, skin indicator, and keyboard hints.
 
-use crate::{app::App, constants::{DisplayMode, TITLE}};
-use ratatui::{Frame, layout::{Alignment, Constraint, Direction, Layout, Rect}, style::{Color, Modifier, Style}, text::{Line, Span}, widgets::{Block, Paragraph}};
+use crate::{
+    app::App,
+    constants::{DisplayMode, TITLE},
+};
+use ratatui::{
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    style::{Color, Modifier, Style},
+    text::{Line, Span},
+    widgets::{Block, Paragraph},
+    Frame,
+};
 
 /// Renders the home menu with navigation options, skin selector, and title banner.
 pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {

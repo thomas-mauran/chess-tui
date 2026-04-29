@@ -89,7 +89,9 @@ impl App {
                                     }
                                     Ok(false) => {
                                         // Still waiting, sleep a bit and check again
-                                        std::thread::sleep(std::time::Duration::from_millis(SLEEP_DURATION_LONG_MS));
+                                        std::thread::sleep(std::time::Duration::from_millis(
+                                            SLEEP_DURATION_LONG_MS,
+                                        ));
                                     }
                                     Err(e) => {
                                         log::warn!("Failed to start hosted game: {}", e);
@@ -126,7 +128,6 @@ impl App {
             self.game.ui.skin = skin.clone();
         }
     }
-
 
     /// Cancels an in-progress hosting session. Shuts down the TCP socket and resets
     /// multiplayer, board, and UI state.

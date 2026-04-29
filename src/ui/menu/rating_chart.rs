@@ -19,7 +19,8 @@ pub(super) fn render_rating_history_chart(
     history: &[RatingHistoryEntry],
     area: Rect,
 ) {
-    let cutoff_days = (Utc::now() - chrono::Duration::days(RATING_HISTORY_DAYS)).timestamp() as f64 / SECONDS_PER_DAY;
+    let cutoff_days = (Utc::now() - chrono::Duration::days(RATING_HISTORY_DAYS)).timestamp() as f64
+        / SECONDS_PER_DAY;
     let color_map = get_time_control_colors();
 
     let (datasets_data, dataset_names, bounds) = match process_rating_data(history, cutoff_days) {
@@ -92,7 +93,8 @@ fn point_to_days(year: i32, month: i32, day: i32) -> Option<f64> {
     NaiveDate::from_ymd_opt(year, (month + 1) as u32, day as u32)
         .and_then(|date| date.and_hms_opt(0, 0, 0))
         .map(|datetime| {
-            DateTime::<Utc>::from_naive_utc_and_offset(datetime, Utc).timestamp() as f64 / SECONDS_PER_DAY
+            DateTime::<Utc>::from_naive_utc_and_offset(datetime, Utc).timestamp() as f64
+                / SECONDS_PER_DAY
         })
 }
 
@@ -269,9 +271,15 @@ fn create_x_axis_labels(min_date: f64, max_date: f64) -> Vec<Span<'static>> {
     };
 
     vec![
-        Span::styled(format_date(min_date), Style::default().add_modifier(Modifier::BOLD)),
+        Span::styled(
+            format_date(min_date),
+            Style::default().add_modifier(Modifier::BOLD),
+        ),
         Span::raw(format_date((min_date + max_date) / 2.0)),
-        Span::styled(format_date(max_date), Style::default().add_modifier(Modifier::BOLD)),
+        Span::styled(
+            format_date(max_date),
+            Style::default().add_modifier(Modifier::BOLD),
+        ),
     ]
 }
 
@@ -375,8 +383,23 @@ fn draw_elo_labels(
 
     for group in groups.iter() {
         match group.len() {
-            1 => draw_single_label(buffer, &label_positions[group[0]], chart_x, chart_y, chart_width, chart_height),
-            _ => draw_grouped_labels(buffer, group, &label_positions, chart_x, chart_y, chart_width, chart_height),
+            1 => draw_single_label(
+                buffer,
+                &label_positions[group[0]],
+                chart_x,
+                chart_y,
+                chart_width,
+                chart_height,
+            ),
+            _ => draw_grouped_labels(
+                buffer,
+                group,
+                &label_positions,
+                chart_x,
+                chart_y,
+                chart_width,
+                chart_height,
+            ),
         }
     }
 }
@@ -424,14 +447,18 @@ fn draw_single_label(
         return;
     }
 
-    buffer[(*x, *y)].set_symbol("█").set_style(Style::default().fg(*color));
+    buffer[(*x, *y)]
+        .set_symbol("█")
+        .set_style(Style::default().fg(*color));
 
     let text_x = *x + 1;
     let text_end = text_x + rating_text.len() as u16;
 
     if text_end <= chart_x + chart_width {
         for (i, ch) in rating_text.chars().enumerate() {
-            buffer[(text_x + i as u16, *y)].set_char(ch).set_style(Style::default().fg(*color));
+            buffer[(text_x + i as u16, *y)]
+                .set_char(ch)
+                .set_style(Style::default().fg(*color));
         }
     }
 }
@@ -471,14 +498,18 @@ fn draw_grouped_labels(
             continue;
         }
 
-        buffer[(x, y)].set_symbol("█").set_style(Style::default().fg(*color));
+        buffer[(x, y)]
+            .set_symbol("█")
+            .set_style(Style::default().fg(*color));
 
         let text_x = x + 1;
         let text_end = text_x + rating_text.len() as u16;
 
         if text_end <= chart_x + chart_width {
             for (i, ch) in rating_text.chars().enumerate() {
-                buffer[(text_x + i as u16, y)].set_char(ch).set_style(Style::default().fg(*color));
+                buffer[(text_x + i as u16, y)]
+                    .set_char(ch)
+                    .set_style(Style::default().fg(*color));
             }
         }
     }

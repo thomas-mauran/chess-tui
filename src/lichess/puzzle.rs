@@ -1,10 +1,12 @@
 //! Puzzle fetch endpoint.
 
-use crate::{constants::LICHESS_API_URL, lichess::models::{LichessClient, Puzzle}};
+use crate::{
+    constants::LICHESS_API_URL,
+    lichess::models::{LichessClient, Puzzle},
+};
 use std::error::Error;
 
 impl LichessClient {
-
     pub fn get_next_puzzle(&self) -> Result<Puzzle, Box<dyn Error>> {
         // Use /puzzle/next but add a cache-busting parameter to ensure we get a new puzzle
         // Adding a timestamp parameter forces the server to return a fresh puzzle

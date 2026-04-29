@@ -1,7 +1,7 @@
 //! Credits page keyboard handler.
 
-use ratatui::crossterm::event::{KeyCode, KeyEvent};
 use crate::{app::App, handlers::handler::fallback_key_handler};
+use ratatui::crossterm::event::{KeyCode, KeyEvent};
 
 /// Handles keyboard input on the credits page.
 pub fn handle_credit_page_events(app: &mut App, key_event: KeyEvent) {

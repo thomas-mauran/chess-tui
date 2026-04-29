@@ -97,9 +97,15 @@ fn render_menu_panel(frame: &mut Frame, app: &App, area: Rect) {
 
         let style = if is_selected {
             if is_disconnect {
-                Style::default().fg(Color::White).bg(Color::Red).add_modifier(Modifier::BOLD)
+                Style::default()
+                    .fg(Color::White)
+                    .bg(Color::Red)
+                    .add_modifier(Modifier::BOLD)
             } else {
-                Style::default().fg(Color::Black).bg(Color::White).add_modifier(Modifier::BOLD)
+                Style::default()
+                    .fg(Color::Black)
+                    .bg(Color::White)
+                    .add_modifier(Modifier::BOLD)
             }
         } else if is_disconnect {
             Style::default().fg(Color::Red)
@@ -108,7 +114,10 @@ fn render_menu_panel(frame: &mut Frame, app: &App, area: Rect) {
         };
 
         let prefix = if is_selected { "► " } else { "  " };
-        menu_lines.push(Line::from(vec![Span::styled(prefix, style), Span::styled(*option, style)]));
+        menu_lines.push(Line::from(vec![
+            Span::styled(prefix, style),
+            Span::styled(*option, style),
+        ]));
         menu_lines.push(Line::from(vec![
             Span::raw("    "),
             Span::styled(*description, Style::default().fg(Color::Gray)),
@@ -117,7 +126,12 @@ fn render_menu_panel(frame: &mut Frame, app: &App, area: Rect) {
     }
 
     let menu = Paragraph::new(menu_lines)
-        .block(Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title("Select an option"))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded)
+                .title("Select an option"),
+        )
         .alignment(Alignment::Left);
     frame.render_widget(menu, area);
 }
@@ -145,7 +159,9 @@ fn render_user_stats_panel(frame: &mut Frame, app: &App, area: Rect) {
         };
         stats_lines.push(Line::from(vec![Span::styled(
             "Username:",
-            Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
         )]));
         stats_lines.push(Line::from(vec![
             Span::raw("  "),
@@ -167,7 +183,9 @@ fn render_user_stats_panel(frame: &mut Frame, app: &App, area: Rect) {
             if let Some(country) = &profile_info.country {
                 stats_lines.push(Line::from(vec![Span::styled(
                     "Country:",
-                    Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+                    Style::default()
+                        .fg(Color::Cyan)
+                        .add_modifier(Modifier::BOLD),
                 )]));
                 stats_lines.push(Line::from(vec![
                     Span::raw("  "),
@@ -180,35 +198,82 @@ fn render_user_stats_panel(frame: &mut Frame, app: &App, area: Rect) {
         if let Some(perfs) = &profile.perfs {
             stats_lines.push(Line::from(vec![Span::styled(
                 "Ratings:",
-                Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
             )]));
-            if let Some(p) = &perfs.blitz    { stats_lines.push(rating_line("Blitz",     p.rating, p.prog)); }
-            if let Some(p) = &perfs.rapid    { stats_lines.push(rating_line("Rapid",     p.rating, p.prog)); }
-            if let Some(p) = &perfs.classical{ stats_lines.push(rating_line("Classical", p.rating, p.prog)); }
-            if let Some(p) = &perfs.bullet   { stats_lines.push(rating_line("Bullet",    p.rating, p.prog)); }
-            if let Some(p) = &perfs.puzzle   { stats_lines.push(rating_line("Puzzle",    p.rating, p.prog)); }
+            if let Some(p) = &perfs.blitz {
+                stats_lines.push(rating_line("Blitz", p.rating, p.prog));
+            }
+            if let Some(p) = &perfs.rapid {
+                stats_lines.push(rating_line("Rapid", p.rating, p.prog));
+            }
+            if let Some(p) = &perfs.classical {
+                stats_lines.push(rating_line("Classical", p.rating, p.prog));
+            }
+            if let Some(p) = &perfs.bullet {
+                stats_lines.push(rating_line("Bullet", p.rating, p.prog));
+            }
+            if let Some(p) = &perfs.puzzle {
+                stats_lines.push(rating_line("Puzzle", p.rating, p.prog));
+            }
         }
 
         if let Some(counts) = &profile.count {
             stats_lines.push(Line::from(""));
             stats_lines.push(Line::from(vec![Span::styled(
                 "Games:",
-                Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
             )]));
-            if let Some(v) = counts.all     { stats_lines.push(Line::from(vec![Span::raw("  Total: "),   Span::styled(format!("{}", v), Style::default().fg(Color::White))])); }
-            if let Some(v) = counts.win     { stats_lines.push(Line::from(vec![Span::raw("  Wins: "),    Span::styled(format!("{}", v), Style::default().fg(Color::Green))])); }
-            if let Some(v) = counts.loss    { stats_lines.push(Line::from(vec![Span::raw("  Losses: "),  Span::styled(format!("{}", v), Style::default().fg(Color::Red))])); }
-            if let Some(v) = counts.draw    { stats_lines.push(Line::from(vec![Span::raw("  Draws: "),   Span::styled(format!("{}", v), Style::default().fg(Color::Yellow))])); }
+            if let Some(v) = counts.all {
+                stats_lines.push(Line::from(vec![
+                    Span::raw("  Total: "),
+                    Span::styled(format!("{}", v), Style::default().fg(Color::White)),
+                ]));
+            }
+            if let Some(v) = counts.win {
+                stats_lines.push(Line::from(vec![
+                    Span::raw("  Wins: "),
+                    Span::styled(format!("{}", v), Style::default().fg(Color::Green)),
+                ]));
+            }
+            if let Some(v) = counts.loss {
+                stats_lines.push(Line::from(vec![
+                    Span::raw("  Losses: "),
+                    Span::styled(format!("{}", v), Style::default().fg(Color::Red)),
+                ]));
+            }
+            if let Some(v) = counts.draw {
+                stats_lines.push(Line::from(vec![
+                    Span::raw("  Draws: "),
+                    Span::styled(format!("{}", v), Style::default().fg(Color::Yellow)),
+                ]));
+            }
             if let Some(v) = counts.playing {
-                if v > 0 { stats_lines.push(Line::from(vec![Span::raw("  Playing: "), Span::styled(format!("{}", v), Style::default().fg(Color::Magenta))])); }
+                if v > 0 {
+                    stats_lines.push(Line::from(vec![
+                        Span::raw("  Playing: "),
+                        Span::styled(format!("{}", v), Style::default().fg(Color::Magenta)),
+                    ]));
+                }
             }
         }
     } else {
-        stats_lines.push(Line::from(vec![Span::styled("Loading...", Style::default().fg(Color::Gray))]));
+        stats_lines.push(Line::from(vec![Span::styled(
+            "Loading...",
+            Style::default().fg(Color::Gray),
+        )]));
     }
 
     let stats = Paragraph::new(stats_lines)
-        .block(Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title("User Stats"))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded)
+                .title("User Stats"),
+        )
         .alignment(Alignment::Left);
     frame.render_widget(stats, area);
 }
@@ -224,7 +289,12 @@ fn render_chart_panel(frame: &mut Frame, app: &App, area: Rect) {
         };
         let loading_graph = Paragraph::new(msg)
             .style(Style::default().fg(Color::Gray))
-            .block(Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title("Rating History"))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_type(BorderType::Rounded)
+                    .title("Rating History"),
+            )
             .alignment(Alignment::Center);
         frame.render_widget(loading_graph, area);
     }

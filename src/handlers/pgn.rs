@@ -1,8 +1,7 @@
 //! PGN viewer keyboard handler.
 
-use ratatui::crossterm::event::{KeyCode, KeyEvent};
 use crate::app::App;
-
+use ratatui::crossterm::event::{KeyCode, KeyEvent};
 
 /// Handles keyboard input in PGN viewer mode.
 pub fn handle_pgn_viewer_events(app: &mut App, key_event: KeyEvent) {

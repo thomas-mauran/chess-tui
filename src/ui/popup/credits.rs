@@ -1,8 +1,6 @@
 //! Project credits overlay.
 
-use crate::{
-    constants::WHITE, ui::components::centered_rect::centered_rect,
-};
+use crate::{constants::WHITE, ui::components::centered_rect::centered_rect};
 use ratatui::{
     layout::Alignment,
     style::Style,

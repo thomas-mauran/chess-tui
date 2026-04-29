@@ -4,7 +4,10 @@
 //! so the assertions prove the observable behaviour the maintainer asked for.
 
 use chess_tui::{
-    app::{App, AppResult}, constants::{Pages, Popups}, handlers::handler::handle_key_events, pgn_viewer::PgnViewer
+    app::{App, AppResult},
+    constants::{Pages, Popups},
+    handlers::handler::handle_key_events,
+    pgn_viewer::PgnViewer,
 };
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 

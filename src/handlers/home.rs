@@ -1,7 +1,7 @@
 //! Home screen keyboard handler.
 
-use ratatui::crossterm::event::{KeyCode, KeyEvent};
 use crate::{app::App, handlers::handler::fallback_key_handler};
+use ratatui::crossterm::event::{KeyCode, KeyEvent};
 
 /// Handles keyboard input on the home/menu page.
 /// Supports navigation through menu items and selection.

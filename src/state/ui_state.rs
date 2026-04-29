@@ -1,6 +1,9 @@
 //! Tracks the active page, current popup overlay, menu cursor position, and transient UI flags.
 
-use crate::{constants::{Pages, Popups}, sound::play_menu_nav_sound};
+use crate::{
+    constants::{Pages, Popups},
+    sound::play_menu_nav_sound,
+};
 
 /// Navigation and overlay state held by [`crate::app::App`].
 ///
@@ -71,7 +74,7 @@ impl UIState {
         self.popup_message = Some(message);
         self.current_popup = Some(popup_type);
     }
-    
+
     /// Moves the menu cursor up by one, wrapping to the last item at the top.
     pub fn menu_cursor_up(&mut self, l: u8) {
         if self.menu_cursor > 0 {

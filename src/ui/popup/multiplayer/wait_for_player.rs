@@ -1,11 +1,12 @@
 //! Waiting-for-opponent popup shown while the host listens for a connection.
 
 use crate::{
-    constants::{NETWORK_PORT, WHITE}, ui::components::centered_rect::centered_rect,
+    constants::{NETWORK_PORT, WHITE},
+    ui::components::centered_rect::centered_rect,
 };
 use ratatui::{
     layout::Alignment,
-    style::{Style},
+    style::Style,
     text::Line,
     widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Wrap},
     Frame,

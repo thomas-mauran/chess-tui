@@ -1,6 +1,11 @@
 //! Takes priority over page input; routes each key to the active popup's dismiss or text-entry handler.
 
-use crate::{app::App, constants::{Pages, Popups}, handlers::handler::fallback_key_handler, utils::normalize_lowercase_to_san};
+use crate::{
+    app::App,
+    constants::{Pages, Popups},
+    handlers::handler::fallback_key_handler,
+    utils::normalize_lowercase_to_san,
+};
 use ratatui::crossterm::event::{KeyCode, KeyEvent};
 use shakmaty::san::San;
 
@@ -118,8 +123,7 @@ fn handle_error_popup(app: &mut App, key_event: KeyEvent) {
                     app.ui_state.current_page = Pages::Home;
                 }
                 _ => {
-                    if app.ui_state.current_page == Pages::Solo
-                        && app.game.logic.opponent.is_some()
+                    if app.ui_state.current_page == Pages::Solo && app.game.logic.opponent.is_some()
                     {
                         app.ui_state.current_page = Pages::Home;
                     }
@@ -147,8 +151,7 @@ fn handle_success_popup(app: &mut App, key_event: KeyEvent) {
                     app.ui_state.current_page = Pages::Home;
                 }
                 _ => {
-                    if app.ui_state.current_page == Pages::Solo
-                        && app.game.logic.opponent.is_some()
+                    if app.ui_state.current_page == Pages::Solo && app.game.logic.opponent.is_some()
                     {
                         app.ui_state.current_page = Pages::Home;
                     }
@@ -301,7 +304,8 @@ fn handle_move_input_selection(app: &mut App, key_event: KeyEvent) {
                 }
             };
 
-            app.game.apply_player_move(from, chess_move.to(), chess_move.promotion());
+            app.game
+                .apply_player_move(from, chess_move.to(), chess_move.promotion());
             app.ui_state.close_popup();
         }
         KeyCode::Char(to_insert) => app.game.ui.prompt.enter_char(to_insert),

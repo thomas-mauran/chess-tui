@@ -1,5 +1,6 @@
 //! PGN viewer page renderer.
 
+use crate::ui::components::centered_rect::centered_rect;
 use crate::{app::App, game_logic::game::GameState, ui::game_ui::render_game_ui};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -8,7 +9,6 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Wrap},
     Frame,
 };
-use crate::ui::components::centered_rect::centered_rect;
 
 /// Sync the PgnViewer's current ply into `app.game.logic.game_board` so that
 /// existing board/history render functions see the right position.
@@ -221,7 +221,6 @@ fn render_end_banner(frame: &mut Frame, app: &App, board_area: Rect) {
                 .fg(Color::Yellow)
                 .add_modifier(Modifier::BOLD),
         )),
-
         Line::from(""),
         Line::from(Span::styled(
             viewer.result_summary(),

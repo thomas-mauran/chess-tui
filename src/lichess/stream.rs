@@ -1,8 +1,7 @@
 //! Board event streaming.
 
 use crate::constants::LICHESS_API_URL;
-use crate::lichess::models::{
-    EventStreamEvent, GameEvent, LichessClient};
+use crate::lichess::models::{EventStreamEvent, GameEvent, LichessClient};
 use shakmaty::Color;
 use std::error::Error;
 use std::sync::mpsc::Sender;
@@ -11,15 +10,17 @@ use reqwest::blocking::Client;
 use std::io::{BufRead, BufReader};
 use std::thread;
 fn parse_game_color(color_str: &str) -> Color {
-    if color_str == "white" { Color::White } else { Color::Black }
+    if color_str == "white" {
+        Color::White
+    } else {
+        Color::Black
+    }
 }
 
 fn send_status_message(status: &str, move_tx: &Sender<String>) {
     let msg = match status {
         "mate" | "checkmate" => Some("GAME_STATUS:checkmate"),
-        "draw" | "stalemate" | "repetition" | "insufficient" | "fifty" => {
-            Some("GAME_STATUS:draw")
-        }
+        "draw" | "stalemate" | "repetition" | "insufficient" | "fifty" => Some("GAME_STATUS:draw"),
         "resign" => Some("GAME_STATUS:resign"),
         "aborted" => Some("GAME_STATUS:aborted"),
         _ => None,
@@ -30,9 +31,6 @@ fn send_status_message(status: &str, move_tx: &Sender<String>) {
 }
 
 impl LichessClient {
-
-
-
     pub fn spawn_event_stream_thread(
         &self,
         initial_game_ids: std::collections::HashSet<String>,
@@ -137,7 +135,7 @@ impl LichessClient {
             }
         });
     }
-    
+
     fn spawn_game_stream_thread(
         &self,
         game_id: String,

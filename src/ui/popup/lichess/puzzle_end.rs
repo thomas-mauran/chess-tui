@@ -1,5 +1,6 @@
 //! Puzzle-completion result popup with optional Elo change.
 
+use crate::ui::components::centered_rect::centered_rect;
 use ratatui::{
     layout::Alignment,
     style::{Color, Modifier, Style},
@@ -7,7 +8,6 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Wrap},
     Frame,
 };
-use crate::ui::components::centered_rect::centered_rect;
 
 /// Renders the puzzle-end popup showing the result, Elo delta, and next-action hints.
 ///

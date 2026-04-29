@@ -2,7 +2,7 @@
 
 use crate::{
     app::App,
-    constants::{BOT_DIFFICULTY_COUNT, Pages, Popups},
+    constants::{Pages, Popups, BOT_DIFFICULTY_COUNT},
     handlers::handler::fallback_key_handler,
 };
 use ratatui::crossterm::event::{KeyCode, KeyEvent};
@@ -114,22 +114,20 @@ fn handle_form_events(app: &mut App, key_event: KeyEvent, game_mode: AvailableGa
 
 fn handle_form_left(app: &mut App, game_mode: AvailableGameMode) {
     match game_mode {
-        AvailableGameMode::Local => {
-            match LocalFormField::from(app.game_mode_state.form_cursor) {
-                LocalFormField::TimeControl => {
-                    if app.game_mode_state.clock_cursor > 0 {
-                        app.game_mode_state.clock_cursor -= 1;
-                    }
-                }
-                LocalFormField::CustomTime => {
-                    if app.game_mode_state.clock_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX
-                        && app.game_mode_state.custom_time_minutes > 1
-                    {
-                        app.game_mode_state.custom_time_minutes -= 1;
-                    }
+        AvailableGameMode::Local => match LocalFormField::from(app.game_mode_state.form_cursor) {
+            LocalFormField::TimeControl => {
+                if app.game_mode_state.clock_cursor > 0 {
+                    app.game_mode_state.clock_cursor -= 1;
                 }
             }
-        }
+            LocalFormField::CustomTime => {
+                if app.game_mode_state.clock_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX
+                    && app.game_mode_state.custom_time_minutes > 1
+                {
+                    app.game_mode_state.custom_time_minutes -= 1;
+                }
+            }
+        },
         AvailableGameMode::Multiplayer => {
             match MultiplayerFormField::from(app.game_mode_state.form_cursor) {
                 MultiplayerFormField::HostSelection => {
@@ -142,65 +140,61 @@ fn handle_form_left(app: &mut App, game_mode: AvailableGameMode) {
                 }
             }
         }
-        AvailableGameMode::Bot => {
-            match BotFormField::from(app.game_mode_state.form_cursor) {
-                BotFormField::TimeControl => {
-                    if app.game_mode_state.clock_cursor > 0 {
-                        app.game_mode_state.clock_cursor -= 1;
-                    }
+        AvailableGameMode::Bot => match BotFormField::from(app.game_mode_state.form_cursor) {
+            BotFormField::TimeControl => {
+                if app.game_mode_state.clock_cursor > 0 {
+                    app.game_mode_state.clock_cursor -= 1;
                 }
-                BotFormField::CustomTime => {
-                    if app.game_mode_state.clock_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX {
-                        if app.game_mode_state.custom_time_minutes > 1 {
-                            app.game_mode_state.custom_time_minutes -= 1;
-                        }
-                    } else {
-                        app.game_mode_state.select_previous_color_option();
+            }
+            BotFormField::CustomTime => {
+                if app.game_mode_state.clock_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX {
+                    if app.game_mode_state.custom_time_minutes > 1 {
+                        app.game_mode_state.custom_time_minutes -= 1;
                     }
+                } else {
+                    app.game_mode_state.select_previous_color_option();
                 }
-                BotFormField::ColorSelection => {
-                    if app.game_mode_state.clock_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX {
-                        app.game_mode_state.select_previous_color_option();
-                    } else if app.bot_state.bot_depth > 1 {
+            }
+            BotFormField::ColorSelection => {
+                if app.game_mode_state.clock_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX {
+                    app.game_mode_state.select_previous_color_option();
+                } else if app.bot_state.bot_depth > 1 {
+                    app.bot_state.bot_depth -= 1;
+                    app.update_config_from_app();
+                }
+            }
+            BotFormField::BotDepthSelection => {
+                if app.game_mode_state.clock_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX {
+                    if app.bot_state.bot_depth > 1 {
                         app.bot_state.bot_depth -= 1;
                         app.update_config_from_app();
                     }
+                } else {
+                    cycle_difficulty_prev(app);
                 }
-                BotFormField::BotDepthSelection => {
-                    if app.game_mode_state.clock_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX {
-                        if app.bot_state.bot_depth > 1 {
-                            app.bot_state.bot_depth -= 1;
-                            app.update_config_from_app();
-                        }
-                    } else {
-                        cycle_difficulty_prev(app);
-                    }
-                }
-                BotFormField::DifficultySelection => cycle_difficulty_prev(app),
             }
-        }
+            BotFormField::DifficultySelection => cycle_difficulty_prev(app),
+        },
         AvailableGameMode::PGNLoader => {}
     }
 }
 
 fn handle_form_right(app: &mut App, game_mode: AvailableGameMode) {
     match game_mode {
-        AvailableGameMode::Local => {
-            match LocalFormField::from(app.game_mode_state.form_cursor) {
-                LocalFormField::TimeControl => {
-                    if app.game_mode_state.clock_cursor < crate::constants::TIME_CONTROL_CUSTOM_INDEX {
-                        app.game_mode_state.clock_cursor += 1;
-                    }
-                }
-                LocalFormField::CustomTime => {
-                    if app.game_mode_state.clock_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX
-                        && app.game_mode_state.custom_time_minutes < 120
-                    {
-                        app.game_mode_state.custom_time_minutes += 1;
-                    }
+        AvailableGameMode::Local => match LocalFormField::from(app.game_mode_state.form_cursor) {
+            LocalFormField::TimeControl => {
+                if app.game_mode_state.clock_cursor < crate::constants::TIME_CONTROL_CUSTOM_INDEX {
+                    app.game_mode_state.clock_cursor += 1;
                 }
             }
-        }
+            LocalFormField::CustomTime => {
+                if app.game_mode_state.clock_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX
+                    && app.game_mode_state.custom_time_minutes < 120
+                {
+                    app.game_mode_state.custom_time_minutes += 1;
+                }
+            }
+        },
         AvailableGameMode::Multiplayer => {
             match MultiplayerFormField::from(app.game_mode_state.form_cursor) {
                 MultiplayerFormField::HostSelection => {
@@ -213,61 +207,57 @@ fn handle_form_right(app: &mut App, game_mode: AvailableGameMode) {
                 }
             }
         }
-        AvailableGameMode::Bot => {
-            match BotFormField::from(app.game_mode_state.form_cursor) {
-                BotFormField::TimeControl => {
-                    if app.game_mode_state.clock_cursor < crate::constants::TIME_CONTROL_CUSTOM_INDEX {
-                        app.game_mode_state.clock_cursor += 1;
-                    }
+        AvailableGameMode::Bot => match BotFormField::from(app.game_mode_state.form_cursor) {
+            BotFormField::TimeControl => {
+                if app.game_mode_state.clock_cursor < crate::constants::TIME_CONTROL_CUSTOM_INDEX {
+                    app.game_mode_state.clock_cursor += 1;
                 }
-                BotFormField::CustomTime => {
-                    if app.game_mode_state.clock_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX {
-                        if app.game_mode_state.custom_time_minutes < 120 {
-                            app.game_mode_state.custom_time_minutes += 1;
-                        }
-                    } else {
-                        app.game_mode_state.select_next_color_option();
+            }
+            BotFormField::CustomTime => {
+                if app.game_mode_state.clock_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX {
+                    if app.game_mode_state.custom_time_minutes < 120 {
+                        app.game_mode_state.custom_time_minutes += 1;
                     }
+                } else {
+                    app.game_mode_state.select_next_color_option();
                 }
-                BotFormField::ColorSelection => {
-                    if app.game_mode_state.clock_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX {
-                        app.game_mode_state.select_next_color_option();
-                    } else if app.bot_state.bot_depth < 20 {
+            }
+            BotFormField::ColorSelection => {
+                if app.game_mode_state.clock_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX {
+                    app.game_mode_state.select_next_color_option();
+                } else if app.bot_state.bot_depth < 20 {
+                    app.bot_state.bot_depth += 1;
+                    app.update_config_from_app();
+                }
+            }
+            BotFormField::BotDepthSelection => {
+                if app.game_mode_state.clock_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX {
+                    if app.bot_state.bot_depth < 20 {
                         app.bot_state.bot_depth += 1;
                         app.update_config_from_app();
                     }
+                } else {
+                    cycle_difficulty_next(app);
                 }
-                BotFormField::BotDepthSelection => {
-                    if app.game_mode_state.clock_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX {
-                        if app.bot_state.bot_depth < 20 {
-                            app.bot_state.bot_depth += 1;
-                            app.update_config_from_app();
-                        }
-                    } else {
-                        cycle_difficulty_next(app);
-                    }
-                }
-                BotFormField::DifficultySelection => cycle_difficulty_next(app),
             }
-        }
+            BotFormField::DifficultySelection => cycle_difficulty_next(app),
+        },
         AvailableGameMode::PGNLoader => {}
     }
 }
 
 fn handle_form_enter(app: &mut App, game_mode: AvailableGameMode) {
     match game_mode {
-        AvailableGameMode::Local => {
-            match LocalFormField::from(app.game_mode_state.form_cursor) {
-                LocalFormField::TimeControl => {
-                    if app.game_mode_state.clock_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX {
-                        app.game_mode_state.form_cursor = 1;
-                    } else {
-                        apply_clock_and_start(app, Pages::Solo);
-                    }
+        AvailableGameMode::Local => match LocalFormField::from(app.game_mode_state.form_cursor) {
+            LocalFormField::TimeControl => {
+                if app.game_mode_state.clock_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX {
+                    app.game_mode_state.form_cursor = 1;
+                } else {
+                    apply_clock_and_start(app, Pages::Solo);
                 }
-                LocalFormField::CustomTime => apply_clock_and_start(app, Pages::Solo),
             }
-        }
+            LocalFormField::CustomTime => apply_clock_and_start(app, Pages::Solo),
+        },
         AvailableGameMode::Multiplayer => {
             match MultiplayerFormField::from(app.game_mode_state.form_cursor) {
                 MultiplayerFormField::HostSelection => {
@@ -290,39 +280,37 @@ fn handle_form_enter(app: &mut App, game_mode: AvailableGameMode) {
                 }
             }
         }
-        AvailableGameMode::Bot => {
-            match BotFormField::from(app.game_mode_state.form_cursor) {
-                BotFormField::TimeControl => {
-                    app.game_mode_state.form_cursor = 1;
-                }
-                BotFormField::CustomTime => {
-                    if app.game_mode_state.clock_cursor != crate::constants::TIME_CONTROL_CUSTOM_INDEX
-                        && app.game_mode_state.selected_color.is_none()
-                        && !app.game_mode_state.is_random_color
-                    {
-                        app.game_mode_state.selected_color = Some(shakmaty::Color::White);
-                    }
-                    app.game_mode_state.form_cursor = 2;
-                }
-                BotFormField::ColorSelection => {
-                    if app.game_mode_state.clock_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX
-                        && app.game_mode_state.selected_color.is_none()
-                        && !app.game_mode_state.is_random_color
-                    {
-                        app.game_mode_state.selected_color = Some(shakmaty::Color::White);
-                    }
-                    app.game_mode_state.form_cursor = 3;
-                }
-                BotFormField::BotDepthSelection => {
-                    if app.game_mode_state.clock_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX {
-                        app.game_mode_state.form_cursor = 4;
-                    } else {
-                        finish_form(app, Pages::Bot);
-                    }
-                }
-                BotFormField::DifficultySelection => finish_form(app, Pages::Bot),
+        AvailableGameMode::Bot => match BotFormField::from(app.game_mode_state.form_cursor) {
+            BotFormField::TimeControl => {
+                app.game_mode_state.form_cursor = 1;
             }
-        }
+            BotFormField::CustomTime => {
+                if app.game_mode_state.clock_cursor != crate::constants::TIME_CONTROL_CUSTOM_INDEX
+                    && app.game_mode_state.selected_color.is_none()
+                    && !app.game_mode_state.is_random_color
+                {
+                    app.game_mode_state.selected_color = Some(shakmaty::Color::White);
+                }
+                app.game_mode_state.form_cursor = 2;
+            }
+            BotFormField::ColorSelection => {
+                if app.game_mode_state.clock_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX
+                    && app.game_mode_state.selected_color.is_none()
+                    && !app.game_mode_state.is_random_color
+                {
+                    app.game_mode_state.selected_color = Some(shakmaty::Color::White);
+                }
+                app.game_mode_state.form_cursor = 3;
+            }
+            BotFormField::BotDepthSelection => {
+                if app.game_mode_state.clock_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX {
+                    app.game_mode_state.form_cursor = 4;
+                } else {
+                    finish_form(app, Pages::Bot);
+                }
+            }
+            BotFormField::DifficultySelection => finish_form(app, Pages::Bot),
+        },
         AvailableGameMode::PGNLoader => {}
     }
 }
@@ -351,7 +339,9 @@ fn handle_menu_navigation(app: &mut App, key_event: KeyEvent, game_mode: Availab
             app.game_mode_state.selection = Some(game_mode);
             match game_mode {
                 AvailableGameMode::Local => {
-                    if app.game_mode_state.clock_cursor > crate::constants::TIME_CONTROL_CUSTOM_INDEX {
+                    if app.game_mode_state.clock_cursor
+                        > crate::constants::TIME_CONTROL_CUSTOM_INDEX
+                    {
                         app.game_mode_state.clock_cursor = 3;
                     }
                 }

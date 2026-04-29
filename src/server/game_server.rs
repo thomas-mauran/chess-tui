@@ -4,9 +4,11 @@ use std::{
     io::{Read, Write},
     net::{IpAddr, TcpListener, TcpStream, UdpSocket},
     sync::{
-        Arc, Mutex, atomic::{AtomicBool, Ordering}, mpsc
+        atomic::{AtomicBool, Ordering},
+        mpsc, Arc, Mutex,
     },
-    thread::{self, sleep}, time::Duration,
+    thread::{self, sleep},
+    time::Duration,
 };
 
 use crate::constants::{
@@ -136,7 +138,6 @@ impl GameServer {
         }
     }
 }
-
 
 pub fn setup_game_server(host_color: Color) {
     let is_host_white = host_color == Color::White;

@@ -156,13 +156,24 @@ fn render_multiplayer_page(frame: &mut Frame<'_>, app: &mut App, main_area: rata
         } else {
             app.create_opponent();
         }
-    } else if app.game.logic.opponent.as_ref().is_some_and(|o| o.game_started) {
+    } else if app
+        .game
+        .logic
+        .opponent
+        .as_ref()
+        .is_some_and(|o| o.game_started)
+    {
         render_game_ui(frame, app, main_area);
     }
 }
 
 fn render_bot_page(frame: &mut Frame<'_>, app: &mut App, main_area: ratatui::layout::Rect) {
-    if app.bot_state.chess_engine_path.as_ref().is_none_or(|p| p.is_empty()) {
+    if app
+        .bot_state
+        .chess_engine_path
+        .as_ref()
+        .is_none_or(|p| p.is_empty())
+    {
         app.ui_state.popup_message = Some(
             "Chess engine path not configured.\n\n".to_string()
                 + "To configure the chess engine follow the documentation: https://thomas-mauran.github.io/chess-tui/docs/Configuration/bot\n\n"

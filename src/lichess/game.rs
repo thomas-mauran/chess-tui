@@ -1,19 +1,20 @@
 //! Game seek, join, and resign endpoints.
 
 use crate::constants::LICHESS_API_URL;
-use crate::lichess::models::{
-    GameEvent, LichessClient
-};
+use crate::lichess::models::{GameEvent, LichessClient};
 use shakmaty::Color;
 use std::error::Error;
 use std::io::{BufRead, BufReader};
 
 fn parse_game_color(color_str: &str) -> Color {
-    if color_str == "white" { Color::White } else { Color::Black }
+    if color_str == "white" {
+        Color::White
+    } else {
+        Color::Black
+    }
 }
 
 impl LichessClient {
-
     /// Get turn count and last move from public API
     /// Returns (turn_count, last_move) - useful when setting up a game
     pub fn get_game_turn_count_and_last_move(
@@ -66,7 +67,6 @@ impl LichessClient {
 
         Err("No data received from stream".into())
     }
-
 
     pub fn seek_game(
         &self,
@@ -468,7 +468,6 @@ impl LichessClient {
         }
         Ok(())
     }
-
 
     /// Resign a game
     /// Uses the board API endpoint /board/game/{id}/resign

@@ -4,11 +4,11 @@ use crate::constants::SLEEP_DURATION_PUZZLE_MS;
 use crate::game_logic::game::Game;
 use crate::game_logic::game::GameState;
 use crate::game_logic::game_board::GameBoard;
+use crate::lichess::models::{LichessClient, Puzzle};
 use crate::utils::get_coord_from_square;
 use shakmaty::{Position, Square};
 use std::sync::mpsc::Receiver;
 use std::time::{Duration, Instant};
-use crate::lichess::models::{LichessClient, Puzzle};
 
 pub struct PuzzleGame {
     pub puzzle: Puzzle,
@@ -357,9 +357,7 @@ impl PuzzleGame {
 
                 Ok(puzzle)
             }
-            Err(e) => {
-                Err(e.to_string())
-            }
+            Err(e) => Err(e.to_string()),
         }
     }
 }

@@ -1,8 +1,8 @@
 //! Holds the [`Bot`] configuration and the `mpsc::Receiver` used to collect moves computed off-thread.
 
-use std::sync::mpsc::{channel, Receiver};
-use shakmaty::Move;
 use crate::game_logic::bot::Bot;
+use shakmaty::Move;
+use std::sync::mpsc::{channel, Receiver};
 
 /// Engine configuration and the channel used to receive moves computed off-thread.
 ///
@@ -32,8 +32,6 @@ impl Default for BotState {
 }
 
 impl BotState {
-
-
     /// Start bot thinking in a separate thread
     pub fn start_bot_thinking(&mut self, fen: String, depth: u8, bot_difficulty: Option<u8>) {
         // Don't start if already thinking

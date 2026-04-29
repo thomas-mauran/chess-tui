@@ -1,7 +1,7 @@
 //! Multiplayer game keyboard handler.
 
-use ratatui::crossterm::event::{KeyCode, KeyEvent};
 use crate::{app::App, handlers::handler::chess_inputs};
+use ratatui::crossterm::event::{KeyCode, KeyEvent};
 
 /// Handles keyboard input during multiplayer game mode.
 /// Similar to solo mode but includes cleanup of network connections.

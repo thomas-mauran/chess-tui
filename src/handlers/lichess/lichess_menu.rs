@@ -1,8 +1,11 @@
 //! Lichess menu keyboard handler.
 
+use crate::{
+    app::App,
+    constants::{Pages, Popups},
+    handlers::handler::fallback_key_handler,
+};
 use ratatui::crossterm::event::{KeyCode, KeyEvent};
-use crate::{app::App, constants::{Pages, Popups}, handlers::handler::fallback_key_handler};
-
 
 /// Handles keyboard input on the Lichess menu page.
 /// Supports navigation through menu items and selection.
@@ -17,7 +20,8 @@ pub fn handle_lichess_menu_page_events(app: &mut App, key_event: KeyEvent) {
                     // Seek Game
                     if app.lichess_state.token.is_none()
                         || app
-                            .lichess_state.token
+                            .lichess_state
+                            .token
                             .as_ref()
                             .map(|t: &String| t.is_empty())
                             .unwrap_or(true)
@@ -36,7 +40,8 @@ pub fn handle_lichess_menu_page_events(app: &mut App, key_event: KeyEvent) {
                     // Puzzle
                     if app.lichess_state.token.is_none()
                         || app
-                            .lichess_state.token
+                            .lichess_state
+                            .token
                             .as_ref()
                             .map(|t: &String| t.is_empty())
                             .unwrap_or(true)
@@ -53,7 +58,8 @@ pub fn handle_lichess_menu_page_events(app: &mut App, key_event: KeyEvent) {
                     // My Ongoing Games
                     if app.lichess_state.token.is_none()
                         || app
-                            .lichess_state.token
+                            .lichess_state
+                            .token
                             .as_ref()
                             .map(|t: &String| t.is_empty())
                             .unwrap_or(true)
@@ -72,7 +78,8 @@ pub fn handle_lichess_menu_page_events(app: &mut App, key_event: KeyEvent) {
                     // Join by Code
                     if app.lichess_state.token.is_none()
                         || app
-                            .lichess_state.token
+                            .lichess_state
+                            .token
                             .as_ref()
                             .map(|t: &String| t.is_empty())
                             .unwrap_or(true)

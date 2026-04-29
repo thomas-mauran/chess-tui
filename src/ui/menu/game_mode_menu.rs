@@ -40,7 +40,8 @@ fn render_time_control_ui(
         .constraints([Constraint::Length(1), Constraint::Length(1)])
         .split(time_control_area);
 
-    let is_time_control_focused = is_active && app.game_mode_state.form_cursor == time_control_cursor;
+    let is_time_control_focused =
+        is_active && app.game_mode_state.form_cursor == time_control_cursor;
     let time_control_label_style = if !is_active {
         Style::default().fg(grey_color)
     } else {
@@ -54,7 +55,8 @@ fn render_time_control_ui(
     frame.render_widget(time_control_label, time_control_label_area[0]);
 
     let current_index = app
-        .game_mode_state.clock_cursor
+        .game_mode_state
+        .clock_cursor
         .min(crate::constants::TIME_CONTROL_CUSTOM_INDEX) as usize;
 
     // Calculate button widths - need to fit all options horizontally
@@ -99,7 +101,8 @@ fn render_time_control_ui(
     }
 
     // Show custom time adjustment field if Custom is selected
-    if app.game_mode_state.clock_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX && is_active {
+    if app.game_mode_state.clock_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX && is_active
+    {
         *chunk_idx += 1;
         if *chunk_idx < form_chunks.len() {
             let custom_time_area = Layout::default()
@@ -214,9 +217,12 @@ fn render_color_selection_ui(
         .split(color_area[1]);
 
     let is_focused = is_active && app.game_mode_state.form_cursor == color_cursor;
-    let white_selected = app.game_mode_state.selected_color == Some(ShakmatyColor::White) && !app.game_mode_state.is_random_color;
-    let white_focused =
-        is_enabled && is_focused && app.game_mode_state.selected_color.is_none() && !app.game_mode_state.is_random_color;
+    let white_selected = app.game_mode_state.selected_color == Some(ShakmatyColor::White)
+        && !app.game_mode_state.is_random_color;
+    let white_focused = is_enabled
+        && is_focused
+        && app.game_mode_state.selected_color.is_none()
+        && !app.game_mode_state.is_random_color;
     let white_style = if !is_enabled {
         Style::default().fg(grey_color)
     } else if white_selected {
@@ -237,7 +243,8 @@ fn render_color_selection_ui(
         .style(white_style);
     frame.render_widget(white_text, color_button_area[0]);
 
-    let black_selected = app.game_mode_state.selected_color == Some(ShakmatyColor::Black) && !app.game_mode_state.is_random_color;
+    let black_selected = app.game_mode_state.selected_color == Some(ShakmatyColor::Black)
+        && !app.game_mode_state.is_random_color;
     let black_style = if !is_enabled {
         Style::default().fg(grey_color)
     } else if black_selected {
@@ -413,12 +420,22 @@ pub fn render_game_mode_menu(frame: &mut Frame, app: &App) {
 
 fn build_local_detail_lines(app: &App) -> Vec<Line<'static>> {
     let mut lines = vec![
-        Line::from(vec![Span::styled("Local Game", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))]),
+        Line::from(vec![Span::styled(
+            "Local Game",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        )]),
         Line::from(""),
         Line::from("Perfect for practicing chess alone or"),
         Line::from("playing with your friend on a single computer."),
         Line::from(""),
-        Line::from(vec![Span::styled("Time Control:", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))]),
+        Line::from(vec![Span::styled(
+            "Time Control:",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        )]),
     ];
 
     let current_time_control = app.game_mode_state.get_time_control_name();
@@ -431,17 +448,35 @@ fn build_local_detail_lines(app: &App) -> Vec<Line<'static>> {
     } else {
         format!("  {}", current_time_control)
     };
-    lines.push(Line::from(vec![Span::styled(time_label, Style::default().fg(Color::White).add_modifier(Modifier::BOLD))]));
+    lines.push(Line::from(vec![Span::styled(
+        time_label,
+        Style::default()
+            .fg(Color::White)
+            .add_modifier(Modifier::BOLD),
+    )]));
     lines.push(Line::from(""));
-    lines.push(Line::from(format!("  {}", app.game_mode_state.get_time_control_description())));
+    lines.push(Line::from(format!(
+        "  {}",
+        app.game_mode_state.get_time_control_description()
+    )));
     lines.push(Line::from(""));
     lines.extend([
-        Line::from(vec![Span::styled("Features:", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))]),
+        Line::from(vec![Span::styled(
+            "Features:",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        )]),
         Line::from("  • Play both sides"),
         Line::from("  • Practice openings"),
         Line::from("  • Play offline."),
         Line::from(""),
-        Line::from(vec![Span::styled("Controls:", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))]),
+        Line::from(vec![Span::styled(
+            "Controls:",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        )]),
         Line::from("  Arrow keys: Move cursor"),
         Line::from("  Enter: Select piece/move"),
         Line::from("  R: Restart game"),
@@ -452,36 +487,66 @@ fn build_local_detail_lines(app: &App) -> Vec<Line<'static>> {
 
 fn build_multiplayer_detail_lines() -> Vec<Line<'static>> {
     vec![
-        Line::from(vec![Span::styled("Multiplayer", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))]),
+        Line::from(vec![Span::styled(
+            "Multiplayer",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        )]),
         Line::from(""),
         Line::from("Play chess with friends on different devices."),
         Line::from(""),
-        Line::from(vec![Span::styled("Hosting:", Style::default().fg(Color::Green).add_modifier(Modifier::BOLD))]),
+        Line::from(vec![Span::styled(
+            "Hosting:",
+            Style::default()
+                .fg(Color::Green)
+                .add_modifier(Modifier::BOLD),
+        )]),
         Line::from("  • Choose your color"),
         Line::from("  • Share your IP"),
         Line::from("  • Wait for opponent"),
         Line::from(""),
-        Line::from(vec![Span::styled("Joining:", Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD))]),
+        Line::from(vec![Span::styled(
+            "Joining:",
+            Style::default()
+                .fg(Color::Magenta)
+                .add_modifier(Modifier::BOLD),
+        )]),
         Line::from("  • Enter host IP"),
         Line::from("  • Connect instantly"),
         Line::from("  • Color assigned"),
         Line::from(""),
-        Line::from(vec![Span::styled("Port:", Style::default().fg(Color::Cyan))]),
+        Line::from(vec![Span::styled(
+            "Port:",
+            Style::default().fg(Color::Cyan),
+        )]),
         Line::from("  2308 (default)"),
         Line::from(""),
         Line::from("For setting up multiplayer on different networks, see the documentation:"),
-        Line::from("  https://thomas-mauran.github.io/chess-tui/docs/Multiplayer/Online%20multiplayer"),
+        Line::from(
+            "  https://thomas-mauran.github.io/chess-tui/docs/Multiplayer/Online%20multiplayer",
+        ),
     ]
 }
 
 fn build_bot_detail_lines(app: &App) -> Vec<Line<'static>> {
     let mut lines = vec![
-        Line::from(vec![Span::styled("Play Bot", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))]),
+        Line::from(vec![Span::styled(
+            "Play Bot",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        )]),
         Line::from(""),
         Line::from("Challenge a chess engine"),
         Line::from("and improve your skills."),
         Line::from(""),
-        Line::from(vec![Span::styled("Features:", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))]),
+        Line::from(vec![Span::styled(
+            "Features:",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        )]),
         Line::from("  • Choose your color"),
         Line::from("  • Adjustable difficulty"),
         Line::from("  • UCI engine support"),
@@ -495,22 +560,48 @@ fn build_bot_detail_lines(app: &App) -> Vec<Line<'static>> {
         } else {
             path.clone()
         };
-        lines.push(Line::from(vec![Span::styled("Engine:", Style::default().fg(Color::Green).add_modifier(Modifier::BOLD))]));
+        lines.push(Line::from(vec![Span::styled(
+            "Engine:",
+            Style::default()
+                .fg(Color::Green)
+                .add_modifier(Modifier::BOLD),
+        )]));
         lines.push(Line::from(vec![Span::raw(format!("  {}", display_path))]));
     } else {
-        lines.push(Line::from(vec![Span::styled("Engine:", Style::default().fg(Color::Red).add_modifier(Modifier::BOLD))]));
-        lines.push(Line::from(vec![Span::styled("  Not configured", Style::default().fg(Color::Red))]));
+        lines.push(Line::from(vec![Span::styled(
+            "Engine:",
+            Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
+        )]));
+        lines.push(Line::from(vec![Span::styled(
+            "  Not configured",
+            Style::default().fg(Color::Red),
+        )]));
     }
 
-    let difficulty_display = app.bot_state.bot_difficulty
-        .and_then(|i| ((i as usize) < crate::constants::BOT_DIFFICULTY_NAMES.len()).then_some(crate::constants::BOT_DIFFICULTY_NAMES[i as usize]))
+    let difficulty_display = app
+        .bot_state
+        .bot_difficulty
+        .and_then(|i| {
+            ((i as usize) < crate::constants::BOT_DIFFICULTY_NAMES.len())
+                .then_some(crate::constants::BOT_DIFFICULTY_NAMES[i as usize])
+        })
         .unwrap_or("Off (full strength)");
     lines.extend([
         Line::from(""),
-        Line::from(vec![Span::styled("Bot Depth:", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))]),
+        Line::from(vec![Span::styled(
+            "Bot Depth:",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        )]),
         Line::from(format!("  {}", app.bot_state.bot_depth)),
         Line::from(""),
-        Line::from(vec![Span::styled("Difficulty:", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))]),
+        Line::from(vec![Span::styled(
+            "Difficulty:",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        )]),
         Line::from(format!("  {}", difficulty_display)),
         Line::from(""),
         Line::from("  Controls how many moves"),
@@ -524,17 +615,32 @@ fn build_bot_detail_lines(app: &App) -> Vec<Line<'static>> {
 
 fn build_pgn_detail_lines() -> Vec<Line<'static>> {
     vec![
-        Line::from(vec![Span::styled("Load PGN", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))]),
+        Line::from(vec![Span::styled(
+            "Load PGN",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        )]),
         Line::from(""),
         Line::from("Open a PGN file and step through the"),
         Line::from("game move by move, with auto-play and"),
         Line::from("multi-game navigation."),
         Line::from(""),
-        Line::from(vec![Span::styled("Usage:", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))]),
+        Line::from(vec![Span::styled(
+            "Usage:",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        )]),
         Line::from("  Press Enter, then paste the"),
         Line::from("  absolute path to a .pgn file."),
         Line::from(""),
-        Line::from(vec![Span::styled("Controls in viewer:", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))]),
+        Line::from(vec![Span::styled(
+            "Controls in viewer:",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        )]),
         Line::from("  ← / P: Previous move"),
         Line::from("  → / N: Next move"),
         Line::from("  Space: Toggle auto-play"),
@@ -575,7 +681,11 @@ fn render_spinner(
     is_focused: bool,
     value_width: u16,
 ) {
-    let grey_color = if is_active { Color::White } else { Color::DarkGray };
+    let grey_color = if is_active {
+        Color::White
+    } else {
+        Color::DarkGray
+    };
     let rows = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(1), Constraint::Length(1)])
@@ -584,29 +694,55 @@ fn render_spinner(
     let label_style = if !is_active {
         Style::default().fg(grey_color)
     } else {
-        Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)
+        Style::default()
+            .fg(Color::Cyan)
+            .add_modifier(Modifier::BOLD)
     };
     frame.render_widget(
-        Paragraph::new(format!("{}:", label)).style(label_style).alignment(Alignment::Left),
+        Paragraph::new(format!("{}:", label))
+            .style(label_style)
+            .alignment(Alignment::Left),
         rows[0],
     );
 
     let ctrl_style = if !is_active {
         Style::default().fg(grey_color)
     } else if is_focused {
-        Style::default().fg(Color::Black).bg(Color::Cyan).add_modifier(Modifier::BOLD)
+        Style::default()
+            .fg(Color::Black)
+            .bg(Color::Cyan)
+            .add_modifier(Modifier::BOLD)
     } else {
         Style::default().fg(Color::White)
     };
 
     let cols = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Length(4), Constraint::Length(value_width), Constraint::Length(4)])
+        .constraints([
+            Constraint::Length(4),
+            Constraint::Length(value_width),
+            Constraint::Length(4),
+        ])
         .split(rows[1]);
 
-    frame.render_widget(Paragraph::new("  -").alignment(Alignment::Center).style(ctrl_style), cols[0]);
-    frame.render_widget(Paragraph::new(format!("  {}", value)).alignment(Alignment::Center).style(ctrl_style), cols[1]);
-    frame.render_widget(Paragraph::new("  +").alignment(Alignment::Center).style(ctrl_style), cols[2]);
+    frame.render_widget(
+        Paragraph::new("  -")
+            .alignment(Alignment::Center)
+            .style(ctrl_style),
+        cols[0],
+    );
+    frame.render_widget(
+        Paragraph::new(format!("  {}", value))
+            .alignment(Alignment::Center)
+            .style(ctrl_style),
+        cols[1],
+    );
+    frame.render_widget(
+        Paragraph::new("  +")
+            .alignment(Alignment::Center)
+            .style(ctrl_style),
+        cols[2],
+    );
 }
 
 fn render_multiplayer_form(
@@ -624,12 +760,25 @@ fn render_multiplayer_form(
 
     let mode_label_style = Style::default()
         .fg(if is_active { Color::Cyan } else { grey_color })
-        .add_modifier(if is_active { Modifier::BOLD } else { Modifier::empty() });
-    frame.render_widget(Paragraph::new("Mode:").style(mode_label_style).alignment(Alignment::Left), mode_area[0]);
+        .add_modifier(if is_active {
+            Modifier::BOLD
+        } else {
+            Modifier::empty()
+        });
+    frame.render_widget(
+        Paragraph::new("Mode:")
+            .style(mode_label_style)
+            .alignment(Alignment::Left),
+        mode_area[0],
+    );
 
     let button_area = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Length(8), Constraint::Length(2), Constraint::Length(8)])
+        .constraints([
+            Constraint::Length(8),
+            Constraint::Length(2),
+            Constraint::Length(8),
+        ])
         .split(mode_area[1]);
 
     let is_focused = is_active && app.game_mode_state.form_cursor == 0;
@@ -638,29 +787,52 @@ fn render_multiplayer_form(
     let host_style = if !is_active {
         Style::default().fg(grey_color)
     } else if host_selected {
-        Style::default().fg(Color::Black).bg(Color::White).add_modifier(Modifier::BOLD)
+        Style::default()
+            .fg(Color::Black)
+            .bg(Color::White)
+            .add_modifier(Modifier::BOLD)
     } else if host_focused {
-        Style::default().fg(Color::Black).bg(Color::Cyan).add_modifier(Modifier::BOLD)
+        Style::default()
+            .fg(Color::Black)
+            .bg(Color::Cyan)
+            .add_modifier(Modifier::BOLD)
     } else {
         Style::default().fg(Color::White)
     };
-    frame.render_widget(Paragraph::new("HOST").alignment(Alignment::Center).style(host_style), button_area[0]);
+    frame.render_widget(
+        Paragraph::new("HOST")
+            .alignment(Alignment::Center)
+            .style(host_style),
+        button_area[0],
+    );
 
     let join_selected = app.multiplayer_state.hosting == Some(false);
     let join_style = if !is_active {
         Style::default().fg(grey_color)
     } else if join_selected {
-        Style::default().fg(Color::Black).bg(Color::White).add_modifier(Modifier::BOLD)
+        Style::default()
+            .fg(Color::Black)
+            .bg(Color::White)
+            .add_modifier(Modifier::BOLD)
     } else {
         Style::default().fg(Color::White)
     };
-    frame.render_widget(Paragraph::new("JOIN").alignment(Alignment::Center).style(join_style), button_area[2]);
+    frame.render_widget(
+        Paragraph::new("JOIN")
+            .alignment(Alignment::Center)
+            .style(join_style),
+        button_area[2],
+    );
     *chunk_idx += 1;
 
     render_color_selection_ui(
-        frame, app, form_chunks[*chunk_idx], is_active,
+        frame,
+        app,
+        form_chunks[*chunk_idx],
+        is_active,
         is_active && app.multiplayer_state.hosting == Some(true),
-        grey_color, 1,
+        grey_color,
+        1,
     );
 }
 
@@ -672,31 +844,58 @@ fn render_bot_form(
     is_active: bool,
     grey_color: Color,
 ) {
-    render_time_control_ui(frame, app, form_chunks[*chunk_idx], form_chunks, chunk_idx, is_active, 0);
+    render_time_control_ui(
+        frame,
+        app,
+        form_chunks[*chunk_idx],
+        form_chunks,
+        chunk_idx,
+        is_active,
+        0,
+    );
     *chunk_idx += 1;
 
     let is_custom = app.game_mode_state.clock_cursor == crate::constants::TIME_CONTROL_CUSTOM_INDEX;
     let color_cursor = if is_custom { 2 } else { 1 };
-    render_color_selection_ui(frame, app, form_chunks[*chunk_idx], is_active, is_active, grey_color, color_cursor);
+    render_color_selection_ui(
+        frame,
+        app,
+        form_chunks[*chunk_idx],
+        is_active,
+        is_active,
+        grey_color,
+        color_cursor,
+    );
     *chunk_idx += 1;
 
     let depth_cursor = if is_custom { 3 } else { 2 };
     render_spinner(
-        frame, "Bot Depth", &format!("{}", app.bot_state.bot_depth),
-        form_chunks[*chunk_idx], is_active,
+        frame,
+        "Bot Depth",
+        &format!("{}", app.bot_state.bot_depth),
+        form_chunks[*chunk_idx],
+        is_active,
         is_active && app.game_mode_state.form_cursor == depth_cursor,
         6,
     );
     *chunk_idx += 1;
 
     let elo_cursor = if is_custom { 4 } else { 3 };
-    let elo_display = app.bot_state.bot_difficulty
-        .and_then(|i| ((i as usize) < crate::constants::BOT_DIFFICULTY_NAMES.len()).then_some(crate::constants::BOT_DIFFICULTY_NAMES[i as usize]))
+    let elo_display = app
+        .bot_state
+        .bot_difficulty
+        .and_then(|i| {
+            ((i as usize) < crate::constants::BOT_DIFFICULTY_NAMES.len())
+                .then_some(crate::constants::BOT_DIFFICULTY_NAMES[i as usize])
+        })
         .unwrap_or("Off")
         .to_string();
     render_spinner(
-        frame, "Difficulty", &elo_display,
-        form_chunks[*chunk_idx], is_active,
+        frame,
+        "Difficulty",
+        &elo_display,
+        form_chunks[*chunk_idx],
+        is_active,
         is_active && app.game_mode_state.form_cursor == elo_cursor,
         16,
     );
@@ -704,7 +903,11 @@ fn render_bot_form(
 
 fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: AvailableGameMode) {
     let is_active = app.game_mode_state.form_active;
-    let grey_color = if is_active { Color::White } else { Color::DarkGray };
+    let grey_color = if is_active {
+        Color::White
+    } else {
+        Color::DarkGray
+    };
 
     let form_title = if game_mode == AvailableGameMode::PGNLoader {
         "Press Enter to open a PGN file"
@@ -713,7 +916,10 @@ fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: Av
     } else {
         "Configuration (Press Enter to activate)"
     };
-    let form_block = Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title(form_title);
+    let form_block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .title(form_title);
     let inner_form_area = form_block.inner(area);
     frame.render_widget(form_block, area);
 
@@ -721,26 +927,73 @@ fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: Av
     let form_chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints(match game_mode {
-            AvailableGameMode::Local => if is_custom {
-                vec![Constraint::Length(3), Constraint::Length(3), Constraint::Min(1)]
-            } else {
-                vec![Constraint::Length(3), Constraint::Min(1)]
-            },
-            AvailableGameMode::Multiplayer => vec![Constraint::Length(3), Constraint::Length(3), Constraint::Min(1)],
-            AvailableGameMode::Bot => if is_custom {
-                vec![Constraint::Length(3), Constraint::Length(3), Constraint::Length(3), Constraint::Length(3), Constraint::Length(3), Constraint::Min(1)]
-            } else {
-                vec![Constraint::Length(3), Constraint::Length(3), Constraint::Length(3), Constraint::Length(3), Constraint::Min(1)]
-            },
+            AvailableGameMode::Local => {
+                if is_custom {
+                    vec![
+                        Constraint::Length(3),
+                        Constraint::Length(3),
+                        Constraint::Min(1),
+                    ]
+                } else {
+                    vec![Constraint::Length(3), Constraint::Min(1)]
+                }
+            }
+            AvailableGameMode::Multiplayer => vec![
+                Constraint::Length(3),
+                Constraint::Length(3),
+                Constraint::Min(1),
+            ],
+            AvailableGameMode::Bot => {
+                if is_custom {
+                    vec![
+                        Constraint::Length(3),
+                        Constraint::Length(3),
+                        Constraint::Length(3),
+                        Constraint::Length(3),
+                        Constraint::Length(3),
+                        Constraint::Min(1),
+                    ]
+                } else {
+                    vec![
+                        Constraint::Length(3),
+                        Constraint::Length(3),
+                        Constraint::Length(3),
+                        Constraint::Length(3),
+                        Constraint::Min(1),
+                    ]
+                }
+            }
             AvailableGameMode::PGNLoader => vec![Constraint::Min(3)],
         })
         .split(inner_form_area);
 
     let mut chunk_idx = 0;
     match game_mode {
-        AvailableGameMode::Local => render_time_control_ui(frame, app, form_chunks[chunk_idx], &form_chunks, &mut chunk_idx, is_active, 0),
-        AvailableGameMode::Multiplayer => render_multiplayer_form(frame, app, &form_chunks, &mut chunk_idx, is_active, grey_color),
-        AvailableGameMode::Bot => render_bot_form(frame, app, &form_chunks, &mut chunk_idx, is_active, grey_color),
+        AvailableGameMode::Local => render_time_control_ui(
+            frame,
+            app,
+            form_chunks[chunk_idx],
+            &form_chunks,
+            &mut chunk_idx,
+            is_active,
+            0,
+        ),
+        AvailableGameMode::Multiplayer => render_multiplayer_form(
+            frame,
+            app,
+            &form_chunks,
+            &mut chunk_idx,
+            is_active,
+            grey_color,
+        ),
+        AvailableGameMode::Bot => render_bot_form(
+            frame,
+            app,
+            &form_chunks,
+            &mut chunk_idx,
+            is_active,
+            grey_color,
+        ),
         AvailableGameMode::PGNLoader => {}
     }
 }

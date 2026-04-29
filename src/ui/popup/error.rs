@@ -1,5 +1,6 @@
 //! Generic error message popup.
 
+use crate::ui::components::centered_rect::centered_rect;
 use ratatui::{
     layout::Alignment,
     style::{Color, Style},
@@ -7,7 +8,6 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Wrap},
     Frame,
 };
-use crate::ui::components::centered_rect::centered_rect;
 
 /// Renders a centered red-bordered popup displaying `error_message`.
 pub fn render_error_popup(frame: &mut Frame, error_message: &str) {

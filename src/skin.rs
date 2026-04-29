@@ -1,12 +1,12 @@
 //! Board skin and piece style types.
 
-use crate::constants::{DisplayMode, config_dir};
+use crate::app::AppResult;
+use crate::constants::{config_dir, DisplayMode};
 use ratatui::style::Color;
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
 use std::io::{BufRead, Write};
 use std::path::Path;
-use crate::app::AppResult;
 
 fn default_piece_style_str() -> String {
     DisplayMode::DEFAULT.to_string()
@@ -102,19 +102,19 @@ impl Skin {
 
     /// Writes the built-in `default_skins.json` to `skins_path`, creating parent dirs as needed.
     pub fn create_default_skins_file(skins_path: &Path) -> AppResult<()> {
-    // Ensure the directory exists
-    if let Some(parent) = skins_path.parent() {
-        std::fs::create_dir_all(parent)?;
+        // Ensure the directory exists
+        if let Some(parent) = skins_path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+
+        // Default skins.json content (embedded at compile time)
+        const DEFAULT_SKINS: &str = include_str!("default_skins.json");
+
+        let mut file = File::create(skins_path)?;
+        file.write_all(DEFAULT_SKINS.as_bytes())?;
+
+        Ok(())
     }
-
-    // Default skins.json content (embedded at compile time)
-    const DEFAULT_SKINS: &str = include_str!("default_skins.json");
-
-    let mut file = File::create(skins_path)?;
-    file.write_all(DEFAULT_SKINS.as_bytes())?;
-
-    Ok(())
-}
 
     #[must_use]
     pub fn get_skin_by_name(skins: &[Skin], name: &str) -> Option<Skin> {
@@ -142,7 +142,8 @@ impl Skin {
 
         if !skins_path.exists() {
             let mut file = File::create(&skins_path).map_err(|e| e.to_string())?;
-            file.write_all(DEFAULT_SKINS.as_bytes()).map_err(|e| e.to_string())?;
+            file.write_all(DEFAULT_SKINS.as_bytes())
+                .map_err(|e| e.to_string())?;
             println!(
                 "Created skins.json with default content at {}",
                 skins_path.display()
@@ -157,7 +158,10 @@ impl Skin {
         std::io::stdout().flush().map_err(|e| e.to_string())?;
 
         let mut line = String::new();
-        std::io::stdin().lock().read_line(&mut line).map_err(|e| e.to_string())?;
+        std::io::stdin()
+            .lock()
+            .read_line(&mut line)
+            .map_err(|e| e.to_string())?;
         let answer = line.trim().to_lowercase();
 
         if answer != "y" && answer != "yes" {
@@ -171,7 +175,8 @@ impl Skin {
 
         fs::copy(&skins_path, &archive_path).map_err(|e| e.to_string())?;
         let mut file = File::create(&skins_path).map_err(|e| e.to_string())?;
-        file.write_all(DEFAULT_SKINS.as_bytes()).map_err(|e| e.to_string())?;
+        file.write_all(DEFAULT_SKINS.as_bytes())
+            .map_err(|e| e.to_string())?;
 
         println!(
             "Archived previous config to {} and updated skins.json with default.",

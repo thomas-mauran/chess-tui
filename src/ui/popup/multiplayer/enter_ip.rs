@@ -1,16 +1,17 @@
 //! IP address entry popup for joining a hosted multiplayer game.
 
+use crate::ui::prompt::Prompt;
 use crate::{
-    constants::{NETWORK_PORT, WHITE}, ui::components::centered_rect::centered_rect,
+    constants::{NETWORK_PORT, WHITE},
+    ui::components::centered_rect::centered_rect,
 };
 use ratatui::{
     layout::{Alignment, Position},
-    style::{Style},
+    style::Style,
     text::Line,
     widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Wrap},
     Frame,
 };
-use crate::ui::prompt::Prompt;
 
 /// Renders a text input for entering the host's IP address and port.
 pub fn render_enter_multiplayer_ip(frame: &mut Frame, prompt: &Prompt) {

@@ -2,7 +2,8 @@
 mod local_game_tests {
     use chess_tui::{
         app::{App, AppResult},
-        game_logic::coord::Coord, handlers::handler::handle_key_events
+        game_logic::coord::Coord,
+        handlers::handler::handle_key_events,
     };
     use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
     use shakmaty::{Color, Square};
