@@ -124,7 +124,7 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `Free and Opensource <3.`,
+      copyright: `Free and Opensource Forever ♥`,
     },
   } satisfies Preset.ThemeConfig,
 

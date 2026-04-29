@@ -41,7 +41,7 @@ Zoom shortcuts may differ depending on your terminal. If Ctrl+/- doesn't work, t
    ```
    Then check `CONFIG_DIR/chess-tui/logs/`.
 
-See [Bot Configuration](/docs/Configuration/bot) for full setup details.
+See [Bot Configuration](/docs/Bot) for full setup details.
 
 ## No sound
 
