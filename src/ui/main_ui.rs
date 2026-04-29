@@ -47,119 +47,20 @@ use std::path::Path;
 pub fn render(app: &mut App, frame: &mut Frame<'_>) {
     let main_area = frame.area();
 
-    //TODO: Use a mega match
-    // Solo game
-    if app.ui_state.current_page == Pages::Solo {
-        render_game_ui(frame, app, main_area);
-    }
-    // Multiplayer game
-    else if app.ui_state.current_page == Pages::Multiplayer {
-        app.game_mode_state.resolve_selected_color();
-        // Don't override Error popup
-        if app.ui_state.current_popup != Some(Popups::Error) {
-            if app.game.logic.opponent.is_none() {
-                if app.multiplayer_state.host_ip.is_none() {
-                    if app.multiplayer_state.hosting == Some(true) {
-                        if let Some(color) = app.game_mode_state.selected_color {
-                            setup_game_server(color);
-                            app.multiplayer_state.host_ip = Some("127.0.0.1".to_string());
-                        }
-                    } else {
-                        app.ui_state.current_popup = Some(Popups::EnterHostIP);
-                    }
-                } else {
-                    app.create_opponent();
-                }
-            } else if app
-                .game
-                .logic
-                .opponent
-                .as_ref()
-                .is_some_and(|opponent| opponent.game_started)
-            {
+    match app.ui_state.current_page {
+        Pages::Solo => render_game_ui(frame, app, main_area),
+        Pages::Multiplayer => render_multiplayer_page(frame, app, main_area),
+        Pages::Lichess => {
+            if app.game.logic.opponent.is_some() {
                 render_game_ui(frame, app, main_area);
             }
         }
-    }
-    // Lichess game
-    else if app.ui_state.current_page == Pages::Lichess {
-        if app.game.logic.opponent.is_some() {
-            render_game_ui(frame, app, main_area);
-        }
-    }
-    // Play against bot
-    else if app.ui_state.current_page == Pages::Bot {
-        // Check if engine path is configured
-        if app
-            .bot_state
-            .chess_engine_path
-            .as_ref()
-            .is_none_or(|path| path.is_empty())
-        {
-            app.ui_state.popup_message = Some(
-                "Chess engine path not configured.\n\n".to_string()
-                    + "To configure the chess engine follow the documentation: https://thomas-mauran.github.io/chess-tui/docs/Configuration/bot\n\n"
-                    + "Example:\n"
-                    + "chess-tui -e /opt/homebrew/opt/stockfish\n"
-                    + " or execute the script: ./scripts/install-stockfish.sh\n"
-                    + "to install stockfish automatically and set it as the chess engine path \n"
-            );
-            app.ui_state.current_popup = Some(Popups::Error);
-        }
-        // Check if engine path exists and is a valid file
-        else if let Some(engine_path) = &app.bot_state.chess_engine_path {
-            // Extract just the command path (first part before any arguments)
-            let command_path = engine_path.split_whitespace().next().unwrap_or(engine_path);
-            let path = Path::new(command_path);
-            if !path.exists() || !path.is_file() {
-                app.ui_state.popup_message = Some(
-                    format!(
-                        "Chess engine path is invalid.\n\n\
-                        The configured path does not exist or is not a file:\n\
-                        {}\n\n\
-                        Please check the path and update it in your configuration.\n\n\
-                        To configure the chess engine follow the documentation: https://thomas-mauran.github.io/chess-tui/docs/Configuration/bot\n\n\
-                        Example:\n\
-                        chess-tui -e /opt/homebrew/bin/stockfish\n\
-                        or execute the script: ./scripts/install-stockfish.sh\n\
-                        to install stockfish automatically and set it as the chess engine path",
-                        command_path
-                    )
-                );
-                app.ui_state.current_popup = Some(Popups::Error);
-            }
-        }
-
-        // If we passed all validation checks, proceed with bot setup
-        if app.ui_state.current_popup != Some(Popups::Error) {
-            // Resolve the selected color before the bot is initialized.
-            app.game_mode_state.resolve_selected_color();
-            if app.game.logic.bot.is_none() {
-                app.bot_setup();
-            } else {
-                render_game_ui(frame, app, main_area);
-            }
-        }
-    }
-    // Lichess menu
-    else if app.ui_state.current_page == Pages::LichessMenu {
-        render_lichess_menu(frame, app);
-    }
-    // Game mode menu
-    else if app.ui_state.current_page == Pages::GameModeMenu {
-        render_game_mode_menu(frame, app);
-    }
-    // Ongoing games list
-    else if app.ui_state.current_page == Pages::OngoingGames {
-        render_ongoing_games(frame, app);
-    }
-    // PGN viewer
-    else if app.ui_state.current_page == Pages::PgnViewer {
-        render_pgn_viewer(frame, app);
-    }
-    // Render menu
-    else {
-        render_menu_ui(frame, app, main_area);
+        Pages::Bot => render_bot_page(frame, app, main_area),
+        Pages::LichessMenu => render_lichess_menu(frame, app),
+        Pages::GameModeMenu => render_game_mode_menu(frame, app),
+        Pages::OngoingGames => render_ongoing_games(frame, app),
+        Pages::PgnViewer => render_pgn_viewer(frame, app),
+        Pages::Home | Pages::Credit => render_menu_ui(frame, app, main_area),
     }
 
     if app.ui_state.current_page == Pages::Credit {
@@ -234,5 +135,68 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
             render_puzzle_end_popup(frame, &message, elo_change, is_calculating);
         }
         _ => {}
+    }
+}
+
+fn render_multiplayer_page(frame: &mut Frame<'_>, app: &mut App, main_area: ratatui::layout::Rect) {
+    app.game_mode_state.resolve_selected_color();
+    if app.ui_state.current_popup == Some(Popups::Error) {
+        return;
+    }
+    if app.game.logic.opponent.is_none() {
+        if app.multiplayer_state.host_ip.is_none() {
+            if app.multiplayer_state.hosting == Some(true) {
+                if let Some(color) = app.game_mode_state.selected_color {
+                    setup_game_server(color);
+                    app.multiplayer_state.host_ip = Some("127.0.0.1".to_string());
+                }
+            } else {
+                app.ui_state.current_popup = Some(Popups::EnterHostIP);
+            }
+        } else {
+            app.create_opponent();
+        }
+    } else if app.game.logic.opponent.as_ref().is_some_and(|o| o.game_started) {
+        render_game_ui(frame, app, main_area);
+    }
+}
+
+fn render_bot_page(frame: &mut Frame<'_>, app: &mut App, main_area: ratatui::layout::Rect) {
+    if app.bot_state.chess_engine_path.as_ref().is_none_or(|p| p.is_empty()) {
+        app.ui_state.popup_message = Some(
+            "Chess engine path not configured.\n\n".to_string()
+                + "To configure the chess engine follow the documentation: https://thomas-mauran.github.io/chess-tui/docs/Configuration/bot\n\n"
+                + "Example:\n"
+                + "chess-tui -e /opt/homebrew/opt/stockfish\n"
+                + " or execute the script: ./scripts/install-stockfish.sh\n"
+                + "to install stockfish automatically and set it as the chess engine path \n",
+        );
+        app.ui_state.current_popup = Some(Popups::Error);
+    } else if let Some(engine_path) = &app.bot_state.chess_engine_path {
+        let command_path = engine_path.split_whitespace().next().unwrap_or(engine_path);
+        if !Path::new(command_path).exists() || !Path::new(command_path).is_file() {
+            app.ui_state.popup_message = Some(format!(
+                "Chess engine path is invalid.\n\n\
+                The configured path does not exist or is not a file:\n\
+                {}\n\n\
+                Please check the path and update it in your configuration.\n\n\
+                To configure the chess engine follow the documentation: https://thomas-mauran.github.io/chess-tui/docs/Configuration/bot\n\n\
+                Example:\n\
+                chess-tui -e /opt/homebrew/bin/stockfish\n\
+                or execute the script: ./scripts/install-stockfish.sh\n\
+                to install stockfish automatically and set it as the chess engine path",
+                command_path
+            ));
+            app.ui_state.current_popup = Some(Popups::Error);
+        }
+    }
+
+    if app.ui_state.current_popup != Some(Popups::Error) {
+        app.game_mode_state.resolve_selected_color();
+        if app.game.logic.bot.is_none() {
+            app.bot_setup();
+        } else {
+            render_game_ui(frame, app, main_area);
+        }
     }
 }

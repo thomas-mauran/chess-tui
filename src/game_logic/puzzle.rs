@@ -1,5 +1,6 @@
 //! Lichess puzzle state and move validation.
 
+use crate::constants::SLEEP_DURATION_PUZZLE_MS;
 use crate::game_logic::game::Game;
 use crate::game_logic::game::GameState;
 use crate::game_logic::game_board::GameBoard;
@@ -201,7 +202,7 @@ impl PuzzleGame {
                     .submit_puzzle_result(&puzzle_id, win, Some(time_ms))
                     .is_ok()
                 {
-                    std::thread::sleep(Duration::from_millis(1500));
+                    std::thread::sleep(Duration::from_millis(SLEEP_DURATION_PUZZLE_MS));
                     if let Ok(updated_profile) = client.get_user_profile() {
                         if let Some(perfs) = &updated_profile.perfs {
                             if let Some(puzzle_perf) = &perfs.puzzle {

@@ -1,7 +1,7 @@
 //! Lichess authentication, game streaming, and puzzle management.
 
 use crate::app::App;
-use crate::constants::{Pages, Popups};
+use crate::constants::{Pages, Popups, SLEEP_DURATION_RESIGN_MS};
 use crate::game_logic::game::GameState;
 use crate::game_logic::opponent::Opponent;
 use crate::game_logic::puzzle::PuzzleGame;
@@ -473,7 +473,7 @@ impl App {
                 }
 
                 // Wait 500ms for the resignation to be processed on Lichess servers
-                std::thread::sleep(std::time::Duration::from_millis(500));
+                std::thread::sleep(std::time::Duration::from_millis(SLEEP_DURATION_RESIGN_MS));
 
                 // Fetch updated ongoing games list
                 match client.get_ongoing_games() {

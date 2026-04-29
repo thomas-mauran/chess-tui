@@ -1,7 +1,7 @@
 //! TCP multiplayer session setup and teardown.
 
 use crate::app::App;
-use crate::constants::{Popups, NETWORK_PORT};
+use crate::constants::{Popups, NETWORK_PORT, SLEEP_DURATION_LONG_MS};
 use crate::game_logic::opponent::wait_for_game_start;
 use crate::game_logic::opponent::{Opponent, OpponentKind};
 use crate::server::game_server::get_host_ip;
@@ -89,7 +89,7 @@ impl App {
                                     }
                                     Ok(false) => {
                                         // Still waiting, sleep a bit and check again
-                                        std::thread::sleep(std::time::Duration::from_millis(100));
+                                        std::thread::sleep(std::time::Duration::from_millis(SLEEP_DURATION_LONG_MS));
                                     }
                                     Err(e) => {
                                         log::warn!("Failed to start hosted game: {}", e);

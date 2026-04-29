@@ -10,7 +10,25 @@ use std::sync::mpsc::Sender;
 use reqwest::blocking::Client;
 use std::io::{BufRead, BufReader};
 use std::thread;
-//TODO: refactor way too big for nothing
+fn parse_game_color(color_str: &str) -> Color {
+    if color_str == "white" { Color::White } else { Color::Black }
+}
+
+fn send_status_message(status: &str, move_tx: &Sender<String>) {
+    let msg = match status {
+        "mate" | "checkmate" => Some("GAME_STATUS:checkmate"),
+        "draw" | "stalemate" | "repetition" | "insufficient" | "fifty" => {
+            Some("GAME_STATUS:draw")
+        }
+        "resign" => Some("GAME_STATUS:resign"),
+        "aborted" => Some("GAME_STATUS:aborted"),
+        _ => None,
+    };
+    if let Some(m) = msg {
+        let _ = move_tx.send(m.to_string());
+    }
+}
+
 impl LichessClient {
 
 
@@ -85,11 +103,7 @@ impl LichessClient {
                         Ok(EventStreamEvent::GameStart { game }) => {
                             // Check if this is a new game
                             if !initial_game_ids.contains(&game.game_id) {
-                                let color = if game.color == "white" {
-                                    Color::White
-                                } else {
-                                    Color::Black
-                                };
+                                let color = parse_game_color(&game.color);
                                 log::info!(
                                     "Event stream found new game: {} as {:?}",
                                     game.game_id,
@@ -223,22 +237,7 @@ impl LichessClient {
                             // Check for status changes
                             if last_status.as_ref() != Some(&state.status) {
                                 log::info!("Game status changed: {}", state.status);
-                                match state.status.as_str() {
-                                    "mate" | "checkmate" => {
-                                        let _ = move_tx.send("GAME_STATUS:checkmate".to_string());
-                                    }
-                                    "draw" | "stalemate" | "repetition" | "insufficient"
-                                    | "fifty" => {
-                                        let _ = move_tx.send("GAME_STATUS:draw".to_string());
-                                    }
-                                    "resign" => {
-                                        let _ = move_tx.send("GAME_STATUS:resign".to_string());
-                                    }
-                                    "aborted" => {
-                                        let _ = move_tx.send("GAME_STATUS:aborted".to_string());
-                                    }
-                                    _ => {}
-                                }
+                                send_status_message(&state.status, &move_tx);
                                 last_status = Some(state.status.clone());
                             }
 
@@ -320,26 +319,7 @@ impl LichessClient {
                                         .and_then(|n| n.as_str())
                                     {
                                         if last_status.as_ref() != Some(&status.to_string()) {
-                                            match status {
-                                                "mate" | "checkmate" => {
-                                                    let _ = move_tx
-                                                        .send("GAME_STATUS:checkmate".to_string());
-                                                }
-                                                "draw" | "stalemate" | "repetition"
-                                                | "insufficient" | "fifty" => {
-                                                    let _ = move_tx
-                                                        .send("GAME_STATUS:draw".to_string());
-                                                }
-                                                "resign" => {
-                                                    let _ = move_tx
-                                                        .send("GAME_STATUS:resign".to_string());
-                                                }
-                                                "aborted" => {
-                                                    let _ = move_tx
-                                                        .send("GAME_STATUS:aborted".to_string());
-                                                }
-                                                _ => {}
-                                            }
+                                            send_status_message(status, &move_tx);
                                             last_status = Some(status.to_string());
                                         }
                                     }

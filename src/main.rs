@@ -3,7 +3,7 @@ extern crate chess_tui;
 
 use chess_tui::app::{App, AppResult};
 use chess_tui::config::{Args, Config};
-use chess_tui::constants::{config_dir, DisplayMode, Pages};
+use chess_tui::constants::{config_dir, DisplayMode, Pages, SKIN_NAME_ASCII, SKIN_NAME_DEFAULT};
 use chess_tui::event::{Event, EventHandler};
 use chess_tui::game_logic::opponent::wait_for_game_start;
 use chess_tui::logging;
@@ -119,7 +119,7 @@ fn main() -> AppResult<()> {
                 // Filter out any "Default" or "ASCII" skins from JSON to avoid duplicates
                 let custom_skins: Vec<Skin> = skins
                     .into_iter()
-                    .filter(|s| s.name != "Default" && s.name != "ASCII")
+                    .filter(|s| s.name != SKIN_NAME_DEFAULT && s.name != SKIN_NAME_ASCII)
                     .collect();
                 app.theme_state.available_skins.extend(custom_skins);
             }
@@ -133,7 +133,7 @@ fn main() -> AppResult<()> {
                 // Filter out any "Default" or "ASCII" skins from JSON to avoid duplicates
                 let custom_piece_styles: Vec<PieceStyle> = piece_styles
                     .into_iter()
-                    .filter(|ps| ps.name != "Default" && ps.name != "ASCII")
+                    .filter(|ps| ps.name != SKIN_NAME_DEFAULT && ps.name != SKIN_NAME_ASCII)
                     .collect();
                 app.theme_state.available_piece_styles.extend(custom_piece_styles);
             }
@@ -151,8 +151,8 @@ fn main() -> AppResult<()> {
         app.game.ui.skin = skin.clone();
         // Set display mode based on skin name
         match app.theme_state.selected_skin_name.as_str() {
-            "Default" => app.game.ui.display_mode = DisplayMode::DEFAULT,
-            "ASCII" => app.game.ui.display_mode = DisplayMode::ASCII,
+            SKIN_NAME_DEFAULT => app.game.ui.display_mode = DisplayMode::DEFAULT,
+            SKIN_NAME_ASCII => app.game.ui.display_mode = DisplayMode::ASCII,
             _ => {
                 // For custom skins, set to CUSTOM if not already set
                 if app.game.ui.display_mode == DisplayMode::DEFAULT {

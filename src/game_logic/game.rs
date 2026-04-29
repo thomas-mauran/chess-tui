@@ -84,7 +84,6 @@ impl Clone for Game {
 }
 
 impl Game {
-    // SETTERS
     pub fn new(game_board: GameBoard, player_turn: Color) -> Self {
         Self {
             logic: GameLogic {
@@ -101,7 +100,7 @@ impl Game {
         self.logic.switch_player_turn();
     }
 
-    // Methods to select a cell on the board
+    /// Methods to select a cell on the board
     pub fn handle_cell_click(&mut self, player_color: Option<shakmaty::Color>) {
         // In TCP multiplayer mode, check if it's the player's turn
         if let Some(opponent) = &self.logic.opponent {
@@ -162,6 +161,7 @@ impl Game {
         self.logic.update_game_state();
     }
 
+    /// Method to take care of the promotion after the selection
     pub fn handle_promotion(&mut self, should_flip: bool) {
         let role = match self.ui.promotion_cursor {
             0 => Role::Queen,
@@ -196,6 +196,7 @@ impl Game {
             self.logic.execute_bot_move();
         }
     }
+
     /// Handle bot-specific logic after a move
     fn handle_after_move_bot_logic(&mut self) {
         if self.logic.bot.is_some() {
@@ -264,6 +265,7 @@ impl Game {
         }
     }
 
+    /// Method to handle what we do after selecting a new cell with one already selected
     pub fn already_selected_cell_action(&mut self) {
         let Some(selected_square) = self.ui.selected_square else {
             return;
@@ -321,6 +323,7 @@ impl Game {
         self.handle_after_move_opponent_logic();
     }
 
+    /// Method applied after selecting a cell on the board
     pub fn select_cell(&mut self) {
         // Is really needed?
         let square: Square = self.ui.cursor_coordinates.into();
@@ -465,9 +468,8 @@ impl GameLogic {
         }
     }
 
-    /* Method to make a move for the bot
-       We use the UCI protocol to communicate with the chess engine
-    */
+    /// Method to make a move for the bot
+    /// We use the UCI protocol to communicate with the chess engine
     pub fn execute_bot_move(&mut self) {
         // Check if bot exists
         let bot = match self.bot.as_mut() {
@@ -545,7 +547,7 @@ impl GameLogic {
         crate::sound::play_move_sound();
     }
 
-    // Method to promote a pawn
+    /// Method to promote a pawn
     pub fn promote_piece(&mut self, role: Role, should_flip: bool) {
         if let Some(last_move) = self.game_board.move_history.last().cloned() {
             let new_piece = role;
@@ -694,6 +696,7 @@ impl GameLogic {
         Some((from, to, promotion_piece))
     }
 
+    /// Method to apply the opponent move (multiplayer game mode)
     pub fn execute_opponent_move(&mut self) -> bool {
         let opponent = if let Some(opp) = self.opponent.as_mut() {
             opp

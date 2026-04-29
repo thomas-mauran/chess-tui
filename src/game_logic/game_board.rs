@@ -3,10 +3,11 @@
 use super::coord::Coord;
 use shakmaty::{san::San, Chess, Color, Move, Piece, Position, Rank, Role, Square};
 
-/// ## visual representation
+/// ## Visual representation
 ///
-/// ### how it's stored:
+/// ### How it's stored:
 ///
+/// ```text
 /// . a b c d e f g h .
 /// 8 ♖ ♘ ♗ ♕ ♔ ♗ ♘ ♖ 8
 /// 7 ♙ ♙ ♙ ♙ ♙ ♙ ♙ ♙ 7
@@ -17,17 +18,19 @@ use shakmaty::{san::San, Chess, Color, Move, Piece, Position, Rank, Role, Square
 /// 2 ♟ ♟ ♟ ♟ ♟ ♟ ♟ ♟ 2
 /// 1 ♜ ♞ ♝ ♛ ♚ ♝ ♞ ♜ 1
 /// . a b c d e f g h .
-/// only the pure gameboard, no additional information
+/// ```
 ///
+/// Only the pure gameboard, no additional information.
 #[derive(Debug, Clone)]
 pub struct GameBoard {
-    // historic of the past Moves of the board
+    // Historic of the past Moves of the board
     pub move_history: Vec<Move>,
-    /// historic of the past gameboards states.
+    /// Historic of the past gameboards states.
     /// The last position is the current position.
     pub position_history: Vec<Chess>,
-    // the number of consecutive non pawn or capture moves
+    // The number of consecutive non pawn or capture moves
     pub consecutive_non_pawn_or_capture: i32,
+    /// Stores the captured pieces
     pub taken_pieces: Vec<Piece>,
     /// Track if the board is currently flipped (for coordinate conversion)
     pub is_flipped: bool,
@@ -104,11 +107,11 @@ impl GameBoard {
             self.position_history
                 .get(index)
                 .or_else(|| self.position_history.last())
-                .unwrap_or_else(|| panic!("Position history is empty"))
+                .expect("Position history is empty — board was not initialized correctly")
         } else {
             self.position_history
                 .last()
-                .unwrap_or_else(|| panic!("Position history is empty"))
+                .expect("Position history is empty — board was not initialized correctly")
         }
     }
 
@@ -122,7 +125,7 @@ impl GameBoard {
         }
     }
 
-    // Check if the game is a draw by repetition
+    /// Check if the game is a draw by repetition
     pub fn is_draw_by_repetition(&self) -> bool {
         let mut position_counts = std::collections::HashMap::new();
         for board in self.position_history.iter() {
@@ -136,7 +139,7 @@ impl GameBoard {
         false
     }
 
-    // Check if the game is a draw
+    /// Check if the game is a draw
     pub fn is_draw(&self) -> bool {
         let chess = self.position_ref();
         chess.is_stalemate()
@@ -145,6 +148,7 @@ impl GameBoard {
             || chess.is_insufficient_material()
     }
 
+    /// Check if the last move was a promotion
     // We check manually if the last move was a pawn to one of the promotion squares
     // AND the promotion hasn't been handled yet (no promotion piece set)
     pub fn is_latest_move_promotion(&self) -> bool {
@@ -171,10 +175,12 @@ impl GameBoard {
             .map(|p| p.role)
     }
 
+    /// Check if a square as a piece on it
     pub fn is_square_occupied(&self, square: &Square) -> bool {
         self.position_ref().board().piece_at(*square).is_some()
     }
 
+    /// Get the color of a piece on a given square
     pub fn get_piece_color_at_square(&self, square: &Square) -> Option<Color> {
         let piece = self.position_ref().board().piece_at(*square);
         piece.map(|p| p.color)
@@ -207,23 +213,14 @@ impl GameBoard {
         chess.is_check() && chess.turn() == player_turn
     }
 
-    /// Get the king's coordinates
-    pub fn get_king_coordinates(&self, color: Color) -> Coord {
-        let king_square = match self.position_ref().board().king_of(color) {
-            Some(sq) => sq,
-            None => {
-                // King should always be in a square.
-                panic!("King not found for color {:?} (invalid board state)", color);
-            }
-        };
+    /// Get the king's coordinates, or `None` if the board is in an invalid state.
+    pub fn get_king_coordinates(&self, color: Color) -> Option<Coord> {
+        let king_square = self.position_ref().board().king_of(color)?;
         let mut coord = Coord::from(king_square);
-
-        // If board is flipped, flip the coordinate for display
         if self.is_flipped {
             coord = coord.reverse();
         }
-
-        coord
+        Some(coord)
     }
 
     /// Check if game is checkmate
@@ -586,6 +583,7 @@ impl GameBoard {
 
     // Execute a move on the shakmaty Chess position and sync the visual board
     // Optionally specify a promotion piece type
+    /// Wrapper to execute a move from shakmaty
     pub fn execute_shakmaty_move(&mut self, from: Square, to: Square) -> Option<Move> {
         self.execute_move(from, to, None)
     }

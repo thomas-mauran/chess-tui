@@ -573,9 +573,9 @@ fn render_spinner(
     area: Rect,
     is_active: bool,
     is_focused: bool,
-    grey_color: Color,
     value_width: u16,
 ) {
+    let grey_color = if is_active { Color::White } else { Color::DarkGray };
     let rows = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(1), Constraint::Length(1)])
@@ -685,7 +685,7 @@ fn render_bot_form(
         frame, "Bot Depth", &format!("{}", app.bot_state.bot_depth),
         form_chunks[*chunk_idx], is_active,
         is_active && app.game_mode_state.form_cursor == depth_cursor,
-        grey_color, 6,
+        6,
     );
     *chunk_idx += 1;
 
@@ -698,7 +698,7 @@ fn render_bot_form(
         frame, "Difficulty", &elo_display,
         form_chunks[*chunk_idx], is_active,
         is_active && app.game_mode_state.form_cursor == elo_cursor,
-        grey_color, 16,
+        16,
     );
 }
 

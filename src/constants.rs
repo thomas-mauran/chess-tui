@@ -20,6 +20,20 @@ pub const NETWORK_BUFFER_SIZE: usize = 5;
 pub const SLEEP_DURATION_SHORT_MS: u64 = 50;
 /// Longer poll interval used for less time-sensitive waits.
 pub const SLEEP_DURATION_LONG_MS: u64 = 100;
+/// Wait after sending a resign to Lichess before continuing.
+pub const SLEEP_DURATION_RESIGN_MS: u64 = 500;
+/// Pause after showing puzzle solution before proceeding.
+pub const SLEEP_DURATION_PUZZLE_MS: u64 = 1500;
+
+/// Seconds in one day, used for converting timestamps to day units.
+pub const SECONDS_PER_DAY: f64 = 86400.0;
+/// Number of days of rating history shown in the chart.
+pub const RATING_HISTORY_DAYS: i64 = 90;
+
+/// Name of the built-in default skin entry.
+pub const SKIN_NAME_DEFAULT: &str = "Default";
+/// Name of the built-in ASCII skin entry.
+pub const SKIN_NAME_ASCII: &str = "ASCII";
 
 /// Index into [`TIME_CONTROL_OPTIONS`] that selects the "Custom" entry.
 pub const TIME_CONTROL_CUSTOM_INDEX: u8 = 6;

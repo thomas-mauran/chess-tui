@@ -8,7 +8,10 @@ use shakmaty::Color;
 use std::error::Error;
 use std::io::{BufRead, BufReader};
 
-//TODO: refactor way too big for nothing
+fn parse_game_color(color_str: &str) -> Color {
+    if color_str == "white" { Color::White } else { Color::Black }
+}
+
 impl LichessClient {
 
     /// Get turn count and last move from public API
@@ -249,11 +252,7 @@ impl LichessClient {
         // First, try to get the game from ongoing games (for already-started games)
         if let Ok(ongoing_games) = self.get_ongoing_games() {
             if let Some(game) = ongoing_games.iter().find(|g| g.game_id == game_id) {
-                let color = if game.color == "white" {
-                    Color::White
-                } else {
-                    Color::Black
-                };
+                let color = parse_game_color(&game.color);
                 log::info!("Found game in ongoing games: {} as {:?}", game_id, color);
                 return Ok((game_id.to_string(), color));
             }
@@ -312,11 +311,7 @@ impl LichessClient {
             // Check ongoing games first
             if let Ok(ongoing_games) = self.get_ongoing_games() {
                 if let Some(game) = ongoing_games.iter().find(|g| g.game_id == game_id) {
-                    let color = if game.color == "white" {
-                        Color::White
-                    } else {
-                        Color::Black
-                    };
+                    let color = parse_game_color(&game.color);
                     log::info!(
                         "Found game in ongoing games after polling: {} as {:?}",
                         game_id,
@@ -428,11 +423,7 @@ impl LichessClient {
                                 if let Some(game) =
                                     ongoing_games.iter().find(|g| g.game_id == game_id)
                                 {
-                                    let color = if game.color == "white" {
-                                        Color::White
-                                    } else {
-                                        Color::Black
-                                    };
+                                    let color = parse_game_color(&game.color);
                                     log::info!(
                                         "Found game in ongoing games after GameState: {} as {:?}",
                                         game_id,

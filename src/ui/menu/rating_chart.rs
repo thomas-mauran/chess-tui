@@ -1,5 +1,6 @@
 //! Rating history chart rendering for the Lichess menu.
 
+use crate::constants::{RATING_HISTORY_DAYS, SECONDS_PER_DAY};
 use crate::lichess::models::RatingHistoryEntry;
 use chrono::{DateTime, NaiveDate, Utc};
 use ratatui::{
@@ -18,7 +19,7 @@ pub(super) fn render_rating_history_chart(
     history: &[RatingHistoryEntry],
     area: Rect,
 ) {
-    let cutoff_days = (Utc::now() - chrono::Duration::days(90)).timestamp() as f64 / 86400.0;
+    let cutoff_days = (Utc::now() - chrono::Duration::days(RATING_HISTORY_DAYS)).timestamp() as f64 / SECONDS_PER_DAY;
     let color_map = get_time_control_colors();
 
     let (datasets_data, dataset_names, bounds) = match process_rating_data(history, cutoff_days) {
@@ -49,7 +50,7 @@ pub(super) fn render_rating_history_chart(
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .title("Rating History (last 90 days");
+        .title(format!("Rating History (last {} days", RATING_HISTORY_DAYS));
     let inner_area = block.inner(area);
     let max_date_with_padding =
         calculate_x_padding(max_date, min_date, &last_points, inner_area.width);
@@ -91,7 +92,7 @@ fn point_to_days(year: i32, month: i32, day: i32) -> Option<f64> {
     NaiveDate::from_ymd_opt(year, (month + 1) as u32, day as u32)
         .and_then(|date| date.and_hms_opt(0, 0, 0))
         .map(|datetime| {
-            DateTime::<Utc>::from_naive_utc_and_offset(datetime, Utc).timestamp() as f64 / 86400.0
+            DateTime::<Utc>::from_naive_utc_and_offset(datetime, Utc).timestamp() as f64 / SECONDS_PER_DAY
         })
 }
 
@@ -261,7 +262,7 @@ fn create_x_axis_labels(min_date: f64, max_date: f64) -> Vec<Span<'static>> {
     }
 
     let format_date = |days: f64| {
-        let timestamp = (days * 86400.0) as i64;
+        let timestamp = (days * SECONDS_PER_DAY) as i64;
         DateTime::<Utc>::from_timestamp(timestamp, 0)
             .map(|dt| dt.format("%b %Y").to_string())
             .unwrap_or_else(|| format!("{:.0}", days))
