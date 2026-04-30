@@ -258,7 +258,7 @@ fn parse_single_game(pgn: &str) -> Result<PgnViewer, String> {
         let clean: &str = san_str.trim_end_matches(['+', '#']);
         match clean.parse::<San>() {
             Ok(san) => match san.to_move(&pos) {
-                Ok(mv) => match pos.clone().play(&mv) {
+                Ok(mv) => match pos.clone().play(mv) {
                     Ok(new_pos) => {
                         moves.push(mv);
                         sans.push(san_str.clone());

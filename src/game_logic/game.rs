@@ -520,7 +520,7 @@ impl GameLogic {
         }
 
         // Execute the move and update position
-        let new_position = match current_position.play(&bot_actual_move) {
+        let new_position = match current_position.play(bot_actual_move) {
             Ok(pos) => pos,
             Err(e) => {
                 log::error!("Failed to execute bot move: {}", e);
