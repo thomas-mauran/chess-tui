@@ -1,6 +1,12 @@
+//! Lichess puzzle state and move validation.
+
+use crate::constants::SLEEP_DURATION_PUZZLE_MS;
 use crate::game_logic::game::Game;
-use crate::lichess::{LichessClient, Puzzle};
-use shakmaty::Square;
+use crate::game_logic::game::GameState;
+use crate::game_logic::game_board::GameBoard;
+use crate::lichess::models::{LichessClient, Puzzle};
+use crate::utils::get_coord_from_square;
+use shakmaty::{Position, Square};
 use std::sync::mpsc::Receiver;
 use std::time::{Duration, Instant};
 
@@ -196,7 +202,7 @@ impl PuzzleGame {
                     .submit_puzzle_result(&puzzle_id, win, Some(time_ms))
                     .is_ok()
                 {
-                    std::thread::sleep(Duration::from_millis(1500));
+                    std::thread::sleep(Duration::from_millis(SLEEP_DURATION_PUZZLE_MS));
                     if let Ok(updated_profile) = client.get_user_profile() {
                         if let Some(perfs) = &updated_profile.perfs {
                             if let Some(puzzle_perf) = &perfs.puzzle {
@@ -224,6 +230,17 @@ impl PuzzleGame {
         }
     }
 
+    pub fn show_hint(&self, game: &mut Game) {
+        if game.logic.game_state != GameState::Playing {
+            return;
+        }
+        if let Some(from_square) = self.get_next_move_from_square() {
+            let coord = get_coord_from_square(from_square, game.logic.game_board.is_flipped);
+            game.ui.cursor_coordinates = coord;
+            game.select_cell();
+        }
+    }
+
     /// Get the square of the piece that should move next in the puzzle solution.
     /// Returns None if the puzzle is complete or if there's no next move.
     pub fn get_next_move_from_square(&self) -> Option<Square> {
@@ -245,5 +262,102 @@ impl PuzzleGame {
 
         // Parse the square
         Square::from_ascii(from_str.as_bytes()).ok()
+    }
+
+    pub fn load(client: &LichessClient, game_board: &mut GameBoard) -> Result<Puzzle, String> {
+        match client.get_next_puzzle() {
+            Ok(puzzle) => {
+                log::info!(
+                    "Loaded puzzle: {} (rating: {})",
+                    puzzle.puzzle.id,
+                    puzzle.puzzle.rating
+                );
+                log::info!("Puzzle solution: {:?}", puzzle.puzzle.solution);
+                log::info!("Puzzle themes: {:?}", puzzle.puzzle.themes);
+                log::info!("Puzzle PGN: {}", puzzle.game.pgn);
+
+                // Extract moves from PGN (after the headers)
+                let moves_section = if let Some(moves_start) = puzzle.game.pgn.rfind("\n\n") {
+                    &puzzle.game.pgn[moves_start + 2..]
+                } else {
+                    &puzzle.game.pgn
+                };
+
+                // Parse moves (remove move numbers and result)
+                // Move numbers are in format "1." "2." etc, or just numbers
+                let move_strings: Vec<&str> = moves_section
+                    .split_whitespace()
+                    .filter(|s| {
+                        // Filter out move numbers (e.g., "1.", "2.", "35.")
+                        // Filter out results (*, 1-0, 0-1, 1/2-1/2)
+                        // But keep actual moves like "Kg4", "e4", etc.
+                        !s.ends_with('.')
+                            && *s != "*"
+                            && *s != "1-0"
+                            && *s != "0-1"
+                            && *s != "1/2-1/2"
+                    })
+                    .collect();
+
+                log::info!("Extracted moves: {:?}", move_strings);
+                log::info!("Total moves extracted: {}", move_strings.len());
+
+                // Start from the initial position
+                let mut position = shakmaty::Chess::default();
+                let mut position_history = vec![position.clone()];
+                let mut move_history = Vec::new();
+
+                // Apply moves and store them in history
+                let moves_to_apply = move_strings.len();
+                log::info!("Will apply {} moves", moves_to_apply);
+
+                for (i, move_str) in move_strings.iter().take(moves_to_apply).enumerate() {
+                    if let Ok(san) = shakmaty::san::San::from_ascii(move_str.as_bytes()) {
+                        if let Ok(chess_move) = san.to_move(&position) {
+                            // Store the move before playing it
+                            move_history.push(chess_move.clone());
+
+                            position = match position.play(&chess_move) {
+                                Ok(new_pos) => {
+                                    log::info!("Applied move {}: {}", i + 1, move_str);
+                                    // Store the position after the move
+                                    position_history.push(new_pos.clone());
+                                    new_pos
+                                }
+                                Err(e) => {
+                                    log::error!("Failed to play move {}: {}", move_str, e);
+                                    // Remove the move we just added since it failed
+                                    move_history.pop();
+                                    // Return the default position if move fails
+                                    shakmaty::Chess::default()
+                                }
+                            };
+                        } else {
+                            log::error!("Failed to convert SAN to move: {}", move_str);
+                        }
+                    } else {
+                        log::error!("Failed to parse SAN: {}", move_str);
+                    }
+                }
+
+                log::info!(
+                    "Finished applying moves. Current turn: {:?}",
+                    position.turn()
+                );
+                log::info!(
+                    "Stored {} moves and {} positions in history",
+                    move_history.len(),
+                    position_history.len()
+                );
+
+                // Set up the game with the puzzle position and all past moves
+                game_board.position_history = position_history;
+                game_board.move_history = move_history;
+                game_board.history_position_index = None;
+
+                Ok(puzzle)
+            }
+            Err(e) => Err(e.to_string()),
+        }
     }
 }

@@ -938,4 +938,67 @@ mod tests {
         // Should be same as original latest
         assert_eq!(latest_position, back_to_latest);
     }
+
+    #[test]
+    fn test_reconstruct_history_from_uci_moves() {
+        let mut game_board = GameBoard::default();
+        game_board.reconstruct_history("e2e4 e7e5 g1f3", None);
+
+        assert_eq!(game_board.move_history.len(), 3);
+        assert_eq!(game_board.position_history.len(), 4);
+
+        let fen = game_board.fen_position();
+        assert_eq!(
+            fen,
+            "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2"
+        );
+    }
+
+    #[test]
+    fn test_reconstruct_history_empty_input() {
+        let mut game_board = GameBoard::default();
+        game_board.reconstruct_history("", None);
+        assert_eq!(game_board.move_history.len(), 0);
+        assert_eq!(game_board.position_history.len(), 1);
+    }
+
+    #[test]
+    fn test_reconstruct_history_resets_board_first() {
+        let mut game_board = GameBoard::default();
+        game_board.execute_shakmaty_move(Square::E2, Square::E4);
+        assert_eq!(game_board.position_history.len(), 2);
+
+        game_board.reconstruct_history("d2d4 d7d5", None);
+
+        assert_eq!(game_board.move_history.len(), 2);
+        assert_eq!(game_board.position_history.len(), 3);
+        assert_eq!(game_board.get_role_at_square(&Square::D4), Some(Role::Pawn));
+        assert!(game_board.get_role_at_square(&Square::E4).is_none());
+    }
+
+    #[test]
+    fn test_move_to_san_basic_moves() {
+        let mut game_board = GameBoard::default();
+        game_board.reconstruct_history("e2e4 e7e5 g1f3", None);
+
+        assert_eq!(game_board.move_to_san(0), "e4");
+        assert_eq!(game_board.move_to_san(1), "e5");
+        assert_eq!(game_board.move_to_san(2), "Nf3");
+    }
+
+    #[test]
+    fn test_move_to_san_out_of_bounds() {
+        let game_board = GameBoard::default();
+        assert_eq!(game_board.move_to_san(0), "");
+        assert_eq!(game_board.move_to_san(99), "");
+    }
+
+    #[test]
+    fn test_move_to_san_capture() {
+        let mut game_board = GameBoard::default();
+        // Italian game: e4 e5 Nf3 Nc6 Bc4 then Nxe5 (capture)
+        game_board.reconstruct_history("e2e4 e7e5 g1f3 b8c6 f1c4 f8c5 f3e5", None);
+
+        assert_eq!(game_board.move_to_san(6), "Nxe5");
+    }
 }

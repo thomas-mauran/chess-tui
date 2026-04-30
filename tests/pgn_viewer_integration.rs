@@ -6,7 +6,7 @@
 use chess_tui::{
     app::{App, AppResult},
     constants::{Pages, Popups},
-    handler::handle_key_events,
+    handlers::handler::handle_key_events,
     pgn_viewer::PgnViewer,
 };
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
@@ -33,7 +33,7 @@ fn load_sample_viewer() -> App {
     let mut app = App::default();
     app.pgn_viewer_state = Some(games);
     app.pgn_viewer_game_idx = 0;
-    app.current_page = Pages::PgnViewer;
+    app.ui_state.current_page = Pages::PgnViewer;
     app
 }
 
@@ -41,9 +41,9 @@ fn load_sample_viewer() -> App {
 fn help_popup_opens_in_pgn_mode() -> AppResult<()> {
     let mut app = load_sample_viewer();
     send(&mut app, &[KeyCode::Char('?')])?;
-    assert_eq!(app.current_popup, Some(Popups::Help));
+    assert_eq!(app.ui_state.current_popup, Some(Popups::Help));
     send(&mut app, &[KeyCode::Char('?')])?;
-    assert_eq!(app.current_popup, None);
+    assert_eq!(app.ui_state.current_popup, None);
     Ok(())
 }
 
@@ -164,7 +164,7 @@ fn esc_returns_home_and_does_not_leave_stale_state() -> AppResult<()> {
     // Exit viewer with Esc.
     send(&mut app, &[KeyCode::Esc])?;
 
-    assert_eq!(app.current_page, Pages::Home);
+    assert_eq!(app.ui_state.current_page, Pages::Home);
     assert!(app.pgn_viewer_state.is_none());
     // The critical checks - nothing from the viewer leaks into a fresh game.
     assert!(
@@ -188,11 +188,11 @@ fn can_start_new_local_game_after_viewing_pgn() -> AppResult<()> {
 
     // Exit PGN viewer.
     send(&mut app, &[KeyCode::Esc])?;
-    assert_eq!(app.current_page, Pages::Home);
+    assert_eq!(app.ui_state.current_page, Pages::Home);
 
     // Home → Play Game → Local → start game
     send(&mut app, &[KeyCode::Enter, KeyCode::Enter, KeyCode::Enter])?;
-    assert_eq!(app.current_page, Pages::Solo);
+    assert_eq!(app.ui_state.current_page, Pages::Solo);
     assert!(!app.game.ui.hide_cursor);
     Ok(())
 }

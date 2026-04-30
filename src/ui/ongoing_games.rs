@@ -1,3 +1,5 @@
+//! Ongoing Lichess games list.
+
 use crate::app::App;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},
@@ -7,6 +9,7 @@ use ratatui::{
     Frame,
 };
 
+/// Renders the ongoing Lichess games list with navigation hints.
 pub fn render_ongoing_games(frame: &mut Frame, app: &App) {
     let area = frame.area();
 
@@ -36,7 +39,7 @@ pub fn render_ongoing_games(frame: &mut Frame, app: &App) {
     frame.render_widget(title, chunks[0]);
 
     // Games list
-    let games = &app.ongoing_games;
+    let games = &app.lichess_state.ongoing_games;
     let mut game_lines = vec![Line::from("")];
 
     if games.is_empty() {
@@ -46,7 +49,7 @@ pub fn render_ongoing_games(frame: &mut Frame, app: &App) {
         game_lines.push(Line::from("Use 'Seek Game' to start a new game."));
     } else {
         for (idx, game) in games.iter().enumerate() {
-            let is_selected = app.menu_cursor == idx as u8;
+            let is_selected = app.ui_state.menu_cursor == idx as u8;
 
             let style = if is_selected {
                 Style::default()

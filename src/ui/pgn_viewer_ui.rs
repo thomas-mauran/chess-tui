@@ -1,10 +1,7 @@
-//! PGN viewer UI - renders the chess board + move history for a saved game.
-//!
-//! Re-uses the existing `render_game_ui` layout by syncing the PgnViewer's current
-//! position into `app.game.logic.game_board` before rendering.
+//! PGN viewer page renderer.
 
-use crate::app::App;
-use crate::game_logic::game::GameState;
+use crate::ui::components::centered_rect::centered_rect;
+use crate::{app::App, game_logic::game::GameState, ui::game_ui::render_game_ui};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
@@ -12,8 +9,6 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Wrap},
     Frame,
 };
-
-use super::main_ui::centered_rect;
 
 /// Sync the PgnViewer's current ply into `app.game.logic.game_board` so that
 /// existing board/history render functions see the right position.
@@ -46,6 +41,8 @@ pub fn sync_pgn_to_board(app: &mut App) {
     };
 }
 
+/// Renders the PGN viewer page: game board synced to the current ply, move history, and a footer
+/// showing playback controls and speed.
 pub fn render_pgn_viewer(frame: &mut Frame, app: &mut App) {
     let area = frame.area();
 
@@ -63,7 +60,7 @@ pub fn render_pgn_viewer(frame: &mut Frame, app: &mut App) {
     sync_pgn_to_board(app);
 
     // Render the board using the existing game UI
-    super::main_ui::render_game_ui(frame, app, layout[0]);
+    render_game_ui(frame, app, layout[0]);
 
     // Footer
     render_footer(frame, app, layout[1]);
@@ -138,8 +135,7 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
         Span::raw(" Back"),
     ]);
 
-    let progress = if total_plies > 0 {
-        let pct = current_ply * 20 / total_plies;
+    let progress = if let Some(pct) = (current_ply * 20).checked_div(total_plies) {
         format!(
             "[{}{}] {}/{}",
             "█".repeat(pct),
@@ -224,8 +220,7 @@ fn render_end_banner(frame: &mut Frame, app: &App, board_area: Rect) {
             Style::default()
                 .fg(Color::Yellow)
                 .add_modifier(Modifier::BOLD),
-        ))
-        .alignment(Alignment::Center),
+        )),
         Line::from(""),
         Line::from(Span::styled(
             viewer.result_summary(),
@@ -234,6 +229,10 @@ fn render_end_banner(frame: &mut Frame, app: &App, board_area: Rect) {
                 .add_modifier(Modifier::BOLD),
         ))
         .alignment(Alignment::Center),
+        Line::from(""),
+        Line::from("Press `H` to hide this screen")
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(Color::LightBlue)),
     ];
     if !viewer.termination.is_empty() {
         lines.push(Line::from(""));

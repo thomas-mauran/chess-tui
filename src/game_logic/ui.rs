@@ -1,3 +1,5 @@
+//! Board rendering state and cell context.
+
 use std::fmt::Write as _;
 
 use super::{
@@ -9,7 +11,7 @@ use crate::{
     game_logic::coord::MoveDirection,
     pieces::{role_to_utf_enum, PieceSize},
     skin::{PieceStyle, Skin},
-    ui::{main_ui::render_cell, prompt::Prompt},
+    ui::{components::cell::render_cell, prompt::Prompt},
     utils::{flip_square_if_needed, get_coord_from_square, get_square_from_coord},
 };
 use ratatui::{
@@ -767,7 +769,8 @@ impl UI {
         // - default cell: white or black
         // Draw the cell blue if this is the current cursor cell
         if logic.game_board.is_getting_checked(logic.player_turn)
-            && current_rendering_coord == logic.game_board.get_king_coordinates(logic.player_turn)
+            && Some(current_rendering_coord)
+                == logic.game_board.get_king_coordinates(logic.player_turn)
         {
             render_cell(frame, square, Color::Magenta, Some(Modifier::SLOW_BLINK));
             // Draw the cell green if this is the selected cell or if the cell is part of the last move

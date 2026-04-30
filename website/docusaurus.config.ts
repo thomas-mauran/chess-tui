@@ -79,11 +79,13 @@ const config: Config = {
         },
         { to: '/blog', label: 'Blog', position: 'left' },
         {
-          href: 'https://github.com/thomas-mauran/chess-tui',
+          href: 'https://docs.rs/chess-tui/latest/chess_tui/',
+          label: 'API Docs',
+          position: 'left',
+        },
+        {
+          type: 'custom-github-stars',
           position: 'right',
-          className: 'header-github-link',
-          'aria-label': 'GitHub repository',
-          html: `<img alt="GitHub Stars" src="https://img.shields.io/github/stars/thomas-mauran/chess-tui.svg?style=social&label=Star" />`,
         },
       ],
     },
@@ -122,7 +124,7 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} Thomas Mauran, Inc. Built with Docusaurus.`,
+      copyright: `Free and Opensource Forever ♥`,
     },
   } satisfies Preset.ThemeConfig,
 

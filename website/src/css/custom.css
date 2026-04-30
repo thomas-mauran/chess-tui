@@ -82,6 +82,14 @@ footer.footer a:hover {
   vertical-align: middle;
 }
 
+#challenge{
+  width: 76%;
+}
+
+.feature-img {
+  width: 50%;
+}
+
 /* Make GitHub badge responsive on mobile */
 @media screen and (max-width: 996px) {
   .header-github-link img {

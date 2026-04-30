@@ -1,3 +1,5 @@
+//! Chess clock for both players.
+
 use shakmaty::Color;
 use std::time::{Duration, Instant};
 

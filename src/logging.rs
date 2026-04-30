@@ -1,3 +1,5 @@
+//! Logging setup.
+
 use chrono::Local;
 use log::LevelFilter;
 use simplelog::{CombinedLogger, Config, WriteLogger};

@@ -1,3 +1,5 @@
+//! Game state and move execution.
+
 use super::{
     bot::Bot, clock::Clock, coord::Coord, game_board::GameBoard, opponent::Opponent, ui::UI,
 };
@@ -23,6 +25,8 @@ impl Clone for GameLogic {
             player_turn: self.player_turn,
             game_state: self.game_state,
             clock: self.clock.clone(),
+            game_ended_by_time: self.game_ended_by_time,
+            pending_promotion_move: None,
         }
     }
 }
@@ -40,6 +44,11 @@ pub struct GameLogic {
     pub game_state: GameState,
     /// Chess clock for timing games (optional, for local play and bot games)
     pub clock: Option<Clock>,
+    /// Whether the game ended due to time running out
+    pub game_ended_by_time: bool,
+    /// Pending promotion move for puzzle validation (from, to squares)
+    /// This is set when a promotion move is made and cleared after validation
+    pub pending_promotion_move: Option<(shakmaty::Square, shakmaty::Square)>,
 }
 
 impl Default for GameLogic {
@@ -51,6 +60,8 @@ impl Default for GameLogic {
             player_turn: Color::White,
             game_state: GameState::Playing,
             clock: None,
+            game_ended_by_time: false,
+            pending_promotion_move: None,
         }
     }
 }
@@ -72,7 +83,6 @@ impl Clone for Game {
 }
 
 impl Game {
-    // SETTERS
     pub fn new(game_board: GameBoard, player_turn: Color) -> Self {
         Self {
             logic: GameLogic {
@@ -84,22 +94,12 @@ impl Game {
         }
     }
 
-    /// Allows you to pass a specific GameBoard
-    pub fn set_board(&mut self, game_board: GameBoard) {
-        self.logic.game_board = game_board;
-    }
-
-    /// Allows you to set the player turn
-    pub fn set_player_turn(&mut self, player_turn: Color) {
-        self.logic.player_turn = player_turn;
-    }
-
     /// Switch the player turn
     pub fn switch_player_turn(&mut self) {
         self.logic.switch_player_turn();
     }
 
-    // Methods to select a cell on the board
+    /// Methods to select a cell on the board
     pub fn handle_cell_click(&mut self, player_color: Option<shakmaty::Color>) {
         // In TCP multiplayer mode, check if it's the player's turn
         if let Some(opponent) = &self.logic.opponent {
@@ -160,23 +160,23 @@ impl Game {
         self.logic.update_game_state();
     }
 
+    /// Method to take care of the promotion after the selection
     pub fn handle_promotion(&mut self, should_flip: bool) {
-        // Validate promotion cursor is in valid range (0-3)
-        if self.ui.promotion_cursor >= 0 && self.ui.promotion_cursor <= 3 {
-            if let Ok(promotion_cursor_u8) = self.ui.promotion_cursor.try_into() {
-                self.logic.promote_piece(promotion_cursor_u8, should_flip);
-            } else {
+        let role = match self.ui.promotion_cursor {
+            0 => Role::Queen,
+            1 => Role::Rook,
+            2 => Role::Bishop,
+            3 => Role::Knight,
+            _ => {
                 log::error!(
-                    "Failed to convert promotion cursor {} to u8",
+                    "Promotion cursor {} is out of valid range (0-3)",
                     self.ui.promotion_cursor
                 );
+                self.ui.promotion_cursor = 0;
+                return;
             }
-        } else {
-            log::error!(
-                "Promotion cursor {} is out of valid range (0-3)",
-                self.ui.promotion_cursor
-            );
-        }
+        };
+        self.logic.promote_piece(role, should_flip);
         self.ui.promotion_cursor = 0;
 
         // Switch player turn (this will start the opponent's clock)
@@ -195,6 +195,7 @@ impl Game {
             self.logic.execute_bot_move();
         }
     }
+
     /// Handle bot-specific logic after a move
     fn handle_after_move_bot_logic(&mut self) {
         if self.logic.bot.is_some() {
@@ -263,6 +264,7 @@ impl Game {
         }
     }
 
+    /// Method to handle what we do after selecting a new cell with one already selected
     pub fn already_selected_cell_action(&mut self) {
         let Some(selected_square) = self.ui.selected_square else {
             return;
@@ -320,6 +322,7 @@ impl Game {
         self.handle_after_move_opponent_logic();
     }
 
+    /// Method applied after selecting a cell on the board
     pub fn select_cell(&mut self) {
         // Is really needed?
         let square: Square = self.ui.cursor_coordinates.into();
@@ -464,9 +467,8 @@ impl GameLogic {
         }
     }
 
-    /* Method to make a move for the bot
-       We use the UCI protocol to communicate with the chess engine
-    */
+    /// Method to make a move for the bot
+    /// We use the UCI protocol to communicate with the chess engine
     pub fn execute_bot_move(&mut self) {
         // Check if bot exists
         let bot = match self.bot.as_mut() {
@@ -477,11 +479,17 @@ impl GameLogic {
         let fen_position = self.game_board.fen_position();
 
         // Retrieve the bot move from the bot
-        let bot_move = bot.get_move(&fen_position);
+        let uci_move = match bot.get_move(&fen_position) {
+            Ok(m) => m,
+            Err(e) => {
+                log::error!("Engine error: {e}");
+                return;
+            }
+        };
 
         // Convert UCI move to a shakmaty Move using the current position
         let current_position = self.game_board.position_ref().clone();
-        let bot_actual_move = match bot_move.to_move(&current_position) {
+        let bot_actual_move = match uci_move.to_move(&current_position) {
             Ok(m) => m,
             Err(e) => {
                 log::error!("Engine returned illegal UCI move: {}", e);
@@ -538,16 +546,10 @@ impl GameLogic {
         crate::sound::play_move_sound();
     }
 
-    // Method to promote a pawn
-    pub fn promote_piece(&mut self, promotion_cursor: u8, should_flip: bool) {
+    /// Method to promote a pawn
+    pub fn promote_piece(&mut self, role: Role, should_flip: bool) {
         if let Some(last_move) = self.game_board.move_history.last().cloned() {
-            let new_piece = match promotion_cursor {
-                0 => Role::Queen,
-                1 => Role::Rook,
-                2 => Role::Bishop,
-                3 => Role::Knight,
-                _ => unreachable!("Promotion cursor out of boundaries"),
-            };
+            let new_piece = role;
 
             // Promotion moves are always pawn moves, so they should have a from square
             let from_square = match last_move.from() {
@@ -693,6 +695,7 @@ impl GameLogic {
         Some((from, to, promotion_piece))
     }
 
+    /// Method to apply the opponent move (multiplayer game mode)
     pub fn execute_opponent_move(&mut self) -> bool {
         let opponent = if let Some(opp) = self.opponent.as_mut() {
             opp
@@ -1214,6 +1217,26 @@ impl GameLogic {
             } else {
                 log::debug!("Signaled polling thread that player made a move (promotion)");
             }
+        }
+    }
+
+    /// Navigate to the next position in history (forward in time)
+    pub fn navigate_history_next(&mut self) {
+        // Check if we're in solo mode (no bot, no opponent)
+        let is_solo_mode = self.bot.is_none() && self.opponent.is_none();
+        if self.game_board.navigate_history_next(is_solo_mode) {
+            // Update player_turn to match the position's turn
+            self.sync_player_turn_with_position();
+        }
+    }
+
+    /// Navigate to the previous position in history (backward in time)
+    pub fn navigate_history_previous(&mut self) {
+        // Check if we're in solo mode (no bot, no opponent)
+        let is_solo_mode = self.bot.is_none() && self.opponent.is_none();
+        if self.game_board.navigate_history_previous(is_solo_mode) {
+            // Update player_turn to match the position's turn
+            self.sync_player_turn_with_position();
         }
     }
 }

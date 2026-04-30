@@ -1,3 +1,5 @@
+//! Chess game logic.
+
 pub mod bot;
 pub mod clock;
 pub mod coord;

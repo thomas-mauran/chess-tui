@@ -1,3 +1,5 @@
+//! Terminal event polling.
+
 use crate::app::AppResult;
 use ratatui::crossterm::event::{self, Event as CrosstermEvent, KeyEvent, MouseEvent};
 use std::sync::mpsc;

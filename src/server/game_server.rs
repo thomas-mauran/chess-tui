@@ -1,17 +1,21 @@
+//! TCP peer-to-peer game server.
+
 use std::{
     io::{Read, Write},
-    net::{TcpListener, TcpStream},
+    net::{IpAddr, TcpListener, TcpStream, UdpSocket},
     sync::{
         atomic::{AtomicBool, Ordering},
         mpsc, Arc, Mutex,
     },
-    thread,
+    thread::{self, sleep},
+    time::Duration,
 };
 
 use crate::constants::{
     NETWORK_BUFFER_SIZE, NETWORK_PORT, SLEEP_DURATION_LONG_MS, SLEEP_DURATION_SHORT_MS,
 };
 use log;
+use shakmaty::Color;
 
 #[derive(Debug)]
 pub struct Client {
@@ -133,6 +137,27 @@ impl GameServer {
             }
         }
     }
+}
+
+pub fn setup_game_server(host_color: Color) {
+    let is_host_white = host_color == Color::White;
+
+    log::info!("Starting game server with host color: {:?}", host_color);
+
+    std::thread::spawn(move || {
+        let game_server = GameServer::new(is_host_white);
+        log::info!("Game server created, starting server...");
+        game_server.run();
+    });
+
+    sleep(Duration::from_millis(SLEEP_DURATION_LONG_MS));
+}
+
+pub fn get_host_ip() -> Option<IpAddr> {
+    let socket = UdpSocket::bind("0.0.0.0:0").ok()?;
+    socket.connect("8.8.8.8:80").ok()?; // Use an external IP to identify the default route
+
+    socket.local_addr().ok().map(|addr| addr.ip())
 }
 
 fn handle_client(

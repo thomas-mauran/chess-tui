@@ -2,103 +2,21 @@
 extern crate chess_tui;
 
 use chess_tui::app::{App, AppResult};
-use chess_tui::config::Config;
-use chess_tui::constants::{config_dir, DisplayMode, Pages};
+use chess_tui::config::{Args, Config};
+use chess_tui::constants::{config_dir, DisplayMode, Pages, SKIN_NAME_ASCII, SKIN_NAME_DEFAULT};
 use chess_tui::event::{Event, EventHandler};
 use chess_tui::game_logic::opponent::wait_for_game_start;
-use chess_tui::handler::{handle_key_events, handle_mouse_events};
+use chess_tui::handlers::handler::{handle_key_events, handle_mouse_events};
+use chess_tui::lichess::models::LichessClient;
 use chess_tui::logging;
 use chess_tui::pgn_viewer::PgnViewer;
 use chess_tui::skin::{PieceStyle, Skin};
 use chess_tui::ui::tui::Tui;
 use clap::Parser;
 use log::LevelFilter;
-use std::fs::{self, File};
-use std::io::{self, BufRead, Write};
+use std::fs;
 use std::panic;
 use std::path::Path;
-
-/// Runs the --update-skins command: prompt for confirmation, archive current skins.json, write default.
-fn run_update_skins() -> AppResult<()> {
-    const DEFAULT_SKINS: &str = include_str!("default_skins.json");
-
-    let config_dir = config_dir()?;
-    let skins_dir = config_dir.join("chess-tui");
-    let skins_path = skins_dir.join("skins.json");
-
-    fs::create_dir_all(&skins_dir)?;
-
-    if !skins_path.exists() {
-        let mut file = File::create(&skins_path)?;
-        file.write_all(DEFAULT_SKINS.as_bytes())?;
-        println!(
-            "Created skins.json with default content at {}",
-            skins_path.display()
-        );
-        return Ok(());
-    }
-
-    print!(
-        "This will replace your skins config with the default. \
-         Your current file will be archived in the same folder. Continue? (y/n): "
-    );
-    std::io::stdout().flush()?;
-
-    let mut line = String::new();
-    std::io::stdin().lock().read_line(&mut line)?;
-    let answer = line.trim().to_lowercase();
-
-    if answer != "y" && answer != "yes" {
-        println!("Aborted.");
-        return Ok(());
-    }
-
-    let timestamp = chrono::Local::now().format("%Y-%m-%d_%H-%M-%S");
-    let archive_name = format!("skins_{}.json", timestamp);
-    let archive_path = skins_dir.join(&archive_name);
-
-    fs::copy(&skins_path, &archive_path)?;
-    let mut file = File::create(&skins_path)?;
-    file.write_all(DEFAULT_SKINS.as_bytes())?;
-
-    println!(
-        "Archived previous config to {} and updated skins.json with default.",
-        archive_path.display()
-    );
-    Ok(())
-}
-
-/// Simple program to greet a person
-#[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
-struct Args {
-    /// Path for the chess engine
-    #[arg(short, long, default_value = "")]
-    engine_path: String,
-    /// Bot thinking depth for chess engine (1-255)
-    #[arg(short, long)]
-    depth: Option<u8>,
-    /// Bot difficulty: easy, medium, hard, or magnus. Omit for full strength (Off).
-    #[arg(long)]
-    difficulty: Option<String>,
-    /// Lichess API token
-    #[arg(short, long)]
-    lichess_token: Option<String>,
-    /// Disable sound effects
-    #[arg(long)]
-    no_sound: bool,
-    /// Skin/theme name (e.g. Default, ASCII). Overrides config for reproducible demos.
-    #[arg(long)]
-    skin: Option<String>,
-    /// Update skin config with built-in default (prompts for confirmation, archives current file)
-    #[arg(long)]
-    update_skins: bool,
-    /// Open a PGN file or directory of .pgn files directly in the viewer.
-    /// Example: chess-tui --pgn game.pgn
-    ///          chess-tui --pgn outputs/chess/games/step-000500/
-    #[arg(short = 'p', long)]
-    pgn: Option<String>,
-}
 
 fn main() -> AppResult<()> {
     // Parse the cli arguments first (this will handle --version and exit early if needed)
@@ -106,7 +24,7 @@ fn main() -> AppResult<()> {
 
     // Handle --update-skins: update config from default, then exit (no TUI)
     if args.update_skins {
-        return run_update_skins();
+        return Skin::run_update_skins();
     }
 
     // Used to enable mouse capture (only after we know we're running the TUI)
@@ -120,7 +38,7 @@ fn main() -> AppResult<()> {
     let config_path = config_dir.join("chess-tui/config.toml");
 
     // Create the configuration file
-    config_create(&args, &folder_path, &config_path)?;
+    Config::config_create(&args, &folder_path, &config_path)?;
 
     // Create an application.
     let mut app = App::default();
@@ -137,12 +55,12 @@ fn main() -> AppResult<()> {
     // We store the chess engine path if there is one
     if let Ok(content) = fs::read_to_string(config_path) {
         if content.trim().is_empty() {
-            app.chess_engine_path = None;
+            app.bot_state.chess_engine_path = None;
         } else {
             let config: Config = toml::from_str(&content).unwrap_or_default();
 
             if let Some(engine_path) = config.engine_path {
-                app.chess_engine_path = Some(engine_path);
+                app.bot_state.chess_engine_path = Some(engine_path);
             }
             // Set the display mode based on the configuration file
             if let Some(display_mode) = config.display_mode {
@@ -158,17 +76,18 @@ fn main() -> AppResult<()> {
             }
             // Add bot depth handling
             if let Some(bot_depth) = config.bot_depth {
-                app.bot_depth = bot_depth;
+                app.bot_state.bot_depth = bot_depth;
             }
             // Bot difficulty
-            app.bot_difficulty = config.bot_difficulty;
+            app.bot_state.bot_difficulty = config.bot_difficulty;
             // Add selected skin name handling
             if let Some(selected_skin_name) = config.selected_skin_name {
-                app.selected_skin_name = selected_skin_name;
+                app.theme_state.selected_skin_name = selected_skin_name;
             }
             // Add lichess token handling
             if let Some(lichess_token) = config.lichess_token {
-                app.lichess_token = Some(lichess_token);
+                app.lichess_state.token = Some(lichess_token.clone());
+                app.lichess_state.client = Some(LichessClient::new(lichess_token));
             }
             // Add sound enabled handling
             if let Some(sound_enabled) = config.sound_enabled {
@@ -181,15 +100,17 @@ fn main() -> AppResult<()> {
     }
 
     // Always start with Default and ASCII display modes at the beginning
-    app.available_skins.push(Skin::default_display_mode());
-    app.available_skins.push(Skin::ascii_display_mode());
+    app.theme_state.available_skins.push(Skin::default());
+    app.theme_state
+        .available_skins
+        .push(Skin::ascii_display_mode());
 
     // Load all available skins from skins.json
     let skins_path = config_dir.join("chess-tui/skins.json");
 
     // Create skins.json if it doesn't exist
     if !skins_path.exists() {
-        if let Err(e) = create_default_skins_file(&skins_path) {
+        if let Err(e) = Skin::create_default_skins_file(&skins_path) {
             eprintln!("Failed to create default skins.json: {}", e);
         }
     }
@@ -199,9 +120,9 @@ fn main() -> AppResult<()> {
                 // Filter out any "Default" or "ASCII" skins from JSON to avoid duplicates
                 let custom_skins: Vec<Skin> = skins
                     .into_iter()
-                    .filter(|s| s.name != "Default" && s.name != "ASCII")
+                    .filter(|s| s.name != SKIN_NAME_DEFAULT && s.name != SKIN_NAME_ASCII)
                     .collect();
-                app.available_skins.extend(custom_skins);
+                app.theme_state.available_skins.extend(custom_skins);
             }
             Err(e) => {
                 eprintln!("Failed to load skins: {}", e);
@@ -213,26 +134,31 @@ fn main() -> AppResult<()> {
                 // Filter out any "Default" or "ASCII" skins from JSON to avoid duplicates
                 let custom_piece_styles: Vec<PieceStyle> = piece_styles
                     .into_iter()
-                    .filter(|ps| ps.name != "Default" && ps.name != "ASCII")
+                    .filter(|ps| ps.name != SKIN_NAME_DEFAULT && ps.name != SKIN_NAME_ASCII)
                     .collect();
-                app.available_piece_styles.extend(custom_piece_styles);
+                app.theme_state
+                    .available_piece_styles
+                    .extend(custom_piece_styles);
             }
             Err(e) => {
                 eprintln!("Failed to load custom piece styles: {}", e);
             }
         }
         // Sync loaded piece styles to the game UI so rendering can use them
-        app.game.ui.available_piece_styles = app.available_piece_styles.clone();
+        app.game.ui.available_piece_styles = app.theme_state.available_piece_styles.clone();
     }
 
     // Apply selected skin
-    if let Some(skin) = Skin::get_skin_by_name(&app.available_skins, &app.selected_skin_name) {
-        app.loaded_skin = Some(skin.clone());
+    if let Some(skin) = Skin::get_skin_by_name(
+        &app.theme_state.available_skins,
+        &app.theme_state.selected_skin_name,
+    ) {
+        app.theme_state.loaded_skin = Some(skin.clone());
         app.game.ui.skin = skin.clone();
         // Set display mode based on skin name
-        match app.selected_skin_name.as_str() {
-            "Default" => app.game.ui.display_mode = DisplayMode::DEFAULT,
-            "ASCII" => app.game.ui.display_mode = DisplayMode::ASCII,
+        match app.theme_state.selected_skin_name.as_str() {
+            SKIN_NAME_DEFAULT => app.game.ui.display_mode = DisplayMode::DEFAULT,
+            SKIN_NAME_ASCII => app.game.ui.display_mode = DisplayMode::ASCII,
             _ => {
                 // For custom skins, set to CUSTOM if not already set
                 if app.game.ui.display_mode == DisplayMode::DEFAULT {
@@ -242,12 +168,12 @@ fn main() -> AppResult<()> {
         }
     } else {
         // Fallback: use the first available skin if selected skin not found
-        if let Some(first_skin) = app.available_skins.first() {
-            app.selected_skin_name = first_skin.name.clone();
-            app.loaded_skin = Some(first_skin.clone());
+        if let Some(first_skin) = app.theme_state.available_skins.first() {
+            app.theme_state.selected_skin_name = first_skin.name.clone();
+            app.theme_state.loaded_skin = Some(first_skin.clone());
             app.game.ui.skin = first_skin.clone();
             // Set display mode based on skin name
-            match app.selected_skin_name.as_str() {
+            match app.theme_state.selected_skin_name.as_str() {
                 "Default" => app.game.ui.display_mode = DisplayMode::DEFAULT,
                 "ASCII" => app.game.ui.display_mode = DisplayMode::ASCII,
                 _ => app.game.ui.display_mode = DisplayMode::CUSTOM,
@@ -257,12 +183,12 @@ fn main() -> AppResult<()> {
 
     // Command line arguments take precedence over configuration file
     if !args.engine_path.is_empty() {
-        app.chess_engine_path = Some(args.engine_path.clone());
+        app.bot_state.chess_engine_path = Some(args.engine_path.clone());
     }
 
     // Command line depth argument takes precedence over configuration file
     if let Some(depth) = args.depth {
-        app.bot_depth = depth;
+        app.bot_state.bot_depth = depth;
     }
 
     // Command line difficulty argument takes precedence over configuration file
@@ -275,13 +201,13 @@ fn main() -> AppResult<()> {
             _ => None,
         };
         if let Some(i) = idx {
-            app.bot_difficulty = Some(i);
+            app.bot_state.bot_difficulty = Some(i);
         }
     }
 
     // Command line lichess token takes precedence over configuration file
     if let Some(token) = &args.lichess_token {
-        app.lichess_token = Some(token.clone());
+        app.lichess_state.token = Some(token.clone());
     }
 
     // Command line no-sound flag takes precedence over configuration file
@@ -292,9 +218,9 @@ fn main() -> AppResult<()> {
 
     // Command line skin takes precedence over configuration file (reproducible theme)
     if let Some(ref skin_name) = args.skin {
-        app.selected_skin_name = skin_name.clone();
-        if let Some(skin) = Skin::get_skin_by_name(&app.available_skins, skin_name) {
-            app.loaded_skin = Some(skin.clone());
+        app.theme_state.selected_skin_name = skin_name.clone();
+        if let Some(skin) = Skin::get_skin_by_name(&app.theme_state.available_skins, skin_name) {
+            app.theme_state.loaded_skin = Some(skin.clone());
             app.game.ui.skin = skin.clone();
             match skin_name.as_str() {
                 "Default" => app.game.ui.display_mode = DisplayMode::DEFAULT,
@@ -340,7 +266,7 @@ fn main() -> AppResult<()> {
             Ok(games) => {
                 app.pgn_viewer_state = Some(games);
                 app.pgn_viewer_game_idx = 0;
-                app.current_page = Pages::PgnViewer;
+                app.ui_state.current_page = Pages::PgnViewer;
             }
             Err(e) => {
                 eprintln!("Failed to load PGN '{}': {}", pgn_path, e);
@@ -377,7 +303,7 @@ fn main() -> AppResult<()> {
         }
 
         // Check if bot should start thinking
-        if !app.is_bot_thinking()
+        if !app.bot_state.is_bot_thinking()
             && app
                 .game
                 .logic
@@ -385,14 +311,20 @@ fn main() -> AppResult<()> {
                 .as_ref()
                 .is_some_and(|bot| bot.bot_will_move)
         {
-            app.start_bot_thinking();
+            if let Some(bot) = &app.game.logic.bot {
+                app.bot_state.start_bot_thinking(
+                    app.game.logic.game_board.fen_position(),
+                    bot.depth,
+                    bot.difficulty,
+                );
+            }
             if let Some(bot) = app.game.logic.bot.as_mut() {
                 bot.bot_will_move = false;
             }
         }
 
         // Check if bot move is ready
-        if app.check_bot_move() {
+        if app.check_and_apply_bot_move() {
             app.check_and_show_game_end();
         }
         // Check if Lichess seek is done
@@ -402,23 +334,23 @@ fn main() -> AppResult<()> {
         app.check_game_end_status();
 
         // Check if hosting player received game start signal from background thread
-        if let Some(ref game_start_rx) = app.game_start_rx {
+        if let Some(ref game_start_rx) = app.multiplayer_state.game_start_rx {
             if let Ok(()) = game_start_rx.try_recv() {
                 if let Some(opponent) = app.game.logic.opponent.as_mut() {
                     log::info!("Host received game start signal, starting game");
                     opponent.game_started = true;
-                    app.current_popup = None;
+                    app.ui_state.close_popup();
                 }
             }
         }
 
         // For non-hosting players, check directly on the stream
         if let Some(opponent) = app.game.logic.opponent.as_mut() {
-            if !opponent.game_started && app.game_start_rx.is_none() {
+            if !opponent.game_started && app.multiplayer_state.game_start_rx.is_none() {
                 match wait_for_game_start(opponent) {
                     Ok(true) => {
                         opponent.game_started = true;
-                        app.current_popup = None;
+                        app.ui_state.close_popup();
                     }
                     Ok(false) => {
                         // Still waiting, do nothing
@@ -469,138 +401,6 @@ fn main() -> AppResult<()> {
     Ok(())
 }
 
-/// Checks if an IO error indicates a read-only filesystem or permission issue.
-/// This handles both EROFS (error code 30) and permission denied errors.
-fn is_readonly_error(e: &io::Error) -> bool {
-    // EROFS = 30 on Unix systems (Read-only file system)
-    e.raw_os_error() == Some(30) || e.kind() == io::ErrorKind::PermissionDenied
-}
-
-/// Handles config file write errors gracefully, printing appropriate warnings.
-/// This allows the application to work with read-only config files (e.g., from NixOS/home-manager).
-fn handle_config_write_error(e: io::Error, config_path: &Path) {
-    if is_readonly_error(&e) {
-        eprintln!(
-            "Warning: Config file at {:?} is read-only. The application will continue with the existing read-only config.",
-            config_path
-        );
-    } else {
-        eprintln!(
-            "Warning: Could not write to config file at {:?}: {}. The application will continue with the existing config.",
-            config_path, e
-        );
-    }
-}
-
-fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResult<()> {
-    std::fs::create_dir_all(folder_path)?;
-
-    // Attempt to read the configuration file and parse it as a TOML Value.
-    // If we encounter any issues (like the file not being readable or not being valid TOML), we start with a new, empty TOML table instead.
-    let mut config: Config = match fs::read_to_string(config_path) {
-        Ok(content) => toml::from_str(&content).unwrap_or_default(),
-        Err(_) => Config::default(),
-    };
-
-    // We update the configuration with the engine_path and display_mode.
-    // If these keys are already in the configuration, we leave them as they are.
-    // If they're not, we add them with default values.
-    if config.engine_path.as_ref().is_none_or(|s| s.is_empty()) {
-        if args.engine_path.is_empty() {
-            config.engine_path = Some(String::new());
-        } else {
-            config.engine_path = Some(args.engine_path.clone());
-        }
-    }
-
-    if config.display_mode.is_none() {
-        config.display_mode = Some("DEFAULT".to_string());
-    }
-    if config.log_level.is_none() {
-        config.log_level = Some(LevelFilter::Off.to_string());
-    }
-    if config.bot_depth.is_none() {
-        config.bot_depth = Some(10);
-    }
-    if config.selected_skin_name.is_none() {
-        config.selected_skin_name = Some("Default".to_string());
-    }
-    if config.sound_enabled.is_none() {
-        config.sound_enabled = Some(true);
-    }
-
-    // Always update engine_path if provided via command line (command line takes precedence)
-    if !args.engine_path.is_empty() {
-        config.engine_path = Some(args.engine_path.clone());
-    }
-
-    // Always update Lichess token if provided via command line
-    if let Some(token) = &args.lichess_token {
-        config.lichess_token = Some(token.clone());
-    }
-
-    // Update bot_depth if provided via command line
-    if let Some(depth) = args.depth {
-        config.bot_depth = Some(depth);
-    }
-
-    // Update bot_difficulty if provided via command line
-    if let Some(ref d) = args.difficulty {
-        let idx = match d.to_lowercase().as_str() {
-            "easy" => Some(0),
-            "medium" => Some(1),
-            "hard" => Some(2),
-            "magnus" => Some(3),
-            _ => None,
-        };
-        if let Some(i) = idx {
-            config.bot_difficulty = Some(i);
-        }
-    }
-
-    // Always update sound_enabled if --no-sound flag is provided via command line (command line takes precedence)
-    if args.no_sound {
-        config.sound_enabled = Some(false);
-    }
-
-    // Try to write the config file, but don't fail if it's read-only
-    // This allows the application to work with read-only config files (e.g., from NixOS/home-manager)
-    let toml_string = toml::to_string(&config).map_err(|e| {
-        io::Error::new(
-            io::ErrorKind::InvalidData,
-            format!("Failed to serialize config to TOML: {e}"),
-        )
-    })?;
-
-    match File::create(config_path) {
-        Ok(mut file) => {
-            if let Err(e) = file.write_all(toml_string.as_bytes()) {
-                handle_config_write_error(e, config_path);
-            }
-        }
-        Err(e) => {
-            handle_config_write_error(e, config_path);
-        }
-    }
-
-    Ok(())
-}
-
-fn create_default_skins_file(skins_path: &Path) -> AppResult<()> {
-    // Ensure the directory exists
-    if let Some(parent) = skins_path.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
-
-    // Default skins.json content (embedded at compile time)
-    const DEFAULT_SKINS: &str = include_str!("default_skins.json");
-
-    let mut file = File::create(skins_path)?;
-    file.write_all(DEFAULT_SKINS.as_bytes())?;
-
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -623,7 +423,7 @@ mod tests {
         let folder_path = config_dir.join(".test/chess-tui");
         let config_path = config_dir.join(".test/chess-tui/config.toml");
 
-        let result = config_create(&args, &folder_path, &config_path);
+        let result = Config::config_create(&args, &folder_path, &config_path);
 
         assert!(result.is_ok());
         assert!(config_path.exists());

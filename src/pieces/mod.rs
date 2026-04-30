@@ -1,3 +1,5 @@
+//! Piece rendering: ASCII art and Unicode character sets.
+
 pub mod bishop;
 pub mod king;
 pub mod knight;
