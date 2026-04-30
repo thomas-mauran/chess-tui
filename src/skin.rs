@@ -1,7 +1,7 @@
 //! Board skin and piece style types.
 
 use crate::app::AppResult;
-use crate::constants::{config_dir, DisplayMode};
+use crate::constants::{DisplayMode, config_dir};
 use ratatui::style::Color;
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File};

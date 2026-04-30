@@ -213,24 +213,24 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
                 let move_uci = format!("{}{}{}", from, to, promotion_char);
 
                 // Validate the puzzle move with the complete UCI
-                if app.lichess_state.puzzle_game.is_some() {
-                    if let Some(mut puzzle_game) = app.lichess_state.puzzle_game.take() {
-                        let (is_correct, message) = puzzle_game.validate_move(
-                            move_uci,
-                            &mut app.game,
-                            app.lichess_state.token.clone(),
-                        );
+                if app.lichess_state.puzzle_game.is_some()
+                    && let Some(mut puzzle_game) = app.lichess_state.puzzle_game.take()
+                {
+                    let (is_correct, message) = puzzle_game.validate_move(
+                        move_uci,
+                        &mut app.game,
+                        app.lichess_state.token.clone(),
+                    );
 
-                        move_was_correct = is_correct;
-                        app.lichess_state.puzzle_game = Some(puzzle_game);
+                    move_was_correct = is_correct;
+                    app.lichess_state.puzzle_game = Some(puzzle_game);
 
-                        if let Some(msg) = message {
-                            if is_correct {
-                                app.ui_state
-                                    .show_message_popup(msg, Popups::PuzzleEndScreen);
-                            } else {
-                                app.ui_state.show_message_popup(msg, Popups::Error);
-                            }
+                    if let Some(msg) = message {
+                        if is_correct {
+                            app.ui_state
+                                .show_message_popup(msg, Popups::PuzzleEndScreen);
+                        } else {
+                            app.ui_state.show_message_popup(msg, Popups::Error);
                         }
                     }
                 }
@@ -257,12 +257,11 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
         }
 
         // In Lichess mode, only allow input if it's our turn (but not for promotion, handled above)
-        if app.ui_state.current_page == Pages::Lichess {
-            if let Some(my_color) = app.game_mode_state.selected_color {
-                if app.game.logic.player_turn != my_color {
-                    return Ok(());
-                }
-            }
+        if app.ui_state.current_page == Pages::Lichess
+            && let Some(my_color) = app.game_mode_state.selected_color
+            && app.game.logic.player_turn != my_color
+        {
+            return Ok(());
         }
 
         // Validate click is within board boundaries

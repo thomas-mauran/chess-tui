@@ -1,11 +1,11 @@
 //! In-game board and piece rendering.
 
 use ratatui::{
+    Frame,
     layout::{Constraint, Direction, Layout},
     prelude::Rect,
     style::Style,
     widgets::Block,
-    Frame,
 };
 
 use crate::{

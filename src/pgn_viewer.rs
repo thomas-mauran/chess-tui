@@ -335,19 +335,19 @@ fn extract_san_tokens(movetext: &str) -> Vec<String> {
                 }
                 ')' if depth > 0 => {
                     depth -= 1;
-                    if depth == 0 {
-                        if let Some(s) = open_idx {
-                            // Convert char indices to byte indices
-                            let byte_s = text.char_indices().nth(s).map(|(i, _)| i).unwrap_or(0);
-                            let byte_e = text
-                                .char_indices()
-                                .nth(ci)
-                                .map(|(i, _)| i + 1)
-                                .unwrap_or(text.len());
-                            text.replace_range(byte_s..byte_e, " ");
-                            found = true;
-                            break;
-                        }
+                    if depth == 0
+                        && let Some(s) = open_idx
+                    {
+                        // Convert char indices to byte indices
+                        let byte_s = text.char_indices().nth(s).map(|(i, _)| i).unwrap_or(0);
+                        let byte_e = text
+                            .char_indices()
+                            .nth(ci)
+                            .map(|(i, _)| i + 1)
+                            .unwrap_or(text.len());
+                        text.replace_range(byte_s..byte_e, " ");
+                        found = true;
+                        break;
                     }
                 }
                 _ => {}

@@ -74,10 +74,10 @@ impl App {
     /// Handles the tick event of the terminal.
     pub fn tick(&mut self) {
         // Advance PGN viewer auto-play
-        if let Some(ref mut games) = self.pgn_viewer_state {
-            if let Some(viewer) = games.get_mut(self.pgn_viewer_game_idx) {
-                viewer.tick();
-            }
+        if let Some(ref mut games) = self.pgn_viewer_state
+            && let Some(viewer) = games.get_mut(self.pgn_viewer_game_idx)
+        {
+            viewer.tick();
         }
 
         // Update cursor blink state (used to flicker the cursor cell when a piece is selected)
@@ -98,23 +98,22 @@ impl App {
         }
 
         // Check clock for time up (for local games and bot games with clock)
-        if let Some(ref mut clock) = self.game.logic.clock {
-            if clock.any_time_up() {
-                if let Some(time_up_color) = clock.get_time_up_color() {
-                    // Time is up - end the game
-                    let winner = time_up_color.other();
-                    // Stop the clock (it should already be stopped, but ensure it)
-                    if clock.is_running {
-                        clock.stop();
-                    }
-                    self.game.logic.game_state = GameState::Checkmate;
-                    // Set player_turn to the winner so check_and_show_game_end shows correct winner
-                    self.game.logic.player_turn = winner;
-                    // Mark that the game ended due to time
-                    self.game.logic.game_ended_by_time = true;
-                    self.check_and_show_game_end();
-                }
+        if let Some(ref mut clock) = self.game.logic.clock
+            && clock.any_time_up()
+            && let Some(time_up_color) = clock.get_time_up_color()
+        {
+            // Time is up - end the game
+            let winner = time_up_color.other();
+            // Stop the clock (it should already be stopped, but ensure it)
+            if clock.is_running {
+                clock.stop();
             }
+            self.game.logic.game_state = GameState::Checkmate;
+            // Set player_turn to the winner so check_and_show_game_end shows correct winner
+            self.game.logic.player_turn = winner;
+            // Mark that the game ended due to time
+            self.game.logic.game_ended_by_time = true;
+            self.check_and_show_game_end();
         }
 
         // Check for opponent moves (Lichess or Multiplayer)

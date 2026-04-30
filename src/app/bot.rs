@@ -27,23 +27,23 @@ impl App {
             self.game.logic.clock = Some(Clock::new(seconds));
         }
 
-        if let Some(color) = self.game_mode_state.selected_color {
-            if color == Color::Black {
-                // Flip the board once so Black player sees from their perspective
-                self.game.logic.game_board.flip_the_board();
+        if let Some(color) = self.game_mode_state.selected_color
+            && color == Color::Black
+        {
+            // Flip the board once so Black player sees from their perspective
+            self.game.logic.game_board.flip_the_board();
 
-                if let Some(bot) = &self.game.logic.bot {
-                    if self.game.logic.player_turn != color {
-                        self.bot_state.start_bot_thinking(
-                            self.game.logic.game_board.fen_position(),
-                            bot.depth,
-                            bot.difficulty,
-                        );
-                    }
-                }
-                // Don't set player_turn to Black here - the bot (White) moves first,
-                // so player_turn should remain White until after the bot's first move
+            if let Some(bot) = &self.game.logic.bot
+                && self.game.logic.player_turn != color
+            {
+                self.bot_state.start_bot_thinking(
+                    self.game.logic.game_board.fen_position(),
+                    bot.depth,
+                    bot.difficulty,
+                );
             }
+            // Don't set player_turn to Black here - the bot (White) moves first,
+            // so player_turn should remain White until after the bot's first move
         }
 
         // Ensure skin is preserved when setting up bot

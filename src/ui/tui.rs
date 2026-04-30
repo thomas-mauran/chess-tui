@@ -3,8 +3,8 @@
 use crate::app::{App, AppResult};
 use crate::event::EventHandler;
 use crate::ui::main_ui;
-use ratatui::backend::Backend;
 use ratatui::Terminal;
+use ratatui::backend::Backend;
 
 /// Representation of a terminal user interface.
 ///

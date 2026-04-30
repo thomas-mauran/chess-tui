@@ -5,11 +5,11 @@ use crate::{
     ui::components::centered_rect::centered_rect,
 };
 use ratatui::{
+    Frame,
     layout::Alignment,
     style::Style,
     text::Line,
     widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Wrap},
-    Frame,
 };
 use std::net::IpAddr;
 

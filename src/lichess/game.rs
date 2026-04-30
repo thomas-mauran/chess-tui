@@ -250,12 +250,12 @@ impl LichessClient {
         log::info!("Attempting to join game: {}", game_id);
 
         // First, try to get the game from ongoing games (for already-started games)
-        if let Ok(ongoing_games) = self.get_ongoing_games() {
-            if let Some(game) = ongoing_games.iter().find(|g| g.game_id == game_id) {
-                let color = parse_game_color(&game.color);
-                log::info!("Found game in ongoing games: {} as {:?}", game_id, color);
-                return Ok((game_id.to_string(), color));
-            }
+        if let Ok(ongoing_games) = self.get_ongoing_games()
+            && let Some(game) = ongoing_games.iter().find(|g| g.game_id == game_id)
+        {
+            let color = parse_game_color(&game.color);
+            log::info!("Found game in ongoing games: {} as {:?}", game_id, color);
+            return Ok((game_id.to_string(), color));
         }
 
         // If not in ongoing games, try to accept the challenge in case it hasn't been accepted yet
@@ -309,16 +309,16 @@ impl LichessClient {
 
         for attempt in 0..MAX_POLL_ATTEMPTS {
             // Check ongoing games first
-            if let Ok(ongoing_games) = self.get_ongoing_games() {
-                if let Some(game) = ongoing_games.iter().find(|g| g.game_id == game_id) {
-                    let color = parse_game_color(&game.color);
-                    log::info!(
-                        "Found game in ongoing games after polling: {} as {:?}",
-                        game_id,
-                        color
-                    );
-                    return Ok((game_id.to_string(), color));
-                }
+            if let Ok(ongoing_games) = self.get_ongoing_games()
+                && let Some(game) = ongoing_games.iter().find(|g| g.game_id == game_id)
+            {
+                let color = parse_game_color(&game.color);
+                log::info!(
+                    "Found game in ongoing games after polling: {} as {:?}",
+                    game_id,
+                    color
+                );
+                return Ok((game_id.to_string(), color));
             }
 
             // Try to stream the game
@@ -419,18 +419,17 @@ impl LichessClient {
                         if let GameEvent::GameState(_) = event {
                             log::info!("Received GameState event, checking ongoing games");
                             // Try to get color from ongoing games
-                            if let Ok(ongoing_games) = self.get_ongoing_games() {
-                                if let Some(game) =
+                            if let Ok(ongoing_games) = self.get_ongoing_games()
+                                && let Some(game) =
                                     ongoing_games.iter().find(|g| g.game_id == game_id)
-                                {
-                                    let color = parse_game_color(&game.color);
-                                    log::info!(
-                                        "Found game in ongoing games after GameState: {} as {:?}",
-                                        game_id,
-                                        color
-                                    );
-                                    return Ok((game_id.to_string(), color));
-                                }
+                            {
+                                let color = parse_game_color(&game.color);
+                                log::info!(
+                                    "Found game in ongoing games after GameState: {} as {:?}",
+                                    game_id,
+                                    color
+                                );
+                                return Ok((game_id.to_string(), color));
                             }
                             // If we can't determine color, break and retry
                             break;

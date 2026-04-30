@@ -1,8 +1,8 @@
 //! Menu navigation and skin cycling.
 
 use crate::app::App;
-use crate::constants::{DisplayMode, Pages, Popups};
 use crate::constants::{DEFAULT_CUSTOM_TIME_VALUE, DEFAULT_TIME_CONTROL_SELECTED};
+use crate::constants::{DisplayMode, Pages, Popups};
 use crate::game_logic::game::Game;
 use crate::handlers::game_mode_menu::AvailableGameMode;
 use crate::sound::play_menu_nav_sound;

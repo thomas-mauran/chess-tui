@@ -90,7 +90,8 @@ impl Config {
         } else {
             log::warn!(
                 "Could not write to config file at {:?}: {}. Settings changes will not be persisted.",
-                config_path, e
+                config_path,
+                e
             );
         }
     }

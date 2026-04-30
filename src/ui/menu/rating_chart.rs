@@ -4,6 +4,7 @@ use crate::constants::{RATING_HISTORY_DAYS, SECONDS_PER_DAY};
 use crate::lichess::models::RatingHistoryEntry;
 use chrono::{DateTime, NaiveDate, Utc};
 use ratatui::{
+    Frame,
     layout::{Constraint, Rect},
     style::{Color, Modifier, Style},
     symbols,
@@ -11,7 +12,6 @@ use ratatui::{
     widgets::{
         Axis, Block, BorderType, Borders, Chart, Dataset, GraphType, LegendPosition, Paragraph,
     },
-    Frame,
 };
 
 pub(super) fn render_rating_history_chart(
@@ -140,10 +140,10 @@ fn process_rating_data(
 
         data_points.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
 
-        if let Some(&(first_days, first_rating)) = data_points.first() {
-            if first_days > cutoff_days {
-                data_points.insert(0, (cutoff_days, first_rating));
-            }
+        if let Some(&(first_days, first_rating)) = data_points.first()
+            && first_days > cutoff_days
+        {
+            data_points.insert(0, (cutoff_days, first_rating));
         }
 
         for (days, rating) in &data_points {

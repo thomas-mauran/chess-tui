@@ -3,15 +3,15 @@
 use crate::{
     app::App,
     constants::WHITE,
-    pieces::{bishop::Bishop, knight::Knight, queen::Queen, rook::Rook, PieceSize},
+    pieces::{PieceSize, bishop::Bishop, knight::Knight, queen::Queen, rook::Rook},
     ui::components::centered_rect::centered_rect,
 };
 use ratatui::{
+    Frame,
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Color, Style},
     text::Line,
     widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Wrap},
-    Frame,
 };
 
 /// Renders a 4-option piece grid (Queen / Rook / Bishop / Knight) for pawn promotion.

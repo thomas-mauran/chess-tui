@@ -2,11 +2,11 @@
 
 use crate::{constants::WHITE, ui::components::centered_rect::centered_rect};
 use ratatui::{
+    Frame,
     layout::Alignment,
     style::Style,
     text::Line,
     widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Wrap},
-    Frame,
 };
 
 /// Renders a centered popup listing contributors and project information.
@@ -22,11 +22,17 @@ pub fn render_credit_popup(frame: &mut Frame) {
     let credits_text = vec![
         Line::from(""),
         Line::from("Hi 👋, I'm Thomas, a 23 years old French computer engineer."),
-        Line::from("Thank you for playing Chess-tui! This project started as a personal journey to improve my algorithmic skills and learn Rust."),
+        Line::from(
+            "Thank you for playing Chess-tui! This project started as a personal journey to improve my algorithmic skills and learn Rust.",
+        ),
         Line::from(""),
-        Line::from("The entire source code is available on GitHub at https://github.com/thomas-mauran/chess-tui"),
+        Line::from(
+            "The entire source code is available on GitHub at https://github.com/thomas-mauran/chess-tui",
+        ),
         Line::from(""),
-        Line::from("Feel free to contribute by picking an issue or creating a new one and star the repo if you wanna support the project !"),
+        Line::from(
+            "Feel free to contribute by picking an issue or creating a new one and star the repo if you wanna support the project !",
+        ),
         Line::from(""),
         Line::from("Special thanks to my classmates for their support and inspiration!"),
         Line::from(""),

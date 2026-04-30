@@ -3,11 +3,11 @@
 use crate::app::App;
 use crate::handlers::game_mode_menu::AvailableGameMode;
 use ratatui::{
+    Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, BorderType, Borders, Paragraph, Wrap},
-    Frame,
 };
 use shakmaty::Color as ShakmatyColor;
 
