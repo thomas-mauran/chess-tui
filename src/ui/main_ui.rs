@@ -1,10 +1,10 @@
 //! Top-level frame composition.
 
 use ratatui::{
+    Frame,
     prelude::Alignment,
     style::{Color, Style},
     widgets::{Block, Borders, Paragraph},
-    Frame,
 };
 
 use crate::{

@@ -1,7 +1,7 @@
 //! Board representation and move generation.
 
 use super::coord::Coord;
-use shakmaty::{san::San, Chess, Color, Move, Piece, Position, Rank, Role, Square};
+use shakmaty::{Chess, Color, Move, Piece, Position, Rank, Role, Square, san::San};
 
 /// ## Visual representation
 ///
@@ -323,7 +323,9 @@ impl GameBoard {
                                 Err(e) => {
                                     log::warn!(
                                         "Failed to play move {}: {} - {}. Stopping history reconstruction.",
-                                        i + 1, move_uci, e
+                                        i + 1,
+                                        move_uci,
+                                        e
                                     );
                                     moves_failed += 1;
                                     break;
@@ -369,45 +371,44 @@ impl GameBoard {
         );
 
         // Verify that the final position matches the expected FEN
-        if let Some(fen_str) = expected_fen {
-            if let Some(final_position) = self.position_history.last() {
-                let final_fen = shakmaty::fen::Fen::from_position(
-                    final_position.clone(),
-                    shakmaty::EnPassantMode::Legal,
-                )
-                .to_string();
+        if let Some(fen_str) = expected_fen
+            && let Some(final_position) = self.position_history.last()
+        {
+            let final_fen = shakmaty::fen::Fen::from_position(
+                final_position.clone(),
+                shakmaty::EnPassantMode::Legal,
+            )
+            .to_string();
 
-                // Compare FEN strings (ignoring move counters which might differ)
-                let final_fen_parts: Vec<&str> = final_fen.split(' ').collect();
-                let expected_fen_parts: Vec<&str> = fen_str.split(' ').collect();
+            // Compare FEN strings (ignoring move counters which might differ)
+            let final_fen_parts: Vec<&str> = final_fen.split(' ').collect();
+            let expected_fen_parts: Vec<&str> = fen_str.split(' ').collect();
 
-                let positions_match = final_fen_parts.len() >= 4
-                    && expected_fen_parts.len() >= 4
-                    && final_fen_parts[0..4] == expected_fen_parts[0..4];
+            let positions_match = final_fen_parts.len() >= 4
+                && expected_fen_parts.len() >= 4
+                && final_fen_parts[0..4] == expected_fen_parts[0..4];
 
-                if !positions_match {
-                    log::warn!(
-                        "Final position from moves doesn't match FEN. Final: {}, Expected: {}",
-                        final_fen,
-                        fen_str
-                    );
-                    log::warn!("Using FEN position and rebuilding history from it");
+            if !positions_match {
+                log::warn!(
+                    "Final position from moves doesn't match FEN. Final: {}, Expected: {}",
+                    final_fen,
+                    fen_str
+                );
+                log::warn!("Using FEN position and rebuilding history from it");
 
-                    // If positions don't match, use the FEN position as the final position
-                    // Try to parse the expected FEN
-                    if let Ok(fen) = shakmaty::fen::Fen::from_ascii(fen_str.as_bytes()) {
-                        if let Ok(position) =
-                            fen.into_position::<shakmaty::Chess>(shakmaty::CastlingMode::Standard)
-                        {
-                            // Replace the last position in history with the FEN position
-                            if let Some(last_pos) = self.position_history.last_mut() {
-                                *last_pos = position;
-                            }
-                        }
+                // If positions don't match, use the FEN position as the final position
+                // Try to parse the expected FEN
+                if let Ok(fen) = shakmaty::fen::Fen::from_ascii(fen_str.as_bytes())
+                    && let Ok(position) =
+                        fen.into_position::<shakmaty::Chess>(shakmaty::CastlingMode::Standard)
+                {
+                    // Replace the last position in history with the FEN position
+                    if let Some(last_pos) = self.position_history.last_mut() {
+                        *last_pos = position;
                     }
-                } else {
-                    log::info!("Final position matches FEN - history is correct");
                 }
+            } else {
+                log::info!("Final position matches FEN - history is correct");
             }
         }
     }
@@ -568,8 +569,15 @@ impl GameBoard {
             // Log why move wasn't found
             let piece_at_from = chess.board().piece_at(from);
             let piece_at_to = chess.board().piece_at(to);
-            log::debug!("Move {} -> {} not found in legal moves. Piece at from: {:?}, piece at to: {:?}, promotion: {:?}, current turn: {:?}", 
-                from, to, piece_at_from, piece_at_to, promotion, chess.turn());
+            log::debug!(
+                "Move {} -> {} not found in legal moves. Piece at from: {:?}, piece at to: {:?}, promotion: {:?}, current turn: {:?}",
+                from,
+                to,
+                piece_at_from,
+                piece_at_to,
+                promotion,
+                chess.turn()
+            );
             None
         }
     }

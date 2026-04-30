@@ -102,15 +102,13 @@ impl Game {
     /// Methods to select a cell on the board
     pub fn handle_cell_click(&mut self, player_color: Option<shakmaty::Color>) {
         // In TCP multiplayer mode, check if it's the player's turn
-        if let Some(opponent) = &self.logic.opponent {
-            if opponent.is_tcp_multiplayer() {
-                if let Some(my_color) = player_color {
-                    // Player can only move when it's their turn
-                    if self.logic.player_turn != my_color {
-                        return;
-                    }
-                }
-            }
+        if let Some(opponent) = &self.logic.opponent
+            && opponent.is_tcp_multiplayer()
+            && let Some(my_color) = player_color
+            && self.logic.player_turn != my_color
+        {
+            // Player can only move when it's their turn
+            return;
         }
 
         // If we are viewing history and making a move, truncate history at this point
@@ -204,10 +202,9 @@ impl Game {
             // Trigger bot move if game is still in progress
             if self.logic.game_state != GameState::Promotion
                 && self.logic.game_state != GameState::Checkmate
+                && let Some(bot) = self.logic.bot.as_mut()
             {
-                if let Some(bot) = self.logic.bot.as_mut() {
-                    bot.bot_will_move = true;
-                }
+                bot.bot_will_move = true;
             }
         }
     }
@@ -233,7 +230,7 @@ impl Game {
                         // For Lichess games, signal the polling thread that player made a move
                         // This resets the polling skip flag so polling resumes for opponent's turn
                         if let Some(crate::game_logic::opponent::OpponentKind::Lichess {
-                            player_move_tx: Some(ref tx),
+                            player_move_tx: Some(tx),
                             ..
                         }) = &opponent.kind
                         {
@@ -311,10 +308,10 @@ impl Game {
         if self.logic.game_state != GameState::Promotion {
             self.logic.start_clock_if_needed();
             self.logic.switch_player_turn();
-        } else if let Some(ref mut clock) = self.logic.clock {
-            if clock.is_running {
-                clock.stop();
-            }
+        } else if let Some(ref mut clock) = self.logic.clock
+            && clock.is_running
+        {
+            clock.stop();
         }
 
         self.handle_after_move_board_flip();
@@ -386,10 +383,10 @@ impl Game {
         if self.logic.game_state != GameState::Promotion {
             self.logic.start_clock_if_needed();
             self.logic.switch_player_turn();
-        } else if let Some(ref mut clock) = self.logic.clock {
-            if clock.is_running {
-                clock.stop();
-            }
+        } else if let Some(ref mut clock) = self.logic.clock
+            && clock.is_running
+        {
+            clock.stop();
         }
 
         self.handle_after_move_board_flip();
@@ -405,26 +402,26 @@ impl GameLogic {
         if self.game_board.is_checkmate() {
             self.game_state = GameState::Checkmate;
             // Stop the clock when game ends in checkmate
-            if let Some(ref mut clock) = self.clock {
-                if clock.is_running {
-                    clock.stop();
-                }
+            if let Some(ref mut clock) = self.clock
+                && clock.is_running
+            {
+                clock.stop();
             }
         } else if self.game_board.is_draw() {
             self.game_state = GameState::Draw;
             // Stop the clock when game ends in draw
-            if let Some(ref mut clock) = self.clock {
-                if clock.is_running {
-                    clock.stop();
-                }
+            if let Some(ref mut clock) = self.clock
+                && clock.is_running
+            {
+                clock.stop();
             }
         } else if self.game_board.is_latest_move_promotion() {
             self.game_state = GameState::Promotion;
             // Stop the clock when entering promotion state (both players' clocks should be stopped)
-            if let Some(ref mut clock) = self.clock {
-                if clock.is_running {
-                    clock.stop();
-                }
+            if let Some(ref mut clock) = self.clock
+                && clock.is_running
+            {
+                clock.stop();
             }
         }
     }
@@ -432,10 +429,10 @@ impl GameLogic {
     /// Switch the player turn
     pub fn switch_player_turn(&mut self) {
         // Stop clock for current player (if it's running)
-        if let Some(ref mut clock) = self.clock {
-            if clock.is_running {
-                clock.stop();
-            }
+        if let Some(ref mut clock) = self.clock
+            && clock.is_running
+        {
+            clock.stop();
         }
 
         match self.player_turn {
@@ -451,11 +448,11 @@ impl GameLogic {
 
     /// Start the clock for the current player (used on first move)
     pub fn start_clock_if_needed(&mut self) {
-        if let Some(ref mut clock) = self.clock {
-            if !clock.is_running {
-                // Clock hasn't started yet, start it for the current player (White on first move)
-                clock.start(self.player_turn);
-            }
+        if let Some(ref mut clock) = self.clock
+            && !clock.is_running
+        {
+            // Clock hasn't started yet, start it for the current player (White on first move)
+            clock.start(self.player_turn);
         }
     }
 
@@ -820,8 +817,14 @@ impl GameLogic {
         }
 
         // Log current board state for debugging
-        log::debug!("Before move execution - from: {}, to: {}, piece: {:?}, color: {:?}, current turn: {:?}", 
-            from, to, piece_type_from, piece_color_from, game_board.position_ref().turn());
+        log::debug!(
+            "Before move execution - from: {}, to: {}, piece: {:?}, color: {:?}, current turn: {:?}",
+            from,
+            to,
+            piece_type_from,
+            piece_color_from,
+            game_board.position_ref().turn()
+        );
 
         // Check if there's a piece at the destination
         let piece_at_dest = game_board.get_role_at_square(&to);
@@ -911,16 +914,20 @@ impl GameLogic {
     ) -> bool {
         // Check if this is a control message to update initial_move_count
         if message.starts_with("INIT_MOVES:") {
-            if let Some(count_str) = message.strip_prefix("INIT_MOVES:") {
-                if let Ok(count) = count_str.parse::<usize>() {
-                    log::info!("Updating initial_move_count to {} (turns from stream), current moves_received: {}", count, opponent.moves_received);
-                    opponent.initial_move_count = count;
-                    // Set moves_received to at least initial_move_count so that the next move we receive
-                    // will be considered new (moves_received > initial_move_count)
-                    // But don't decrease it if moves have already been received
-                    if opponent.moves_received < count {
-                        opponent.moves_received = count;
-                    }
+            if let Some(count_str) = message.strip_prefix("INIT_MOVES:")
+                && let Ok(count) = count_str.parse::<usize>()
+            {
+                log::info!(
+                    "Updating initial_move_count to {} (turns from stream), current moves_received: {}",
+                    count,
+                    opponent.moves_received
+                );
+                opponent.initial_move_count = count;
+                // Set moves_received to at least initial_move_count so that the next move we receive
+                // will be considered new (moves_received > initial_move_count)
+                // But don't decrease it if moves have already been received
+                if opponent.moves_received < count {
+                    opponent.moves_received = count;
                 }
             }
             return true;
@@ -1002,8 +1009,14 @@ impl GameLogic {
             opponent.moves_received <= opponent.initial_move_count || move_already_in_history
         };
 
-        log::debug!("Move processing: move={}, moves_received={}, initial_move_count={}, is_historical={}, history_is_empty={}", 
-            move_str, opponent.moves_received, opponent.initial_move_count, is_historical, history_is_empty);
+        log::debug!(
+            "Move processing: move={}, moves_received={}, initial_move_count={}, is_historical={}, history_is_empty={}",
+            move_str,
+            opponent.moves_received,
+            opponent.initial_move_count,
+            is_historical,
+            history_is_empty
+        );
 
         if is_historical {
             if history_is_empty {
@@ -1075,7 +1088,9 @@ impl GameLogic {
                             // Work backwards: the piece at 'to' came from 'from'
                             log::info!(
                                 "Move {} already applied to board (piece at {} but not at {}). Adding to history by working backwards.",
-                                move_str, to, from
+                                move_str,
+                                to,
+                                from
                             );
 
                             // Get the piece that moved (it's at the destination)
@@ -1208,7 +1223,7 @@ impl GameLogic {
         // For Lichess games, signal the polling thread that player made a move
         // This resets the polling skip flag so polling resumes for opponent's turn
         if let Some(crate::game_logic::opponent::OpponentKind::Lichess {
-            player_move_tx: Some(ref tx),
+            player_move_tx: Some(tx),
             ..
         }) = &opponent.kind
         {

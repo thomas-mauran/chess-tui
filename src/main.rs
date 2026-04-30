@@ -3,7 +3,7 @@ extern crate chess_tui;
 
 use chess_tui::app::{App, AppResult};
 use chess_tui::config::{Args, Config};
-use chess_tui::constants::{config_dir, DisplayMode, Pages, SKIN_NAME_ASCII, SKIN_NAME_DEFAULT};
+use chess_tui::constants::{DisplayMode, Pages, SKIN_NAME_ASCII, SKIN_NAME_DEFAULT, config_dir};
 use chess_tui::event::{Event, EventHandler};
 use chess_tui::game_logic::opponent::wait_for_game_start;
 use chess_tui::handlers::handler::{handle_key_events, handle_mouse_events};
@@ -109,10 +109,10 @@ fn main() -> AppResult<()> {
     let skins_path = config_dir.join("chess-tui/skins.json");
 
     // Create skins.json if it doesn't exist
-    if !skins_path.exists() {
-        if let Err(e) = Skin::create_default_skins_file(&skins_path) {
-            eprintln!("Failed to create default skins.json: {}", e);
-        }
+    if !skins_path.exists()
+        && let Err(e) = Skin::create_default_skins_file(&skins_path)
+    {
+        eprintln!("Failed to create default skins.json: {}", e);
     }
     if skins_path.exists() {
         match Skin::load_all_skins(&skins_path) {
@@ -334,30 +334,30 @@ fn main() -> AppResult<()> {
         app.check_game_end_status();
 
         // Check if hosting player received game start signal from background thread
-        if let Some(ref game_start_rx) = app.multiplayer_state.game_start_rx {
-            if let Ok(()) = game_start_rx.try_recv() {
-                if let Some(opponent) = app.game.logic.opponent.as_mut() {
-                    log::info!("Host received game start signal, starting game");
-                    opponent.game_started = true;
-                    app.ui_state.close_popup();
-                }
-            }
+        if let Some(ref game_start_rx) = app.multiplayer_state.game_start_rx
+            && let Ok(()) = game_start_rx.try_recv()
+            && let Some(opponent) = app.game.logic.opponent.as_mut()
+        {
+            log::info!("Host received game start signal, starting game");
+            opponent.game_started = true;
+            app.ui_state.close_popup();
         }
 
         // For non-hosting players, check directly on the stream
-        if let Some(opponent) = app.game.logic.opponent.as_mut() {
-            if !opponent.game_started && app.multiplayer_state.game_start_rx.is_none() {
-                match wait_for_game_start(opponent) {
-                    Ok(true) => {
-                        opponent.game_started = true;
-                        app.ui_state.close_popup();
-                    }
-                    Ok(false) => {
-                        // Still waiting, do nothing
-                    }
-                    Err(e) => {
-                        log::error!("Error waiting for game start: {}", e);
-                    }
+        if let Some(opponent) = app.game.logic.opponent.as_mut()
+            && !opponent.game_started
+            && app.multiplayer_state.game_start_rx.is_none()
+        {
+            match wait_for_game_start(opponent) {
+                Ok(true) => {
+                    opponent.game_started = true;
+                    app.ui_state.close_popup();
+                }
+                Ok(false) => {
+                    // Still waiting, do nothing
+                }
+                Err(e) => {
+                    log::error!("Error waiting for game start: {}", e);
                 }
             }
         }

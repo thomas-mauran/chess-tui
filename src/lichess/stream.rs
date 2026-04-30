@@ -216,12 +216,12 @@ impl LichessClient {
                                 last_turns = Some(turns);
 
                                 // Extract last move from moves string
-                                if turns > 0 {
-                                    if let Some(last_move) = state.moves.split_whitespace().last() {
-                                        log::info!("Sending initial move: {}", last_move);
-                                        let _ = move_tx.send(last_move.to_string());
-                                        last_move_seen = Some(last_move.to_string());
-                                    }
+                                if turns > 0
+                                    && let Some(last_move) = state.moves.split_whitespace().last()
+                                {
+                                    log::info!("Sending initial move: {}", last_move);
+                                    let _ = move_tx.send(last_move.to_string());
+                                    last_move_seen = Some(last_move.to_string());
                                 }
 
                                 // Send initial move count
@@ -243,23 +243,23 @@ impl LichessClient {
                             if let Some(last_turns_val) = last_turns {
                                 if current_turns > last_turns_val {
                                     // New move detected
-                                    if let Some(new_move) = state.moves.split_whitespace().last() {
-                                        if last_move_seen.as_ref() != Some(&new_move.to_string()) {
-                                            log::info!("New move from stream: {}", new_move);
-                                            let _ = move_tx.send(new_move.to_string());
-                                            last_move_seen = Some(new_move.to_string());
-                                            last_turns = Some(current_turns);
-                                        }
+                                    if let Some(new_move) = state.moves.split_whitespace().last()
+                                        && last_move_seen.as_ref() != Some(&new_move.to_string())
+                                    {
+                                        log::info!("New move from stream: {}", new_move);
+                                        let _ = move_tx.send(new_move.to_string());
+                                        last_move_seen = Some(new_move.to_string());
+                                        last_turns = Some(current_turns);
                                     }
                                 }
                             } else {
                                 // First gameState event - initialize
                                 last_turns = Some(current_turns);
-                                if current_turns > 0 {
-                                    if let Some(last_move) = state.moves.split_whitespace().last() {
-                                        let _ = move_tx.send(last_move.to_string());
-                                        last_move_seen = Some(last_move.to_string());
-                                    }
+                                if current_turns > 0
+                                    && let Some(last_move) = state.moves.split_whitespace().last()
+                                {
+                                    let _ = move_tx.send(last_move.to_string());
+                                    last_move_seen = Some(last_move.to_string());
                                 }
                                 let _ = move_tx.send(format!("INIT_MOVES:{}", current_turns));
                             }
@@ -279,13 +279,12 @@ impl LichessClient {
                                         {
                                             let turns_usize = turns as usize;
                                             last_turns = Some(turns_usize);
-                                            if turns_usize > 0 {
-                                                if let Some(last_move) =
+                                            if turns_usize > 0
+                                                && let Some(last_move) =
                                                     json.get("lastMove").and_then(|v| v.as_str())
-                                                {
-                                                    let _ = move_tx.send(last_move.to_string());
-                                                    last_move_seen = Some(last_move.to_string());
-                                                }
+                                            {
+                                                let _ = move_tx.send(last_move.to_string());
+                                                last_move_seen = Some(last_move.to_string());
                                             }
                                             let _ =
                                                 move_tx.send(format!("INIT_MOVES:{}", turns_usize));
@@ -294,18 +293,16 @@ impl LichessClient {
                                         // Check for new moves
                                         if let Some(last_move) =
                                             json.get("lastMove").and_then(|v| v.as_str())
-                                        {
-                                            if last_move_seen.as_ref()
+                                            && last_move_seen.as_ref()
                                                 != Some(&last_move.to_string())
+                                        {
+                                            log::info!("New move from stream: {}", last_move);
+                                            let _ = move_tx.send(last_move.to_string());
+                                            last_move_seen = Some(last_move.to_string());
+                                            if let Some(turns) =
+                                                json.get("turns").and_then(|v| v.as_u64())
                                             {
-                                                log::info!("New move from stream: {}", last_move);
-                                                let _ = move_tx.send(last_move.to_string());
-                                                last_move_seen = Some(last_move.to_string());
-                                                if let Some(turns) =
-                                                    json.get("turns").and_then(|v| v.as_u64())
-                                                {
-                                                    last_turns = Some(turns as usize);
-                                                }
+                                                last_turns = Some(turns as usize);
                                             }
                                         }
                                     }
@@ -315,11 +312,10 @@ impl LichessClient {
                                         .get("status")
                                         .and_then(|s| s.get("name"))
                                         .and_then(|n| n.as_str())
+                                        && last_status.as_ref() != Some(&status.to_string())
                                     {
-                                        if last_status.as_ref() != Some(&status.to_string()) {
-                                            send_status_message(status, &move_tx);
-                                            last_status = Some(status.to_string());
-                                        }
+                                        send_status_message(status, &move_tx);
+                                        last_status = Some(status.to_string());
                                     }
                                 }
                             } else {

@@ -2,11 +2,11 @@
 
 use crate::{app::App, constants::WHITE, ui::components::centered_rect::centered_rect};
 use ratatui::{
+    Frame,
     layout::Alignment,
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Wrap},
-    Frame,
 };
 
 /// Renders a "Yes / No" confirmation dialog before resigning the current game.

@@ -3,11 +3,11 @@
 use crate::ui::components::centered_rect::centered_rect;
 use crate::{app::App, game_logic::game::GameState, ui::game_ui::render_game_ui};
 use ratatui::{
+    Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Wrap},
-    Frame,
 };
 
 /// Sync the PgnViewer's current ply into `app.game.logic.game_board` so that

@@ -2,11 +2,11 @@
 
 use crate::{constants::WHITE, ui::components::centered_rect::centered_rect};
 use ratatui::{
+    Frame,
     layout::Alignment,
     style::{Style, Stylize},
     text::Line,
     widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Wrap},
-    Frame,
 };
 
 /// Renders the read-only PGN viewer controls popup (navigation, auto-play, speed).

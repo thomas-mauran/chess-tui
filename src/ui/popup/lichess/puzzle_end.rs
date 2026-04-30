@@ -2,11 +2,11 @@
 
 use crate::ui::components::centered_rect::centered_rect;
 use ratatui::{
+    Frame,
     layout::Alignment,
     style::{Color, Modifier, Style},
     text::Line,
     widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Wrap},
-    Frame,
 };
 
 /// Renders the puzzle-end popup showing the result, Elo delta, and next-action hints.

@@ -144,29 +144,37 @@ mod tests {
         assert!(!game_board.is_getting_checked(Color::White));
 
         // 1. f3 e5
-        assert!(game_board
-            .execute_shakmaty_move(Square::F2, Square::F3)
-            .is_some());
+        assert!(
+            game_board
+                .execute_shakmaty_move(Square::F2, Square::F3)
+                .is_some()
+        );
         assert_eq!(game_board.get_role_at_square(&Square::F3), Some(Role::Pawn));
         assert!(!game_board.is_checkmate());
 
-        assert!(game_board
-            .execute_shakmaty_move(Square::E7, Square::E5)
-            .is_some());
+        assert!(
+            game_board
+                .execute_shakmaty_move(Square::E7, Square::E5)
+                .is_some()
+        );
         assert_eq!(game_board.get_role_at_square(&Square::E5), Some(Role::Pawn));
         assert!(!game_board.is_checkmate());
 
         // 2. g4
-        assert!(game_board
-            .execute_shakmaty_move(Square::G2, Square::G4)
-            .is_some());
+        assert!(
+            game_board
+                .execute_shakmaty_move(Square::G2, Square::G4)
+                .is_some()
+        );
         assert_eq!(game_board.get_role_at_square(&Square::G4), Some(Role::Pawn));
         assert!(!game_board.is_checkmate());
 
         // 2... Qh4# - This should be checkmate
-        assert!(game_board
-            .execute_shakmaty_move(Square::D8, Square::H4)
-            .is_some());
+        assert!(
+            game_board
+                .execute_shakmaty_move(Square::D8, Square::H4)
+                .is_some()
+        );
 
         // Verify queen is at h4
         assert_eq!(
@@ -355,9 +363,11 @@ mod tests {
         assert_eq!(game_board.taken_pieces.len(), 0);
 
         // White knight captures black pawn on e5
-        assert!(game_board
-            .execute_shakmaty_move(Square::F3, Square::E5)
-            .is_some());
+        assert!(
+            game_board
+                .execute_shakmaty_move(Square::F3, Square::E5)
+                .is_some()
+        );
 
         // Verify capture occurred
         assert_eq!(
@@ -370,9 +380,11 @@ mod tests {
         assert_eq!(game_board.taken_pieces[0].color, Color::Black);
 
         // Black knight recaptures on e5
-        assert!(game_board
-            .execute_shakmaty_move(Square::C6, Square::E5)
-            .is_some());
+        assert!(
+            game_board
+                .execute_shakmaty_move(Square::C6, Square::E5)
+                .is_some()
+        );
 
         // Verify recapture
         assert_eq!(
@@ -533,9 +545,11 @@ mod tests {
         assert_eq!(game_board.get_role_at_square(&Square::D5), Some(Role::Pawn));
 
         // White captures en passant (e5xd6)
-        assert!(game_board
-            .execute_shakmaty_move(Square::E5, Square::D6)
-            .is_some());
+        assert!(
+            game_board
+                .execute_shakmaty_move(Square::E5, Square::D6)
+                .is_some()
+        );
 
         // Verify en passant capture
         assert_eq!(game_board.get_role_at_square(&Square::D6), Some(Role::Pawn)); // White pawn moved to d6
@@ -558,35 +572,47 @@ mod tests {
         let mut game_board = GameBoard::default();
 
         // Try to move a piece that doesn't exist
-        assert!(game_board
-            .execute_shakmaty_move(Square::E4, Square::E5)
-            .is_none());
+        assert!(
+            game_board
+                .execute_shakmaty_move(Square::E4, Square::E5)
+                .is_none()
+        );
 
         // Try to move opponent's piece
-        assert!(game_board
-            .execute_shakmaty_move(Square::E7, Square::E5)
-            .is_none());
+        assert!(
+            game_board
+                .execute_shakmaty_move(Square::E7, Square::E5)
+                .is_none()
+        );
 
         // Try to move to an illegal square (pawn moving backwards)
         game_board.execute_shakmaty_move(Square::E2, Square::E4);
-        assert!(game_board
-            .execute_shakmaty_move(Square::E4, Square::E3)
-            .is_none());
+        assert!(
+            game_board
+                .execute_shakmaty_move(Square::E4, Square::E3)
+                .is_none()
+        );
 
         // Try to move pawn three squares
-        assert!(game_board
-            .execute_shakmaty_move(Square::D2, Square::D5)
-            .is_none());
+        assert!(
+            game_board
+                .execute_shakmaty_move(Square::D2, Square::D5)
+                .is_none()
+        );
 
         // Try to move king more than one square (not castling)
-        assert!(game_board
-            .execute_shakmaty_move(Square::E1, Square::E3)
-            .is_none());
+        assert!(
+            game_board
+                .execute_shakmaty_move(Square::E1, Square::E3)
+                .is_none()
+        );
 
         // Try to castle through pieces
-        assert!(game_board
-            .execute_shakmaty_move(Square::E1, Square::G1)
-            .is_none());
+        assert!(
+            game_board
+                .execute_shakmaty_move(Square::E1, Square::G1)
+                .is_none()
+        );
     }
 
     #[test]
@@ -617,9 +643,11 @@ mod tests {
         );
 
         // King captures the checking bishop
-        assert!(game_board
-            .execute_shakmaty_move(Square::E8, Square::F7)
-            .is_some());
+        assert!(
+            game_board
+                .execute_shakmaty_move(Square::E8, Square::F7)
+                .is_some()
+        );
 
         // After capturing, no longer in check
         assert!(!game_board.is_getting_checked(Color::Black));

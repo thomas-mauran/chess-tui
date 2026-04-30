@@ -3,11 +3,11 @@
 use crate::ui::prompt::Prompt;
 use crate::{constants::WHITE, ui::components::right_rect::right_rect};
 use ratatui::{
+    Frame,
     layout::{Alignment, Position},
     style::Style,
     text::Line,
     widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Wrap},
-    Frame,
 };
 
 /// Renders a right-anchored text input box for typing a move in SAN notation.

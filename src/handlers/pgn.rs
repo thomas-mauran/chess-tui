@@ -18,23 +18,23 @@ pub fn handle_pgn_viewer_events(app: &mut App, key_event: KeyEvent) {
 
         // Next move
         KeyCode::Right | KeyCode::Char('l' | 'n' | 'N') => {
-            if let Some(ref mut games) = app.pgn_viewer_state {
-                if let Some(v) = games.get_mut(app.pgn_viewer_game_idx) {
-                    v.next();
-                }
+            if let Some(ref mut games) = app.pgn_viewer_state
+                && let Some(v) = games.get_mut(app.pgn_viewer_game_idx)
+            {
+                v.next();
             }
         }
 
         // Previous move - or dismiss end-of-game banner when it's visible
         KeyCode::Left | KeyCode::Char('h' | 'p' | 'P') => {
-            if let Some(ref mut games) = app.pgn_viewer_state {
-                if let Some(v) = games.get_mut(app.pgn_viewer_game_idx) {
-                    let is_h = matches!(key_event.code, KeyCode::Char('h' | 'H'));
-                    if is_h && v.is_at_end() && !v.end_banner_dismissed {
-                        v.end_banner_dismissed = true;
-                    } else {
-                        v.prev();
-                    }
+            if let Some(ref mut games) = app.pgn_viewer_state
+                && let Some(v) = games.get_mut(app.pgn_viewer_game_idx)
+            {
+                let is_h = matches!(key_event.code, KeyCode::Char('h' | 'H'));
+                if is_h && v.is_at_end() && !v.end_banner_dismissed {
+                    v.end_banner_dismissed = true;
+                } else {
+                    v.prev();
                 }
             }
         }
@@ -44,47 +44,47 @@ pub fn handle_pgn_viewer_events(app: &mut App, key_event: KeyEvent) {
 
         // Go to start
         KeyCode::Char('g') => {
-            if let Some(ref mut games) = app.pgn_viewer_state {
-                if let Some(v) = games.get_mut(app.pgn_viewer_game_idx) {
-                    v.goto_start();
-                }
+            if let Some(ref mut games) = app.pgn_viewer_state
+                && let Some(v) = games.get_mut(app.pgn_viewer_game_idx)
+            {
+                v.goto_start();
             }
         }
 
         // Go to end
         KeyCode::Char('G') => {
-            if let Some(ref mut games) = app.pgn_viewer_state {
-                if let Some(v) = games.get_mut(app.pgn_viewer_game_idx) {
-                    v.goto_end();
-                }
+            if let Some(ref mut games) = app.pgn_viewer_state
+                && let Some(v) = games.get_mut(app.pgn_viewer_game_idx)
+            {
+                v.goto_end();
             }
         }
 
         // Toggle auto-play
         KeyCode::Char(' ') => {
-            if let Some(ref mut games) = app.pgn_viewer_state {
-                if let Some(v) = games.get_mut(app.pgn_viewer_game_idx) {
-                    v.auto_play = !v.auto_play;
-                    v.auto_play_accum = 0.0;
-                }
+            if let Some(ref mut games) = app.pgn_viewer_state
+                && let Some(v) = games.get_mut(app.pgn_viewer_game_idx)
+            {
+                v.auto_play = !v.auto_play;
+                v.auto_play_accum = 0.0;
             }
         }
 
         // Speed up
         KeyCode::Char('+') | KeyCode::Char('=') => {
-            if let Some(ref mut games) = app.pgn_viewer_state {
-                if let Some(v) = games.get_mut(app.pgn_viewer_game_idx) {
-                    v.speed_up();
-                }
+            if let Some(ref mut games) = app.pgn_viewer_state
+                && let Some(v) = games.get_mut(app.pgn_viewer_game_idx)
+            {
+                v.speed_up();
             }
         }
 
         // Slow down
         KeyCode::Char('-') => {
-            if let Some(ref mut games) = app.pgn_viewer_state {
-                if let Some(v) = games.get_mut(app.pgn_viewer_game_idx) {
-                    v.speed_down();
-                }
+            if let Some(ref mut games) = app.pgn_viewer_state
+                && let Some(v) = games.get_mut(app.pgn_viewer_game_idx)
+            {
+                v.speed_down();
             }
         }
 

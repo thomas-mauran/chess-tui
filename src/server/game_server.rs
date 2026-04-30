@@ -4,8 +4,9 @@ use std::{
     io::{Read, Write},
     net::{IpAddr, TcpListener, TcpStream, UdpSocket},
     sync::{
+        Arc, Mutex,
         atomic::{AtomicBool, Ordering},
-        mpsc, Arc, Mutex,
+        mpsc,
     },
     thread::{self, sleep},
     time::Duration,

@@ -2,7 +2,7 @@
 
 use crate::{
     app::App,
-    constants::{Pages, Popups, BOT_DIFFICULTY_COUNT},
+    constants::{BOT_DIFFICULTY_COUNT, Pages, Popups},
     handlers::handler::fallback_key_handler,
 };
 use ratatui::crossterm::event::{KeyCode, KeyEvent};

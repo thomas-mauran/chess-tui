@@ -172,31 +172,29 @@ impl App {
     /// Polls the seek channel once per tick. On success, sets up the game board and switches to
     /// the Lichess page. On error, shows an error popup.
     pub fn check_lichess_seek(&mut self) {
-        if let Some(rx) = &self.lichess_state.seek_receiver {
-            if let Ok(result) = rx.try_recv() {
-                self.lichess_state.seek_receiver = None;
-                self.ui_state.close_popup();
+        if let Some(rx) = &self.lichess_state.seek_receiver
+            && let Ok(result) = rx.try_recv()
+        {
+            self.lichess_state.seek_receiver = None;
+            self.ui_state.close_popup();
 
-                // Cancel the seek since we found a game (or got an error)
-                if let Some(cancellation_token) = &self.lichess_state.cancellation_token {
-                    cancellation_token.store(true, std::sync::atomic::Ordering::Relaxed);
-                    log::info!("Cancelling Lichess seek - game found or error occurred");
+            // Cancel the seek since we found a game (or got an error)
+            if let Some(cancellation_token) = &self.lichess_state.cancellation_token {
+                cancellation_token.store(true, std::sync::atomic::Ordering::Relaxed);
+                log::info!("Cancelling Lichess seek - game found or error occurred");
+            }
+            self.lichess_state.cancellation_token = None;
+
+            match result {
+                Ok((game_id, color)) => {
+                    log::info!("Found Lichess game: {} with color {:?}", game_id, color);
+                    // Use the helper function to set up the game with state
+                    self.setup_lichess_game_with_state(game_id, color, None);
                 }
-                self.lichess_state.cancellation_token = None;
-
-                match result {
-                    Ok((game_id, color)) => {
-                        log::info!("Found Lichess game: {} with color {:?}", game_id, color);
-                        // Use the helper function to set up the game with state
-                        self.setup_lichess_game_with_state(game_id, color, None);
-                    }
-                    Err(e) => {
-                        log::error!("Failed to seek Lichess game: {}", e);
-                        self.ui_state.show_message_popup(
-                            format!("Failed to seek game: {}", e),
-                            Popups::Error,
-                        );
-                    }
+                Err(e) => {
+                    log::error!("Failed to seek Lichess game: {}", e);
+                    self.ui_state
+                        .show_message_popup(format!("Failed to seek game: {}", e), Popups::Error);
                 }
             }
         }
@@ -500,9 +498,9 @@ impl App {
 
             // Show success message
             let msg = format!(
-                    "Game resigned successfully!\n\nYou have resigned the game vs {}.\n\n The game list will be updated shortly.",
-                    opponent_name
-                );
+                "Game resigned successfully!\n\nYou have resigned the game vs {}.\n\n The game list will be updated shortly.",
+                opponent_name
+            );
             self.ui_state.show_message_popup(msg, Popups::Success);
 
             log::info!(
@@ -615,12 +613,11 @@ impl App {
 
         // Get rating before
         let mut rating_before = None;
-        if let Some(profile) = &self.lichess_state.user_profile {
-            if let Some(perfs) = &profile.perfs {
-                if let Some(puzzle_perf) = &perfs.puzzle {
-                    rating_before = Some(puzzle_perf.rating);
-                }
-            }
+        if let Some(profile) = &self.lichess_state.user_profile
+            && let Some(perfs) = &profile.perfs
+            && let Some(puzzle_perf) = &perfs.puzzle
+        {
+            rating_before = Some(puzzle_perf.rating);
         }
 
         // Initialize PuzzleGame

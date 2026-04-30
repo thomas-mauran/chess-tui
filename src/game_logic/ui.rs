@@ -7,19 +7,19 @@ use super::{
     game::{Game, GameLogic},
 };
 use crate::{
-    constants::{DisplayMode, BLACK, WHITE},
+    constants::{BLACK, DisplayMode, WHITE},
     game_logic::coord::MoveDirection,
-    pieces::{role_to_utf_enum, PieceSize},
+    pieces::{PieceSize, role_to_utf_enum},
     skin::{PieceStyle, Skin},
     ui::{components::cell::render_cell, prompt::Prompt},
     utils::{flip_square_if_needed, get_coord_from_square, get_square_from_coord},
 };
 use ratatui::{
+    Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style, Stylize},
     text::{Line, Span},
     widgets::{Block, BorderType, Borders, Padding, Paragraph},
-    Frame,
 };
 use shakmaty::{Position, Role, Square};
 
@@ -600,21 +600,20 @@ impl UI {
 
         let selected_piece_color = logic.game_board.get_piece_color_at_square(&square);
 
-        if let Some(color) = selected_piece_color {
-            if color == logic.player_turn {
-                let mut authorized_positions: Vec<Coord> = logic
-                    .game_board
-                    .get_authorized_positions(logic.player_turn, &square)
-                    .iter()
-                    .map(|&s| Coord::from(s))
-                    .collect();
+        if let Some(color) = selected_piece_color
+            && color == logic.player_turn
+        {
+            let mut authorized_positions: Vec<Coord> = logic
+                .game_board
+                .get_authorized_positions(logic.player_turn, &square)
+                .iter()
+                .map(|&s| Coord::from(s))
+                .collect();
 
-                if logic.game_board.is_flipped {
-                    authorized_positions =
-                        authorized_positions.iter().map(Coord::reverse).collect();
-                }
-                return authorized_positions;
+            if logic.game_board.is_flipped {
+                authorized_positions = authorized_positions.iter().map(Coord::reverse).collect();
             }
+            return authorized_positions;
         }
         vec![]
     }

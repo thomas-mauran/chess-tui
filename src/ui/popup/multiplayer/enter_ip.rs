@@ -6,11 +6,11 @@ use crate::{
     ui::components::centered_rect::centered_rect,
 };
 use ratatui::{
+    Frame,
     layout::{Alignment, Position},
     style::Style,
     text::Line,
     widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Wrap},
-    Frame,
 };
 
 /// Renders a text input for entering the host's IP address and port.
@@ -34,7 +34,9 @@ pub fn render_enter_multiplayer_ip(frame: &mut Frame, prompt: &Prompt) {
         Line::from(""),
         Line::from(""),
         Line::from(format!("Example: 10.111.6.50:{};", NETWORK_PORT)),
-        Line::from("Documentation: https://thomas-mauran.github.io/chess-tui/docs/Multiplayer/Online%20multiplayer/"),
+        Line::from(
+            "Documentation: https://thomas-mauran.github.io/chess-tui/docs/Multiplayer/Online%20multiplayer/",
+        ),
         Line::from(""),
         Line::from(""),
         Line::from("Press `Esc` to close the popup.").alignment(Alignment::Center),

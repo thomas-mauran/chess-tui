@@ -2,11 +2,11 @@
 
 use crate::ui::components::centered_rect::centered_rect;
 use ratatui::{
+    Frame,
     layout::Alignment,
     style::{Color, Style},
     text::Line,
     widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Wrap},
-    Frame,
 };
 
 /// Renders a centered red-bordered popup displaying `error_message`.

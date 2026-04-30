@@ -45,21 +45,18 @@ impl EventHandler {
                         .checked_sub(last_tick.elapsed())
                         .unwrap_or(tick_rate);
 
-                    if let Ok(poll_result) = event::poll(timeout) {
-                        if poll_result {
-                            if let Ok(event) = event::read() {
-                                let send_result = match event {
-                                    CrosstermEvent::Key(e) => sender.send(Event::Key(e)),
-                                    CrosstermEvent::Mouse(e) => sender.send(Event::Mouse(e)),
-                                    CrosstermEvent::Resize(w, h) => {
-                                        sender.send(Event::Resize(w, h))
-                                    }
-                                    _ => Ok(()),
-                                };
-                                if send_result.is_err() {
-                                    break;
-                                }
-                            }
+                    if let Ok(poll_result) = event::poll(timeout)
+                        && poll_result
+                        && let Ok(event) = event::read()
+                    {
+                        let send_result = match event {
+                            CrosstermEvent::Key(e) => sender.send(Event::Key(e)),
+                            CrosstermEvent::Mouse(e) => sender.send(Event::Mouse(e)),
+                            CrosstermEvent::Resize(w, h) => sender.send(Event::Resize(w, h)),
+                            _ => Ok(()),
+                        };
+                        if send_result.is_err() {
+                            break;
                         }
                     }
 

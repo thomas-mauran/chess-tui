@@ -99,24 +99,23 @@ impl PuzzleGame {
         game: &mut Game,
         lichess_token: Option<String>,
     ) -> Option<String> {
-        if let Some((move_uci, index_to_advance)) = &self.opponent_move_pending {
-            if let Some(start_time) = self.opponent_move_time {
-                if start_time.elapsed() >= Duration::from_secs(1) {
-                    let move_uci = move_uci.clone();
-                    let index_to_advance = *index_to_advance;
+        if let Some((move_uci, index_to_advance)) = &self.opponent_move_pending
+            && let Some(start_time) = self.opponent_move_time
+            && start_time.elapsed() >= Duration::from_secs(1)
+        {
+            let move_uci = move_uci.clone();
+            let index_to_advance = *index_to_advance;
 
-                    self.opponent_move_pending = None;
-                    self.opponent_move_time = None;
+            self.opponent_move_pending = None;
+            self.opponent_move_time = None;
 
-                    if self.apply_opponent_move(&move_uci, game) {
-                        self.solution_index += index_to_advance;
+            if self.apply_opponent_move(&move_uci, game) {
+                self.solution_index += index_to_advance;
 
-                        if self.solution_index >= self.puzzle.puzzle.solution.len() {
-                            let win = !self.has_mistakes;
-                            self.submit_completion(win, lichess_token);
-                            return Some("Puzzle solved! Well done!".to_string());
-                        }
-                    }
+                if self.solution_index >= self.puzzle.puzzle.solution.len() {
+                    let win = !self.has_mistakes;
+                    self.submit_completion(win, lichess_token);
+                    return Some("Puzzle solved! Well done!".to_string());
                 }
             }
         }
@@ -203,16 +202,14 @@ impl PuzzleGame {
                     .is_ok()
                 {
                     std::thread::sleep(Duration::from_millis(SLEEP_DURATION_PUZZLE_MS));
-                    if let Ok(updated_profile) = client.get_user_profile() {
-                        if let Some(perfs) = &updated_profile.perfs {
-                            if let Some(puzzle_perf) = &perfs.puzzle {
-                                if let Some(rating_before) = puzzle_rating_before {
-                                    let rating_after = puzzle_perf.rating;
-                                    let elo_change = rating_after as i32 - rating_before as i32;
-                                    let _ = tx.send(elo_change);
-                                }
-                            }
-                        }
+                    if let Ok(updated_profile) = client.get_user_profile()
+                        && let Some(perfs) = &updated_profile.perfs
+                        && let Some(puzzle_perf) = &perfs.puzzle
+                        && let Some(rating_before) = puzzle_rating_before
+                    {
+                        let rating_after = puzzle_perf.rating;
+                        let elo_change = rating_after as i32 - rating_before as i32;
+                        let _ = tx.send(elo_change);
                     }
                 }
             });
@@ -222,11 +219,11 @@ impl PuzzleGame {
     }
 
     pub fn check_elo_update(&mut self) {
-        if let Some(ref rx) = self.elo_change_receiver {
-            if let Ok(elo_change) = rx.try_recv() {
-                self.elo_change = Some(elo_change);
-                self.elo_change_receiver = None;
-            }
+        if let Some(ref rx) = self.elo_change_receiver
+            && let Ok(elo_change) = rx.try_recv()
+        {
+            self.elo_change = Some(elo_change);
+            self.elo_change_receiver = None;
         }
     }
 

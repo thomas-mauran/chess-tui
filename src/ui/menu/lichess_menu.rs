@@ -3,11 +3,11 @@
 use super::rating_chart::render_rating_history_chart;
 use crate::app::App;
 use ratatui::{
+    Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, BorderType, Borders, Paragraph},
-    Frame,
 };
 
 pub fn render_lichess_menu(frame: &mut Frame, app: &App) {
@@ -179,20 +179,20 @@ fn render_user_stats_panel(frame: &mut Frame, app: &App, area: Rect) {
         }
         stats_lines.push(Line::from(""));
 
-        if let Some(profile_info) = &profile.profile {
-            if let Some(country) = &profile_info.country {
-                stats_lines.push(Line::from(vec![Span::styled(
-                    "Country:",
-                    Style::default()
-                        .fg(Color::Cyan)
-                        .add_modifier(Modifier::BOLD),
-                )]));
-                stats_lines.push(Line::from(vec![
-                    Span::raw("  "),
-                    Span::styled(country.clone(), Style::default().fg(Color::White)),
-                ]));
-                stats_lines.push(Line::from(""));
-            }
+        if let Some(profile_info) = &profile.profile
+            && let Some(country) = &profile_info.country
+        {
+            stats_lines.push(Line::from(vec![Span::styled(
+                "Country:",
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            )]));
+            stats_lines.push(Line::from(vec![
+                Span::raw("  "),
+                Span::styled(country.clone(), Style::default().fg(Color::White)),
+            ]));
+            stats_lines.push(Line::from(""));
         }
 
         if let Some(perfs) = &profile.perfs {
@@ -251,13 +251,13 @@ fn render_user_stats_panel(frame: &mut Frame, app: &App, area: Rect) {
                     Span::styled(format!("{}", v), Style::default().fg(Color::Yellow)),
                 ]));
             }
-            if let Some(v) = counts.playing {
-                if v > 0 {
-                    stats_lines.push(Line::from(vec![
-                        Span::raw("  Playing: "),
-                        Span::styled(format!("{}", v), Style::default().fg(Color::Magenta)),
-                    ]));
-                }
+            if let Some(v) = counts.playing
+                && v > 0
+            {
+                stats_lines.push(Line::from(vec![
+                    Span::raw("  Playing: "),
+                    Span::styled(format!("{}", v), Style::default().fg(Color::Magenta)),
+                ]));
             }
         }
     } else {

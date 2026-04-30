@@ -2,7 +2,7 @@
 
 use crate::game_logic::bot::Bot;
 use shakmaty::Move;
-use std::sync::mpsc::{channel, Receiver};
+use std::sync::mpsc::{Receiver, channel};
 
 /// Engine configuration and the channel used to receive moves computed off-thread.
 ///
@@ -61,10 +61,10 @@ impl BotState {
                 .ok()
                 .and_then(|fen| fen.into_position(shakmaty::CastlingMode::Standard).ok());
 
-            if let Some(pos) = position {
-                if let Ok(chess_move) = uci_move.to_move(&pos) {
-                    let _ = tx.send(Ok(chess_move));
-                }
+            if let Some(pos) = position
+                && let Ok(chess_move) = uci_move.to_move(&pos)
+            {
+                let _ = tx.send(Ok(chess_move));
             }
         });
     }

@@ -1,7 +1,7 @@
 //! TCP multiplayer session setup and teardown.
 
 use crate::app::App;
-use crate::constants::{Popups, NETWORK_PORT, SLEEP_DURATION_LONG_MS};
+use crate::constants::{NETWORK_PORT, Popups, SLEEP_DURATION_LONG_MS};
 use crate::game_logic::opponent::wait_for_game_start;
 use crate::game_logic::opponent::{Opponent, OpponentKind};
 use crate::server::game_server::get_host_ip;
@@ -135,10 +135,10 @@ impl App {
         log::info!("Cancelling hosting and cleaning multiplayer state");
 
         // Close the socket
-        if let Some(mut opponent) = self.game.logic.opponent.take() {
-            if let Some(OpponentKind::Tcp(stream)) = opponent.kind.take() {
-                let _ = stream.shutdown(std::net::Shutdown::Both);
-            }
+        if let Some(mut opponent) = self.game.logic.opponent.take()
+            && let Some(OpponentKind::Tcp(stream)) = opponent.kind.take()
+        {
+            let _ = stream.shutdown(std::net::Shutdown::Both);
         }
 
         self.game.logic.opponent = None;

@@ -5,11 +5,11 @@ use crate::{
     constants::{DisplayMode, TITLE},
 };
 use ratatui::{
+    Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Paragraph},
-    Frame,
 };
 
 /// Renders the home menu with navigation options, skin selector, and title banner.

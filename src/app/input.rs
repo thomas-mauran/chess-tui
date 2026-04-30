@@ -52,24 +52,24 @@ impl App {
                 let move_uci = format!("{}{}{}", from, to, promotion_char);
 
                 // Validate the puzzle move with the complete UCI
-                if self.lichess_state.puzzle_game.is_some() {
-                    if let Some(mut puzzle_game) = self.lichess_state.puzzle_game.take() {
-                        let (is_correct, message) = puzzle_game.validate_move(
-                            move_uci,
-                            &mut self.game,
-                            self.lichess_state.token.clone(),
-                        );
+                if self.lichess_state.puzzle_game.is_some()
+                    && let Some(mut puzzle_game) = self.lichess_state.puzzle_game.take()
+                {
+                    let (is_correct, message) = puzzle_game.validate_move(
+                        move_uci,
+                        &mut self.game,
+                        self.lichess_state.token.clone(),
+                    );
 
-                        move_was_correct = is_correct;
-                        self.lichess_state.puzzle_game = Some(puzzle_game);
+                    move_was_correct = is_correct;
+                    self.lichess_state.puzzle_game = Some(puzzle_game);
 
-                        if let Some(msg) = message {
-                            if is_correct {
-                                self.ui_state
-                                    .show_message_popup(msg, Popups::PuzzleEndScreen);
-                            } else {
-                                self.ui_state.show_message_popup(msg, Popups::Error);
-                            }
+                    if let Some(msg) = message {
+                        if is_correct {
+                            self.ui_state
+                                .show_message_popup(msg, Popups::PuzzleEndScreen);
+                        } else {
+                            self.ui_state.show_message_popup(msg, Popups::Error);
                         }
                     }
                 }
@@ -97,22 +97,20 @@ impl App {
             self.check_and_show_game_end();
         } else {
             // In multiplayer/Lichess mode, only allow input if it's our turn (but not for promotion, handled above)
-            if self.ui_state.current_page == Pages::Multiplayer
-                || self.ui_state.current_page == Pages::Lichess
+            if (self.ui_state.current_page == Pages::Multiplayer
+                || self.ui_state.current_page == Pages::Lichess)
+                && let Some(my_color) = self.game_mode_state.selected_color
             {
-                if let Some(my_color) = self.game_mode_state.selected_color {
-                    // For TCP multiplayer, additional check is done in handle_cell_click
-                    // For Lichess, we need to check here
-                    if self.ui_state.current_page == Pages::Lichess {
-                        if self.game.logic.player_turn != my_color {
-                            return;
-                        }
-                    } else if let Some(opponent) = &self.game.logic.opponent {
-                        // For TCP multiplayer, check if it's our turn
-                        if opponent.is_tcp_multiplayer() && self.game.logic.player_turn != my_color
-                        {
-                            return;
-                        }
+                // For TCP multiplayer, additional check is done in handle_cell_click
+                // For Lichess, we need to check here
+                if self.ui_state.current_page == Pages::Lichess {
+                    if self.game.logic.player_turn != my_color {
+                        return;
+                    }
+                } else if let Some(opponent) = &self.game.logic.opponent {
+                    // For TCP multiplayer, check if it's our turn
+                    if opponent.is_tcp_multiplayer() && self.game.logic.player_turn != my_color {
+                        return;
                     }
                 }
             }
