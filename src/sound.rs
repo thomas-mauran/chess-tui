@@ -1,21 +1,22 @@
 //! Sound effect synthesis and playback.
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::{
+    num::NonZero,
+    sync::atomic::{AtomicBool, Ordering},
+};
 
-// Global sound enabled state
 static SOUND_ENABLED: AtomicBool = AtomicBool::new(true);
-// Track if audio is actually available (checked at startup)
 static AUDIO_AVAILABLE: AtomicBool = AtomicBool::new(true);
+const SAMPLE_RATE: NonZero<u32> = match NonZero::new(44100) {
+    Some(v) => v,
+    None => panic!("sample rate cannot be zero"),
+};
 
-/// Check if audio is available and update the availability state
-/// This should be called at startup to detect if we're in an environment without audio (e.g., Docker)
 pub fn check_audio_availability() -> bool {
     #[cfg(feature = "sound")]
     {
-        use rodio::OutputStream;
-        // Try to create an output stream
-        // Note: ALSA may print errors to stderr, but we handle the failure gracefully
-        let available = OutputStream::try_default().is_ok();
+        use rodio::DeviceSinkBuilder;
+        let available = DeviceSinkBuilder::open_default_sink().is_ok();
         AUDIO_AVAILABLE.store(available, Ordering::Relaxed);
         available
     }
@@ -26,146 +27,70 @@ pub fn check_audio_availability() -> bool {
     }
 }
 
-/// Set whether sounds are enabled
 pub fn set_sound_enabled(enabled: bool) {
     SOUND_ENABLED.store(enabled, Ordering::Relaxed);
 }
 
-/// Get whether sounds are enabled
 pub fn is_sound_enabled() -> bool {
     SOUND_ENABLED.load(Ordering::Relaxed) && AUDIO_AVAILABLE.load(Ordering::Relaxed)
 }
 
-/// Plays a move sound when a chess piece is moved.
-/// This generates a pleasant, wood-like "click" sound using multiple harmonics.
 pub fn play_move_sound() {
     #[cfg(feature = "sound")]
     {
         if !is_sound_enabled() {
             return;
         }
-        // Spawn in a separate thread to avoid blocking the main game loop
         std::thread::spawn(|| {
-            use rodio::{OutputStream, Sink};
-            // Try to get an output stream, but don't fail if audio isn't available
-            let Ok((_stream, stream_handle)) = OutputStream::try_default() else {
+            use rodio::source::{Function, SignalGenerator, Source};
+            use rodio::{DeviceSinkBuilder, Player};
+            use std::time::Duration;
+
+            let Ok(mut sink) = DeviceSinkBuilder::open_default_sink() else {
                 return;
             };
+            sink.log_on_drop(false);
+            let player = Player::connect_new(sink.mixer());
 
-            // Create a sink to play the sound
-            let Ok(sink) = Sink::try_new(&stream_handle) else {
-                return;
-            };
+            let source = SignalGenerator::new(SAMPLE_RATE, 220.0, Function::Triangle)
+                .amplify(0.3)
+                .fade_in(Duration::from_millis(4))
+                .take_duration(Duration::from_millis(80))
+                .fade_out(Duration::from_millis(60));
 
-            // Generate a pleasant wood-like click sound
-            // Using a lower fundamental frequency with harmonics for a richer sound
-            let sample_rate = 44100_u32;
-            let duration = 0.08; // 80 milliseconds - slightly longer for better perception
-            let fundamental = 200.0; // Lower frequency for a more pleasant, less harsh sound
-
-            // Safe conversion: sample_rate * duration is always positive and within reasonable bounds
-            let num_samples = (f64::from(sample_rate) * duration) as usize;
-            let mut samples = Vec::with_capacity(num_samples);
-
-            for i in 0..num_samples {
-                // Note: precision loss is acceptable for audio sample calculations
-                #[allow(clippy::cast_precision_loss)]
-                let t = i as f64 / f64::from(sample_rate);
-
-                // Create a more sophisticated envelope with exponential decay
-                // Quick attack, smooth decay - like a wood piece being placed
-                let envelope = if t < duration * 0.1 {
-                    // Quick attack (10% of duration)
-                    (t / (duration * 0.1)).powf(0.5)
-                } else {
-                    // Exponential decay
-                    let decay_start = duration * 0.1;
-                    let decay_time = t - decay_start;
-                    let decay_duration = duration - decay_start;
-                    (-decay_time * 8.0 / decay_duration).exp()
-                };
-
-                // Generate a richer sound with harmonics
-                // Fundamental + 2nd harmonic (octave) + 3rd harmonic (fifth)
-                let fundamental_wave = (t * fundamental * 2.0 * std::f64::consts::PI).sin();
-                let harmonic2 = (t * fundamental * 2.0 * 2.0 * std::f64::consts::PI).sin() * 0.3;
-                let harmonic3 = (t * fundamental * 2.0 * 3.0 * std::f64::consts::PI).sin() * 0.15;
-
-                // Combine harmonics with envelope
-                let sample = (fundamental_wave + harmonic2 + harmonic3) * envelope * 0.25;
-
-                // Convert to i16 sample (truncation is intentional for audio)
-                let sample_i16 = (sample * f64::from(i16::MAX))
-                    .clamp(f64::from(i16::MIN), f64::from(i16::MAX))
-                    as i16;
-                samples.push(sample_i16);
-            }
-
-            // Convert to a source that rodio can play
-            let source = rodio::buffer::SamplesBuffer::new(1, sample_rate, samples);
-            sink.append(source);
-            sink.sleep_until_end();
+            player.append(source);
+            player.sleep_until_end();
+            std::thread::sleep(Duration::from_millis(50));
         });
     }
 }
 
-/// Plays a light navigation sound when moving through menu items.
-/// This generates a subtle, high-pitched "tick" sound for menu navigation.
 pub fn play_menu_nav_sound() {
     #[cfg(feature = "sound")]
     {
         if !is_sound_enabled() {
             return;
         }
-        // Spawn in a separate thread to avoid blocking the main game loop
         std::thread::spawn(|| {
-            use rodio::{OutputStream, Sink};
-            // Try to get an output stream, but don't fail if audio isn't available
-            let Ok((_stream, stream_handle)) = OutputStream::try_default() else {
+            use rodio::source::{Function, SignalGenerator, Source};
+            use rodio::{DeviceSinkBuilder, Player};
+            use std::time::Duration;
+
+            let Ok(mut sink) = DeviceSinkBuilder::open_default_sink() else {
                 return;
             };
+            sink.log_on_drop(false);
+            let player = Player::connect_new(sink.mixer());
 
-            // Create a sink to play the sound
-            let Ok(sink) = Sink::try_new(&stream_handle) else {
-                return;
-            };
+            let source = SignalGenerator::new(SAMPLE_RATE, 160.0, Function::Triangle)
+                .amplify(0.25)
+                .fade_in(Duration::from_millis(3))
+                .take_duration(Duration::from_millis(50))
+                .fade_out(Duration::from_millis(40));
 
-            // Generate a light, high-pitched tick sound for menu navigation
-            let sample_rate = 44100_u32;
-            let duration = 0.04;
-            let frequency = 600.0;
-
-            // Safe conversion: sample_rate * duration is always positive and within reasonable bounds
-            let num_samples = (f64::from(sample_rate) * duration) as usize;
-            let mut samples = Vec::with_capacity(num_samples);
-
-            for i in 0..num_samples {
-                // Note: precision loss is acceptable for audio sample calculations
-                #[allow(clippy::cast_precision_loss)]
-                let t = i as f64 / f64::from(sample_rate);
-
-                let envelope = if t < duration * 0.2 {
-                    (t / (duration * 0.2)).powf(0.3)
-                } else {
-                    let decay_start = duration * 0.2;
-                    let decay_time = t - decay_start;
-                    let decay_duration = duration - decay_start;
-                    (-decay_time * 12.0 / decay_duration).exp()
-                };
-
-                let sample = (t * frequency * 2.0 * std::f64::consts::PI).sin() * envelope * 0.3;
-
-                // Convert to i16 sample (truncation is intentional for audio)
-                let sample_i16 = (sample * f64::from(i16::MAX))
-                    .clamp(f64::from(i16::MIN), f64::from(i16::MAX))
-                    as i16;
-                samples.push(sample_i16);
-            }
-
-            // Convert to a source that rodio can play
-            let source = rodio::buffer::SamplesBuffer::new(1, sample_rate, samples);
-            sink.append(source);
-            sink.sleep_until_end();
+            player.append(source);
+            player.sleep_until_end();
+            std::thread::sleep(Duration::from_millis(50));
         });
     }
 }
