@@ -25,7 +25,10 @@ impl<B: Backend> Tui<B> {
     }
 
     /// Draws one frame by calling [`main_ui::render`] inside a `terminal.draw` closure.
-    pub fn draw(&mut self, app: &mut App) -> AppResult<()> where <B as Backend>::Error: 'static {
+    pub fn draw(&mut self, app: &mut App) -> AppResult<()>
+    where
+        <B as Backend>::Error: 'static,
+    {
         self.terminal.draw(|frame| main_ui::render(app, frame))?;
         Ok(())
     }
