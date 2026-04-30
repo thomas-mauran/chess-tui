@@ -314,7 +314,7 @@ impl PuzzleGame {
                             // Store the move before playing it
                             move_history.push(chess_move.clone());
 
-                            position = match position.play(&chess_move) {
+                            position = match position.play(chess_move) {
                                 Ok(new_pos) => {
                                     log::info!("Applied move {}: {}", i + 1, move_str);
                                     // Store the position after the move

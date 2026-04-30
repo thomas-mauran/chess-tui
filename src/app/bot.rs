@@ -123,7 +123,7 @@ impl App {
             promotion: bot_move.promotion(),
         });
 
-        let Ok(new_position) = current_position.play(&bot_move) else {
+        let Ok(new_position) = current_position.play(bot_move) else {
             log::error!("Failed to play bot move");
             return;
         };
