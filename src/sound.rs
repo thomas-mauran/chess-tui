@@ -1,9 +1,16 @@
 //! Sound effect synthesis and playback.
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::{
+    num::NonZero,
+    sync::atomic::{AtomicBool, Ordering},
+};
 
 static SOUND_ENABLED: AtomicBool = AtomicBool::new(true);
 static AUDIO_AVAILABLE: AtomicBool = AtomicBool::new(true);
+const SAMPLE_RATE: NonZero<u32> = match NonZero::new(44100) {
+    Some(v) => v,
+    None => panic!("sample rate cannot be zero"),
+};
 
 pub fn check_audio_availability() -> bool {
     #[cfg(feature = "sound")]
@@ -37,7 +44,6 @@ pub fn play_move_sound() {
         std::thread::spawn(|| {
             use rodio::source::{Function, SignalGenerator, Source};
             use rodio::{DeviceSinkBuilder, Player};
-            use std::num::NonZero;
             use std::time::Duration;
 
             let Ok(mut sink) = DeviceSinkBuilder::open_default_sink() else {
@@ -46,8 +52,7 @@ pub fn play_move_sound() {
             sink.log_on_drop(false);
             let player = Player::connect_new(sink.mixer());
 
-            let sample_rate = NonZero::new(44100).unwrap();
-            let source = SignalGenerator::new(sample_rate, 220.0, Function::Triangle)
+            let source = SignalGenerator::new(SAMPLE_RATE, 220.0, Function::Triangle)
                 .amplify(0.3)
                 .fade_in(Duration::from_millis(4))
                 .take_duration(Duration::from_millis(80))
@@ -69,7 +74,6 @@ pub fn play_menu_nav_sound() {
         std::thread::spawn(|| {
             use rodio::source::{Function, SignalGenerator, Source};
             use rodio::{DeviceSinkBuilder, Player};
-            use std::num::NonZero;
             use std::time::Duration;
 
             let Ok(mut sink) = DeviceSinkBuilder::open_default_sink() else {
@@ -78,8 +82,7 @@ pub fn play_menu_nav_sound() {
             sink.log_on_drop(false);
             let player = Player::connect_new(sink.mixer());
 
-            let sample_rate = NonZero::new(44100).unwrap();
-            let source = SignalGenerator::new(sample_rate, 160.0, Function::Triangle)
+            let source = SignalGenerator::new(SAMPLE_RATE, 160.0, Function::Triangle)
                 .amplify(0.25)
                 .fade_in(Duration::from_millis(3))
                 .take_duration(Duration::from_millis(50))
