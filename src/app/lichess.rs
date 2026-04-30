@@ -334,6 +334,11 @@ impl App {
         initial_move_count: usize,
         immediate_last_move: Option<String>,
     ) {
+        // Reset game state so a previous ended game doesn't block input in handle_cell_click
+        self.game.logic.game_state = GameState::Playing;
+        self.ui_state.close_popup();
+        self.ui_state.end_screen_dismissed = false;
+
         let Ok(client) = self.lichess_state.require_client() else {
             self.ui_state.show_message_popup(
                 "Lichess client not properly initialized, did you configure a lichess token ?"

@@ -95,16 +95,7 @@ pub fn chess_inputs(app: &mut App, key_event: KeyEvent) {
                 app.game.ui.cursor_right_promotion();
             }
             GameState::Playing => {
-                // In Lichess mode, only allow board cursor movement if it's our turn
-                if app.ui_state.current_page == Pages::Lichess {
-                    if let Some(my_color) = app.game_mode_state.selected_color {
-                        if app.game.logic.player_turn == my_color {
-                            app.go_right_in_game();
-                        }
-                    }
-                } else {
-                    app.go_right_in_game();
-                }
+                app.go_right_in_game();
             }
             _ => (),
         },
@@ -114,16 +105,7 @@ pub fn chess_inputs(app: &mut App, key_event: KeyEvent) {
                 app.game.ui.cursor_left_promotion();
             }
             GameState::Playing => {
-                // In Lichess mode, only allow board cursor movement if it's our turn
-                if app.ui_state.current_page == Pages::Lichess {
-                    if let Some(my_color) = app.game_mode_state.selected_color {
-                        if app.game.logic.player_turn == my_color {
-                            app.go_left_in_game();
-                        }
-                    }
-                } else {
-                    app.go_left_in_game();
-                }
+                app.go_left_in_game();
             }
             GameState::Checkmate | GameState::Draw => {
                 // Toggle end screen visibility when game is over
