@@ -17,13 +17,13 @@ pub struct PuzzleGame {
     pub start_time: Option<Instant>,
     pub has_mistakes: bool,
     pub submitted: bool,
-    pub rating_before: Option<u32>,
+    pub rating_before: Option<u16>,
     pub elo_change: Option<i32>,
     pub elo_change_receiver: Option<Receiver<i32>>,
 }
 
 impl PuzzleGame {
-    pub fn new(puzzle: Puzzle, rating_before: Option<u32>) -> Self {
+    pub fn new(puzzle: Puzzle, rating_before: Option<u16>) -> Self {
         Self {
             puzzle,
             solution_index: 0,

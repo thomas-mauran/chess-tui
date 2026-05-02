@@ -205,7 +205,8 @@ impl App {
                 }
                 // We received an update from the profile fetch
                 LichessUpdate::ProfileLoaded(result) => match result {
-                    Ok((profile, history)) => {
+                    Ok(data) => {
+                        let (profile, history) = *data;
                         self.lichess_state.user_profile = Some(profile);
                         self.lichess_state.rating_history = Some(history);
                     }
@@ -553,7 +554,9 @@ impl App {
             Ok(profile) => {
                 let username = profile.username.clone();
                 let history = client.get_rating_history(&username).unwrap_or_default();
-                let _ = tx.send(LichessUpdate::ProfileLoaded(Ok((profile, history))));
+                let _ = tx.send(LichessUpdate::ProfileLoaded(Ok(Box::new((
+                    profile, history,
+                )))));
             }
             Err(e) => {
                 let _ = tx.send(LichessUpdate::ProfileLoaded(Err(e.to_string())));

@@ -4,6 +4,13 @@ use core::fmt;
 use std::path::PathBuf;
 
 use ratatui::style::Color;
+use throbber_widgets_tui::Set;
+
+pub const CHESS_SET: Set = Set {
+    full: "♚",
+    empty: " ",
+    symbols: &["♚", "♛", "♜", "♝", "♞", "♟", "♔", "♕", "♖", "♗", "♘", "♙"],
+};
 
 /// Sentinel value meaning "no board position set" (used before a square is chosen).
 pub const UNDEFINED_POSITION: u8 = u8::MAX;

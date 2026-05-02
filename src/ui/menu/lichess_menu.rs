@@ -136,7 +136,7 @@ fn render_menu_panel(frame: &mut Frame, app: &App, area: Rect) {
     frame.render_widget(menu, area);
 }
 
-fn rating_line(label: &str, rating: u32, prog: Option<i32>) -> Line<'static> {
+fn rating_line(label: &str, rating: u16, prog: Option<i16>) -> Line<'static> {
     let text = match prog {
         Some(p) if p > 0 => format!("{} (+{})", rating, p),
         Some(p) if p < 0 => format!("{} ({})", rating, p),

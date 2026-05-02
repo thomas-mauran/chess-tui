@@ -8,7 +8,7 @@ use shakmaty::Color;
 use std::sync::mpsc::Receiver;
 
 pub enum LichessUpdate {
-    ProfileLoaded(Result<(UserProfile, Vec<RatingHistoryEntry>), String>),
+    ProfileLoaded(Result<Box<(UserProfile, Vec<RatingHistoryEntry>)>, String>),
     SeekResult(Result<(String, Color), String>),
 }
 

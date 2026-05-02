@@ -1,21 +1,18 @@
 //! Loading popup
 
-use crate::{constants::WHITE, ui::components::centered_rect::centered_rect};
+use crate::{
+    constants::{CHESS_SET, WHITE},
+    ui::components::centered_rect::centered_rect,
+};
 use ratatui::{
     Frame,
     layout::{Constraint, Direction, Layout},
     style::Style,
     widgets::{Block, BorderType, Borders, Clear, Padding},
 };
-use throbber_widgets_tui::Set;
 
 /// Renders a centered popup with a throbber chess spinner and a custom text message
 pub fn render_loading_popup(frame: &mut Frame, loading_text: String) {
-    let chess_set = Set {
-        full: "♚",
-        empty: " ",
-        symbols: &["♚", "♛", "♜", "♝", "♞", "♟", "♔", "♕", "♖", "♗", "♘", "♙"],
-    };
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
@@ -53,7 +50,7 @@ pub fn render_loading_popup(frame: &mut Frame, loading_text: String) {
                 .fg(ratatui::style::Color::Yellow)
                 .add_modifier(ratatui::style::Modifier::BOLD),
         )
-        .throbber_set(chess_set)
+        .throbber_set(CHESS_SET)
         .use_type(throbber_widgets_tui::WhichUse::Spin);
 
     frame.render_widget(Clear, area);

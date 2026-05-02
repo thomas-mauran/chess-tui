@@ -78,7 +78,7 @@ pub struct OngoingGame {
 pub struct OpponentInfo {
     pub id: Option<String>,
     pub username: String,
-    pub rating: Option<u32>,
+    pub rating: Option<u16>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -103,10 +103,10 @@ pub struct PuzzleGame {
 #[derive(Debug, Deserialize, Clone)]
 pub struct PuzzleInfo {
     pub id: String,
-    pub rating: u32,
+    pub rating: u16,
     pub plays: u32,
     #[serde(rename = "initialPly")]
-    pub initial_ply: u32,
+    pub initial_ply: u16,
     pub solution: Vec<String>,
     pub themes: Vec<String>,
 }
@@ -191,17 +191,17 @@ pub struct Perfs {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Perf {
-    pub rating: u32,
+    pub rating: u16,
     #[serde(default)]
-    pub rd: Option<u32>,
+    pub rd: Option<u16>,
     #[serde(default)]
-    pub prog: Option<i32>,
+    pub prog: Option<i16>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct RatingHistoryEntry {
     pub name: String,
-    pub points: Vec<[i32; 4]>, // [year, month, day, rating]
+    pub points: Vec<[i16; 4]>, // [year, month, day, rating]
 }
 
 #[derive(Clone)]
