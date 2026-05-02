@@ -7,6 +7,27 @@ use crate::{
 };
 use ratatui::crossterm::event::{KeyCode, KeyEvent};
 
+pub enum LichessMenuItems {
+    SeekGame,
+    Puzzle,
+    MyOngoingGames,
+    JoinByCode,
+    Disconnect,
+}
+
+impl From<u8> for LichessMenuItems {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => LichessMenuItems::SeekGame,
+            1 => LichessMenuItems::Puzzle,
+            2 => LichessMenuItems::MyOngoingGames,
+            3 => LichessMenuItems::JoinByCode,
+            4 => LichessMenuItems::Disconnect,
+            _ => unreachable!("Invalid LichessMenuItems value: {value}"),
+        }
+    }
+}
+
 /// Handles keyboard input on the Lichess menu page.
 /// Supports navigation through menu items and selection.
 pub fn handle_lichess_menu_page_events(app: &mut App, key_event: KeyEvent) {
@@ -14,9 +35,10 @@ pub fn handle_lichess_menu_page_events(app: &mut App, key_event: KeyEvent) {
         KeyCode::Up | KeyCode::Char('k') => app.ui_state.menu_cursor_up(5), // 5 menu options
         KeyCode::Down | KeyCode::Char('j') => app.ui_state.menu_cursor_down(5),
         KeyCode::Char(' ') | KeyCode::Enter => {
+            let item = LichessMenuItems::from(app.ui_state.menu_cursor);
             // Handle menu selection
-            match app.ui_state.menu_cursor {
-                0 => {
+            match item {
+                LichessMenuItems::SeekGame => {
                     // Seek Game
                     if app.lichess_state.token.is_none()
                         || app
@@ -36,7 +58,7 @@ pub fn handle_lichess_menu_page_events(app: &mut App, key_event: KeyEvent) {
                     app.ui_state.current_page = Pages::Lichess;
                     app.create_lichess_opponent();
                 }
-                1 => {
+                LichessMenuItems::Puzzle => {
                     // Puzzle
                     if app.lichess_state.token.is_none()
                         || app
@@ -54,7 +76,7 @@ pub fn handle_lichess_menu_page_events(app: &mut App, key_event: KeyEvent) {
                     }
                     app.start_puzzle_mode();
                 }
-                2 => {
+                LichessMenuItems::MyOngoingGames => {
                     // My Ongoing Games
                     if app.lichess_state.token.is_none()
                         || app
@@ -70,11 +92,18 @@ pub fn handle_lichess_menu_page_events(app: &mut App, key_event: KeyEvent) {
                         app.game.ui.prompt.message = "Enter your Lichess API token:".to_string();
                         return;
                     }
+                    if app.lichess_state.ongoing_games.is_empty() {
+                        app.ui_state.show_message_popup(
+                            "Loading your ongoing games ...".to_string(),
+                            Popups::Loading,
+                        );
+                    }
+
                     app.fetch_ongoing_games();
                     app.ui_state.current_page = Pages::OngoingGames;
                     app.ui_state.menu_cursor = 0;
                 }
-                3 => {
+                LichessMenuItems::JoinByCode => {
                     // Join by Code
                     if app.lichess_state.token.is_none()
                         || app
@@ -93,11 +122,10 @@ pub fn handle_lichess_menu_page_events(app: &mut App, key_event: KeyEvent) {
                     app.ui_state.current_popup = Some(Popups::EnterGameCode);
                     app.game.ui.prompt.reset();
                 }
-                4 => {
+                LichessMenuItems::Disconnect => {
                     // Disconnect
                     app.disconnect_lichess();
                 }
-                _ => {}
             }
         }
         KeyCode::Esc | KeyCode::Char('b') => {

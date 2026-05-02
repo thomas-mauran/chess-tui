@@ -327,8 +327,7 @@ fn main() -> AppResult<()> {
         if app.check_and_apply_bot_move() {
             app.check_and_show_game_end();
         }
-        // Check if Lichess seek is done
-        app.check_lichess_seek();
+        app.check_lichess_updates();
 
         // Check if game ended
         app.check_game_end_status();

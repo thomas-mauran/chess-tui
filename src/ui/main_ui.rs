@@ -25,6 +25,7 @@ use crate::{
                 game_code::render_enter_game_code_popup, puzzle_end::render_puzzle_end_popup,
                 token::render_enter_lichess_token_popup,
             },
+            loading::render_loading_popup,
             move_input::render_move_input_popup,
             multiplayer::{
                 enter_ip::render_enter_multiplayer_ip,
@@ -133,6 +134,14 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
             };
 
             render_puzzle_end_popup(frame, &message, elo_change, is_calculating);
+        }
+        Some(Popups::Loading) => {
+            let message = if let Some(ref msg) = app.ui_state.popup_message {
+                msg.clone()
+            } else {
+                "Loading ...".to_string()
+            };
+            render_loading_popup(frame, message);
         }
         _ => {}
     }

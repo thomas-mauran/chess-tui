@@ -1,54 +1,34 @@
-//! Waiting-for-opponent popup shown while the host listens for a connection.
+//! Loading popup
 
 use crate::{
-    constants::{CHESS_SET, NETWORK_PORT, WHITE},
+    constants::{CHESS_SET, WHITE},
     ui::components::centered_rect::centered_rect,
 };
 use ratatui::{
     Frame,
-    layout::{Alignment, Constraint, Direction, Layout},
+    layout::{Constraint, Direction, Layout},
     style::Style,
-    text::Line,
-    widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Wrap},
+    widgets::{Block, BorderType, Borders, Clear, Padding},
 };
-use std::net::IpAddr;
 
-/// Renders a "Waiting for other player" popup displaying the host's IP and port.
-pub fn render_wait_for_other_player(frame: &mut Frame, ip: Option<IpAddr>) {
+/// Renders a centered popup with a throbber chess spinner and a custom text message
+pub fn render_loading_popup(frame: &mut Frame, loading_text: String) {
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .padding(Padding::horizontal(1))
         .border_style(Style::default().fg(WHITE));
+
     let area = centered_rect(40, 40, frame.area());
     let inner_area = block.inner(area);
 
-    let ip_str = ip
-        .map(|i| i.to_string())
-        .unwrap_or_else(|| "Unknown".to_string());
-
-    let text = vec![
-        Line::from(""),
-        Line::from(""),
-        Line::from("").alignment(Alignment::Center),
-        Line::from(format!(
-            "Host IP address and port: {}:{}",
-            ip_str, NETWORK_PORT
-        ))
-        .alignment(Alignment::Center),
-    ];
-
-    let paragraph = Paragraph::new(text)
-        .block(block.clone())
-        .alignment(Alignment::Left)
-        .wrap(Wrap { trim: true });
-
-    let content_width = "Waiting for other player ...".len() as u16 + 3;
+    // Chess pieces are double-width (2 cols) + space (1) + label
+    let content_width = loading_text.len() as u16 + 3;
 
     let throbber_row = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Percentage(45),
+            Constraint::Percentage(50),
             Constraint::Length(1),
             Constraint::Fill(1),
         ])
@@ -64,7 +44,7 @@ pub fn render_wait_for_other_player(frame: &mut Frame, ip: Option<IpAddr>) {
         .split(throbber_row)[1];
 
     let full = throbber_widgets_tui::Throbber::default()
-        .label("Waiting for other player ...")
+        .label(loading_text)
         .throbber_style(
             ratatui::style::Style::default()
                 .fg(ratatui::style::Color::Yellow)
@@ -75,6 +55,5 @@ pub fn render_wait_for_other_player(frame: &mut Frame, ip: Option<IpAddr>) {
 
     frame.render_widget(Clear, area);
     frame.render_widget(block, area);
-    frame.render_widget(paragraph, area);
     frame.render_widget(full, throbber_col);
 }

@@ -29,6 +29,7 @@ pub fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
         Popups::SeekingLichessGame => handle_seeking_lichess_game(app, key_event),
         Popups::ResignConfirmation => handle_resign_confirmation(app, key_event),
         Popups::MoveInputSelection => handle_move_input_selection(app, key_event),
+        _ => fallback_key_handler(app, key_event),
     }
 }
 
@@ -249,7 +250,7 @@ fn handle_seeking_lichess_game(app: &mut App, key_event: KeyEvent) {
             if let Some(token) = &app.lichess_state.cancellation_token {
                 token.store(true, std::sync::atomic::Ordering::Relaxed);
             }
-            app.lichess_state.seek_receiver = None;
+            app.lichess_state.receiver = None;
             app.lichess_state.cancellation_token = None;
             app.ui_state.close_popup();
             app.ui_state.current_page = Pages::Home;
