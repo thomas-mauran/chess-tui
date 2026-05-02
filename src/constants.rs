@@ -171,6 +171,8 @@ pub enum Popups {
     MoveInputSelection,
     /// File path entry for loading a PGN file.
     LoadPgnPath,
+    /// Spinner to make user wait
+    Loading,
 }
 
 /// Base URL for all Lichess REST API requests.

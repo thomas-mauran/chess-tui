@@ -6,6 +6,7 @@ use crate::game_logic::game::GameState;
 use crate::game_logic::opponent::Opponent;
 use crate::game_logic::puzzle::PuzzleGame;
 use crate::lichess::models::LichessClient;
+use crate::state::lichess_state::LichessUpdate;
 use shakmaty::Color;
 use std::sync::mpsc::channel;
 
@@ -96,7 +97,7 @@ impl App {
         let client = client.clone();
 
         let (tx, rx) = channel();
-        self.lichess_state.seek_receiver = Some(rx);
+        self.lichess_state.receiver = Some(rx);
 
         let cancellation_token = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
         self.lichess_state.cancellation_token = Some(cancellation_token.clone());
@@ -108,10 +109,10 @@ impl App {
             // Using 0,0 which will trigger the days parameter in seek_game
             match client.seek_game(0, 0, cancellation_token) {
                 Ok((game_id, color)) => {
-                    let _ = tx.send(Ok((game_id, color)));
+                    let _ = tx.send(LichessUpdate::SeekResult(Ok((game_id, color))));
                 }
                 Err(e) => {
-                    let _ = tx.send(Err(e.to_string()));
+                    let _ = tx.send(LichessUpdate::SeekResult(Err(e.to_string())));
                 }
             }
         });
@@ -132,7 +133,7 @@ impl App {
         let client = client.clone();
 
         let (tx, rx) = channel();
-        self.lichess_state.seek_receiver = Some(rx);
+        self.lichess_state.receiver = Some(rx);
 
         self.ui_state.current_popup = Some(Popups::SeekingLichessGame);
 
@@ -152,7 +153,10 @@ impl App {
             let my_id = match client.get_user_profile() {
                 Ok(profile) => profile.id,
                 Err(e) => {
-                    let _ = tx.send(Err(format!("Failed to fetch profile: {}", e)));
+                    let _ = tx.send(LichessUpdate::SeekResult(Err(format!(
+                        "Failed to fetch profile: {}",
+                        e
+                    ))));
                     return;
                 }
             };
@@ -160,42 +164,60 @@ impl App {
             // Join the game by code
             match client.join_game(&game_id, my_id) {
                 Ok((game_id, color)) => {
-                    let _ = tx.send(Ok((game_id, color)));
+                    let _ = tx.send(LichessUpdate::SeekResult(Ok((game_id, color))));
                 }
                 Err(e) => {
-                    let _ = tx.send(Err(e.to_string()));
+                    let _ = tx.send(LichessUpdate::SeekResult(Err(e.to_string())));
                 }
             }
         });
     }
 
-    /// Polls the seek channel once per tick. On success, sets up the game board and switches to
-    /// the Lichess page. On error, shows an error popup.
-    pub fn check_lichess_seek(&mut self) {
-        if let Some(rx) = &self.lichess_state.seek_receiver
-            && let Ok(result) = rx.try_recv()
+    /// Polls the shared background channel once per tick and dispatches on message type.
+    pub fn check_lichess_updates(&mut self) {
+        if let Some(rx) = &self.lichess_state.receiver
+            && let Ok(update) = rx.try_recv()
         {
-            self.lichess_state.seek_receiver = None;
+            self.lichess_state.receiver = None;
             self.ui_state.close_popup();
 
-            // Cancel the seek since we found a game (or got an error)
-            if let Some(cancellation_token) = &self.lichess_state.cancellation_token {
-                cancellation_token.store(true, std::sync::atomic::Ordering::Relaxed);
-                log::info!("Cancelling Lichess seek - game found or error occurred");
-            }
-            self.lichess_state.cancellation_token = None;
+            match update {
+                // We received an seek fetch
+                LichessUpdate::SeekResult(result) => {
+                    if let Some(cancellation_token) = &self.lichess_state.cancellation_token {
+                        cancellation_token.store(true, std::sync::atomic::Ordering::Relaxed);
+                    }
+                    self.lichess_state.cancellation_token = None;
 
-            match result {
-                Ok((game_id, color)) => {
-                    log::info!("Found Lichess game: {} with color {:?}", game_id, color);
-                    // Use the helper function to set up the game with state
-                    self.setup_lichess_game_with_state(game_id, color, None);
+                    match result {
+                        Ok((game_id, color)) => {
+                            log::info!("Found Lichess game: {} with color {:?}", game_id, color);
+                            self.setup_lichess_game_with_state(game_id, color, None);
+                        }
+                        Err(e) => {
+                            log::error!("Failed to seek Lichess game: {}", e);
+                            self.ui_state.show_message_popup(
+                                format!("Failed to seek game: {}", e),
+                                Popups::Error,
+                            );
+                        }
+                    }
                 }
-                Err(e) => {
-                    log::error!("Failed to seek Lichess game: {}", e);
-                    self.ui_state
-                        .show_message_popup(format!("Failed to seek game: {}", e), Popups::Error);
-                }
+                // We received an update from the profile fetch
+                LichessUpdate::ProfileLoaded(result) => match result {
+                    Ok((profile, history)) => {
+                        self.lichess_state.user_profile = Some(profile);
+                        self.lichess_state.rating_history = Some(history);
+                    }
+                    Err(e) => {
+                        log::error!("Failed to fetch user profile: {}", e);
+                        self.ui_state.show_message_popup(
+                            "An error occured when trying to fetch your lichess profile"
+                                .to_string(),
+                            Popups::Error,
+                        );
+                    }
+                },
             }
         }
     }
@@ -511,7 +533,8 @@ impl App {
         }
     }
 
-    /// Fetches the user profile and rating history from Lichess and stores them in `lichess_state`.
+    /// Spawns a background thread to fetch the user profile and rating history.
+    /// The result is polled each tick via `check_lichess_profile_loaded`.
     pub fn fetch_lichess_user_profile(&mut self) {
         let Ok(client) = self.lichess_state.require_client() else {
             self.ui_state.show_message_popup(
@@ -523,27 +546,19 @@ impl App {
         };
 
         let client = client.clone();
+        let (tx, rx) = channel();
+        self.lichess_state.receiver = Some(rx);
 
-        match client.get_user_profile() {
+        std::thread::spawn(move || match client.get_user_profile() {
             Ok(profile) => {
                 let username = profile.username.clone();
-                self.lichess_state.user_profile = Some(profile);
-
-                // Fetch rating history for the line chart
-                match client.get_rating_history(&username) {
-                    Ok(history) => {
-                        self.lichess_state.rating_history = Some(history);
-                    }
-                    Err(e) => {
-                        log::error!("Failed to fetch rating history: {}", e);
-                    }
-                }
+                let history = client.get_rating_history(&username).unwrap_or_default();
+                let _ = tx.send(LichessUpdate::ProfileLoaded(Ok((profile, history))));
             }
             Err(e) => {
-                log::error!("Failed to fetch user profile: {}", e);
-                // Don't show error popup, just log it
+                let _ = tx.send(LichessUpdate::ProfileLoaded(Err(e.to_string())));
             }
-        }
+        });
     }
 
     /// Joins the ongoing Lichess game at the current menu cursor position, restoring board state from FEN.

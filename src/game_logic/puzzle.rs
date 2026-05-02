@@ -1,6 +1,5 @@
 //! Lichess puzzle state and move validation.
 
-use crate::constants::SLEEP_DURATION_PUZZLE_MS;
 use crate::game_logic::game::Game;
 use crate::game_logic::game::GameState;
 use crate::game_logic::game_board::GameBoard;
@@ -191,26 +190,14 @@ impl PuzzleGame {
 
             let puzzle_id = self.puzzle.puzzle.id.clone();
             let client = LichessClient::new(token);
-            let puzzle_rating_before = self.rating_before;
 
             let (tx, rx) = std::sync::mpsc::channel();
             self.elo_change_receiver = Some(rx);
 
             std::thread::spawn(move || {
-                if client
-                    .submit_puzzle_result(&puzzle_id, win, Some(time_ms))
-                    .is_ok()
+                if let Ok(rating_diff) = client.submit_puzzle_result(&puzzle_id, win, Some(time_ms))
                 {
-                    std::thread::sleep(Duration::from_millis(SLEEP_DURATION_PUZZLE_MS));
-                    if let Ok(updated_profile) = client.get_user_profile()
-                        && let Some(perfs) = &updated_profile.perfs
-                        && let Some(puzzle_perf) = &perfs.puzzle
-                        && let Some(rating_before) = puzzle_rating_before
-                    {
-                        let rating_after = puzzle_perf.rating;
-                        let elo_change = rating_after as i32 - rating_before as i32;
-                        let _ = tx.send(elo_change);
-                    }
+                    let _ = tx.send(rating_diff);
                 }
             });
 

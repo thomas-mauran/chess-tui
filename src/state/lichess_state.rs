@@ -7,6 +7,11 @@ use crate::{
 use shakmaty::Color;
 use std::sync::mpsc::Receiver;
 
+pub enum LichessUpdate {
+    ProfileLoaded(Result<(UserProfile, Vec<RatingHistoryEntry>), String>),
+    SeekResult(Result<(String, Color), String>),
+}
+
 /// All Lichess-related runtime state held by [`crate::app::App`].
 ///
 /// Keeps the API token and client together so that any method needing a
@@ -17,8 +22,8 @@ use std::sync::mpsc::Receiver;
 pub struct LichessState {
     /// Lichess API token
     pub token: Option<String>,
-    /// Lichess seek receiver
-    pub seek_receiver: Option<Receiver<Result<(String, Color), String>>>,
+    /// Background task receiver
+    pub receiver: Option<Receiver<LichessUpdate>>,
     /// Lichess cancellation token
     pub cancellation_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
     /// Ongoing Lichess games

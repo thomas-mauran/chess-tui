@@ -62,7 +62,11 @@ impl App {
                 }
                 self.ui_state.menu_cursor = 0;
                 self.ui_state.current_page = Pages::LichessMenu;
-                // Fetch user profile when entering Lichess menu
+                if self.lichess_state.user_profile.is_none() {
+                    self.ui_state.popup_message =
+                        Some("Loading your lichess account ...".to_string());
+                    self.ui_state.show_popup(Popups::Loading);
+                }
                 self.fetch_lichess_user_profile();
             }
             MainMenuItems::SkinSelector => {
@@ -128,7 +132,7 @@ impl App {
             log::info!("Cancelling Lichess seek before returning to home");
         }
         self.lichess_state.cancellation_token = None;
-        self.lichess_state.seek_receiver = None;
+        self.lichess_state.receiver = None;
 
         // Reset game-related state
         self.game_mode_state.selected_color = None;

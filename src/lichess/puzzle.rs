@@ -42,15 +42,13 @@ impl LichessClient {
         Ok(puzzle)
     }
 
-    /// Submit puzzle result to Lichess
-    /// According to https://lichess.org/api#tag/puzzles/post/apipuzzlebatchangle
-    /// This endpoint expects a JSON body with puzzle results
+    /// Submit puzzle result to Lichess. Returns the rating diff from the response.
     pub fn submit_puzzle_result(
         &self,
         puzzle_id: &str,
         win: bool,
         time: Option<u32>,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> Result<i32, Box<dyn Error>> {
         use serde_json::json;
 
         // The API expects a JSON object with a "solutions" field containing an array
@@ -104,6 +102,14 @@ impl LichessClient {
         }
 
         log::info!("✓ Puzzle result submitted successfully to Lichess!");
-        Ok(())
+
+        let body: serde_json::Value = serde_json::from_str(&response_text)?;
+        let rating_diff = body["rounds"]
+            .as_array()
+            .and_then(|r| r.first())
+            .and_then(|r| r["ratingDiff"].as_i64())
+            .unwrap_or(0) as i32;
+
+        Ok(rating_diff)
     }
 }
