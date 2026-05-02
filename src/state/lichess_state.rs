@@ -8,8 +8,9 @@ use shakmaty::Color;
 use std::sync::mpsc::Receiver;
 
 pub enum LichessUpdate {
-    ProfileLoaded(Result<Box<(UserProfile, Vec<RatingHistoryEntry>)>, String>),
+    ProfileResult(Result<Box<(UserProfile, Vec<RatingHistoryEntry>)>, String>),
     SeekResult(Result<(String, Color), String>),
+    OngoingGamesResult(Result<Vec<OngoingGame>, String>),
 }
 
 /// All Lichess-related runtime state held by [`crate::app::App`].

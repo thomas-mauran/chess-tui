@@ -204,7 +204,7 @@ impl App {
                     }
                 }
                 // We received an update from the profile fetch
-                LichessUpdate::ProfileLoaded(result) => match result {
+                LichessUpdate::ProfileResult(result) => match result {
                     Ok(data) => {
                         let (profile, history) = *data;
                         self.lichess_state.user_profile = Some(profile);
@@ -215,6 +215,19 @@ impl App {
                         self.ui_state.show_message_popup(
                             "An error occured when trying to fetch your lichess profile"
                                 .to_string(),
+                            Popups::Error,
+                        );
+                    }
+                },
+                LichessUpdate::OngoingGamesResult(result) => match result {
+                    Ok(games) => {
+                        self.lichess_state.ongoing_games = games;
+                        self.ui_state.close_popup();
+                    }
+                    Err(e) => {
+                        log::error!("Failed to fetch ongoing games: {}", e);
+                        self.ui_state.show_message_popup(
+                            format!("Failed to fetch ongoing games: {}", e),
                             Popups::Error,
                         );
                     }
@@ -440,18 +453,18 @@ impl App {
             return;
         };
 
-        match client.get_ongoing_games() {
+        let client = client.clone();
+        let (tx, rx) = channel();
+        self.lichess_state.receiver = Some(rx);
+
+        std::thread::spawn(move || match client.get_ongoing_games() {
             Ok(games) => {
-                self.lichess_state.ongoing_games = games;
+                let _ = tx.send(LichessUpdate::OngoingGamesResult(Ok(games)));
             }
             Err(e) => {
-                log::error!("Failed to fetch ongoing games: {}", e);
-                self.ui_state.show_message_popup(
-                    format!("Failed to fetch ongoing games: {}", e),
-                    Popups::Error,
-                );
+                let _ = tx.send(LichessUpdate::OngoingGamesResult(Err(e.to_string())));
             }
-        }
+        });
     }
 
     /// Opens the resign confirmation popup if a game is selected in the ongoing games list.
@@ -554,12 +567,12 @@ impl App {
             Ok(profile) => {
                 let username = profile.username.clone();
                 let history = client.get_rating_history(&username).unwrap_or_default();
-                let _ = tx.send(LichessUpdate::ProfileLoaded(Ok(Box::new((
+                let _ = tx.send(LichessUpdate::ProfileResult(Ok(Box::new((
                     profile, history,
                 )))));
             }
             Err(e) => {
-                let _ = tx.send(LichessUpdate::ProfileLoaded(Err(e.to_string())));
+                let _ = tx.send(LichessUpdate::ProfileResult(Err(e.to_string())));
             }
         });
     }
