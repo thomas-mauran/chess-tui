@@ -1,7 +1,8 @@
 ---
 id: bot-intro
-title: Introduction
+title: Bot Introduction
 sidebar_position: 1
+description: "Introduction to bot play in Chess TUI - play against UCI-compatible chess engines in your terminal."
 ---
 
 # Introduction
@@ -19,3 +20,7 @@ import Logo from '/img/ferris-engine.webp';
 
   </div>
 </div>
+
+- [Bot Setup](../Bot) configure your engine path and launch options
+- [Supported Engines](./bot-engines) list of tested UCI engines
+- [Bot Settings](./bot-settings) difficulty levels and thinking depth

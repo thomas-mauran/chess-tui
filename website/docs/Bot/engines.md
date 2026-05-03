@@ -2,6 +2,7 @@
 id: bot-engines
 title: Engines
 sidebar_position: 6
+description: "List of UCI-compatible chess engines that work with Chess TUI, including Stockfish."
 ---
 
 # UCI-Compatible Engines

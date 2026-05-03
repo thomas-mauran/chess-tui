@@ -1,3 +1,7 @@
+---
+description: "Authenticate Chess TUI with Lichess using a personal API token to enable online play."
+---
+
 # Setup & Authentication
 
 To use the Lichess integration features in `chess-tui`, you need to authenticate with a Lichess API token. This guide will walk you through the process step by step.

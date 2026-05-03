@@ -1,7 +1,8 @@
 ---
 id: lichess-intro
-title: Introduction
+title: Lichess Introduction
 sidebar_position: 1
+description: "Introduction to Chess TUI Lichess integration - play online chess on Lichess directly from your terminal."
 ---
 
 # Introduction
@@ -19,3 +20,6 @@ import Logo from '/img/ferris-lichess.webp';
 
   </div>
 </div>
+
+- [Setup & Authentication](./setup.md) generate your Lichess API token
+- [Features](./features.md) seek games, puzzles, ongoing games, and user profile

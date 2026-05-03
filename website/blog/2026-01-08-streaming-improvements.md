@@ -1,5 +1,6 @@
 ---
 title: Real-Time Streaming Improvements - From Polling to Instant Updates
+description: How Chess TUI migrated Lichess from polling to real-time SSE streaming, delivering instant board updates with lower latency.
 authors:
   - thomas-mauran
 tags:

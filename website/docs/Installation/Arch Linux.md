@@ -1,3 +1,7 @@
+---
+description: "Install Chess TUI on Arch Linux using the AUR package manager."
+---
+
 # Arch Linux
 
 **Chess-tui** can be directly built from the Arch Linux package manager.

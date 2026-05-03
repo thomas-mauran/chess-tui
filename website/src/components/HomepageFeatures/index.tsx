@@ -4,11 +4,12 @@ import Heading from '@theme/Heading';
 import styles from './styles.module.css';
 
 type FeatureItem = {
-  title: string,
-  img: any,
-  description: JSX.Element,
-  id: string,
-  link: string,
+  title: string;
+  img: any;
+  description: JSX.Element;
+  id: string;
+  link: string;
+  large?: boolean;
 };
 
 const FeatureList: FeatureItem[] = [
@@ -18,21 +19,17 @@ const FeatureList: FeatureItem[] = [
     id: 'engine',
     link: '/docs/Bot/bot-intro',
     description: (
-      <>
-        You can play locally against any UCI-compatible chess engine.
-      </>
+      <>Play locally against any UCI-compatible chess engine, including Stockfish.</>
     ),
   },
   {
     title: 'Challenge a Friend 🤼',
     img: require('@site/static/img/ferris-challenge.webp').default,
     id: 'challenge',
+    large: true,
     link: '/docs/Multiplayer/multiplayer-intro',
     description: (
-      <>
-        Chess TUI allows you to play chess with a friend on the same computer.
-        Play against your friends over the network.
-      </>
+      <>Pass-and-play on the same machine, or play over the network with a friend.</>
     ),
   },
   {
@@ -41,26 +38,19 @@ const FeatureList: FeatureItem[] = [
     id: 'lichess',
     link: '/docs/Lichess/lichess-intro',
     description: (
-      <>
-        Play against lichess players directly from your terminal.
-      </>
+      <>Seek games, solve puzzles, and play rated matches on Lichess from your terminal.</>
     ),
   },
-  // Additional features can go here
 ];
 
-function Feature({title, img, id, link, description}: FeatureItem) {
+function Feature({ title, img, id, link, description, large }: FeatureItem) {
   return (
     <div className={clsx('col col--4')}>
-      <div className="text--center">
-      </div>
-      <div className="text--center padding-horiz--md">
-        <Link to={link}>
-          <img src={img} alt={`${title} - art by everwinter`} className="feature-img" id={id}/>
-        </Link>
-        <Heading as="h3">{title}</Heading>
-        <p>{description}</p>
-      </div>
+      <Link to={link} className={styles.featureLink}>
+        <img src={img} alt={`${title} illustration`} className={clsx(styles.cardImg, large && styles.cardImgLarge)} id={id} />
+        <h3 className={styles.cardTitle}>{title}</h3>
+        <p className={styles.cardDesc}>{description}</p>
+      </Link>
     </div>
   );
 }
@@ -69,6 +59,7 @@ export default function HomepageFeatures(): JSX.Element {
   return (
     <section className={styles.features}>
       <div className="container">
+        <h2 className={styles.sectionTitle}>Why Chess TUI?</h2>
         <div className="row">
           {FeatureList.map((props, idx) => (
             <Feature key={idx} {...props} />

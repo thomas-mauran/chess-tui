@@ -1,5 +1,6 @@
 ---
 title: The Lichess Integration - A Deep Dive into Challenges, Solutions, and Future Plans
+description: "A technical deep dive into the Lichess integration in Chess TUI: polling challenges, SSE streaming architecture, and future plans."
 authors:
   - thomas-mauran
 tags:

@@ -2,6 +2,7 @@
 id: sound
 title: Sound
 sidebar_position: 4
+description: "Enable and configure sound effects in Chess TUI for move feedback and game events."
 ---
 
 # Sound
@@ -56,7 +57,7 @@ sudo pacman -S alsa-lib
 
 ### No Sound in Docker / Headless Environments
 
-Sound requires a connected audio device. In Docker containers or headless servers there is typically no audio device available. chess-tui detects this at startup and silently disables sound — no error is shown. You can also explicitly disable it:
+Sound requires a connected audio device. In Docker containers or headless servers there is typically no audio device available. chess-tui detects this at startup and silently disables sound no error is shown. You can also explicitly disable it:
 
 ```bash
 chess-tui --no-sound

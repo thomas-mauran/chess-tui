@@ -1,3 +1,7 @@
+html, body {
+  overflow-x: hidden;
+}
+
 /* Root variables for the chess-inspired theme */
 :root {
   --ifm-color-primary: #3e3e3e; /* Dark color for background or primary accents */
@@ -226,5 +230,55 @@ html[data-theme='light'] .hero {
     display: block;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+  }
+}
+
+.footer {
+  padding: 1.5rem 0;
+}
+
+.footer__col {
+  text-align: center;
+}
+
+.footer__title {
+  font-size: 0.8rem;
+}
+
+.footer__link-item {
+  font-size: 0.75rem;
+}
+
+@media (max-width: 996px) {
+  .footer__links {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1.5rem 2rem;
+    align-items: flex-start;
+  }
+
+  .footer__col {
+    flex: 1 1 25%;
+    text-align: center;
+    min-width: 80px;
+    max-width: 120px;
+  }
+
+  .footer__title {
+    font-size: 0.7rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .footer__link-item {
+    font-size: 0.65rem;
+  }
+
+  .footer__items {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
   }
 }

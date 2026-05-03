@@ -1,3 +1,7 @@
+---
+description: "Install Chess TUI using Cargo, the Rust package manager."
+---
+
 # Cargo
 
 **Chess-tui** can be installed with cargo, the Rust package manager.

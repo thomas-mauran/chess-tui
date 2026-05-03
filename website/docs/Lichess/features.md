@@ -1,6 +1,13 @@
+---
+description: "Explore Chess TUI Lichess features including user profile, game browsing, and real-time online play."
+---
+
 # Features
 
-![Lichess menu](../../static/gif/lichess-chess-tui.gif)
+<video autoPlay loop muted playsInline width="2880" height="1750" style={{maxWidth: '100%', height: 'auto'}}>
+  <source src="/chess-tui/gif/high-quality.mp4" type="video/mp4" />
+  <img src="/chess-tui/gif/high-quality.gif" alt="Chess TUI Lichess menu: profile, ratings, ongoing games, seek game, and puzzles" />
+</video>
 
 Once authenticated, you can access the Lichess menu from the main screen. Here are the available features:
 

@@ -2,6 +2,7 @@
 id: keyboard-shortcuts
 title: Keyboard Shortcuts
 sidebar_position: 1
+description: "Complete keyboard shortcut reference for Chess TUI - navigation, piece moves, and game controls."
 ---
 
 # Keyboard Shortcuts
