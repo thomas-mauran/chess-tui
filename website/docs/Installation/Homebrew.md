@@ -1,3 +1,7 @@
+---
+description: "Install Chess TUI on macOS and Linux using Homebrew."
+---
+
 # Homebrew
 
 **Chess-tui** can be installed with Homebrew on macOS and Linux.

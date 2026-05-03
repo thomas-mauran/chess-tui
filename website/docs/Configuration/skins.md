@@ -2,11 +2,12 @@
 id: skins
 title: Skins
 sidebar_position: 5
+description: "Customize Chess TUI appearance with skins, including piece styles and board colors."
 ---
 
 # Skins
 
-![Skins demo](../../static/gif/skins.gif)
+<img src={require('@site/static/gif/skins.gif').default} alt="Skins demo" width="2000" height="1300" style={{maxWidth: '100%', height: 'auto'}} />
 
 Chess-tui supports custom skins that let you change the look of the board and **custom piece styles** (the characters or art used for each piece). A skin combines a **piece style** with colors for the board, pieces, cursor, and highlights.
 

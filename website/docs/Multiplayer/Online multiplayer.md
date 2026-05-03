@@ -1,8 +1,12 @@
+---
+description: "Play online multiplayer chess in Chess TUI over LAN or the internet with friends."
+---
+
 # Online Multiplayer
 
 You can now play chess with your friends online. The online multiplayer feature is available in the `Multiplayer` menu option.
 
-![multiplayer gif demo](../../static/gif/multiplayer.gif)
+<img src={require('@site/static/gif/multiplayer.gif').default} alt="Chess TUI online multiplayer demo" width="1280" height="720" style={{maxWidth: '100%', height: 'auto'}} />
 
 
 ## LAN

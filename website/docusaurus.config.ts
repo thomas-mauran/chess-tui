@@ -6,8 +6,8 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
   title: 'Chess TUI',
-  tagline: 'Play chess from your terminal 🦀',
-  favicon: 'img/logo.png',
+  tagline: 'Play chess in your terminal',
+  favicon: 'img/favicon-small.png',
 
   // Set the production url of your site here
   url: 'https://thomas-mauran.github.io',
@@ -64,7 +64,7 @@ const config: Config = {
       additionalLanguages: ['bash', 'toml'],
     },
     navbar: {
-      title: 'Chess-tui',
+      title: 'Chess TUI',
       logo: {
         alt: 'Chess tui logo',
         src: 'img/logo.png',
@@ -79,7 +79,7 @@ const config: Config = {
         { to: '/blog', label: 'Blog', position: 'left' },
         {
           href: 'https://docs.rs/chess-tui/latest/chess_tui/',
-          label: 'API Docs',
+          label: 'docs.rs',
           position: 'left',
         },
         {
@@ -95,8 +95,20 @@ const config: Config = {
           title: 'Docs',
           items: [
             {
-              label: 'Tutorial',
+              label: 'Getting Started',
               to: '/docs/intro',
+            },
+            {
+              label: 'Installation',
+              to: '/docs/Installation/Packaging status',
+            },
+            {
+              label: 'Keyboard Shortcuts',
+              to: '/docs/Usage/keyboard-shortcuts',
+            },
+            {
+              label: 'FAQ',
+              to: '/docs/faq',
             },
           ],
         },
@@ -104,8 +116,16 @@ const config: Config = {
           title: 'Community',
           items: [
             {
-              label: 'Github Discussions',
+              label: 'GitHub Discussions',
               href: 'https://github.com/thomas-mauran/chess-tui/discussions',
+            },
+            {
+              label: 'GitHub Issues',
+              href: 'https://github.com/thomas-mauran/chess-tui/issues',
+            },
+            {
+              label: 'Releases',
+              href: 'https://github.com/thomas-mauran/chess-tui/releases',
             },
           ],
         },
@@ -120,12 +140,49 @@ const config: Config = {
               label: 'GitHub',
               href: 'https://github.com/thomas-mauran/chess-tui/',
             },
+            {
+              label: 'docs.rs',
+              href: 'https://docs.rs/chess-tui/latest/chess_tui/',
+            },
+            {
+              label: 'Credits',
+              to: '/docs/credits',
+            },
           ],
         },
       ],
       copyright: `Free and Opensource Forever ♥`,
     },
   } satisfies Preset.ThemeConfig,
+
+  headTags: [
+    {
+      tagName: 'script',
+      attributes: { type: 'application/ld+json' },
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'SoftwareApplication',
+        name: 'Chess TUI',
+        applicationCategory: 'GameApplication',
+        operatingSystem: 'Linux, macOS, Windows',
+        description: 'Open-source chess game for the terminal. Supports UCI engines, Lichess online play, multiplayer, skins, pgn viewer, and more.',
+        url: 'https://thomas-mauran.github.io/chess-tui/',
+        downloadUrl: 'https://github.com/thomas-mauran/chess-tui/releases',
+        author: {
+          '@type': 'Person',
+          name: 'Thomas Mauran',
+          url: 'https://github.com/thomas-mauran',
+        },
+        offers: {
+          '@type': 'Offer',
+          price: '0',
+          priceCurrency: 'USD',
+        },
+        codeRepository: 'https://github.com/thomas-mauran/chess-tui',
+        license: 'https://opensource.org/licenses/MIT',
+      }),
+    },
+  ],
 
   markdown: {
     mermaid: true,

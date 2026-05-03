@@ -2,6 +2,7 @@
 id: logging
 title: Logging
 sidebar_position: 3
+description: "Configure logging in Chess TUI for debugging and monitoring game state."
 ---
 
 # Logging

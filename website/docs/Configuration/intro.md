@@ -2,6 +2,7 @@
 id: configuration-intro
 title: Configuration
 sidebar_position: 1
+description: "Overview of Chess TUI configuration options, including themes, keybindings, and gameplay settings."
 ---
 
 # Configuration
@@ -42,6 +43,8 @@ chess-tui -e /opt/homebrew/opt/stockfish
 ```
 
 Command line options take precedence over configuration file values.
+
+See also: [Skins](./skins.md) · [Sound](./sound.md) · [Logging](./logging.md)
 
 ## Configuration File
 

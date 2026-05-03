@@ -72,7 +72,7 @@ maintainer = "Thomas Mauran <thomasmauran@yahoo.com>"
 copyright = "2023-2026, Thomas Mauran"
 license-file = ["LICENSE"]
 extended-description = """\
-chess-tui is a free, open-source terminal chess game written in Rust. Play chess from your terminal (CLI) with:
+chess-tui is a free, open-source terminal chess game written in Rust. Play chess in your terminal (CLI) with:
 
 - Local 2-player mode
 - Any UCI chess engine (e.g. Stockfish, GNU Chess)

@@ -2,6 +2,7 @@
 id: bot-settings
 title: Settings
 sidebar_position: 7
+description: "Configure bot difficulty, thinking time, and engine parameters in Chess TUI."
 ---
 
 # Bot Settings
@@ -74,7 +75,7 @@ Depth 20+ can cause the engine to think for several minutes in complex positions
 
 1. Confirm the path points to an actual executable
 2. Check permissions: `chmod +x /path/to/engine`
-3. Test it manually: `echo "uci" | /path/to/engine` — you should see `uciok`
+3. Test it manually: `echo "uci" | /path/to/engine` you should see `uciok`
 4. For Stockfish, re-run `./scripts/install-stockfish.sh`
 
 ### Engine not responding during play

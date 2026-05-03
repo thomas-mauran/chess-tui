@@ -1,3 +1,7 @@
+---
+description: "Install Chess TUI on NixOS using the Nix package manager or nix-shell."
+---
+
 # NixOS
 
 **Chess-tui** can be directly installed from the NixOS package manager.

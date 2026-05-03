@@ -1,3 +1,7 @@
+---
+description: "Install Chess TUI on NetBSD using the pkgsrc package manager."
+---
+
 # NetBSD
 
 **Chess-tui** can be directly installed from pkgsource the NetBSD package manager.

@@ -1,5 +1,6 @@
 ---
 sidebar_position: 99
+description: "Credits and acknowledgements for Chess TUI contributors, artwork, and open-source libraries."
 ---
 
 # Credits

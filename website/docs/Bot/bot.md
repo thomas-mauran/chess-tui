@@ -2,6 +2,7 @@
 id: bot
 title: Setup
 sidebar_position: 5
+description: "Step-by-step guide to setting up a UCI chess bot in Chess TUI."
 ---
 
 # Bot Setup
@@ -57,4 +58,4 @@ chess-tui -e "/usr/bin/gnuchess --uci"
 
 1. Launch `chess-tui`
 2. Navigate to **Play Bot**
-3. If the engine path is valid you can select your color and start playing — otherwise an error message will explain what's wrong
+3. If the engine path is valid you can select your color and start playing otherwise an error message will explain what's wrong

@@ -1,7 +1,8 @@
 ---
 id: multiplayer-intro
-title: Introduction
+title: Multiplayer Introduction
 sidebar_position: 1
+description: "Overview of multiplayer options in Chess TUI: local pass-and-play and online LAN/internet games."
 ---
 
 # Introduction
@@ -19,3 +20,6 @@ import Logo from '/img/ferris-challenge.webp';
 
   </div>
 </div>
+
+- [Local Multiplayer](./Local%20multiplayer.md) play on the same machine with board rotation
+- [Online Multiplayer](./Online%20multiplayer.md) play over LAN or internet via Bore tunneling

@@ -1,47 +1,69 @@
 .features {
-  display: flex;
-  align-items: center;
-  padding: 2rem 0;
+  padding: 4rem 0;
   width: 100%;
+}
+
+.sectionTitle {
+  text-align: center;
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 3rem;
+  color: var(--ifm-heading-color);
+}
+
+.featureLink {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0 1.5rem;
+  text-decoration: none !important;
+  color: inherit !important;
+}
+
+.featureLink:hover {
+  text-decoration: none !important;
+  color: inherit !important;
+}
+
+.featureLink:hover .cardImg {
+  transform: translateY(-4px);
+}
+
+.cardImg {
+  width: 140px;
+  max-width: 140px;
+  height: 120px;
+  object-fit: contain;
+  margin-bottom: 1.25rem;
+  transition: transform 0.2s ease;
+}
+
+.cardImgLarge {
+  width: 180px;
+  max-width: 180px;
+}
+
+.cardTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--ifm-heading-color);
+}
+
+.cardDesc {
+  font-size: 0.9rem;
+  color: var(--ifm-color-emphasis-700);
+  line-height: 1.6;
+  margin: 0;
 }
 
 @media screen and (max-width: 996px) {
   .features {
-    padding: 1.5rem 0;
+    padding: 2.5rem 1rem;
   }
-  
-  /* Ensure features stack properly on mobile */
-  .features .container .row {
-    margin: 0;
-  }
-  
-  .features .container .row > div {
+
+  .features .row > div {
     margin-bottom: 2rem;
   }
 }
-
-@media screen and (max-width: 480px) {
-  .features {
-    padding: 1rem 0;
-  }
-  
-  .features .container .row > div {
-    margin-bottom: 1.5rem;
-    padding: 0 1rem; /* Add horizontal padding */
-  }
-  
-  .features .container .row > div h3 {
-    font-size: 1.2rem; /* Slightly smaller headings on mobile */
-  }
-  
-  .features .container .row > div p {
-    font-size: 0.9rem; /* Slightly smaller text on mobile */
-  }
-}
-
-.featureGif {
-  max-width: 100%; /* Ensure the image doesn't overflow its container */
-  height: auto; /* Maintain aspect ratio */
-  display: inline-block; /* Ensure proper alignment */
-}
-

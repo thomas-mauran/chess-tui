@@ -1,3 +1,7 @@
+---
+description: "Install Chess TUI on Debian and Ubuntu using the .deb package from GitHub releases."
+---
+
 # Debian/Ubuntu
 
 **Chess-tui** can be installed on Debian-based systems using the `.deb` package from GitHub releases.

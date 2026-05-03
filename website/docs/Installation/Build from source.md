@@ -1,3 +1,7 @@
+---
+description: "Build Chess TUI from source code using Rust and Cargo."
+---
+
 # Build from source
 
 **Chess-tui** can be directly built from the source code. 

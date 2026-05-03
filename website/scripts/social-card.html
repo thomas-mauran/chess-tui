@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1200px;
+    height: 630px;
+    background: linear-gradient(135deg, #111 0%, #2a2a2a 100%);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 60px 72px;
+    overflow: hidden;
+    position: relative;
+  }
+  body::before {
+    content: '';
+    position: absolute;
+    top: -200px;
+    right: -200px;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(223,101,14,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .left {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    flex: 0 0 auto;
+    max-width: 520px;
+  }
+  .title-row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .logo {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+  }
+  h1 {
+    font-size: 72px;
+    font-weight: 800;
+    background: linear-gradient(-45deg, #ffdcc6 0%, #df650e 70%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+  }
+  .badges {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .badge {
+    font-size: 16px;
+    padding: 6px 16px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.07);
+    color: #bbb;
+  }
+  .tagline {
+    font-size: 22px;
+    color: #999;
+    line-height: 1.5;
+  }
+  .url {
+    font-size: 15px;
+    color: #555;
+    margin-top: 4px;
+  }
+  .right {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+  }
+  .screenshot {
+    width: 480px;
+    border-radius: 10px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+</style>
+</head>
+<body>
+  <div class="left">
+    <div class="title-row">
+      <h1>Chess TUI</h1>
+      <img class="logo" src="../static/img/logo.png" alt="logo" />
+    </div>
+    <div class="badges">
+      <span class="badge">🦀 Rust</span>
+      <span class="badge">MIT License</span>
+      <span class="badge">Open Source</span>
+    </div>
+    <p class="tagline">Play chess in your terminal 🦀<br>UCI engines · Lichess · Multiplayer · Skins</p>
+    <p class="url">thomas-mauran.github.io/chess-tui</p>
+  </div>
+  <div class="right">
+    <img class="screenshot" src="../static/img/default-display-mode-board.png" alt="Chess TUI screenshot" />
+  </div>
+</body>
+</html>
