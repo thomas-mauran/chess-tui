@@ -1,5 +1,5 @@
 # 1. This tells docker to use the Rust official image
-FROM rust:1.87 as builder
+FROM rust:1.88 as builder
 
 # Install ALSA development libraries for rodio
 RUN apt-get update && \

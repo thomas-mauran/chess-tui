@@ -8,12 +8,6 @@ on:
       tag:
         required: true
         type: string
-      body:
-        required: true
-        type: string
-      published_at:
-        required: true
-        type: string
 
 jobs:
   generate-blog-post:
@@ -36,32 +30,30 @@ jobs:
 
     - name: Extract release information
       id: release-info
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TAG_NAME: ${{ inputs.tag || github.event.release.tag_name }}
       run: |
-        TAG_NAME="${{ inputs.tag || github.event.release.tag_name }}"
-        RELEASE_DATE="${{ inputs.published_at || github.event.release.published_at }}"
-        RELEASE_BODY="${{ inputs.body || github.event.release.body }}"
+        RELEASE_JSON=$(gh api repos/${{ github.repository }}/releases/tags/$TAG_NAME)
+        RELEASE_DATE=$(echo "$RELEASE_JSON" | jq -r '.published_at')
+        RELEASE_BODY=$(echo "$RELEASE_JSON" | jq -r '.body')
 
-        # Extract version number from tag (remove 'v' prefix if present)
         VERSION="${TAG_NAME#v}"
-
-        # Format date as YYYY-MM-DD
         DATE=$(echo "$RELEASE_DATE" | cut -d'T' -f1)
 
-        # Extract title from release body (first non-empty line that looks like a title)
-        # Or use tag name as fallback
-        TITLE=$(echo "$RELEASE_BODY" | grep -E "^#+\s+" | head -n 1 | sed 's/^#\+\s*//' || echo "Release $VERSION")
-
-        # If title is empty or just whitespace, use tag name
-        if [ -z "$TITLE" ] || [ "$TITLE" = "" ]; then
+        TITLE=$(echo "$RELEASE_BODY" | grep -E "^#+\s+" | head -n 1 | sed 's/^#\+\s*//')
+        if [ -z "$TITLE" ]; then
           TITLE="Release $VERSION"
         fi
 
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "date=$DATE" >> $GITHUB_OUTPUT
         echo "title=$TITLE" >> $GITHUB_OUTPUT
-        echo "body<<EOF" >> $GITHUB_OUTPUT
-        echo "$RELEASE_BODY" >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
+        {
+          echo "body<<EOF"
+          echo "$RELEASE_BODY"
+          echo "EOF"
+        } >> $GITHUB_OUTPUT
 
     - name: Generate blog post
       run: |

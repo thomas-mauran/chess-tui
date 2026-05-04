@@ -12,9 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    outputs:
-      body: ${{ steps.capture.outputs.body }}
-      published_at: ${{ steps.capture.outputs.published_at }}
     steps:
       - uses: actions/checkout@v4
         name: Checkout project
@@ -38,16 +35,6 @@ jobs:
             echo ''
             cat changelog_fragment.md
           } > release_body.md
-
-      - name: Capture release outputs
-        id: capture
-        run: |
-          echo "published_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> $GITHUB_OUTPUT
-          {
-            echo "body<<EOF"
-            cat release_body.md
-            echo "EOF"
-          } >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -75,18 +62,11 @@ jobs:
       packages: write
       contents: read
 
-  release-cargo:
-    needs: create-release
-    uses: ./.github/workflows/release_cargo.yml
-    secrets: inherit
-
   release-blog-post:
     needs: create-release
     uses: ./.github/workflows/generate-blog-post.yml
     with:
       tag: ${{ github.event.inputs.version }}
-      body: ${{ needs.create-release.outputs.body }}
-      published_at: ${{ needs.create-release.outputs.published_at }}
     permissions:
       contents: write
       pull-requests: write

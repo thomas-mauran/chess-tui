@@ -71,6 +71,7 @@ jobs:
       name: Upload binary to release
       if: inputs.tag != '' || github.ref_type == 'tag'
       with:
+        tag_name: ${{ inputs.tag || github.event.release.tag_name }}
         files: ${{ env.TAR_NAME }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -110,6 +111,7 @@ jobs:
       name: Upload .deb to release
       if: inputs.tag != '' || github.ref_type == 'tag'
       with:
+        tag_name: ${{ inputs.tag || github.event.release.tag_name }}
         files: ${{ steps.find_deb.outputs.deb_path }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
