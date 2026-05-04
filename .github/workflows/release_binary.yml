@@ -3,6 +3,11 @@ name: Upload binary to published release
 on:
   release:
     types: [ published ]
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
 
 jobs:
   build-and-upload-binary:
@@ -52,7 +57,7 @@ jobs:
       name: Build release binary
 
     - run: |
-        TAG=${{ github.event.release.tag_name }}
+        TAG=${{ inputs.tag || github.event.release.tag_name }}
         TAR_NAME="chess-tui-$TAG-${{ matrix.target }}.tar.gz"
         echo "TAR_NAME=$TAR_NAME" >> $GITHUB_ENV
 
@@ -64,7 +69,7 @@ jobs:
 
     - uses: softprops/action-gh-release@v2
       name: Upload binary to release
-      if: github.ref_type == 'tag'
+      if: inputs.tag != '' || github.ref_type == 'tag'
       with:
         files: ${{ env.TAR_NAME }}
       env:
@@ -103,7 +108,7 @@ jobs:
 
     - uses: softprops/action-gh-release@v2
       name: Upload .deb to release
-      if: github.ref_type == 'tag'
+      if: inputs.tag != '' || github.ref_type == 'tag'
       with:
         files: ${{ steps.find_deb.outputs.deb_path }}
       env:

@@ -3,6 +3,17 @@ name: Generate Blog Post from Release
 on:
   release:
     types: [ published ]
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
+      body:
+        required: true
+        type: string
+      published_at:
+        required: true
+        type: string
 
 jobs:
   generate-blog-post:
@@ -26,9 +37,9 @@ jobs:
     - name: Extract release information
       id: release-info
       run: |
-        TAG_NAME="${{ github.event.release.tag_name }}"
-        RELEASE_DATE="${{ github.event.release.published_at }}"
-        RELEASE_BODY="${{ github.event.release.body }}"
+        TAG_NAME="${{ inputs.tag || github.event.release.tag_name }}"
+        RELEASE_DATE="${{ inputs.published_at || github.event.release.published_at }}"
+        RELEASE_BODY="${{ inputs.body || github.event.release.body }}"
 
         # Extract version number from tag (remove 'v' prefix if present)
         VERSION="${TAG_NAME#v}"
