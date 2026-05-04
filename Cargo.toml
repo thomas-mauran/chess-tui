@@ -11,12 +11,14 @@ homepage = "https://thomas-mauran.github.io/chess-tui/"
 repository = "https://github.com/thomas-mauran/chess-tui"
 documentation = "https://thomas-mauran.github.io/chess-tui/docs/intro"
 exclude = [
-  "examples/demo-two-player.gif",
-  "examples/helper.gif",
-  "examples/lichess-menu.gif",
-  "examples/play_against_black_bot.gif",
-  "examples/play_against_white_bot.gif",
-  "examples/skins.gif",
+  "examples/*.gif",
+  "examples/*.tape",
+  "examples/screenshot.png",
+  "scripts/",
+  ".github/",
+  "Dockerfile",
+  "cliff.toml",
+  "cargo-generate.toml",
   "website/",
 ]
 
@@ -41,9 +43,8 @@ throbber-widgets-tui = "0.11.0"
 tempfile = "3.8"
 
 [features]
-chess-tui = []
 sound = ["rodio"]
-default = ["chess-tui", "sound"]
+default = ["sound"]
 
 [profile.release]
 lto = true

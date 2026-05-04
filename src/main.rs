@@ -1,6 +1,3 @@
-#[cfg(feature = "chess-tui")]
-extern crate chess_tui;
-
 use chess_tui::app::{App, AppResult};
 use chess_tui::config::{Args, Config};
 use chess_tui::constants::{DisplayMode, Pages, SKIN_NAME_ASCII, SKIN_NAME_DEFAULT, config_dir};
