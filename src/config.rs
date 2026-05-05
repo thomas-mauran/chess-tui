@@ -10,9 +10,9 @@ use std::{
 };
 
 use clap::Parser;
+use std::env;
 use std::fs::File;
 use std::io::Write;
-use std::env;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -205,9 +205,9 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
     use crate::constants::config_dir;
     use serial_test::serial;
+    use std::fs;
 
     #[test]
     #[serial]
@@ -242,7 +242,10 @@ mod tests {
         let config: Config = toml::from_str(&content).unwrap();
 
         // Should have token from environment variable
-        assert_eq!(config.lichess_token, Some("test_token_from_env".to_string()));
+        assert_eq!(
+            config.lichess_token,
+            Some("test_token_from_env".to_string())
+        );
 
         // Clean up
         let _ = fs::remove_dir_all(&folder_path);
