@@ -12,6 +12,7 @@ use std::{
 use clap::Parser;
 use std::fs::File;
 use std::io::Write;
+use std::env;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -140,9 +141,17 @@ impl Config {
             config.engine_path = Some(args.engine_path.clone());
         }
 
+        // Priority order: command line > environment variable > config file
         // Always update Lichess token if provided via command line
         if let Some(token) = &args.lichess_token {
             config.lichess_token = Some(token.clone());
+        } else if config.lichess_token.is_none() {
+            // If no token in config and not provided via CLI, check environment variable
+            if let Ok(env_token) = env::var("LICHESS_TOKEN") {
+                if !env_token.is_empty() {
+                    config.lichess_token = Some(env_token);
+                }
+            }
         }
 
         // Update bot_depth if provided via command line
@@ -190,5 +199,190 @@ impl Config {
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use crate::constants::config_dir;
+
+    #[test]
+    fn test_lichess_token_from_env_var() {
+        // Set environment variable
+        unsafe {
+            env::set_var("LICHESS_TOKEN", "test_token_from_env");
+        }
+
+        let args = Args {
+            engine_path: String::new(),
+            depth: None,
+            difficulty: None,
+            lichess_token: None,
+            no_sound: false,
+            skin: None,
+            update_skins: false,
+            pgn: None,
+        };
+
+        let config_dir = config_dir().unwrap();
+        let folder_path = config_dir.join(".test-env/chess-tui");
+        let config_path = config_dir.join(".test-env/chess-tui/config.toml");
+
+        // Clean up any existing test config
+        let _ = fs::remove_dir_all(&folder_path);
+
+        let result = Config::config_create(&args, &folder_path, &config_path);
+        assert!(result.is_ok());
+
+        let content = fs::read_to_string(&config_path).unwrap();
+        let config: Config = toml::from_str(&content).unwrap();
+
+        // Should have token from environment variable
+        assert_eq!(config.lichess_token, Some("test_token_from_env".to_string()));
+
+        // Clean up
+        let _ = fs::remove_dir_all(&folder_path);
+        unsafe {
+            env::remove_var("LICHESS_TOKEN");
+        }
+    }
+
+    #[test]
+    fn test_lichess_token_cli_takes_precedence_over_env() {
+        // Set environment variable
+        unsafe {
+            env::set_var("LICHESS_TOKEN", "token_from_env");
+        }
+
+        let args = Args {
+            engine_path: String::new(),
+            depth: None,
+            difficulty: None,
+            lichess_token: Some("token_from_cli".to_string()),
+            no_sound: false,
+            skin: None,
+            update_skins: false,
+            pgn: None,
+        };
+
+        let config_dir = config_dir().unwrap();
+        let folder_path = config_dir.join(".test-cli-precedence/chess-tui");
+        let config_path = config_dir.join(".test-cli-precedence/chess-tui/config.toml");
+
+        // Clean up any existing test config
+        let _ = fs::remove_dir_all(&folder_path);
+
+        let result = Config::config_create(&args, &folder_path, &config_path);
+        assert!(result.is_ok());
+
+        let content = fs::read_to_string(&config_path).unwrap();
+        let config: Config = toml::from_str(&content).unwrap();
+
+        // Should have token from CLI, not environment
+        assert_eq!(config.lichess_token, Some("token_from_cli".to_string()));
+
+        // Clean up
+        let _ = fs::remove_dir_all(&folder_path);
+        unsafe {
+            env::remove_var("LICHESS_TOKEN");
+        }
+    }
+
+    #[test]
+    fn test_lichess_token_config_preserved_when_no_env_or_cli() {
+        // No environment variable set
+        unsafe {
+            env::remove_var("LICHESS_TOKEN");
+        }
+
+        let config_dir = config_dir().unwrap();
+        let folder_path = config_dir.join(".test-preserve/chess-tui");
+        let config_path = config_dir.join(".test-preserve/chess-tui/config.toml");
+
+        // Clean up and create test directory
+        let _ = fs::remove_dir_all(&folder_path);
+        fs::create_dir_all(&folder_path).unwrap();
+
+        // Create an existing config with a token
+        let existing_config = Config {
+            engine_path: None,
+            display_mode: Some("DEFAULT".to_string()),
+            log_level: Some("OFF".to_string()),
+            bot_depth: Some(10),
+            bot_difficulty: None,
+            selected_skin_name: Some("Default".to_string()),
+            lichess_token: Some("existing_token".to_string()),
+            sound_enabled: Some(true),
+        };
+
+        let toml_string = toml::to_string(&existing_config).unwrap();
+        fs::write(&config_path, toml_string).unwrap();
+
+        // Create args with no token
+        let args = Args {
+            engine_path: String::new(),
+            depth: None,
+            difficulty: None,
+            lichess_token: None,
+            no_sound: false,
+            skin: None,
+            update_skins: false,
+            pgn: None,
+        };
+
+        let result = Config::config_create(&args, &folder_path, &config_path);
+        assert!(result.is_ok());
+
+        let content = fs::read_to_string(&config_path).unwrap();
+        let config: Config = toml::from_str(&content).unwrap();
+
+        // Should still have the existing token
+        assert_eq!(config.lichess_token, Some("existing_token".to_string()));
+
+        // Clean up
+        let _ = fs::remove_dir_all(&folder_path);
+    }
+
+    #[test]
+    fn test_empty_env_var_ignored() {
+        // Set empty environment variable
+        unsafe {
+            env::set_var("LICHESS_TOKEN", "");
+        }
+
+        let args = Args {
+            engine_path: String::new(),
+            depth: None,
+            difficulty: None,
+            lichess_token: None,
+            no_sound: false,
+            skin: None,
+            update_skins: false,
+            pgn: None,
+        };
+
+        let config_dir = config_dir().unwrap();
+        let folder_path = config_dir.join(".test-empty-env/chess-tui");
+        let config_path = config_dir.join(".test-empty-env/chess-tui/config.toml");
+
+        // Clean up any existing test config
+        let _ = fs::remove_dir_all(&folder_path);
+
+        let result = Config::config_create(&args, &folder_path, &config_path);
+        assert!(result.is_ok());
+
+        let content = fs::read_to_string(&config_path).unwrap();
+        let config: Config = toml::from_str(&content).unwrap();
+
+        // Should not have a token (empty env var is ignored)
+        assert_eq!(config.lichess_token, None);
+
+        // Clean up
+        let _ = fs::remove_dir_all(&folder_path);
+        unsafe {
+            env::remove_var("LICHESS_TOKEN");
+        }
     }
 }
