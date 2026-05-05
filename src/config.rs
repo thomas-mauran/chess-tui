@@ -207,8 +207,10 @@ mod tests {
     use super::*;
     use std::fs;
     use crate::constants::config_dir;
+    use serial_test::serial;
 
     #[test]
+    #[serial]
     fn test_lichess_token_from_env_var() {
         // Set environment variable
         unsafe {
@@ -250,6 +252,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_lichess_token_cli_takes_precedence_over_env() {
         // Set environment variable
         unsafe {
@@ -291,6 +294,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_lichess_token_config_preserved_when_no_env_or_cli() {
         // No environment variable set
         unsafe {
@@ -346,6 +350,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_empty_env_var_ignored() {
         // Set empty environment variable
         unsafe {
