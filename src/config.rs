@@ -142,17 +142,16 @@ impl Config {
         }
 
         // Priority order: command line > environment variable > config file
-        // Always update Lichess token if provided via command line
         if let Some(token) = &args.lichess_token {
+            // CLI takes highest priority
             config.lichess_token = Some(token.clone());
-        } else if config.lichess_token.is_none() {
-            // If no token in config and not provided via CLI, check environment variable
-            if let Ok(env_token) = env::var("LICHESS_TOKEN") {
-                if !env_token.is_empty() {
-                    config.lichess_token = Some(env_token);
-                }
+        } else if let Ok(env_token) = env::var("LICHESS_TOKEN") {
+            // Environment variable overrides config file
+            if !env_token.is_empty() {
+                config.lichess_token = Some(env_token);
             }
         }
+        // else: keep existing config file token (lowest priority)
 
         // Update bot_depth if provided via command line
         if let Some(depth) = args.depth {
@@ -386,6 +385,61 @@ mod tests {
 
         // Should not have a token (empty env var is ignored)
         assert_eq!(config.lichess_token, None);
+
+        // Clean up
+        let _ = fs::remove_dir_all(&folder_path);
+        unsafe {
+            env::remove_var("LICHESS_TOKEN");
+        }
+    }
+
+    #[test]
+    #[serial]
+    fn test_lichess_token_env_var_overrides_config_file() {
+        // Set environment variable
+        unsafe {
+            env::set_var("LICHESS_TOKEN", "token_from_env");
+        }
+
+        let config_dir = config_dir().unwrap();
+        let folder_path = config_dir.join(".test-env-override/chess-tui");
+        let config_path = config_dir.join(".test-env-override/chess-tui/config.toml");
+
+        // Clean up and create test directory with an existing token in config
+        let _ = fs::remove_dir_all(&folder_path);
+        fs::create_dir_all(&folder_path).unwrap();
+
+        let existing_config = Config {
+            engine_path: None,
+            display_mode: Some("DEFAULT".to_string()),
+            log_level: Some("OFF".to_string()),
+            bot_depth: Some(10),
+            bot_difficulty: None,
+            selected_skin_name: Some("Default".to_string()),
+            lichess_token: Some("token_from_config".to_string()),
+            sound_enabled: Some(true),
+        };
+        fs::write(&config_path, toml::to_string(&existing_config).unwrap()).unwrap();
+
+        let args = Args {
+            engine_path: String::new(),
+            depth: None,
+            difficulty: None,
+            lichess_token: None,
+            no_sound: false,
+            skin: None,
+            update_skins: false,
+            pgn: None,
+        };
+
+        let result = Config::config_create(&args, &folder_path, &config_path);
+        assert!(result.is_ok());
+
+        let content = fs::read_to_string(&config_path).unwrap();
+        let config: Config = toml::from_str(&content).unwrap();
+
+        // Environment variable should take precedence over config file
+        assert_eq!(config.lichess_token, Some("token_from_env".to_string()));
 
         // Clean up
         let _ = fs::remove_dir_all(&folder_path);
