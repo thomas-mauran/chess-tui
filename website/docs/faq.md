@@ -67,8 +67,9 @@ chess-tui is tested on Windows in CI. Known limitations:
 ## Lichess token keeps getting rejected
 
 1. Make sure you generated the token with the correct scopes: **Read preferences**, **Create/read/update/delete games**, **Read puzzle activity**.
-2. Tokens can expire generate a new one at [lichess.org/account/oauth/token](https://lichess.org/account/oauth/token).
-3. Check your internet connection the token is validated against the Lichess API on first use.
+2. Verify your token is set correctly via command-line (`-l YOUR_TOKEN`), environment variable (`LICHESS_TOKEN`), or config file.
+3. Tokens can expire. Generate a new one at [lichess.org/account/oauth/token](https://lichess.org/account/oauth/token).
+4. Check your internet connection; the token is validated against the Lichess API on first use.
 
 See [Lichess Setup](/docs/Lichess/setup) for full details.
 

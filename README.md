@@ -97,7 +97,12 @@ See [Bot Configuration](https://thomas-mauran.github.io/chess-tui/docs/Configura
 **Configure Lichess:**
 
 ```bash
+# Via command line
 chess-tui -l YOUR_LICHESS_TOKEN_HERE
+
+# Or via environment variable
+export LICHESS_TOKEN=YOUR_LICHESS_TOKEN_HERE
+chess-tui
 ```
 
 See [Lichess Setup](https://thomas-mauran.github.io/chess-tui/docs/Lichess/setup) for details.
@@ -140,7 +145,7 @@ Press **?** in-game for the full list.
 ### FAQ
 
 - **Does it work with Stockfish?** Yes. Run `chess-tui -e /path/to/stockfish` (see [Bot Configuration](https://thomas-mauran.github.io/chess-tui/docs/Configuration/bot)).
-- **Can I play on Lichess from the terminal?** Yes. Get a [Lichess API token](https://thomas-mauran.github.io/chess-tui/docs/Lichess/setup) and run `chess-tui -l YOUR_TOKEN`.
+- **Can I play on Lichess from the terminal?** Yes. Get a [Lichess API token](https://thomas-mauran.github.io/chess-tui/docs/Lichess/setup) and run `chess-tui -l YOUR_TOKEN` or set the `LICHESS_TOKEN` environment variable.
 - **What is chess-tui built with?** [Rust](https://www.rust-lang.org/), [ratatui](https://github.com/ratatui-org/ratatui) (TUI), [shakmaty](https://crates.io/crates/shakmaty) (chess), [ruci](https://crates.io/crates/ruci) (UCI engine support).
 - **Where is the config?** `config.toml` and `skins.json` in your config dir (e.g. `~/.config/chess-tui/` on Linux). See [Configuration](https://thomas-mauran.github.io/chess-tui/docs/Configuration/configuration-intro).
 
