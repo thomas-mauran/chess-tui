@@ -94,7 +94,7 @@ Once your token is saved, you'll be automatically taken to the Lichess menu wher
 
 ### Method 2: Environment Variable
 
-You can set the `LICHESS_TOKEN` environment variable to provide your token. This method is useful for automation, scripts, or when you want to keep your token in a secure environment variable manager.
+You can set the `LICHESS_TOKEN` environment variable to provide your token. This method is useful for automation, scripts, or CI environments.
 
 ```bash
 export LICHESS_TOKEN=YOUR_LICHESS_TOKEN_HERE
@@ -102,6 +102,8 @@ chess-tui
 ```
 
 The token will be automatically saved to your configuration file for future use. The environment variable takes precedence over the config file but is overridden by command-line arguments.
+
+> **Note:** Even when providing the token via environment variable, `chess-tui` will persist it to `config.toml` on disk. If you are relying on the environment variable to keep your token out of the config file (e.g. for security reasons), be aware that it will still be written there unless the config file is read-only.
 
 ### Method 3: Command Line Argument
 
