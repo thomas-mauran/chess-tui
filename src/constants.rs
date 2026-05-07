@@ -184,3 +184,5 @@ pub enum Popups {
 
 /// Base URL for all Lichess REST API requests.
 pub const LICHESS_API_URL: &str = "https://lichess.org/api";
+/// Base URL for the chess-tui documentation.
+pub const DOCS_URL: &str = "https://thomas-mauran.github.io/chess-tui/docs";

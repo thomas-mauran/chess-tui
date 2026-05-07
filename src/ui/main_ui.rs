@@ -8,7 +8,7 @@ use ratatui::{
 };
 
 use crate::{
-    constants::Popups,
+    constants::{Popups, DOCS_URL},
     server::game_server::{get_host_ip, setup_game_server},
     ui::{
         components::centered_rect::centered_rect,
@@ -185,7 +185,7 @@ fn render_bot_page(frame: &mut Frame<'_>, app: &mut App, main_area: ratatui::lay
     {
         app.ui_state.popup_message = Some(
             "Chess engine path not configured.\n\n".to_string()
-                + "To configure the chess engine follow the documentation: https://thomas-mauran.github.io/chess-tui/docs/Configuration/bot\n\n"
+                + "To configure the chess engine follow the documentation: https://thomas-mauran.github.io/chess-tui/docs/Bot/bot-engines\n\n"
                 + "Example:\n"
                 + "chess-tui -e /opt/homebrew/opt/stockfish\n"
                 + " or execute the script: ./scripts/install-stockfish.sh\n"
@@ -200,7 +200,7 @@ fn render_bot_page(frame: &mut Frame<'_>, app: &mut App, main_area: ratatui::lay
                 The configured path does not exist or is not a file:\n\
                 {}\n\n\
                 Please check the path and update it in your configuration.\n\n\
-                To configure the chess engine follow the documentation: https://thomas-mauran.github.io/chess-tui/docs/Configuration/bot\n\n\
+                To configure the chess engine follow the documentation: https://thomas-mauran.github.io/chess-tui/docs/Bot/bot-engines\n\n\
                 Example:\n\
                 chess-tui -e /opt/homebrew/bin/stockfish\n\
                 or execute the script: ./scripts/install-stockfish.sh\n\
