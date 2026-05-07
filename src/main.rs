@@ -207,7 +207,9 @@ fn main() -> AppResult<()> {
     if let Some(token) = &args.lichess_token {
         app.lichess_state.token = Some(token.clone());
         app.lichess_state.client = Some(LichessClient::new(token.clone()));
-    } else if let Ok(env_token) = std::env::var("LICHESS_TOKEN") && !env_token.is_empty() {
+    } else if let Ok(env_token) = std::env::var("LICHESS_TOKEN")
+        && !env_token.is_empty()
+    {
         app.lichess_state.token = Some(env_token.clone());
         app.lichess_state.client = Some(LichessClient::new(env_token));
     }
