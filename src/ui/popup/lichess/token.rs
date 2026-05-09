@@ -41,7 +41,7 @@ pub fn render_enter_lichess_token_popup(frame: &mut Frame, prompt: &Prompt) {
         Line::from(""),
         Line::from(""),
         Line::from("To get a token, follow the documentation:"),
-Line::from(format!("Documentation: {}/Lichess/setup", DOCS_URL)),
+        Line::from(format!("Documentation: {}/Lichess/setup", DOCS_URL)),
         Line::from(""),
         Line::from("Press `Enter` to save, `Esc` to cancel.").alignment(Alignment::Center),
     ];
