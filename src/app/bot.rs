@@ -1,9 +1,9 @@
 //! Engine thread and move application.
 
-use crate::app::App;
 use crate::constants::Popups;
 use crate::game_logic::bot::Bot;
 use crate::sound::play_move_sound;
+use crate::{app::App, game_logic::clock::Clock};
 use shakmaty::{Color, Move};
 
 impl App {
@@ -21,11 +21,8 @@ impl App {
             self.bot_state.bot_difficulty,
         ));
 
-        // Initialize clock for bot games if time control is selected
-        if let Some(seconds) = self.game_mode_state.get_time_control_seconds() {
-            use crate::game_logic::clock::Clock;
-            self.game.logic.clock = Some(Clock::new(seconds));
-        }
+        // Initialize clock for bot games.
+        self.game.logic.clock = Clock::new(self.game_mode_state.get_time_control());
 
         if let Some(color) = self.game_mode_state.selected_color
             && color == Color::Black

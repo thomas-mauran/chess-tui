@@ -2,6 +2,7 @@
 
 use crate::animations::AnimationState;
 use crate::constants::Popups;
+use crate::game_logic::clock::ClockState;
 use crate::game_logic::game::Game;
 use crate::game_logic::game::GameState;
 use crate::graphics::KittyPieces;
@@ -120,16 +121,9 @@ impl App {
         }
 
         // Check clock for time up (for local games and bot games with clock)
-        if let Some(ref mut clock) = self.game.logic.clock
-            && clock.any_time_up()
-            && let Some(time_up_color) = clock.get_time_up_color()
-        {
+        if let ClockState::TimeUp { loser_color } = self.game.logic.clock.state() {
             // Time is up - end the game
-            let winner = time_up_color.other();
-            // Stop the clock (it should already be stopped, but ensure it)
-            if clock.is_running {
-                clock.stop();
-            }
+            let winner = loser_color.other();
             self.game.logic.game_state = GameState::Checkmate;
             // Set player_turn to the winner so check_and_show_game_end shows correct winner
             self.game.logic.player_turn = winner;

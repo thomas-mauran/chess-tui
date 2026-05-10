@@ -1,17 +1,27 @@
 //! In-game board and piece rendering.
 
+use crate::{
+    app::App,
+    constants::Popups,
+    game_logic::{
+        clock::{Clock, ClockState},
+        game::GameState,
+    },
+    ui::popup::{end::render_end_popup, promotion::render_promotion_popup},
+};
 use ratatui::{
     Frame,
     layout::{Constraint, Direction, Layout},
     prelude::Rect,
     style::Style,
-    widgets::Block,
+    widgets::{Block, Paragraph},
 };
+use ratatui::{
+    layout::Alignment,
+    style::{Color, Modifier},
+};
+use std::time::Instant;
 
-use crate::{
-    app::App, constants::Popups, game_logic::game::GameState, ui::popup::end::render_end_popup,
-    ui::popup::promotion::render_promotion_popup,
-};
 /// Renders the game board, clock, move history, and any in-game popups.
 pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
     let main_layout_horizontal = Layout::default()
@@ -35,7 +45,7 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
         .split(main_layout_horizontal[1]);
 
     // Create layout for board + file labels + clock
-    let has_clock = app.game.logic.clock.is_some();
+    let has_clock = app.game.logic.clock.state() != ClockState::NotStarted;
     let board_with_labels = if has_clock {
         Layout::default()
             .direction(Direction::Vertical)
@@ -57,82 +67,12 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
 
     // Render clocks above board if present (small text, no borders)
     if has_clock {
-        let clock_area = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([
-                Constraint::Ratio(1, 2), // White clock (left)
-                Constraint::Ratio(1, 2), // Black clock (right)
-            ])
-            .split(board_with_labels[0]);
-
-        use ratatui::style::{Color, Modifier, Style};
-        use ratatui::widgets::Paragraph;
-
-        // White clock (left) - just text
-        if let Some(ref clock) = app.game.logic.clock {
-            let white_time = clock.format_time(shakmaty::Color::White);
-            let is_white_active =
-                clock.is_running && clock.active_color == Some(shakmaty::Color::White);
-            let white_text = format!("White: {}", white_time);
-            let text_width = white_text.len() as u16;
-
-            if is_white_active {
-                // Render background block only for text width
-                let text_area = Rect {
-                    x: clock_area[0].x,
-                    y: clock_area[0].y,
-                    width: text_width.min(clock_area[0].width),
-                    height: clock_area[0].height,
-                };
-                let bg_block = Block::default().style(Style::default().bg(Color::White));
-                frame.render_widget(bg_block, text_area);
-            }
-
-            let white_clock_style = if is_white_active {
-                Style::default()
-                    .fg(Color::Black)
-                    .add_modifier(Modifier::BOLD)
-            } else {
-                Style::default().fg(Color::White)
-            };
-            let white_clock_text = Paragraph::new(white_text)
-                .style(white_clock_style)
-                .alignment(ratatui::layout::Alignment::Left);
-            frame.render_widget(white_clock_text, clock_area[0]);
-        }
-
-        // Black clock (right) - just text
-        if let Some(ref clock) = app.game.logic.clock {
-            let black_time = clock.format_time(shakmaty::Color::Black);
-            let is_black_active =
-                clock.is_running && clock.active_color == Some(shakmaty::Color::Black);
-            let black_text = format!("Black: {}", black_time);
-            let text_width = black_text.len() as u16;
-
-            if is_black_active {
-                // Render background block only for text width, aligned to the right
-                let text_area = Rect {
-                    x: clock_area[1].x + clock_area[1].width.saturating_sub(text_width),
-                    y: clock_area[1].y,
-                    width: text_width.min(clock_area[1].width),
-                    height: clock_area[1].height,
-                };
-                let bg_block = Block::default().style(Style::default().bg(Color::White));
-                frame.render_widget(bg_block, text_area);
-            }
-
-            let black_clock_style = if is_black_active {
-                Style::default()
-                    .fg(Color::Black)
-                    .add_modifier(Modifier::BOLD)
-            } else {
-                Style::default().fg(Color::White)
-            };
-            let black_clock_text = Paragraph::new(black_text)
-                .style(black_clock_style)
-                .alignment(ratatui::layout::Alignment::Right);
-            frame.render_widget(black_clock_text, clock_area[1]);
-        }
+        render_clock(
+            frame,
+            &app.game.logic.clock,
+            board_with_labels[0],
+            Instant::now(),
+        );
     }
 
     let board_index = if has_clock { 1 } else { 0 };
@@ -270,5 +210,74 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
             .map(|opp| opp.is_lichess())
             .unwrap_or(false);
         render_end_popup(frame, "That's a draw", is_lichess);
+    }
+}
+
+/// Render the clock at the top of the board
+pub fn render_clock(frame: &mut Frame<'_>, clock: &Clock, area: Rect, now: Instant) {
+    let clock_area = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Ratio(1, 2), // White clock (left)
+            Constraint::Ratio(1, 2), // Black clock (right)
+        ])
+        .split(area);
+
+    let active_color = match clock.state() {
+        ClockState::Running { active_color, .. } | ClockState::Paused { active_color } => {
+            Some(active_color)
+        }
+        _ => None,
+    };
+
+    let clock_configs = [
+        (
+            shakmaty::Color::White,
+            clock_area[0],
+            Alignment::Left,
+            "White",
+        ),
+        (
+            shakmaty::Color::Black,
+            clock_area[1],
+            Alignment::Right,
+            "Black",
+        ),
+    ];
+
+    for (color, section_area, alignment, label) in clock_configs {
+        let time_str = clock.format_time(color, now);
+        let text = format!("{}: {}", label, time_str);
+        let text_width = text.len() as u16;
+        let is_active = active_color == Some(color);
+
+        if is_active {
+            let x_offset = if alignment == Alignment::Right {
+                section_area.width.saturating_sub(text_width)
+            } else {
+                0
+            };
+
+            let text_area = Rect {
+                x: section_area.x + x_offset,
+                y: section_area.y,
+                width: text_width.min(section_area.width),
+                height: section_area.height,
+            };
+
+            let bg_block = Block::default().style(Style::default().bg(Color::White));
+            frame.render_widget(bg_block, text_area);
+        }
+
+        let style = if is_active {
+            Style::default()
+                .fg(Color::Black)
+                .add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(Color::White)
+        };
+
+        let paragraph = Paragraph::new(text).style(style).alignment(alignment);
+        frame.render_widget(paragraph, section_area);
     }
 }
