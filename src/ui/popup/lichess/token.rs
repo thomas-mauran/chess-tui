@@ -1,7 +1,10 @@
 //! Lichess API token entry popup (input masked for security).
 
 use crate::ui::prompt::Prompt;
-use crate::{constants::{WHITE, DOCS_URL}, ui::components::centered_rect::centered_rect};
+use crate::{
+    constants::{DOCS_URL, WHITE},
+    ui::components::centered_rect::centered_rect,
+};
 use ratatui::{
     Frame,
     layout::{Alignment, Position},
@@ -41,7 +44,7 @@ pub fn render_enter_lichess_token_popup(frame: &mut Frame, prompt: &Prompt) {
         Line::from(""),
         Line::from(""),
         Line::from("To get a token, follow the documentation:"),
-Line::from(format!("Documentation: {}/Lichess/setup", DOCS_URL)),
+        Line::from(format!("Documentation: {}/Lichess/setup", DOCS_URL)),
         Line::from(""),
         Line::from("Press `Enter` to save, `Esc` to cancel.").alignment(Alignment::Center),
     ];

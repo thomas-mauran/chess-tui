@@ -11,7 +11,7 @@ use ratatui::{
 };
 use shakmaty::Color as ShakmatyColor;
 
-use crate::constants::{TIME_CONTROL_OPTIONS, DOCS_URL};
+use crate::constants::{DOCS_URL, TIME_CONTROL_OPTIONS};
 /// The three color options shown in the bot and multiplayer configuration forms.
 pub enum ColorSelection {
     White,

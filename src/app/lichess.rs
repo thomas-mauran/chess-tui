@@ -1,7 +1,7 @@
 //! Lichess authentication, game streaming, and puzzle management.
 
 use crate::app::App;
-use crate::constants::{Pages, Popups, SLEEP_DURATION_RESIGN_MS, DOCS_URL};
+use crate::constants::{DOCS_URL, Pages, Popups, SLEEP_DURATION_RESIGN_MS};
 use crate::game_logic::game::GameState;
 use crate::game_logic::opponent::Opponent;
 use crate::game_logic::puzzle::PuzzleGame;
@@ -53,8 +53,7 @@ impl App {
                 // Token is invalid, show error
                 let msg = format!(
                     "Invalid Lichess token.\n\nError: {}\n\n Please check your token and try again.\n\n Follow the documentation: {}/Lichess/setup",
-                    DOCS_URL,
-                    e
+                    DOCS_URL, e
                 );
                 self.ui_state.current_popup = Some(Popups::Error);
                 self.ui_state.show_message_popup(msg, Popups::Error);

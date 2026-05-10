@@ -8,7 +8,7 @@ use ratatui::{
 };
 
 use crate::{
-    constants::{Popups, DOCS_URL},
+    constants::{DOCS_URL, Popups},
     server::game_server::{get_host_ip, setup_game_server},
     ui::{
         components::centered_rect::centered_rect,
@@ -185,7 +185,10 @@ fn render_bot_page(frame: &mut Frame<'_>, app: &mut App, main_area: ratatui::lay
     {
         app.ui_state.popup_message = Some(
             "Chess engine path not configured.\n\n".to_string()
-                + &format!("To configure the chess engine follow the documentation: {}/Bot/bot-engines\n\n", DOCS_URL)
+                + &format!(
+                    "To configure the chess engine follow the documentation: {}/Bot/bot-engines\n\n",
+                    DOCS_URL
+                )
                 + "Example:\n"
                 + "chess-tui -e /opt/homebrew/opt/stockfish\n"
                 + " or execute the script: ./scripts/install-stockfish.sh\n"
