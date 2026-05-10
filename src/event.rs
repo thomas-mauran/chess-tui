@@ -83,4 +83,9 @@ impl EventHandler {
     pub fn next(&self) -> AppResult<Event> {
         Ok(self.receiver.recv()?)
     }
+
+    /// Non-blocking poll — returns `None` if no event is ready.
+    pub fn try_next(&self) -> Option<Event> {
+        self.receiver.try_recv().ok()
+    }
 }

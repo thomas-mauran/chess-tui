@@ -1,6 +1,7 @@
 #![warn(dead_code)]
 #![warn(unreachable_pub)]
 
+pub mod animations;
 pub mod app;
 pub mod config;
 pub mod constants;

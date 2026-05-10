@@ -43,10 +43,12 @@ use super::pgn_viewer_ui::render_pgn_viewer;
 
 use crate::{app::App, constants::Pages};
 use std::path::Path;
+use tachyonfx::{EffectRenderer, Interpolation, Motion, fx};
 
 /// Renders the user interface widgets.
 pub fn render(app: &mut App, frame: &mut Frame<'_>) {
     let main_area = frame.area();
+    let elapsed = app.animations.tick();
 
     match app.ui_state.current_page {
         Pages::Solo => render_game_ui(frame, app, main_area),
@@ -144,6 +146,32 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
             render_loading_popup(frame, message);
         }
         _ => {}
+    }
+
+    if app.animations_enabled {
+        let current_page = app.ui_state.current_page;
+
+        if !app.animations.startup_done {
+            app.animations.startup_done = true;
+            app.animations.last_page = Some(current_page);
+            let effect = fx::sweep_in(
+                Motion::UpToDown,
+                15,
+                5,
+                ratatui::style::Color::Black,
+                (1200u32, Interpolation::CubicOut),
+            );
+            app.animations.push(effect, main_area);
+        } else if app.animations.last_page != Some(current_page) {
+            let effect = fx::coalesce((300u32, Interpolation::QuadOut));
+            app.animations.push(effect, main_area);
+            app.animations.last_page = Some(current_page);
+        }
+
+        for (effect, area) in &mut app.animations.effects {
+            frame.render_effect(effect, *area, elapsed);
+        }
+        app.animations.effects.retain(|(e, _)| !e.done());
     }
 }
 

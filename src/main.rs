@@ -86,10 +86,12 @@ fn main() -> AppResult<()> {
                 app.lichess_state.token = Some(lichess_token.clone());
                 app.lichess_state.client = Some(LichessClient::new(lichess_token));
             }
-            // Add sound enabled handling
             if let Some(sound_enabled) = config.sound_enabled {
                 app.sound_enabled = sound_enabled;
                 chess_tui::sound::set_sound_enabled(sound_enabled);
+            }
+            if let Some(animations_enabled) = config.animations_enabled {
+                app.animations_enabled = animations_enabled;
             }
         }
     } else {
@@ -291,12 +293,22 @@ fn main() -> AppResult<()> {
     while app.running {
         // Render the user interface.
         tui.draw(&mut app)?;
-        // Handle events.
-        match tui.events.next()? {
-            Event::Tick => app.tick(),
-            Event::Key(key_event) => handle_key_events(key_event, &mut app)?,
-            Event::Mouse(mouse_event) => handle_mouse_events(mouse_event, &mut app)?,
-            Event::Resize(_, _) => {}
+        // Handle events fast loop during animations, blocking otherwise.
+        if app.animations.is_active() {
+            match tui.events.try_next() {
+                Some(Event::Tick) => app.tick(),
+                Some(Event::Key(key_event)) => handle_key_events(key_event, &mut app)?,
+                Some(Event::Mouse(mouse_event)) => handle_mouse_events(mouse_event, &mut app)?,
+                Some(Event::Resize(_, _)) | None => {}
+            }
+            std::thread::sleep(std::time::Duration::from_millis(16));
+        } else {
+            match tui.events.next()? {
+                Event::Tick => app.tick(),
+                Event::Key(key_event) => handle_key_events(key_event, &mut app)?,
+                Event::Mouse(mouse_event) => handle_mouse_events(mouse_event, &mut app)?,
+                Event::Resize(_, _) => {}
+            }
         }
 
         // Check if bot should start thinking
