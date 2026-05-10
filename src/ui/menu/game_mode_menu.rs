@@ -11,7 +11,7 @@ use ratatui::{
 };
 use shakmaty::Color as ShakmatyColor;
 
-use crate::constants::TIME_CONTROL_OPTIONS;
+use crate::constants::{DOCS_URL, TIME_CONTROL_OPTIONS};
 /// The three color options shown in the bot and multiplayer configuration forms.
 pub enum ColorSelection {
     White,
@@ -523,9 +523,7 @@ fn build_multiplayer_detail_lines() -> Vec<Line<'static>> {
         Line::from("  2308 (default)"),
         Line::from(""),
         Line::from("For setting up multiplayer on different networks, see the documentation:"),
-        Line::from(
-            "  https://thomas-mauran.github.io/chess-tui/docs/Multiplayer/Online%20multiplayer",
-        ),
+        Line::from(format!("  {}/Multiplayer/Online%20multiplayer", DOCS_URL)),
     ]
 }
 
@@ -608,7 +606,7 @@ fn build_bot_detail_lines(app: &App) -> Vec<Line<'static>> {
         Line::from("  ahead the bot thinks."),
         Line::from("  Higher = stronger but slower."),
         Line::from(""),
-        Line::from("  https://thomas-mauran.github.io/chess-tui/docs/intro"),
+        Line::from(format!("  {}/intro", DOCS_URL)),
     ]);
     lines
 }

@@ -2,7 +2,7 @@
 
 use crate::ui::prompt::Prompt;
 use crate::{
-    constants::{NETWORK_PORT, WHITE},
+    constants::{DOCS_URL, NETWORK_PORT, WHITE},
     ui::components::centered_rect::centered_rect,
 };
 use ratatui::{
@@ -34,9 +34,10 @@ pub fn render_enter_multiplayer_ip(frame: &mut Frame, prompt: &Prompt) {
         Line::from(""),
         Line::from(""),
         Line::from(format!("Example: 10.111.6.50:{};", NETWORK_PORT)),
-        Line::from(
-            "Documentation: https://thomas-mauran.github.io/chess-tui/docs/Multiplayer/Online%20multiplayer/",
-        ),
+        Line::from(format!(
+            "Documentation: {}/Multiplayer/Online%20multiplayer/",
+            DOCS_URL
+        )),
         Line::from(""),
         Line::from(""),
         Line::from("Press `Esc` to close the popup.").alignment(Alignment::Center),
