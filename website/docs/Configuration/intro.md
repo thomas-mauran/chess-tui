@@ -73,8 +73,8 @@ bot_depth = 10
 # Enable or disable sound effects (default: true)
 sound_enabled = true
 
-# Enable or disable animations (startup and page transitions) (default: true)
-animations_enabled = true
+# Enable or disable animations (startup and page transitions) (default: false)
+animations_enabled = false
 ``` 
 
 CONFIG_DIR is typically:

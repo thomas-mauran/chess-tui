@@ -64,7 +64,7 @@ impl Default for App {
             lichess_state: LichessState::default(),
             ui_state: UIState::default(),
             sound_enabled: true,
-            animations_enabled: true,
+            animations_enabled: false,
             pgn_viewer_state: None,
             pgn_viewer_game_idx: 0,
             animations: AnimationState::default(),

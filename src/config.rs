@@ -68,7 +68,7 @@ impl Default for Config {
             selected_skin_name: Some("Default".to_string()),
             lichess_token: None,
             sound_enabled: Some(true),
-            animations_enabled: Some(true),
+            animations_enabled: Some(false),
         }
     }
 }
@@ -137,7 +137,7 @@ impl Config {
             config.sound_enabled = Some(true);
         }
         if config.animations_enabled.is_none() {
-            config.animations_enabled = Some(true);
+            config.animations_enabled = Some(false);
         }
 
         // Always update engine_path if provided via command line (command line takes precedence)
