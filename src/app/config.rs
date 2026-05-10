@@ -28,6 +28,7 @@ impl App {
         config.selected_skin_name = Some(self.theme_state.selected_skin_name.clone());
         config.lichess_token = self.lichess_state.token.clone();
         config.sound_enabled = Some(self.sound_enabled);
+        config.animations_enabled = Some(self.animations_enabled);
 
         // Try to write the config file, but don't fail if it's read-only
         // This allows the application to work with read-only config files (e.g., from NixOS/home-manager)

@@ -54,6 +54,7 @@ pub struct Config {
     pub selected_skin_name: Option<String>,
     pub lichess_token: Option<String>,
     pub sound_enabled: Option<bool>,
+    pub animations_enabled: Option<bool>,
 }
 
 impl Default for Config {
@@ -67,6 +68,7 @@ impl Default for Config {
             selected_skin_name: Some("Default".to_string()),
             lichess_token: None,
             sound_enabled: Some(true),
+            animations_enabled: Some(false),
         }
     }
 }
@@ -133,6 +135,9 @@ impl Config {
         }
         if config.sound_enabled.is_none() {
             config.sound_enabled = Some(true);
+        }
+        if config.animations_enabled.is_none() {
+            config.animations_enabled = Some(false);
         }
 
         // Always update engine_path if provided via command line (command line takes precedence)
