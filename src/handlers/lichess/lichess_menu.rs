@@ -34,6 +34,18 @@ pub fn handle_lichess_menu_page_events(app: &mut App, key_event: KeyEvent) {
     match key_event.code {
         KeyCode::Up | KeyCode::Char('k') => app.ui_state.menu_cursor_up(5), // 5 menu options
         KeyCode::Down | KeyCode::Char('j') => app.ui_state.menu_cursor_down(5),
+        KeyCode::PageUp => {
+            // Scroll stats up
+            if app.lichess_state.lichess_stats_scroll > 0 {
+                app.lichess_state.lichess_stats_scroll =
+                    app.lichess_state.lichess_stats_scroll.saturating_sub(3);
+            }
+        }
+        KeyCode::PageDown => {
+            // Scroll stats down
+            app.lichess_state.lichess_stats_scroll =
+                app.lichess_state.lichess_stats_scroll.saturating_add(3);
+        }
         KeyCode::Char(' ') | KeyCode::Enter => {
             let item = LichessMenuItems::from(app.ui_state.menu_cursor);
             // Handle menu selection
@@ -131,6 +143,7 @@ pub fn handle_lichess_menu_page_events(app: &mut App, key_event: KeyEvent) {
         KeyCode::Esc | KeyCode::Char('b') => {
             // Return to home menu
             app.ui_state.menu_cursor = 0;
+            app.lichess_state.lichess_stats_scroll = 0; // Reset scroll when leaving menu
             app.ui_state.current_page = Pages::Home;
         }
         KeyCode::Char('?') => app.ui_state.toggle_help_popup(),
