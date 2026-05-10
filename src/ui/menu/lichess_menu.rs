@@ -384,7 +384,7 @@ fn render_user_stats_panel(frame: &mut Frame, app: &App, area: Rect) {
     let max_visible_lines = area.height.saturating_sub(2) as usize; // Account for borders
     let start_idx = scroll_offset.min(stats_lines.len().saturating_sub(1));
     let end_idx = (start_idx + max_visible_lines).min(stats_lines.len());
-    
+
     let visible_stats_lines: Vec<Line> = if start_idx < stats_lines.len() {
         stats_lines[start_idx..end_idx].to_vec()
     } else {
