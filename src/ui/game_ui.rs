@@ -8,7 +8,6 @@ use ratatui::{
     widgets::Block,
 };
 
-
 use crate::{
     app::App, constants::Popups, game_logic::game::GameState, ui::popup::end::render_end_popup,
     ui::popup::promotion::render_promotion_popup,

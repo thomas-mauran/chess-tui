@@ -28,9 +28,13 @@ pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 pub struct App {
     /// Is the application running?
     pub running: bool,
+    /// Game
     pub game: Game,
+    /// The log level of the app
     pub log_level: LevelFilter,
+    /// Whether sound effects are enabled
     pub sound_enabled: bool,
+    /// Whether animations are enabled
     pub animations_enabled: bool,
     /// Everything related to the skin handling through the app
     pub theme_state: ThemeState,

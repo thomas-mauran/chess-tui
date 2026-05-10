@@ -86,6 +86,7 @@ fn main() -> AppResult<()> {
                 app.lichess_state.token = Some(lichess_token.clone());
                 app.lichess_state.client = Some(LichessClient::new(lichess_token));
             }
+            // Add sound enabled handling
             if let Some(sound_enabled) = config.sound_enabled {
                 app.sound_enabled = sound_enabled;
                 chess_tui::sound::set_sound_enabled(sound_enabled);
