@@ -4,18 +4,16 @@
 //! decisions: when to write, when to clear, and how to rebuild the in-memory
 //! game from a saved snapshot.
 
-use std::time::Duration;
-
-use shakmaty::{CastlingMode, Chess, Color, fen::Fen, uci::UciMove};
-
 use crate::app::App;
 use crate::constants::{Pages, Popups};
 use crate::game_logic::bot::Bot;
-use crate::game_logic::clock::Clock;
+use crate::game_logic::clock::{Clock, TimeControl};
 use crate::game_logic::game::{Game, GameState};
 use crate::state::resume::{
     BotConfig, ClockState, ResumeMode, SavedGame, TakenPieceRecord, delete, has_save, load, save,
 };
+use shakmaty::{CastlingMode, Chess, Color, fen::Fen, uci::UciMove};
+use std::time::{Duration, Instant};
 
 impl App {
     /// Returns the resume mode that matches the active game, if any.
@@ -120,9 +118,10 @@ impl App {
     }
 
     fn clock_state_for_save(&self) -> Option<ClockState> {
-        let clock = self.game.logic.clock.as_ref()?;
-        let white = clock.get_time(Color::White);
-        let black = clock.get_time(Color::Black);
+        let clock = &self.game.logic.clock;
+        let now = Instant::now();
+        let white = clock.get_time(Color::White, now);
+        let black = clock.get_time(Color::Black, now);
         Some(ClockState {
             white_ms: white.as_millis() as u64,
             black_ms: black.as_millis() as u64,
@@ -248,12 +247,12 @@ impl App {
             );
             // Game was mid-flight before the quit; start the side-to-move
             // clock immediately so resume feels continuous instead of frozen.
-            clock.start(self.game.logic.player_turn);
-            self.game.logic.clock = Some(clock);
+            clock.start(Instant::now());
+            self.game.logic.clock = clock;
             self.game_mode_state.clock_cursor = cs.clock_cursor;
             self.game_mode_state.custom_time_minutes = cs.custom_minutes;
         } else {
-            self.game.logic.clock = None;
+            self.game.logic.clock = Clock::new(TimeControl::NoClock);
         }
 
         match mode {
