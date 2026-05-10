@@ -159,7 +159,7 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
                 15,
                 5,
                 ratatui::style::Color::Black,
-                (1200u32, Interpolation::CubicOut),
+                (750u32, Interpolation::CubicOut),
             );
             app.animations.push(effect, main_area);
         } else if app.animations.last_page != Some(current_page) {
