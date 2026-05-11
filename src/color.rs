@@ -1,7 +1,7 @@
 use std::sync::LazyLock;
 
-use ratatui::style::Color;
 use crate::constants::{BLACK, WHITE};
+use ratatui::style::Color;
 
 static HAS_TRUE_COLOR: LazyLock<bool> = LazyLock::new(|| {
     matches!(
@@ -12,8 +12,12 @@ static HAS_TRUE_COLOR: LazyLock<bool> = LazyLock::new(|| {
 
 fn nearest_ansi256(r: u8, g: u8, b: u8) -> u8 {
     if r == g && g == b {
-        if r < 8 { return 16; }
-        if r > 248 { return 231; }
+        if r < 8 {
+            return 16;
+        }
+        if r > 248 {
+            return 231;
+        }
         return 232 + (r - 8) / 10;
     }
     let r6 = ((r as u16 * 5 + 127) / 255) as u8;

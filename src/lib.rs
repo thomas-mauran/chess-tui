@@ -2,8 +2,8 @@
 #![warn(unreachable_pub)]
 
 pub mod animations;
-pub mod color;
 pub mod app;
+pub mod color;
 pub mod config;
 pub mod constants;
 pub mod event;
