@@ -7,6 +7,7 @@ use super::{
     game::{Game, GameLogic},
 };
 use crate::{
+    color::{adapt_color, board_black, board_white},
     constants::{BLACK, DisplayMode, WHITE},
     game_logic::coord::MoveDirection,
     pieces::{PieceSize, role_to_utf_enum},
@@ -278,8 +279,8 @@ impl UI {
         let line_count = piece_str.lines().count().max(1) as u16;
 
         let color_enum = match piece_color {
-            Some(shakmaty::Color::White) => self.skin.piece_white_color,
-            Some(shakmaty::Color::Black) => self.skin.piece_black_color,
+            Some(shakmaty::Color::White) => adapt_color(self.skin.piece_white_color),
+            Some(shakmaty::Color::Black) => adapt_color(self.skin.piece_black_color),
             None => Color::Red,
         };
 
@@ -747,13 +748,13 @@ impl UI {
         // Color of the cell to draw the board
         let cell_color: Color = if (i + j).is_multiple_of(2) {
             match self.display_mode {
-                DisplayMode::CUSTOM => self.skin.board_white_color,
-                _ => WHITE,
+                DisplayMode::CUSTOM => adapt_color(self.skin.board_white_color),
+                _ => board_white(),
             }
         } else {
             match self.display_mode {
-                DisplayMode::CUSTOM => self.skin.board_black_color,
-                _ => BLACK,
+                DisplayMode::CUSTOM => adapt_color(self.skin.board_black_color),
+                _ => board_black(),
             }
         };
 
@@ -780,16 +781,16 @@ impl UI {
             let highlight_color = match self.display_mode {
                 DisplayMode::CUSTOM => {
                     if is_selected_cell {
-                        self.skin.selection_color
+                        adapt_color(self.skin.selection_color)
                     } else {
-                        self.skin.last_move_color
+                        adapt_color(self.skin.last_move_color)
                     }
                 }
                 _ => Color::LightGreen,
             };
             render_cell(frame, square, highlight_color, None);
         } else if is_cell_in_positions {
-            render_cell(frame, square, Color::Rgb(100, 100, 100), None);
+            render_cell(frame, square, adapt_color(Color::Rgb(100, 100, 100)), None);
             // else as a last resort we draw the cell with the default color either white or black
         } else {
             let mut cell = Block::default();
@@ -806,7 +807,7 @@ impl UI {
 
         if !self.hide_cursor && current_rendering_coord == self.cursor_coordinates {
             let cursor_color = match self.display_mode {
-                DisplayMode::CUSTOM => self.skin.cursor_color,
+                DisplayMode::CUSTOM => adapt_color(self.skin.cursor_color),
                 _ => Color::LightBlue,
             };
 

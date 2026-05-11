@@ -2,6 +2,7 @@
 #![warn(unreachable_pub)]
 
 pub mod animations;
+pub mod color;
 pub mod app;
 pub mod config;
 pub mod constants;
