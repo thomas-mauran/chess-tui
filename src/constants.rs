@@ -117,7 +117,7 @@ pub fn config_dir() -> Result<PathBuf, &'static str> {
 }
 
 /// TUI navigation targets — the full-screen "page" currently being rendered.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Pages {
     /// Main menu.
     Home,

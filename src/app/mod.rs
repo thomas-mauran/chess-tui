@@ -1,5 +1,6 @@
 //! Single mutable root passed to every handler; owns all game logic, state structs, and global settings.
 
+use crate::animations::AnimationState;
 use crate::constants::Popups;
 use crate::game_logic::game::Game;
 use crate::game_logic::game::GameState;
@@ -33,6 +34,8 @@ pub struct App {
     pub log_level: LevelFilter,
     /// Whether sound effects are enabled
     pub sound_enabled: bool,
+    /// Whether animations are enabled
+    pub animations_enabled: bool,
     /// Everything related to the skin handling through the app
     pub theme_state: ThemeState,
     /// Bot engine state (path, depth, difficulty, move channel)
@@ -49,6 +52,7 @@ pub struct App {
     pub pgn_viewer_state: Option<Vec<crate::pgn_viewer::PgnViewer>>,
     /// PGN viewer: which game is currently shown
     pub pgn_viewer_game_idx: usize,
+    pub animations: AnimationState,
 }
 
 impl Default for App {
@@ -64,8 +68,10 @@ impl Default for App {
             lichess_state: LichessState::default(),
             ui_state: UIState::default(),
             sound_enabled: true,
+            animations_enabled: false,
             pgn_viewer_state: None,
             pgn_viewer_game_idx: 0,
+            animations: AnimationState::default(),
         }
     }
 }

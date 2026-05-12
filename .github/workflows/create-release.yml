@@ -27,13 +27,33 @@ jobs:
           OUTPUT: changelog_fragment.md
 
       - name: Build release body with logo
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          GENERATED=$(gh api repos/${{ github.repository }}/releases/generate-notes \
+            --method POST \
+            --field tag_name=${{ github.event.inputs.version }} \
+            --jq '.body')
+
+          CONTRIBUTORS=$(echo "$GENERATED" | awk '/^## New Contributors/{found=1} found{print}' | grep -v "^\*\*Full Changelog")
+          FULL_CHANGELOG=$(echo "$GENERATED" | grep "^\*\*Full Changelog")
+
           {
             echo '<p align="center">'
             echo '  <img src="https://raw.githubusercontent.com/${{ github.repository }}/main/website/static/img/logo.png" width="180" />'
             echo '</p>'
             echo ''
+            echo '<h1 align="center">Chess-tui ${{ github.event.inputs.version }}</h1>'
+            echo ''
             cat changelog_fragment.md
+            echo ''
+            if [ -n "$CONTRIBUTORS" ]; then
+              echo "$CONTRIBUTORS"
+              echo ''
+            fi
+            if [ -n "$FULL_CHANGELOG" ]; then
+              echo "$FULL_CHANGELOG"
+            fi
           } > release_body.md
 
       - name: Create GitHub Release

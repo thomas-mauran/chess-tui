@@ -102,8 +102,9 @@ function extractDescription(body) {
   for (let i = 0; i < Math.min(10, lines.length); i++) {
     const trimmed = lines[i].trim();
     // Skip empty lines, headers, and common patterns
-    if (trimmed && 
+    if (trimmed &&
         !trimmed.match(/^(#+|What's|Contributors|Full Changelog)/i) &&
+        !trimmed.match(/^</) &&
         trimmed.length > 10 &&
         !trimmed.match(/^[-*]\s*$/)) {
       // Use first meaningful line, but limit length
