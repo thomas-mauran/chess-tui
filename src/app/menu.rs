@@ -89,7 +89,9 @@ impl App {
             #[cfg(feature = "sound")]
             MainMenuItems::Credit => self.ui_state.current_page = Pages::Credit,
             #[cfg(not(feature = "sound"))]
-            MainMenuItems::Help => self.toggle_help_popup(),
+            MainMenuItems::SoundSelector => {}
+            #[cfg(not(feature = "sound"))]
+            MainMenuItems::Help => self.ui_state.toggle_help_popup(),
             #[cfg(not(feature = "sound"))]
             MainMenuItems::Credit => self.ui_state.current_page = Pages::Credit,
         }
