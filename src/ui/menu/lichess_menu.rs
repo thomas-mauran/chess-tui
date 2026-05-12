@@ -242,9 +242,9 @@ fn render_user_stats_panel(frame: &mut Frame, app: &App, area: Rect) {
         // Account creation date
         if let Some(created_at_secs) = profile.created_at_secs() {
             use chrono::{DateTime, Utc};
-            let datetime = DateTime::<Utc>::from_timestamp(created_at_secs as i64, 0)
-                .unwrap_or_else(|| DateTime::<Utc>::from_timestamp(0, 0).unwrap());
-            let date_str = datetime.format("%Y-%m-%d").to_string();
+            let date_str = DateTime::<Utc>::from_timestamp(created_at_secs as i64, 0)
+                .map(|dt| dt.format("%Y-%m-%d").to_string())
+                .unwrap_or_else(|| String::from("Invalid date"));
             stats_lines.push(Line::from(vec![Span::styled(
                 "Created:",
                 Style::default()
@@ -259,52 +259,52 @@ fn render_user_stats_panel(frame: &mut Frame, app: &App, area: Rect) {
         }
 
         // Playtime
-        if let Some(playtime) = &profile.playtime {
-            if let Some(total_seconds) = playtime.total {
-                let hours = total_seconds / 3600;
-                let minutes = (total_seconds % 3600) / 60;
-                let playtime_str = if hours > 0 {
-                    format!("{}h {}m", hours, minutes)
-                } else {
-                    format!("{}m", minutes)
-                };
-                stats_lines.push(Line::from(vec![Span::styled(
-                    "Playtime:",
-                    Style::default()
-                        .fg(Color::Cyan)
-                        .add_modifier(Modifier::BOLD),
-                )]));
-                stats_lines.push(Line::from(vec![
-                    Span::raw("  "),
-                    Span::styled(playtime_str, Style::default().fg(Color::White)),
-                ]));
-                stats_lines.push(Line::from(""));
-            }
+        if let Some(playtime) = &profile.playtime
+            && let Some(total_seconds) = playtime.total
+        {
+            let hours = total_seconds / 3600;
+            let minutes = (total_seconds % 3600) / 60;
+            let playtime_str = if hours > 0 {
+                format!("{}h {}m", hours, minutes)
+            } else {
+                format!("{}m", minutes)
+            };
+            stats_lines.push(Line::from(vec![Span::styled(
+                "Playtime:",
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            )]));
+            stats_lines.push(Line::from(vec![
+                Span::raw("  "),
+                Span::styled(playtime_str, Style::default().fg(Color::White)),
+            ]));
+            stats_lines.push(Line::from(""));
         }
 
         // Official Lichess verified streamer info
-        if let Some(streamer) = &profile.streamer {
-            if streamer.youtube.is_some() || streamer.twitch.is_some() {
-                stats_lines.push(Line::from(vec![Span::styled(
-                    "Verified Streamer:",
-                    Style::default()
-                        .fg(Color::Cyan)
-                        .add_modifier(Modifier::BOLD),
-                )]));
-                if let Some(youtube) = &streamer.youtube {
-                    stats_lines.push(Line::from(vec![
-                        Span::raw("  YouTube: "),
-                        Span::styled(youtube.clone(), Style::default().fg(Color::Red)),
-                    ]));
-                }
-                if let Some(twitch) = &streamer.twitch {
-                    stats_lines.push(Line::from(vec![
-                        Span::raw("  Twitch: "),
-                        Span::styled(twitch.clone(), Style::default().fg(Color::Magenta)),
-                    ]));
-                }
-                stats_lines.push(Line::from(""));
+        if let Some(streamer) = &profile.streamer
+            && (streamer.youtube.is_some() || streamer.twitch.is_some())
+        {
+            stats_lines.push(Line::from(vec![Span::styled(
+                "Verified Streamer:",
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            )]));
+            if let Some(youtube) = &streamer.youtube {
+                stats_lines.push(Line::from(vec![
+                    Span::raw("  YouTube: "),
+                    Span::styled(youtube.clone(), Style::default().fg(Color::Red)),
+                ]));
             }
+            if let Some(twitch) = &streamer.twitch {
+                stats_lines.push(Line::from(vec![
+                    Span::raw("  Twitch: "),
+                    Span::styled(twitch.clone(), Style::default().fg(Color::Magenta)),
+                ]));
+            }
+            stats_lines.push(Line::from(""));
         }
 
         if let Some(perfs) = &profile.perfs {
