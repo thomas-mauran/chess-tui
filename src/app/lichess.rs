@@ -563,17 +563,36 @@ impl App {
         let (tx, rx) = channel();
         self.lichess_state.receiver = Some(rx);
 
-        std::thread::spawn(move || match client.get_user_profile() {
-            Ok(profile) => {
-                let username = profile.username.clone();
-                let history = client.get_rating_history(&username).unwrap_or_default();
-                let _ = tx.send(LichessUpdate::ProfileResult(Ok(Box::new((
-                    profile, history,
-                )))));
+        std::thread::spawn(move || {
+            const MAX_ATTEMPTS: u32 = 3;
+            const RETRY_DELAY: std::time::Duration = std::time::Duration::from_secs(2);
+
+            let mut last_err = String::new();
+            for attempt in 1..=MAX_ATTEMPTS {
+                match client.get_user_profile() {
+                    Ok(profile) => {
+                        let username = profile.username.clone();
+                        let history = client.get_rating_history(&username).unwrap_or_default();
+                        let _ = tx.send(LichessUpdate::ProfileResult(Ok(Box::new((
+                            profile, history,
+                        )))));
+                        return;
+                    }
+                    Err(e) => {
+                        last_err = e.to_string();
+                        log::warn!(
+                            "Profile fetch attempt {}/{} failed: {}",
+                            attempt,
+                            MAX_ATTEMPTS,
+                            last_err
+                        );
+                        if attempt < MAX_ATTEMPTS {
+                            std::thread::sleep(RETRY_DELAY);
+                        }
+                    }
+                }
             }
-            Err(e) => {
-                let _ = tx.send(LichessUpdate::ProfileResult(Err(e.to_string())));
-            }
+            let _ = tx.send(LichessUpdate::ProfileResult(Err(last_err)));
         });
     }
 
