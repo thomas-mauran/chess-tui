@@ -12,36 +12,36 @@ Set Height 1300
 Set WindowBar Colorful
 Set WindowBarSize 40
 
-Type "cargo run -- --no-sound --depth 10 --difficulty hard --skin Default" Sleep 300ms  Enter
+Type "cargo run -- --no-sound --depth 10 --difficulty hard --skin Default" Sleep 100ms  Enter
 
-Sleep 2s
+Sleep 1.5s
 
 # Navigate to "Play on Lichess" (index 1)
 Down @0.5s
 Space @0.5s
 
-Sleep 2s
+Sleep 1.5s
 
 # Navigate through Lichess menu options
 # Show "Seek Game" option
-Sleep 1s
+Sleep 0.8s
 
 Down @0.5s
-Sleep 1s
+Sleep 0.8s
 
 Down @0.5s
-Sleep 1s
+Sleep 0.8s
 
 Down @0.5s
-Sleep 1s
+Sleep 0.8s
 
 Up @0.5s
-Sleep 1s
+Sleep 0.8s
 
 # Show the menu for a bit longer to see the stats panel
-Sleep 3s
+Sleep 2s
 
 # Press Esc to go back to home menu
 Type Esc
 
-Sleep 2s
+Sleep 1.5s

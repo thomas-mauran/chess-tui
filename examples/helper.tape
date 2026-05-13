@@ -12,16 +12,16 @@ Set Height 1300
 Set WindowBar Colorful
 Set WindowBarSize 40
 
-Type "cargo run -- --no-sound --depth 10 --difficulty hard --skin Default" Sleep 300ms  Enter
+Type "cargo run -- --no-sound --depth 10 --difficulty hard --skin Default" Sleep 100ms  Enter
 
-Sleep 2s
+Sleep 1.5s
 Down @0.3s
 Down @0.3s
 Down @0.3s
 Down @0.3s
 Space @0.3s
-Sleep 1s
+Sleep 0.8s
 
 Type h
 
-Sleep 5s
+Sleep 4s

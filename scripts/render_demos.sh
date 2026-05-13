@@ -14,4 +14,7 @@ for file in examples/*.tape; do
   vhs "$file"
 done
 
+# Create the destination directory if it doesn't exist
+mkdir -p ./website/static/gif
+
 cp ./examples/*.gif ./website/static/gif
