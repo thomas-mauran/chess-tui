@@ -123,12 +123,23 @@ pub struct UserProfile {
     pub online: Option<bool>,
     #[serde(default)]
     pub profile: Option<ProfileInfo>,
-    #[serde(default)]
+    #[serde(default, rename = "seenAt")]
     pub seen_at: Option<u64>,
-    #[serde(default)]
+    #[serde(default, rename = "createdAt")]
     pub created_at: Option<u64>,
     #[serde(default)]
     pub count: Option<UserCounts>,
+    #[serde(default, rename = "playTime")]
+    pub playtime: Option<Playtime>,
+    #[serde(default)]
+    pub streamer: Option<UserStreamer>,
+}
+
+impl UserProfile {
+    /// Convert createdAt from milliseconds to seconds for easier date handling
+    pub fn created_at_secs(&self) -> Option<u64> {
+        self.created_at.map(|ms| ms / 1000)
+    }
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -143,6 +154,22 @@ pub struct ProfileInfo {
     pub first_name: Option<String>,
     #[serde(default, rename = "lastName")]
     pub last_name: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct Playtime {
+    #[serde(default)]
+    pub total: Option<u32>,
+    #[serde(default)]
+    pub tv: Option<u32>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct UserStreamer {
+    #[serde(default)]
+    pub youtube: Option<String>,
+    #[serde(default)]
+    pub twitch: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]

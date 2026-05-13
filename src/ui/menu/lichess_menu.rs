@@ -195,6 +195,118 @@ fn render_user_stats_panel(frame: &mut Frame, app: &App, area: Rect) {
             stats_lines.push(Line::from(""));
         }
 
+        // Profile info: bio, location, created_at, playtime, streamer
+        if let Some(profile_info) = &profile.profile {
+            // Bio
+            if let Some(bio) = &profile_info.bio {
+                stats_lines.push(Line::from(vec![Span::styled(
+                    "Bio:",
+                    Style::default()
+                        .fg(Color::Cyan)
+                        .add_modifier(Modifier::BOLD),
+                )]));
+                // Wrap bio text if too long
+                let bio_lines: Vec<&str> = bio.lines().collect();
+                for line in bio_lines.iter().take(3) {
+                    // Limit to 3 lines to avoid clutter
+                    stats_lines.push(Line::from(vec![
+                        Span::raw("  "),
+                        Span::styled(*line, Style::default().fg(Color::White)),
+                    ]));
+                }
+                if bio_lines.len() > 3 {
+                    stats_lines.push(Line::from(vec![
+                        Span::raw("  "),
+                        Span::styled("...", Style::default().fg(Color::Gray)),
+                    ]));
+                }
+                stats_lines.push(Line::from(""));
+            }
+
+            // Location
+            if let Some(location) = &profile_info.location {
+                stats_lines.push(Line::from(vec![Span::styled(
+                    "Location:",
+                    Style::default()
+                        .fg(Color::Cyan)
+                        .add_modifier(Modifier::BOLD),
+                )]));
+                stats_lines.push(Line::from(vec![
+                    Span::raw("  "),
+                    Span::styled(location.clone(), Style::default().fg(Color::White)),
+                ]));
+                stats_lines.push(Line::from(""));
+            }
+        }
+
+        // Account creation date
+        if let Some(created_at_secs) = profile.created_at_secs() {
+            use chrono::{DateTime, Utc};
+            let date_str = DateTime::<Utc>::from_timestamp(created_at_secs as i64, 0)
+                .map(|dt| dt.format("%Y-%m-%d").to_string())
+                .unwrap_or_else(|| String::from("Invalid date"));
+            stats_lines.push(Line::from(vec![Span::styled(
+                "Created:",
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            )]));
+            stats_lines.push(Line::from(vec![
+                Span::raw("  "),
+                Span::styled(date_str, Style::default().fg(Color::White)),
+            ]));
+            stats_lines.push(Line::from(""));
+        }
+
+        // Playtime
+        if let Some(playtime) = &profile.playtime
+            && let Some(total_seconds) = playtime.total
+        {
+            let hours = total_seconds / 3600;
+            let minutes = (total_seconds % 3600) / 60;
+            let playtime_str = if hours > 0 {
+                format!("{}h {}m", hours, minutes)
+            } else {
+                format!("{}m", minutes)
+            };
+            stats_lines.push(Line::from(vec![Span::styled(
+                "Playtime:",
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            )]));
+            stats_lines.push(Line::from(vec![
+                Span::raw("  "),
+                Span::styled(playtime_str, Style::default().fg(Color::White)),
+            ]));
+            stats_lines.push(Line::from(""));
+        }
+
+        // Official Lichess verified streamer info
+        if let Some(streamer) = &profile.streamer
+            && (streamer.youtube.is_some() || streamer.twitch.is_some())
+        {
+            stats_lines.push(Line::from(vec![Span::styled(
+                "Verified Streamer:",
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            )]));
+            if let Some(youtube) = &streamer.youtube {
+                stats_lines.push(Line::from(vec![
+                    Span::raw("  YouTube: "),
+                    Span::styled(youtube.clone(), Style::default().fg(Color::Red)),
+                ]));
+            }
+            if let Some(twitch) = &streamer.twitch {
+                stats_lines.push(Line::from(vec![
+                    Span::raw("  Twitch: "),
+                    Span::styled(twitch.clone(), Style::default().fg(Color::Magenta)),
+                ]));
+            }
+            stats_lines.push(Line::from(""));
+        }
+
         if let Some(perfs) = &profile.perfs {
             stats_lines.push(Line::from(vec![Span::styled(
                 "Ratings:",
@@ -267,12 +379,24 @@ fn render_user_stats_panel(frame: &mut Frame, app: &App, area: Rect) {
         )]));
     }
 
-    let stats = Paragraph::new(stats_lines)
+    // Apply scroll offset to stats lines
+    let scroll_offset = app.lichess_state.lichess_stats_scroll as usize;
+    let max_visible_lines = area.height.saturating_sub(2) as usize; // Account for borders
+    let start_idx = scroll_offset.min(stats_lines.len().saturating_sub(1));
+    let end_idx = (start_idx + max_visible_lines).min(stats_lines.len());
+
+    let visible_stats_lines: Vec<Line> = if start_idx < stats_lines.len() {
+        stats_lines[start_idx..end_idx].to_vec()
+    } else {
+        vec![Line::from("")]
+    };
+
+    let stats = Paragraph::new(visible_stats_lines)
         .block(
             Block::default()
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
-                .title("User Stats"),
+                .title("User Stats (Scroll with Page Up/Down)"),
         )
         .alignment(Alignment::Left);
     frame.render_widget(stats, area);

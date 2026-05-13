@@ -37,6 +37,8 @@ pub struct LichessState {
     pub client: Option<LichessClient>,
     /// Puzzle game state
     pub puzzle_game: Option<PuzzleGame>,
+    /// Lichess menu stats scroll offset
+    pub lichess_stats_scroll: u16,
 }
 
 impl LichessState {
