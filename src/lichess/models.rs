@@ -242,7 +242,7 @@ impl LichessClient {
         Self {
             token,
             client: Client::builder()
-                .timeout(None)
+                .timeout(std::time::Duration::from_secs(10))
                 .http1_only()
                 .build()
                 .unwrap_or_else(|_| Client::new()),

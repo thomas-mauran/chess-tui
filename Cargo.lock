@@ -317,7 +317,7 @@ dependencies = [
 
 [[package]]
 name = "chess-tui"
-version = "2.6.2"
+version = "2.7.0"
 dependencies = [
  "chrono",
  "clap",

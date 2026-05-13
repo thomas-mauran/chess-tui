@@ -136,6 +136,32 @@ fn render_menu_panel(frame: &mut Frame, app: &App, area: Rect) {
     frame.render_widget(menu, area);
 }
 
+fn wrap_text(text: &str, max_width: usize) -> Vec<String> {
+    let mut lines = Vec::new();
+    for paragraph in text.lines() {
+        if max_width == 0 || paragraph.len() <= max_width {
+            lines.push(paragraph.to_string());
+        } else {
+            let mut current = String::new();
+            for word in paragraph.split_whitespace() {
+                if current.is_empty() {
+                    current.push_str(word);
+                } else if current.len() + 1 + word.len() <= max_width {
+                    current.push(' ');
+                    current.push_str(word);
+                } else {
+                    lines.push(current.clone());
+                    current = word.to_string();
+                }
+            }
+            if !current.is_empty() {
+                lines.push(current);
+            }
+        }
+    }
+    lines
+}
+
 fn rating_line(label: &str, rating: u16, prog: Option<i16>) -> Line<'static> {
     let text = match prog {
         Some(p) if p > 0 => format!("{} (+{})", rating, p),
@@ -149,27 +175,46 @@ fn rating_line(label: &str, rating: u16, prog: Option<i16>) -> Line<'static> {
 }
 
 fn render_user_stats_panel(frame: &mut Frame, app: &App, area: Rect) {
-    let mut stats_lines = vec![Line::from("")];
+    let outer_block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .title("User Stats (Scroll with Page Up/Down)");
+    let inner_area = outer_block.inner(area);
+    frame.render_widget(outer_block, area);
+
+    let columns = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage(58),
+            Constraint::Percentage(4),
+            Constraint::Percentage(38),
+        ])
+        .split(inner_area);
+
+    let scroll_offset = app.lichess_state.lichess_stats_scroll as usize;
+    let max_visible = inner_area.height as usize;
 
     if let Some(profile) = &app.lichess_state.user_profile {
+        // --- LEFT: username, online, bio, location, country, created at ---
+        let mut left: Vec<Line> = vec![Line::from("")];
+
         let username_display = if let Some(title) = &profile.title {
             format!("{} {}", title, profile.username)
         } else {
             profile.username.clone()
         };
-        stats_lines.push(Line::from(vec![Span::styled(
+        left.push(Line::from(vec![Span::styled(
             "Username:",
             Style::default()
                 .fg(Color::Cyan)
                 .add_modifier(Modifier::BOLD),
         )]));
-        stats_lines.push(Line::from(vec![
+        left.push(Line::from(vec![
             Span::raw("  "),
             Span::styled(username_display, Style::default().fg(Color::White)),
         ]));
-
         if let Some(online) = profile.online {
-            stats_lines.push(Line::from(vec![
+            left.push(Line::from(vec![
                 Span::raw("  "),
                 Span::styled(
                     if online { "● Online" } else { "○ Offline" },
@@ -177,88 +222,141 @@ fn render_user_stats_panel(frame: &mut Frame, app: &App, area: Rect) {
                 ),
             ]));
         }
-        stats_lines.push(Line::from(""));
+        left.push(Line::from(""));
 
-        if let Some(profile_info) = &profile.profile
-            && let Some(country) = &profile_info.country
-        {
-            stats_lines.push(Line::from(vec![Span::styled(
-                "Country:",
-                Style::default()
-                    .fg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD),
-            )]));
-            stats_lines.push(Line::from(vec![
-                Span::raw("  "),
-                Span::styled(country.clone(), Style::default().fg(Color::White)),
-            ]));
-            stats_lines.push(Line::from(""));
-        }
-
-        // Profile info: bio, location, created_at, playtime, streamer
         if let Some(profile_info) = &profile.profile {
-            // Bio
             if let Some(bio) = &profile_info.bio {
-                stats_lines.push(Line::from(vec![Span::styled(
+                left.push(Line::from(vec![Span::styled(
                     "Bio:",
                     Style::default()
                         .fg(Color::Cyan)
                         .add_modifier(Modifier::BOLD),
                 )]));
-                // Wrap bio text if too long
-                let bio_lines: Vec<&str> = bio.lines().collect();
-                for line in bio_lines.iter().take(3) {
-                    // Limit to 3 lines to avoid clutter
-                    stats_lines.push(Line::from(vec![
+                let max_width = columns[0].width.saturating_sub(2) as usize;
+                for line in &wrap_text(bio, max_width) {
+                    left.push(Line::from(vec![
                         Span::raw("  "),
-                        Span::styled(*line, Style::default().fg(Color::White)),
+                        Span::styled(line.clone(), Style::default().fg(Color::White)),
                     ]));
                 }
-                if bio_lines.len() > 3 {
-                    stats_lines.push(Line::from(vec![
-                        Span::raw("  "),
-                        Span::styled("...", Style::default().fg(Color::Gray)),
-                    ]));
-                }
-                stats_lines.push(Line::from(""));
+                left.push(Line::from(""));
             }
-
-            // Location
             if let Some(location) = &profile_info.location {
-                stats_lines.push(Line::from(vec![Span::styled(
+                left.push(Line::from(vec![Span::styled(
                     "Location:",
                     Style::default()
                         .fg(Color::Cyan)
                         .add_modifier(Modifier::BOLD),
                 )]));
-                stats_lines.push(Line::from(vec![
+                left.push(Line::from(vec![
                     Span::raw("  "),
                     Span::styled(location.clone(), Style::default().fg(Color::White)),
                 ]));
-                stats_lines.push(Line::from(""));
+                left.push(Line::from(""));
+            }
+            if let Some(country) = &profile_info.country {
+                left.push(Line::from(vec![Span::styled(
+                    "Country:",
+                    Style::default()
+                        .fg(Color::Cyan)
+                        .add_modifier(Modifier::BOLD),
+                )]));
+                left.push(Line::from(vec![
+                    Span::raw("  "),
+                    Span::styled(country.clone(), Style::default().fg(Color::White)),
+                ]));
+                left.push(Line::from(""));
             }
         }
 
-        // Account creation date
         if let Some(created_at_secs) = profile.created_at_secs() {
             use chrono::{DateTime, Utc};
             let date_str = DateTime::<Utc>::from_timestamp(created_at_secs as i64, 0)
                 .map(|dt| dt.format("%Y-%m-%d").to_string())
                 .unwrap_or_else(|| String::from("Invalid date"));
-            stats_lines.push(Line::from(vec![Span::styled(
+            left.push(Line::from(vec![Span::styled(
                 "Created:",
                 Style::default()
                     .fg(Color::Cyan)
                     .add_modifier(Modifier::BOLD),
             )]));
-            stats_lines.push(Line::from(vec![
+            left.push(Line::from(vec![
                 Span::raw("  "),
                 Span::styled(date_str, Style::default().fg(Color::White)),
             ]));
-            stats_lines.push(Line::from(""));
+            left.push(Line::from(""));
         }
 
-        // Playtime
+        // --- RIGHT: ratings, games, playtime ---
+        let mut right: Vec<Line> = vec![Line::from("")];
+
+        if let Some(perfs) = &profile.perfs {
+            right.push(Line::from(vec![Span::styled(
+                "Ratings:",
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            )]));
+            if let Some(p) = &perfs.bullet {
+                right.push(rating_line("Bullet", p.rating, p.prog));
+            }
+            if let Some(p) = &perfs.blitz {
+                right.push(rating_line("Blitz", p.rating, p.prog));
+            }
+            if let Some(p) = &perfs.rapid {
+                right.push(rating_line("Rapid", p.rating, p.prog));
+            }
+            if let Some(p) = &perfs.classical {
+                right.push(rating_line("Classical", p.rating, p.prog));
+            }
+            if let Some(p) = &perfs.puzzle {
+                right.push(rating_line("Puzzle", p.rating, p.prog));
+            }
+            right.push(Line::from(""));
+        }
+
+        if let Some(counts) = &profile.count {
+            right.push(Line::from(vec![Span::styled(
+                "Games:",
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            )]));
+            if let Some(v) = counts.all {
+                right.push(Line::from(vec![
+                    Span::raw("  Total: "),
+                    Span::styled(format!("{}", v), Style::default().fg(Color::White)),
+                ]));
+            }
+            if let Some(v) = counts.win {
+                right.push(Line::from(vec![
+                    Span::raw("  Wins: "),
+                    Span::styled(format!("{}", v), Style::default().fg(Color::Green)),
+                ]));
+            }
+            if let Some(v) = counts.loss {
+                right.push(Line::from(vec![
+                    Span::raw("  Losses: "),
+                    Span::styled(format!("{}", v), Style::default().fg(Color::Red)),
+                ]));
+            }
+            if let Some(v) = counts.draw {
+                right.push(Line::from(vec![
+                    Span::raw("  Draws: "),
+                    Span::styled(format!("{}", v), Style::default().fg(Color::Yellow)),
+                ]));
+            }
+            if let Some(v) = counts.playing
+                && v > 0
+            {
+                right.push(Line::from(vec![
+                    Span::raw("  Playing: "),
+                    Span::styled(format!("{}", v), Style::default().fg(Color::Magenta)),
+                ]));
+            }
+            right.push(Line::from(""));
+        }
+
         if let Some(playtime) = &profile.playtime
             && let Some(total_seconds) = playtime.total
         {
@@ -269,137 +367,69 @@ fn render_user_stats_panel(frame: &mut Frame, app: &App, area: Rect) {
             } else {
                 format!("{}m", minutes)
             };
-            stats_lines.push(Line::from(vec![Span::styled(
+            right.push(Line::from(vec![Span::styled(
                 "Playtime:",
                 Style::default()
                     .fg(Color::Cyan)
                     .add_modifier(Modifier::BOLD),
             )]));
-            stats_lines.push(Line::from(vec![
+            right.push(Line::from(vec![
                 Span::raw("  "),
                 Span::styled(playtime_str, Style::default().fg(Color::White)),
             ]));
-            stats_lines.push(Line::from(""));
+            right.push(Line::from(""));
         }
 
-        // Official Lichess verified streamer info
         if let Some(streamer) = &profile.streamer
             && (streamer.youtube.is_some() || streamer.twitch.is_some())
         {
-            stats_lines.push(Line::from(vec![Span::styled(
+            right.push(Line::from(vec![Span::styled(
                 "Verified Streamer:",
                 Style::default()
                     .fg(Color::Cyan)
                     .add_modifier(Modifier::BOLD),
             )]));
             if let Some(youtube) = &streamer.youtube {
-                stats_lines.push(Line::from(vec![
+                right.push(Line::from(vec![
                     Span::raw("  YouTube: "),
                     Span::styled(youtube.clone(), Style::default().fg(Color::Red)),
                 ]));
             }
             if let Some(twitch) = &streamer.twitch {
-                stats_lines.push(Line::from(vec![
+                right.push(Line::from(vec![
                     Span::raw("  Twitch: "),
                     Span::styled(twitch.clone(), Style::default().fg(Color::Magenta)),
                 ]));
             }
-            stats_lines.push(Line::from(""));
+            right.push(Line::from(""));
         }
 
-        if let Some(perfs) = &profile.perfs {
-            stats_lines.push(Line::from(vec![Span::styled(
-                "Ratings:",
-                Style::default()
-                    .fg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD),
-            )]));
-            if let Some(p) = &perfs.blitz {
-                stats_lines.push(rating_line("Blitz", p.rating, p.prog));
-            }
-            if let Some(p) = &perfs.rapid {
-                stats_lines.push(rating_line("Rapid", p.rating, p.prog));
-            }
-            if let Some(p) = &perfs.classical {
-                stats_lines.push(rating_line("Classical", p.rating, p.prog));
-            }
-            if let Some(p) = &perfs.bullet {
-                stats_lines.push(rating_line("Bullet", p.rating, p.prog));
-            }
-            if let Some(p) = &perfs.puzzle {
-                stats_lines.push(rating_line("Puzzle", p.rating, p.prog));
-            }
-        }
+        let left_start = scroll_offset.min(left.len().saturating_sub(1));
+        let left_end = (left_start + max_visible).min(left.len());
+        let visible_left = left[left_start..left_end].to_vec();
 
-        if let Some(counts) = &profile.count {
-            stats_lines.push(Line::from(""));
-            stats_lines.push(Line::from(vec![Span::styled(
-                "Games:",
-                Style::default()
-                    .fg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD),
-            )]));
-            if let Some(v) = counts.all {
-                stats_lines.push(Line::from(vec![
-                    Span::raw("  Total: "),
-                    Span::styled(format!("{}", v), Style::default().fg(Color::White)),
-                ]));
-            }
-            if let Some(v) = counts.win {
-                stats_lines.push(Line::from(vec![
-                    Span::raw("  Wins: "),
-                    Span::styled(format!("{}", v), Style::default().fg(Color::Green)),
-                ]));
-            }
-            if let Some(v) = counts.loss {
-                stats_lines.push(Line::from(vec![
-                    Span::raw("  Losses: "),
-                    Span::styled(format!("{}", v), Style::default().fg(Color::Red)),
-                ]));
-            }
-            if let Some(v) = counts.draw {
-                stats_lines.push(Line::from(vec![
-                    Span::raw("  Draws: "),
-                    Span::styled(format!("{}", v), Style::default().fg(Color::Yellow)),
-                ]));
-            }
-            if let Some(v) = counts.playing
-                && v > 0
-            {
-                stats_lines.push(Line::from(vec![
-                    Span::raw("  Playing: "),
-                    Span::styled(format!("{}", v), Style::default().fg(Color::Magenta)),
-                ]));
-            }
-        }
+        let right_start = scroll_offset.min(right.len().saturating_sub(1));
+        let right_end = (right_start + max_visible).min(right.len());
+        let visible_right = right[right_start..right_end].to_vec();
+
+        frame.render_widget(
+            Paragraph::new(visible_left).alignment(Alignment::Left),
+            columns[0],
+        );
+        frame.render_widget(
+            Paragraph::new(visible_right).alignment(Alignment::Left),
+            columns[2],
+        );
     } else {
-        stats_lines.push(Line::from(vec![Span::styled(
-            "Loading...",
-            Style::default().fg(Color::Gray),
-        )]));
+        frame.render_widget(
+            Paragraph::new(Line::from(vec![Span::styled(
+                "Loading...",
+                Style::default().fg(Color::Gray),
+            )]))
+            .alignment(Alignment::Left),
+            inner_area,
+        );
     }
-
-    // Apply scroll offset to stats lines
-    let scroll_offset = app.lichess_state.lichess_stats_scroll as usize;
-    let max_visible_lines = area.height.saturating_sub(2) as usize; // Account for borders
-    let start_idx = scroll_offset.min(stats_lines.len().saturating_sub(1));
-    let end_idx = (start_idx + max_visible_lines).min(stats_lines.len());
-
-    let visible_stats_lines: Vec<Line> = if start_idx < stats_lines.len() {
-        stats_lines[start_idx..end_idx].to_vec()
-    } else {
-        vec![Line::from("")]
-    };
-
-    let stats = Paragraph::new(visible_stats_lines)
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_type(BorderType::Rounded)
-                .title("User Stats (Scroll with Page Up/Down)"),
-        )
-        .alignment(Alignment::Left);
-    frame.render_widget(stats, area);
 }
 
 fn render_chart_panel(frame: &mut Frame, app: &App, area: Rect) {
