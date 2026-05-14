@@ -51,78 +51,23 @@ Right @0.3s
 Space @0.3s
 Sleep 0.4s
 
-Down @0.3s
-Down @0.3s
-Space @0.3s
-Space @0.3s
 Sleep 0.8s
 
-# Bot plays 1...e5
-# 2. Nf3 (g1->f3)
-Right @0.3s
-Right @0.3s
-Down @0.3s
-Space @0.3s
-Space @0.3s
+# 1. e4
+Type "m" Sleep 200ms Type "e4" Enter
+Sleep 1.2s
 
-# Bot plays 2...Nc6
-# 3. Bc4 (f1->c4)
+# 2. Nf3
+Type "m" Sleep 200ms Type "Nf3" Enter
+Sleep 1.2s
 
-Left @0.3s
-Space @0.3s
-Right @0.3s
-Right @0.3s
-Space @0.3s
-Sleep 0.8s
+# 3. Bc4
+Type "m" Sleep 200ms Type "Bc4" Enter
+Sleep 1.2s
 
-
-Left @0.3s
-Space @0.3s
-Space @0.3s
-Sleep 0.8s
-
-Up @0.3s
-Space @0.3s
-Space @0.3s
-Sleep 0.8s
-
-Up @0.3s
-Left @0.3s
-Space @0.3s
-Space @0.3s
-Sleep 0.8s
-
-Right @0.3s
-Space @0.3s
-Space @0.3s
-Sleep 0.8s
-
-Left @0.3s
-Space @0.3s
-Space @0.3s
-Sleep 0.8s
-
-Left @0.3s
-Space @0.3s
-Space @0.3s
-Sleep 0.8s
-
-Left @0.3s
-Space @0.3s
-Space @0.3s
-Sleep 0.8s
-
-Up @0.3
-Left @0.3s
-Space @0.3s
-Space @0.3s
-Sleep 0.8s
-
-Up @0.3s
-Right @0.3s
-Space @0.3s
-Space @0.3s
-Sleep 0.8s
+# 4. Nc3
+Type "m" Sleep 200ms Type "Nc3" Enter
+Sleep 1.2s
 
 Sleep 0.8s
 Type "h"

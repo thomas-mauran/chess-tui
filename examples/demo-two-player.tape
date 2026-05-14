@@ -35,54 +35,23 @@ Sleep 0.7s
 Space @0.5s
 Sleep 0.7s
 
-# Now playing the game - make some moves
+# Now playing the game - make a couple of moves
+# White: e2 -> e4
 Down @0.5s
 Down @0.5s
-Space @0.5s
+Enter @0.5s
 Sleep 0.7s
-Space @0.5s
+Up @0.5s
+Up @0.5s
+Enter @0.5s
 
 Sleep 0.7s
-Left @0.5s
-Space @0.5s
-Sleep 0.7s
-Space @0.5s
-
+# Black (board flipped): d7 -> d5 (forward is Down after flip)
 Down @0.5s
-Space @0.5s
+Down @0.5s
+Enter @0.5s
 Sleep 0.7s
-Space @0.5s
-Sleep 0.7s
-
-Right @0.5s
-Right @0.5s
-Right @0.5s
-Space @0.5s
-Sleep 0.7s
-Space @0.5s
-Sleep 0.7s
-
-Left @0.5s
-Space @0.5s
-Sleep 0.7s
-Right @0.5s
-Right @0.5s
-Space @0.5s
-Sleep 0.7s
-
-Up @0.5s
-Right @0.5s
-Right @0.5s
-Space @0.5s
-Sleep 0.7s
-Space @0.5s
-Sleep 0.7s
-
-
 Up @0.5s
 Up @0.5s
-Up @0.5s
-Space @0.5s
-Sleep 0.7s
-Space @0.5s
+Enter @0.5s
 Sleep 0.7s

@@ -52,54 +52,26 @@ Right @0.3s
 Space @0.3s
 Sleep 0.4s
 
-Down @0.3s
-Down @0.3s
-Space @0.3s
-Space @0.3s
 Sleep 0.8s
 
-Right @0.3s
-Right @0.3s
-Down @0.3s
-Space @0.3s
-Space @0.3s
+# Bot (White) moves first
+Sleep 1.2s
 
-Up @0.3s
-Space @0.3s
-Right @0.3s
-Space @0.3s
+# 1...e5
+Type "m" Sleep 200ms Type "e5" Enter
+Sleep 1.2s
 
-Left @0.3s
-Left @0.3s
-Left @0.3s
-Down @0.3s
-Space @0.3s
-Space @0.3s
-Sleep 0.6s
+# 2...Nc6
+Type "m" Sleep 200ms Type "Nc6" Enter
+Sleep 1.2s
 
-Up @0.3s
-Right @0.3s
-Space @0.3s
-Space @0.3s
+# 3...Nf6
+Type "m" Sleep 200ms Type "Nf6" Enter
+Sleep 1.2s
 
-Up @0.3s
-Left @0.3s
-Space @0.3s
-Space @0.3s
-
-Up @0.3s
-Left @0.3s
-Space @0.3s
-Space @0.3s
-
-Up @0.3s
-Left @0.3s
-Space @0.3s
-Space @0.3s
-
-Left @0.3s
-Space @0.3s
-Space @0.3s
+# 4...Bc5
+Type "m" Sleep 200ms Type "Bc5" Enter
+Sleep 1.2s
 
 Sleep 0.8s
 Type "h"

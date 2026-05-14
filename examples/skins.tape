@@ -33,52 +33,52 @@ Sleep 1s
 # 1. e4 (Italian Game opening)
 Down @0.5s
 Down @0.5s
-Space @0.5s
+Enter @0.5s
 Sleep 0.7s
 Up @0.5s
 Up @0.5s
-Space @0.5s
+Enter @0.5s
 Sleep 1s
 
 # Cycle through skins during gameplay using 's' key
 Type "s"
-Sleep 0.8s
+Sleep 1.1s
 
 Type "s"
-Sleep 0.8s
+Sleep 1.1s
 
 Type "s"
-Sleep 0.8s
+Sleep 1.1s
 
 Type "s"
-Sleep 0.8s
+Sleep 1.1s
 
 Type "s"
-Sleep 0.8s
+Sleep 1.1s
 
 Type "s"
-Sleep 0.8s
+Sleep 1.1s
 
 Type "s"
-Sleep 0.8s
+Sleep 1.1s
 
 Type "s"
-Sleep 0.8s
+Sleep 1.1s
 
 Type "s"
-Sleep 0.8s
+Sleep 1.1s
 
 Type "s"
-Sleep 0.8s
+Sleep 1.1s
 
 Type "s"
-Sleep 0.8s
+Sleep 1.1s
 
 Type "s"
-Sleep 0.8s
+Sleep 1.1s
 
 Type "s"
-Sleep 0.8s
+Sleep 1.1s
 
 # Show final skin
 Sleep 1.5s
