@@ -18,6 +18,7 @@ pub enum MainMenuItems {
 
 impl From<u8> for MainMenuItems {
     fn from(value: u8) -> Self {
+        #[cfg(feature = "sound")]
         match value {
             0 => MainMenuItems::GameModeMenu,
             1 => MainMenuItems::LichessMenu,
@@ -25,6 +26,15 @@ impl From<u8> for MainMenuItems {
             3 => MainMenuItems::SoundSelector,
             4 => MainMenuItems::Help,
             5 => MainMenuItems::Credit,
+            _ => MainMenuItems::GameModeMenu,
+        }
+        #[cfg(not(feature = "sound"))]
+        match value {
+            0 => MainMenuItems::GameModeMenu,
+            1 => MainMenuItems::LichessMenu,
+            2 => MainMenuItems::SkinSelector,
+            3 => MainMenuItems::Help,
+            4 => MainMenuItems::Credit,
             _ => MainMenuItems::GameModeMenu,
         }
     }
@@ -89,7 +99,9 @@ impl App {
             #[cfg(feature = "sound")]
             MainMenuItems::Credit => self.ui_state.current_page = Pages::Credit,
             #[cfg(not(feature = "sound"))]
-            MainMenuItems::Help => self.toggle_help_popup(),
+            MainMenuItems::SoundSelector => {}
+            #[cfg(not(feature = "sound"))]
+            MainMenuItems::Help => self.ui_state.toggle_help_popup(),
             #[cfg(not(feature = "sound"))]
             MainMenuItems::Credit => self.ui_state.current_page = Pages::Credit,
         }
