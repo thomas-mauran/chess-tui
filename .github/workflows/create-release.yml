@@ -35,8 +35,8 @@ jobs:
             --field tag_name=${{ github.event.inputs.version }} \
             --jq '.body')
 
-          CONTRIBUTORS=$(echo "$GENERATED" | awk '/^## New Contributors/{found=1} found{print}' | grep -v "^\*\*Full Changelog")
-          FULL_CHANGELOG=$(echo "$GENERATED" | grep "^\*\*Full Changelog")
+          CONTRIBUTORS=$(echo "$GENERATED" | awk '/^## New Contributors/{found=1} found{print}' | grep -v "^\*\*Full Changelog" || true)
+          FULL_CHANGELOG=$(echo "$GENERATED" | grep "^\*\*Full Changelog" || true)
 
           {
             echo '<p align="center">'
