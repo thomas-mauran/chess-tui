@@ -1,12 +1,12 @@
 //! Sound effect synthesis and playback.
 
-use std::{
-    num::NonZero,
-    sync::atomic::{AtomicBool, Ordering},
-};
+#[cfg(feature = "sound")]
+use std::num::NonZero;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 static SOUND_ENABLED: AtomicBool = AtomicBool::new(true);
 static AUDIO_AVAILABLE: AtomicBool = AtomicBool::new(true);
+#[cfg(feature = "sound")]
 const SAMPLE_RATE: NonZero<u32> = match NonZero::new(44100) {
     Some(v) => v,
     None => panic!("sample rate cannot be zero"),
