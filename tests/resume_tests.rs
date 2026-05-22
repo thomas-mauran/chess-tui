@@ -652,6 +652,87 @@ fn tick_throttles_clock_only_writes() -> AppResult<()> {
 }
 
 #[test]
+fn player_checkmate_via_check_game_end_status_clears_save() -> AppResult<()> {
+    // The main loop calls `check_game_end_status` after every event. Moves
+    // that produce checkmate land there (not `check_and_show_game_end`), so
+    // it must also drop the save.
+    let _guard = ResumeDirGuard::new();
+
+    // Fool's mate position: White's king is checkmated, Black just played.
+    let mate_fen = "rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3";
+    let saved = SavedGame {
+        mode: ResumeMode::Local,
+        fen: mate_fen.into(),
+        is_flipped: false,
+        taken_pieces: vec![],
+        bot: None,
+        clock: None,
+        moves_uci: vec![],
+    };
+    save(ResumeMode::Local, &saved);
+
+    let mut app = App::default();
+    assert!(app.resume_from_saved(ResumeMode::Local));
+    // Save came back when the user landed on the resumed position. The act
+    // of recognising checkmate is what should wipe it.
+    assert!(has_save(ResumeMode::Local));
+
+    app.check_game_end_status();
+
+    assert_eq!(app.game.logic.game_state, GameState::Checkmate);
+    assert!(
+        !has_save(ResumeMode::Local),
+        "check_game_end_status must clear the save on a fresh terminal state",
+    );
+    Ok(())
+}
+
+#[test]
+fn restart_clears_save_so_old_state_does_not_shadow_new_game() -> AppResult<()> {
+    let _guard = ResumeDirGuard::new();
+
+    let mut app = App::default();
+    start_local_game(&mut app)?;
+    play_e2e4(&mut app)?;
+    app.autosave_resume_state();
+    assert!(has_save(ResumeMode::Local), "Sanity: save written");
+
+    app.restart();
+
+    assert!(
+        !has_save(ResumeMode::Local),
+        "In-game restart must clear the previous save",
+    );
+    Ok(())
+}
+
+#[test]
+fn clock_runout_clears_save_via_tick() -> AppResult<()> {
+    // `tick()` is the entry point for time-loss detection. When white runs
+    // out of time it should mark the game as checkmate (for the winner) and
+    // — crucially — drop the save.
+    let _guard = ResumeDirGuard::new();
+
+    let mut app = App::default();
+    start_local_game(&mut app)?;
+    // A 0-second clock reports time-up immediately, which the tick handler
+    // uses to declare the other side the winner.
+    app.game.logic.clock = Some(chess_tui::game_logic::clock::Clock::new(0));
+    play_e2e4(&mut app)?;
+    app.autosave_resume_state();
+    assert!(has_save(ResumeMode::Local));
+
+    app.tick();
+
+    assert_eq!(app.game.logic.game_state, GameState::Checkmate);
+    assert!(
+        !has_save(ResumeMode::Local),
+        "Clock-runout path must also clear the resume save",
+    );
+    Ok(())
+}
+
+#[test]
 fn current_resume_mode_identifies_local_game() -> AppResult<()> {
     let _guard = ResumeDirGuard::new();
 

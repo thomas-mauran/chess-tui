@@ -34,6 +34,10 @@ impl App {
             && (new_state == GameState::Checkmate || new_state == GameState::Draw)
         {
             self.show_end_screen();
+            // Player-induced terminal states reach this branch (bot-induced
+            // ones go through `check_and_show_game_end`). Either way the
+            // game is over, so the resume save must go.
+            self.clear_resume_state_for_current_mode();
         }
     }
 
@@ -41,6 +45,11 @@ impl App {
     /// Re-randomizes color if random color mode is active, re-initializes the clock, and
     /// triggers the bot's first move if it starts as White.
     pub fn restart(&mut self) {
+        // Starting a fresh game wipes the previous one from disk — otherwise
+        // an old save would shadow the new game until the first move's
+        // autosave overwrote it.
+        self.clear_resume_state_for_current_mode();
+
         // Clear puzzle state when restarting (for normal games)
         self.lichess_state.puzzle_game = None;
         self.ui_state.end_screen_dismissed = false;
