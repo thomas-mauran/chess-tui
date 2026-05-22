@@ -270,19 +270,19 @@ fn handle_resign_confirmation(app: &mut App, key_event: KeyEvent) {
 fn handle_move_input_selection(app: &mut App, key_event: KeyEvent) {
     match key_event.code {
         KeyCode::Enter => {
-            app.game.ui.prompt.submit_message();
-            let mut player_move = app.game.ui.prompt.message.clone().trim().to_string();
-            player_move = normalize_lowercase_to_san(&player_move);
+            let raw = app.game.ui.prompt.input.trim().to_string();
 
-            if player_move.is_empty() {
+            if raw.is_empty() {
                 app.ui_state.close_popup();
                 return;
             }
 
+            let player_move = normalize_lowercase_to_san(&raw);
+
             let san = match San::from_ascii(player_move.as_bytes()) {
                 Ok(san) => san,
                 Err(_) => {
-                    app.ui_state.close_popup();
+                    app.game.ui.prompt.error = Some("Invalid notation".into());
                     return;
                 }
             };
@@ -292,7 +292,7 @@ fn handle_move_input_selection(app: &mut App, key_event: KeyEvent) {
             let chess_move = match san.to_move(&position) {
                 Ok(chess_move) => chess_move,
                 Err(_) => {
-                    app.ui_state.close_popup();
+                    app.game.ui.prompt.error = Some("Illegal move".into());
                     return;
                 }
             };
@@ -300,11 +300,12 @@ fn handle_move_input_selection(app: &mut App, key_event: KeyEvent) {
             let from = match chess_move.from() {
                 Some(from) => from,
                 None => {
-                    app.ui_state.close_popup();
+                    app.game.ui.prompt.error = Some("Illegal move".into());
                     return;
                 }
             };
 
+            app.game.ui.prompt.submit_message();
             app.game
                 .apply_player_move(from, chess_move.to(), chess_move.promotion());
             app.ui_state.close_popup();
