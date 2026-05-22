@@ -132,6 +132,11 @@ impl App {
     /// Preserves display mode preference while cleaning up all game state,
     /// bot state, and multiplayer connections.
     pub fn reset_home(&mut self) {
+        // Snapshot the clock before tearing down the game — otherwise a
+        // resumed game would start with the time from the previous move
+        // rather than the time at the moment the user pressed `b`.
+        self.flush_resume_state();
+
         // Preserve display mode and skin preference
         let display_mode = self.game.ui.display_mode;
         let current_skin = self.game.ui.skin.clone();

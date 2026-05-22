@@ -122,6 +122,8 @@ impl App {
             {
                 self.show_end_screen();
             }
+            // Drop any resume save: the game is over, there is nothing left to continue.
+            self.clear_resume_state_for_current_mode();
         } else {
             // Game is no longer ended, reset the dismissed flag
             self.ui_state.end_screen_dismissed = false;

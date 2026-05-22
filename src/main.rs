@@ -342,6 +342,11 @@ fn main() -> AppResult<()> {
         // Check if game ended
         app.check_game_end_status();
 
+        // Persist local/bot games each loop iteration. A move always
+        // triggers a write; clock-only changes are throttled to ~1 Hz inside
+        // so we don't hit the disk on every animation frame.
+        app.tick_resume_state();
+
         // Check if hosting player received game start signal from background thread
         if let Some(ref game_start_rx) = app.multiplayer_state.game_start_rx
             && let Ok(()) = game_start_rx.try_recv()
