@@ -153,7 +153,7 @@ mod local_game_tests {
     }
 
     #[test]
-    fn m_then_e4_enter_makes_move_and_closes_popup() -> AppResult<()> {
+    fn m_then_e4_enter_makes_move_and_keeps_popup_open() -> AppResult<()> {
         let mut app = setup_local_game_start()?;
 
         send_keys(
@@ -167,8 +167,13 @@ mod local_game_tests {
         )?;
 
         assert_eq!(
-            app.ui_state.current_popup, None,
-            "Popup should close after a successful move"
+            app.ui_state.current_popup,
+            Some(Popups::MoveInputSelection),
+            "Popup should stay open after a successful move"
+        );
+        assert_eq!(
+            app.game.ui.prompt.input, "",
+            "Input should be cleared after a successful move"
         );
         assert_eq!(
             app.game.logic.player_turn,

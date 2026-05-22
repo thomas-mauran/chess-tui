@@ -305,10 +305,9 @@ fn handle_move_input_selection(app: &mut App, key_event: KeyEvent) {
                 }
             };
 
-            app.game.ui.prompt.submit_message();
             app.game
                 .apply_player_move(from, chess_move.to(), chess_move.promotion());
-            app.ui_state.close_popup();
+            app.game.ui.prompt.reset();
         }
         KeyCode::Char(to_insert) => app.game.ui.prompt.enter_char(to_insert),
         KeyCode::Backspace => app.game.ui.prompt.delete_char(),
