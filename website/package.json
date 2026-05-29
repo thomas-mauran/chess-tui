@@ -28,7 +28,7 @@
     "@docusaurus/module-type-aliases": "3.10.1",
     "@docusaurus/tsconfig": "3.10.1",
     "@docusaurus/types": "3.10.1",
-    "puppeteer": "^24.43.1",
+    "puppeteer": "^25.1.0",
     "typescript": "~6.0.3"
   },
   "resolutions": {
