@@ -28,7 +28,7 @@ dirs = "6.0.0"
 ratatui = { version = "0.30.0", features = ["serde"] }
 ruci = { version = "2.1.0", features = ["engine-sync"] }
 toml = "1.1.2"
-log = "0.4.25"
+log = "0.4.30"
 simplelog = "0.12.2"
 chrono = "0.4.39"
 shakmaty = "0.27.3"
