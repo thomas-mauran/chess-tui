@@ -2,11 +2,17 @@
 mod local_game_tests {
     use chess_tui::{
         app::{App, AppResult},
+        constants::Popups,
         game_logic::coord::Coord,
         handlers::handler::handle_key_events,
+        ui::popup::help::render_help_popup,
     };
-    use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
-    use shakmaty::{Color, Square};
+    use ratatui::{
+        Terminal,
+        backend::TestBackend,
+        crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
+    };
+    use shakmaty::{Color, Role, Square};
 
     fn key_press(code: KeyCode) -> KeyEvent {
         KeyEvent {
@@ -113,6 +119,205 @@ mod local_game_tests {
             app.game.logic.player_turn,
             Color::White,
             "It should still be White's turn"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn m_opens_move_input_popup_and_esc_closes() -> AppResult<()> {
+        let mut app = setup_local_game_start()?;
+
+        send_keys(&mut app, &[KeyCode::Char('m')])?;
+        assert_eq!(
+            app.ui_state.current_popup,
+            Some(Popups::MoveInputSelection),
+            "'m' should open the move-input popup"
+        );
+
+        send_keys(&mut app, &[KeyCode::Esc])?;
+        assert_eq!(
+            app.ui_state.current_popup, None,
+            "Esc should close the move-input popup"
+        );
+
+        // Cursor navigation must still work after closing the popup.
+        let before = app.game.ui.cursor_coordinates;
+        send_keys(&mut app, &[KeyCode::Down])?;
+        assert_ne!(
+            app.game.ui.cursor_coordinates, before,
+            "Cursor should move normally after the popup is dismissed"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn m_then_e4_enter_makes_move_and_keeps_popup_open() -> AppResult<()> {
+        let mut app = setup_local_game_start()?;
+
+        send_keys(
+            &mut app,
+            &[
+                KeyCode::Char('m'),
+                KeyCode::Char('e'),
+                KeyCode::Char('4'),
+                KeyCode::Enter,
+            ],
+        )?;
+
+        assert_eq!(
+            app.ui_state.current_popup,
+            Some(Popups::MoveInputSelection),
+            "Popup should stay open after a successful move"
+        );
+        assert_eq!(
+            app.game.ui.prompt.input, "",
+            "Input should be cleared after a successful move"
+        );
+        assert_eq!(
+            app.game.logic.player_turn,
+            Color::Black,
+            "Turn should swap to Black"
+        );
+        assert_eq!(
+            app.game.logic.game_board.get_role_at_square(&Square::E4),
+            Some(Role::Pawn),
+            "A pawn should now sit on e4"
+        );
+        assert!(
+            app.game.ui.prompt.error.is_none(),
+            "No error should be set on success"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn invalid_san_keeps_popup_open_and_sets_error() -> AppResult<()> {
+        let mut app = setup_local_game_start()?;
+
+        send_keys(
+            &mut app,
+            &[
+                KeyCode::Char('m'),
+                KeyCode::Char('z'),
+                KeyCode::Char('z'),
+                KeyCode::Char('z'),
+                KeyCode::Enter,
+            ],
+        )?;
+
+        assert_eq!(
+            app.ui_state.current_popup,
+            Some(Popups::MoveInputSelection),
+            "Invalid SAN should not close the popup"
+        );
+        assert!(
+            app.game.ui.prompt.error.is_some(),
+            "Invalid SAN should set an error"
+        );
+        assert_eq!(
+            app.game.ui.prompt.input, "zzz",
+            "Input must be preserved so the user can edit it"
+        );
+        assert_eq!(
+            app.game.logic.game_board.move_history.len(),
+            0,
+            "No move should be applied"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn illegal_san_keeps_popup_open_and_sets_error() -> AppResult<()> {
+        let mut app = setup_local_game_start()?;
+
+        // "e5" parses as SAN but no white pawn can reach e5 from the starting position.
+        send_keys(
+            &mut app,
+            &[
+                KeyCode::Char('m'),
+                KeyCode::Char('e'),
+                KeyCode::Char('5'),
+                KeyCode::Enter,
+            ],
+        )?;
+
+        assert_eq!(
+            app.ui_state.current_popup,
+            Some(Popups::MoveInputSelection),
+            "Illegal SAN should not close the popup"
+        );
+        assert!(
+            app.game.ui.prompt.error.is_some(),
+            "Illegal SAN should set an error"
+        );
+        assert_eq!(
+            app.game.logic.player_turn,
+            Color::White,
+            "Turn should not change on illegal input"
+        );
+        assert!(
+            app.game
+                .logic
+                .game_board
+                .get_role_at_square(&Square::E5)
+                .is_none(),
+            "e5 must remain empty"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn typing_after_error_clears_it() -> AppResult<()> {
+        let mut app = setup_local_game_start()?;
+
+        send_keys(
+            &mut app,
+            &[
+                KeyCode::Char('m'),
+                KeyCode::Char('z'),
+                KeyCode::Char('z'),
+                KeyCode::Char('z'),
+                KeyCode::Enter,
+            ],
+        )?;
+        assert!(app.game.ui.prompt.error.is_some());
+
+        send_keys(&mut app, &[KeyCode::Backspace])?;
+        assert!(
+            app.game.ui.prompt.error.is_none(),
+            "Backspace should clear the stale error"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn help_popup_lists_m_shortcut() -> AppResult<()> {
+        let app = setup_local_game_start()?;
+
+        // Help popup is laid out as 40% width, 65% height of the frame, with
+        // wrapping. Give it ample room so the 'm' line is in the buffer.
+        let backend = TestBackend::new(120, 80);
+        let mut terminal = Terminal::new(backend)?;
+        terminal.draw(|frame| render_help_popup(frame, &app))?;
+
+        let buffer = terminal.backend().buffer().clone();
+        let mut rendered = String::new();
+        for y in 0..buffer.area.height {
+            for x in 0..buffer.area.width {
+                rendered.push_str(buffer[(x, y)].symbol());
+            }
+            rendered.push('\n');
+        }
+
+        assert!(
+            rendered.contains("Type a move in chess notation"),
+            "Help popup should mention the 'm' shortcut.\nRendered:\n{rendered}"
         );
 
         Ok(())

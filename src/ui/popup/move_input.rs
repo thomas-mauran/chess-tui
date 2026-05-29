@@ -5,7 +5,7 @@ use crate::{constants::WHITE, ui::components::right_rect::right_rect};
 use ratatui::{
     Frame,
     layout::{Alignment, Position},
-    style::Style,
+    style::{Color, Style},
     text::Line,
     widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Wrap},
 };
@@ -21,17 +21,23 @@ pub fn render_move_input_popup(frame: &mut Frame, prompt: &Prompt) {
     let area = right_rect(23, 40, frame.area());
 
     let current_input = prompt.input.as_str();
-    let text = vec![
+    let mut text = vec![
         Line::from("Enter a move in chess notation").alignment(Alignment::Center),
         Line::from(""),
         Line::from(current_input),
         Line::from(""),
+    ];
+    if let Some(err) = prompt.error.as_deref() {
+        text.push(Line::from(err).style(Style::default().fg(Color::Red)));
+        text.push(Line::from(""));
+    }
+    text.extend([
         Line::from(
             "Visit this website for more information: https://www.chess.com/terms/chess-notation",
         ),
         Line::from(""),
         Line::from("Press `Esc` to close the popup.").alignment(Alignment::Center),
-    ];
+    ]);
 
     let paragraph = Paragraph::new(text)
         .block(block.clone())

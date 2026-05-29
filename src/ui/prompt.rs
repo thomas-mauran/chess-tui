@@ -8,6 +8,8 @@ pub struct Prompt {
     pub character_index: usize,
     /// The last submitted value, set by [`Prompt::submit_message`].
     pub message: String,
+    /// Inline validation error to display alongside the input.
+    pub error: Option<String>,
 }
 
 impl Prompt {
@@ -17,6 +19,7 @@ impl Prompt {
             input: "".to_string(),
             character_index: 0,
             message: String::new(),
+            error: None,
         }
     }
 
@@ -42,10 +45,11 @@ impl Prompt {
         self.character_index = 0;
     }
 
-    /// Clears both `input` and `message` and resets the cursor.
+    /// Clears `input`, `message`, and any pending `error`, and resets the cursor.
     pub fn reset(&mut self) {
         self.input.clear();
         self.message.clear();
+        self.error = None;
         self.reset_cursor();
     }
 
@@ -63,6 +67,7 @@ impl Prompt {
         if index < 200 {
             self.input.insert(index, new_char);
             self.move_cursor_right();
+            self.error = None;
         }
     }
 
@@ -93,6 +98,52 @@ impl Prompt {
 
             self.input = before_char_to_delete.chain(after_char_to_delete).collect();
             self.move_cursor_left();
+            self.error = None;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn error_default_is_none() {
+        assert!(Prompt::default().error.is_none());
+        assert!(Prompt::new().error.is_none());
+    }
+
+    #[test]
+    fn enter_char_clears_error() {
+        let mut p = Prompt::new();
+        p.error = Some("boom".into());
+        p.enter_char('a');
+        assert!(p.error.is_none());
+    }
+
+    #[test]
+    fn delete_char_clears_error_when_deleting() {
+        let mut p = Prompt::new();
+        p.enter_char('a');
+        p.error = Some("boom".into());
+        p.delete_char();
+        assert!(p.error.is_none());
+    }
+
+    #[test]
+    fn delete_char_at_start_does_not_clear_error() {
+        let mut p = Prompt::new();
+        p.error = Some("boom".into());
+        // Cursor at 0 with empty input: delete_char is a no-op, error must remain.
+        p.delete_char();
+        assert_eq!(p.error.as_deref(), Some("boom"));
+    }
+
+    #[test]
+    fn reset_clears_error() {
+        let mut p = Prompt::new();
+        p.error = Some("boom".into());
+        p.reset();
+        assert!(p.error.is_none());
     }
 }
