@@ -31,6 +31,11 @@ struct ResumeDirGuard {
 impl ResumeDirGuard {
     fn new() -> Self {
         let lock = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        // Driving the app through menus and moves triggers sound effects, each
+        // of which spawns a rodio audio thread. On a headless CI runner with no
+        // audio device (notably Windows) opening the default sink can crash the
+        // process with an access violation, so silence sound for every test.
+        chess_tui::sound::set_sound_enabled(false);
         let previous = std::env::var("CHESS_TUI_RESUME_DIR").ok();
         let tempdir = tempfile::tempdir().expect("tempdir");
         // SAFETY: env vars are global; the lock above serialises access.
