@@ -585,15 +585,25 @@ fn quit_flushes_clock_state() -> AppResult<()> {
     app.game.logic.clock = Some(chess_tui::game_logic::clock::Clock::new(600));
     play_e2e4(&mut app)?;
     app.autosave_resume_state();
-    let baseline = std::fs::metadata(resolved_save_path(ResumeMode::Local))?.modified()?;
+    // Assert on the persisted clock value rather than the file mtime: on
+    // Windows the filesystem last-write timestamp resolution is coarse, so two
+    // writes 50ms apart can share a timestamp and a `mtime > baseline` check
+    // flakes. The ticked-down clock is what we actually care about anyway.
+    let before: SavedGame = serde_json::from_str(&std::fs::read_to_string(
+        resolved_save_path(ResumeMode::Local),
+    )?)?;
+    let baseline_black_ms = before.clock.as_ref().expect("clock saved").black_ms;
 
     std::thread::sleep(std::time::Duration::from_millis(50));
     app.quit();
 
-    let after = std::fs::metadata(resolved_save_path(ResumeMode::Local))?.modified()?;
+    let after: SavedGame = serde_json::from_str(&std::fs::read_to_string(
+        resolved_save_path(ResumeMode::Local),
+    )?)?;
+    let later_black_ms = after.clock.as_ref().expect("clock saved").black_ms;
     assert!(
-        after > baseline,
-        "quit() must rewrite the save so the clock reflects real elapsed time",
+        later_black_ms + 10 <= baseline_black_ms,
+        "quit() must rewrite the save so the clock reflects real elapsed time: was {baseline_black_ms}, now {later_black_ms}",
     );
     assert!(!app.running, "quit() should still toggle the running flag");
     Ok(())
@@ -609,15 +619,23 @@ fn reset_home_flushes_then_preserves_save() -> AppResult<()> {
     app.game.logic.clock = Some(chess_tui::game_logic::clock::Clock::new(600));
     play_e2e4(&mut app)?;
     app.autosave_resume_state();
-    let baseline = std::fs::metadata(resolved_save_path(ResumeMode::Local))?.modified()?;
+    // Content-based assertion, not file mtime — see `quit_flushes_clock_state`
+    // for why mtime comparisons flake on Windows.
+    let before: SavedGame = serde_json::from_str(&std::fs::read_to_string(
+        resolved_save_path(ResumeMode::Local),
+    )?)?;
+    let baseline_black_ms = before.clock.as_ref().expect("clock saved").black_ms;
 
     std::thread::sleep(std::time::Duration::from_millis(50));
     app.reset_home();
 
-    let after = std::fs::metadata(resolved_save_path(ResumeMode::Local))?.modified()?;
+    let after: SavedGame = serde_json::from_str(&std::fs::read_to_string(
+        resolved_save_path(ResumeMode::Local),
+    )?)?;
+    let later_black_ms = after.clock.as_ref().expect("clock saved").black_ms;
     assert!(
-        after > baseline,
-        "reset_home should flush before tearing down state",
+        later_black_ms + 10 <= baseline_black_ms,
+        "reset_home should flush the ticked clock before tearing down state: was {baseline_black_ms}, now {later_black_ms}",
     );
     assert!(
         has_save(ResumeMode::Local),
