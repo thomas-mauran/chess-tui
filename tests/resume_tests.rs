@@ -589,17 +589,17 @@ fn quit_flushes_clock_state() -> AppResult<()> {
     // Windows the filesystem last-write timestamp resolution is coarse, so two
     // writes 50ms apart can share a timestamp and a `mtime > baseline` check
     // flakes. The ticked-down clock is what we actually care about anyway.
-    let before: SavedGame = serde_json::from_str(&std::fs::read_to_string(
-        resolved_save_path(ResumeMode::Local),
-    )?)?;
+    let before: SavedGame = serde_json::from_str(&std::fs::read_to_string(resolved_save_path(
+        ResumeMode::Local,
+    ))?)?;
     let baseline_black_ms = before.clock.as_ref().expect("clock saved").black_ms;
 
     std::thread::sleep(std::time::Duration::from_millis(50));
     app.quit();
 
-    let after: SavedGame = serde_json::from_str(&std::fs::read_to_string(
-        resolved_save_path(ResumeMode::Local),
-    )?)?;
+    let after: SavedGame = serde_json::from_str(&std::fs::read_to_string(resolved_save_path(
+        ResumeMode::Local,
+    ))?)?;
     let later_black_ms = after.clock.as_ref().expect("clock saved").black_ms;
     assert!(
         later_black_ms + 10 <= baseline_black_ms,
@@ -621,17 +621,17 @@ fn reset_home_flushes_then_preserves_save() -> AppResult<()> {
     app.autosave_resume_state();
     // Content-based assertion, not file mtime — see `quit_flushes_clock_state`
     // for why mtime comparisons flake on Windows.
-    let before: SavedGame = serde_json::from_str(&std::fs::read_to_string(
-        resolved_save_path(ResumeMode::Local),
-    )?)?;
+    let before: SavedGame = serde_json::from_str(&std::fs::read_to_string(resolved_save_path(
+        ResumeMode::Local,
+    ))?)?;
     let baseline_black_ms = before.clock.as_ref().expect("clock saved").black_ms;
 
     std::thread::sleep(std::time::Duration::from_millis(50));
     app.reset_home();
 
-    let after: SavedGame = serde_json::from_str(&std::fs::read_to_string(
-        resolved_save_path(ResumeMode::Local),
-    )?)?;
+    let after: SavedGame = serde_json::from_str(&std::fs::read_to_string(resolved_save_path(
+        ResumeMode::Local,
+    ))?)?;
     let later_black_ms = after.clock.as_ref().expect("clock saved").black_ms;
     assert!(
         later_black_ms + 10 <= baseline_black_ms,
