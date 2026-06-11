@@ -21,8 +21,8 @@
     "@mdx-js/react": "^3.0.0",
     "clsx": "^2.0.0",
     "prism-react-renderer": "^2.3.0",
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+    "react": "19.2.6",
+    "react-dom": "19.2.6"
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "3.10.1",
@@ -33,7 +33,9 @@
   },
   "resolutions": {
     "dompurify": "3.1.6",
-    "webpack": "5.94.0"
+    "webpack": "5.94.0",
+    "react": "19.2.6",
+    "react-dom": "19.2.6"
   },
   "browserslist": {
     "production": [
