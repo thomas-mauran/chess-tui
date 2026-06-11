@@ -21,14 +21,14 @@
     "@mdx-js/react": "^3.0.0",
     "clsx": "^2.0.0",
     "prism-react-renderer": "^2.3.0",
-    "react": "19.2.6",
-    "react-dom": "19.2.6"
+    "react": "^19.2.7",
+    "react-dom": "^19.2.6"
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "3.10.1",
     "@docusaurus/tsconfig": "3.10.1",
     "@docusaurus/types": "3.10.1",
-    "puppeteer": "^24.43.1",
+    "puppeteer": "^25.1.0",
     "typescript": "~6.0.3"
   },
   "resolutions": {
