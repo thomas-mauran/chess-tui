@@ -43,8 +43,11 @@ impl App {
         log::info!("Attempting to connect to: {}", addr_with_port);
 
         // ping the server to see if it's up
-        if let Err(e) = UdpSocket::bind(addr_with_port.clone()) {
-            log::error!("Server is unreachable at {}: {}", addr_with_port, e);
+        let reachable = UdpSocket::bind("0.0.0.0:0")
+            .and_then(|s| s.connect(addr_with_port.clone()))
+            .is_ok();
+        if !reachable {
+            log::error!("Server is unreachable at {}", addr_with_port);
             self.multiplayer_state.host_ip = None;
             return;
         }
