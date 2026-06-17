@@ -4,6 +4,7 @@ use crate::{
     app::App,
     constants::{BOT_DIFFICULTY_COUNT, Pages, Popups},
     handlers::handler::fallback_key_handler,
+    state::resume::ResumeMode,
 };
 use ratatui::crossterm::event::{KeyCode, KeyEvent};
 
@@ -108,7 +109,26 @@ fn handle_form_events(app: &mut App, key_event: KeyEvent, game_mode: AvailableGa
         KeyCode::Left | KeyCode::Char('h') => handle_form_left(app, game_mode),
         KeyCode::Right | KeyCode::Char('l') => handle_form_right(app, game_mode),
         KeyCode::Char(' ') | KeyCode::Enter => handle_form_enter(app, game_mode),
+        KeyCode::Char('r' | 'R') => {
+            if let Some(mode) = resume_mode_for(game_mode)
+                && app.has_resume_save(mode)
+            {
+                app.game_mode_state.form_active = false;
+                app.game_mode_state.form_cursor = 0;
+                app.resume_from_saved(mode);
+            }
+        }
         _ => fallback_key_handler(app, key_event),
+    }
+}
+
+/// Maps the menu's mode enum to the persistence enum. Only the two resumable
+/// modes return `Some`.
+pub fn resume_mode_for(mode: AvailableGameMode) -> Option<ResumeMode> {
+    match mode {
+        AvailableGameMode::Local => Some(ResumeMode::Local),
+        AvailableGameMode::Bot => Some(ResumeMode::Bot),
+        AvailableGameMode::Multiplayer | AvailableGameMode::PGNLoader => None,
     }
 }
 
@@ -358,6 +378,13 @@ fn handle_menu_navigation(app: &mut App, key_event: KeyEvent, game_mode: Availab
                 }
             }
         }
+        KeyCode::Char('r' | 'R') => {
+            if let Some(mode) = resume_mode_for(game_mode)
+                && app.has_resume_save(mode)
+            {
+                app.resume_from_saved(mode);
+            }
+        }
         KeyCode::Esc | KeyCode::Char('b') => {
             app.ui_state.menu_cursor = 0;
             app.game_mode_state.selection = None;
@@ -399,6 +426,13 @@ fn apply_clock_and_start(app: &mut App, page: Pages) {
 }
 
 fn finish_form(app: &mut App, page: Pages) {
+    // Starting a brand-new resumable game invalidates any previous save.
+    match page {
+        Pages::Solo => app.clear_resume_state(ResumeMode::Local),
+        Pages::Bot => app.clear_resume_state(ResumeMode::Bot),
+        _ => {}
+    }
+
     app.ui_state.current_page = page;
     app.game_mode_state.selection = None;
     app.game_mode_state.form_cursor = 0;

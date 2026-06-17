@@ -20,6 +20,7 @@ pub mod input;
 pub mod lichess;
 pub mod menu;
 pub mod multiplayer;
+pub mod resume;
 
 /// Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
@@ -53,6 +54,12 @@ pub struct App {
     /// PGN viewer: which game is currently shown
     pub pgn_viewer_game_idx: usize,
     pub animations: AnimationState,
+    /// Tracks the move count last persisted to disk for resume support, so the
+    /// autosave hook only writes when the position has actually advanced.
+    pub last_saved_move_count: Option<usize>,
+    /// Wall-clock time of the last resume-state flush. Used to throttle the
+    /// per-tick clock-capture write so we don't hammer the disk.
+    pub last_resume_flush_at: Option<std::time::Instant>,
 }
 
 impl Default for App {
@@ -72,6 +79,8 @@ impl Default for App {
             pgn_viewer_state: None,
             pgn_viewer_game_idx: 0,
             animations: AnimationState::default(),
+            last_saved_move_count: None,
+            last_resume_flush_at: None,
         }
     }
 }
@@ -161,6 +170,11 @@ impl App {
 
     /// Set running to false to quit the application.
     pub fn quit(&mut self) {
+        // Capture the clock's current value (which keeps ticking between
+        // moves) so a resumed game reflects real elapsed time rather than
+        // freezing at the last move's timestamp.
+        self.flush_resume_state();
+
         // Cancel any active Lichess seek before quitting
         if let Some(cancellation_token) = &self.lichess_state.cancellation_token {
             cancellation_token.store(true, std::sync::atomic::Ordering::Relaxed);
