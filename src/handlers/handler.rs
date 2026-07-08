@@ -42,7 +42,8 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         if let Some(selected_square) = app.game.ui.selected_square {
             // If a piece was selected via mouse, move cursor to that square
             app.game.ui.cursor_coordinates =
-                get_coord_from_square(selected_square, app.game.logic.game_board.is_flipped);
+                // Board flipping is already accounted for when selecting the square
+                get_coord_from_square(selected_square, false);
             app.game.ui.selected_square = None;
         } else {
             app.game.ui.cursor_coordinates = Coord::default();
