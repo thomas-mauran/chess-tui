@@ -29,7 +29,7 @@
     "@docusaurus/tsconfig": "3.10.1",
     "@docusaurus/types": "3.10.1",
     "puppeteer": "^25.1.0",
-    "typescript": "~6.0.3"
+    "typescript": "~7.0.2"
   },
   "resolutions": {
     "dompurify": "3.1.6",
