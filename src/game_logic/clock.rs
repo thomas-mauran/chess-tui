@@ -31,6 +31,18 @@ impl Clock {
         }
     }
 
+    /// Construct a clock with explicit remaining times — used when restoring
+    /// a saved game so each side resumes with the time they had on disk.
+    pub fn with_remaining(white: Duration, black: Duration) -> Self {
+        Self {
+            white_time: white,
+            black_time: black,
+            turn_start: None,
+            active_color: None,
+            is_running: false,
+        }
+    }
+
     /// Start the clock for the given color
     pub fn start(&mut self, color: Color) {
         self.active_color = Some(color);
