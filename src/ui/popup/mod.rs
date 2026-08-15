@@ -2,6 +2,7 @@
 
 pub mod credits;
 pub mod end;
+pub mod engine_path;
 pub mod error;
 pub mod help;
 pub mod lichess;

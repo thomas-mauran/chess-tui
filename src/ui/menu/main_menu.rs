@@ -1,9 +1,6 @@
 //! Renders the title banner, navigation menu, skin indicator, and keyboard hints.
 
-use crate::{
-    app::App,
-    constants::{DisplayMode, TITLE},
-};
+use crate::{app::App, constants::TITLE};
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -14,44 +11,14 @@ use ratatui::{
 
 /// Renders the home menu with navigation options, skin selector, and title banner.
 pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
-    // Determine the "skin" text
-    let display_mode_menu = {
-        let skin_name = match app.game.ui.display_mode {
-            DisplayMode::DEFAULT => "Default",
-            DisplayMode::ASCII => "ASCII",
-            DisplayMode::CUSTOM => app.game.ui.skin.name.as_str(),
-        };
-        format!("Skin: {skin_name}")
-    };
-
-    // Determine the "sound" text (only if sound feature is enabled)
-    #[cfg(feature = "sound")]
-    let sound_menu = {
-        let sound_status = if app.sound_enabled {
-            "On 🔊"
-        } else {
-            "Off 🔇"
-        };
-        format!("Sound: {sound_status}")
-    };
-
     // Menu items with descriptions
-    let mut menu_items: Vec<(&str, &str)> = vec![
+    let menu_items: Vec<(&str, &str)> = vec![
         ("Play Game", "Local, Multiplayer, or Bot game"),
         ("Play on Lichess", "Play on Lichess.org"),
-        (&display_mode_menu, "Change display theme"),
-    ];
-
-    // Add sound menu item only if sound feature is enabled
-    #[cfg(feature = "sound")]
-    {
-        menu_items.push((&sound_menu, "Toggle sound effects"));
-    }
-
-    menu_items.extend(vec![
+        ("Settings", "View and change settings"),
         ("Help", "View keyboard shortcuts and controls"),
         ("About", "Project information and credits"),
-    ]);
+    ];
 
     // Menu height depends on number of items, each takes 3 lines (item + description/empty + spacing), plus padding
     let menu_height = menu_items.len() as u16 * 3 + 4;

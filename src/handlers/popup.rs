@@ -29,6 +29,7 @@ pub fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
         Popups::SeekingLichessGame => handle_seeking_lichess_game(app, key_event),
         Popups::ResignConfirmation => handle_resign_confirmation(app, key_event),
         Popups::MoveInputSelection => handle_move_input_selection(app, key_event),
+        Popups::EnterEnginePath => handle_enter_engine_path(app, key_event),
         _ => fallback_key_handler(app, key_event),
     }
 }
@@ -308,6 +309,33 @@ fn handle_move_input_selection(app: &mut App, key_event: KeyEvent) {
             app.game
                 .apply_player_move(from, chess_move.to(), chess_move.promotion());
             app.game.ui.prompt.reset();
+        }
+        KeyCode::Char(to_insert) => app.game.ui.prompt.enter_char(to_insert),
+        KeyCode::Backspace => app.game.ui.prompt.delete_char(),
+        KeyCode::Left => app.game.ui.prompt.move_cursor_left(),
+        KeyCode::Right => app.game.ui.prompt.move_cursor_right(),
+        KeyCode::Esc => app.ui_state.close_popup(),
+        _ => fallback_key_handler(app, key_event),
+    }
+}
+
+fn handle_enter_engine_path(app: &mut App, key_event: KeyEvent) {
+    match key_event.code {
+        KeyCode::Enter => {
+            app.game.ui.prompt.submit_message();
+            // Remove leading and trailing space, then remove leading and trailing single or double quote
+            let path = app
+                .game
+                .ui
+                .prompt
+                .message
+                .clone()
+                .trim()
+                .trim_matches(&['\'', '"'][..])
+                .to_string();
+
+            app.bot_state.chess_engine_path = Some(path);
+            app.ui_state.close_popup();
         }
         KeyCode::Char(to_insert) => app.game.ui.prompt.enter_char(to_insert),
         KeyCode::Backspace => app.game.ui.prompt.delete_char(),

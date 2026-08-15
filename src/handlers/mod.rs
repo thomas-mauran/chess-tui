@@ -9,4 +9,5 @@ pub mod lichess;
 pub mod multiplayer;
 pub mod pgn;
 pub mod popup;
+pub mod settings_menu;
 pub mod solo;
