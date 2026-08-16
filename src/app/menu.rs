@@ -7,6 +7,7 @@ use crate::game_logic::game::Game;
 use crate::handlers::game_mode_menu::{
     AvailableGameMode, cycle_difficulty_next, cycle_difficulty_prev,
 };
+use crate::sound::play_menu_nav_sound;
 /// Typed representation of the main-menu entries, indexed by `menu_cursor`.
 pub enum MainMenuItems {
     GameModeMenu,
@@ -85,7 +86,7 @@ impl App {
         let future_skin = self.theme_state.get_skin(next);
         let future_skin_name = future_skin.clone().name;
 
-        crate::sound::play_menu_nav_sound(); // move
+        play_menu_nav_sound(); // move
 
         // Update selected skin name and apply it
         self.theme_state.loaded_skin = Some(future_skin.clone());
@@ -111,7 +112,7 @@ impl App {
             cycle_difficulty_prev(self);
         }
 
-        crate::sound::play_menu_nav_sound(); // move
+        play_menu_nav_sound(); // move
     }
 
     /// Resets the application state and returns to the home page.
