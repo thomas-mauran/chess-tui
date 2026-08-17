@@ -12,6 +12,7 @@ use crate::handlers::lichess::ongoing_games::handle_ongoing_games_page_events;
 use crate::handlers::multiplayer::handle_multiplayer_page_events;
 use crate::handlers::pgn::handle_pgn_viewer_events;
 use crate::handlers::popup::handle_popup_input;
+use crate::handlers::settings_menu::handle_settings_menu_page_events;
 use crate::handlers::solo::handle_solo_page_events;
 use crate::utils::{flip_square_if_needed, get_coord_from_square};
 use crate::{
@@ -74,6 +75,7 @@ pub fn handle_page_input(app: &mut App, key_event: KeyEvent) {
         Pages::Bot => handle_bot_page_events(app, key_event),
         Pages::Credit => handle_credit_page_events(app, key_event),
         Pages::PgnViewer => handle_pgn_viewer_events(app, key_event),
+        Pages::SettingsMenu => handle_settings_menu_page_events(app, key_event),
     }
 }
 

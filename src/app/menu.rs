@@ -1,38 +1,28 @@
 //! Menu navigation and skin cycling.
 
 use crate::app::App;
-use crate::constants::{DEFAULT_CUSTOM_TIME_VALUE, DEFAULT_TIME_CONTROL_SELECTED};
-use crate::constants::{DisplayMode, Pages, Popups};
+use crate::constants::{DEFAULT_CUSTOM_TIME_VALUE, DEFAULT_TIME_CONTROL_SELECTED, DisplayMode};
+use crate::constants::{Pages, Popups};
 use crate::game_logic::game::Game;
-use crate::handlers::game_mode_menu::AvailableGameMode;
+use crate::handlers::game_mode_menu::{
+    AvailableGameMode, cycle_difficulty_next, cycle_difficulty_prev,
+};
 use crate::sound::play_menu_nav_sound;
 /// Typed representation of the main-menu entries, indexed by `menu_cursor`.
 pub enum MainMenuItems {
     GameModeMenu,
     LichessMenu,
-    SkinSelector,
-    SoundSelector,
+    SettingsMenu,
     Help,
     Credit,
 }
 
 impl From<u8> for MainMenuItems {
     fn from(value: u8) -> Self {
-        #[cfg(feature = "sound")]
         match value {
             0 => MainMenuItems::GameModeMenu,
             1 => MainMenuItems::LichessMenu,
-            2 => MainMenuItems::SkinSelector,
-            3 => MainMenuItems::SoundSelector,
-            4 => MainMenuItems::Help,
-            5 => MainMenuItems::Credit,
-            _ => MainMenuItems::GameModeMenu,
-        }
-        #[cfg(not(feature = "sound"))]
-        match value {
-            0 => MainMenuItems::GameModeMenu,
-            1 => MainMenuItems::LichessMenu,
-            2 => MainMenuItems::SkinSelector,
+            2 => MainMenuItems::SettingsMenu,
             3 => MainMenuItems::Help,
             4 => MainMenuItems::Credit,
             _ => MainMenuItems::GameModeMenu,
@@ -79,30 +69,13 @@ impl App {
                 }
                 self.fetch_lichess_user_profile();
             }
-            MainMenuItems::SkinSelector => {
-                // Cycle through available skins
-                self.cycle_skin(true);
-                self.update_config_from_app();
+            MainMenuItems::SettingsMenu => {
+                // Settings Menu
+                // Reset everything to ensure cursor starts at first item
+                self.ui_state.menu_cursor = 0;
+                self.ui_state.current_page = Pages::SettingsMenu;
             }
-            #[cfg(feature = "sound")]
-            MainMenuItems::SoundSelector => {
-                // Toggle sound
-
-                use crate::sound::set_sound_enabled;
-
-                self.sound_enabled = !self.sound_enabled;
-                set_sound_enabled(self.sound_enabled);
-                self.update_config_from_app();
-            }
-            #[cfg(feature = "sound")]
             MainMenuItems::Help => self.ui_state.toggle_help_popup(),
-            #[cfg(feature = "sound")]
-            MainMenuItems::Credit => self.ui_state.current_page = Pages::Credit,
-            #[cfg(not(feature = "sound"))]
-            MainMenuItems::SoundSelector => {}
-            #[cfg(not(feature = "sound"))]
-            MainMenuItems::Help => self.ui_state.toggle_help_popup(),
-            #[cfg(not(feature = "sound"))]
             MainMenuItems::Credit => self.ui_state.current_page = Pages::Credit,
         }
     }
@@ -121,11 +94,25 @@ impl App {
         self.game.ui.skin = future_skin;
 
         // Set display mode based on skin name
-        match future_skin_name.as_str() {
-            "Default" => self.game.ui.display_mode = DisplayMode::DEFAULT,
-            "ASCII" => self.game.ui.display_mode = DisplayMode::ASCII,
-            _ => self.game.ui.display_mode = DisplayMode::CUSTOM,
+        let display_mode = match future_skin_name.as_str() {
+            "Default" => DisplayMode::DEFAULT,
+            "ASCII" => DisplayMode::ASCII,
+            _ => DisplayMode::CUSTOM,
+        };
+
+        self.game.ui.display_mode = display_mode;
+    }
+
+    /// Cycles to the next or previous bot difficulty level.
+    /// Pass `true` to advance forward, `false` to go back.
+    pub fn cycle_bot_difficulty(&mut self, next: bool) {
+        if next {
+            cycle_difficulty_next(self);
+        } else {
+            cycle_difficulty_prev(self);
         }
+
+        play_menu_nav_sound(); // move
     }
 
     /// Resets the application state and returns to the home page.

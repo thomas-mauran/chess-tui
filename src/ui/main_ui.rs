@@ -15,10 +15,11 @@ use crate::{
         game_ui::render_game_ui,
         menu::{
             game_mode_menu::render_game_mode_menu, lichess_menu::render_lichess_menu,
-            main_menu::render_menu_ui,
+            main_menu::render_menu_ui, settings_menu::render_settings_menu,
         },
         popup::{
             credits::render_credit_popup,
+            engine_path::render_enter_engine_path_popup,
             error::render_error_popup,
             help::render_help_popup,
             lichess::{
@@ -63,6 +64,7 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
         Pages::GameModeMenu => render_game_mode_menu(frame, app),
         Pages::OngoingGames => render_ongoing_games(frame, app),
         Pages::PgnViewer => render_pgn_viewer(frame, app),
+        Pages::SettingsMenu => render_settings_menu(frame, app),
         Pages::Home | Pages::Credit => render_menu_ui(frame, app, main_area),
     }
 
@@ -144,6 +146,9 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
                 "Loading ...".to_string()
             };
             render_loading_popup(frame, message);
+        }
+        Some(Popups::EnterEnginePath) => {
+            render_enter_engine_path_popup(frame, &app.game.ui.prompt);
         }
         _ => {}
     }

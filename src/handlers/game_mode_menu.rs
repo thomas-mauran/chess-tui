@@ -372,7 +372,7 @@ fn handle_menu_navigation(app: &mut App, key_event: KeyEvent, game_mode: Availab
     }
 }
 
-fn cycle_difficulty_prev(app: &mut App) {
+pub fn cycle_difficulty_prev(app: &mut App) {
     match app.bot_state.bot_difficulty {
         None => app.bot_state.bot_difficulty = Some((BOT_DIFFICULTY_COUNT - 1) as u8),
         Some(0) => app.bot_state.bot_difficulty = None,
@@ -381,7 +381,7 @@ fn cycle_difficulty_prev(app: &mut App) {
     app.update_config_from_app();
 }
 
-fn cycle_difficulty_next(app: &mut App) {
+pub fn cycle_difficulty_next(app: &mut App) {
     match app.bot_state.bot_difficulty {
         None => app.bot_state.bot_difficulty = Some(0),
         Some(i) if i + 1 >= BOT_DIFFICULTY_COUNT as u8 => app.bot_state.bot_difficulty = None,

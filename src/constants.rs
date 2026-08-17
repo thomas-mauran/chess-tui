@@ -139,6 +139,8 @@ pub enum Pages {
     GameModeMenu,
     /// PGN replay viewer.
     PgnViewer,
+    /// Settings menu.
+    SettingsMenu,
 }
 impl Pages {
     #[must_use]
@@ -180,6 +182,8 @@ pub enum Popups {
     LoadPgnPath,
     /// Spinner to make user wait
     Loading,
+    /// Text input for chess engine path.
+    EnterEnginePath,
 }
 
 /// Base URL for all Lichess REST API requests.
