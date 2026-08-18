@@ -234,6 +234,21 @@ pub fn lichess_api_url_is_env_pinned() -> bool {
         .is_some_and(|url| !url.trim().is_empty())
 }
 
+/// Resolves the API URL to install at startup, or `None` to leave the current one.
+///
+/// Precedence is the command-line flag, then `CHESS_TUI_LICHESS_API_URL`, then the
+/// persisted config value. `None` means the environment variable is pinning the URL
+/// (it is already loaded into the global), so the config value must not overwrite it.
+pub fn startup_lichess_api_url(cli: Option<&str>, config: Option<&str>) -> Option<String> {
+    if let Some(cli) = cli {
+        return Some(resolve_lichess_api_url(Some(cli.to_string())));
+    }
+    if lichess_api_url_is_env_pinned() {
+        return None;
+    }
+    config.map(|url| resolve_lichess_api_url(Some(url.to_string())))
+}
+
 /// Normalizes a raw Lichess API base URL, falling back to the default when blank.
 pub fn resolve_lichess_api_url(raw: Option<String>) -> String {
     raw.map(|url| url.trim().trim_end_matches('/').to_string())
@@ -247,6 +262,7 @@ pub const DOCS_URL: &str = "https://thomas-mauran.github.io/chess-tui/docs";
 mod tests {
     use super::{
         DEFAULT_LICHESS_API_URL, lichess_api_url, resolve_lichess_api_url, set_lichess_api_url,
+        startup_lichess_api_url,
     };
 
     #[test]
@@ -276,6 +292,27 @@ mod tests {
             resolve_lichess_api_url(Some(" https://lichess.dev/api// ".to_string())),
             "https://lichess.dev/api"
         );
+    }
+
+    #[test]
+    fn the_cli_flag_beats_the_config_and_is_normalized() {
+        assert_eq!(
+            startup_lichess_api_url(Some(" https://cli.example/api/ "), Some("https://cfg/api")),
+            Some("https://cli.example/api".to_string())
+        );
+    }
+
+    #[test]
+    fn the_config_applies_when_no_flag_is_given() {
+        assert_eq!(
+            startup_lichess_api_url(None, Some("https://cfg.example/api")),
+            Some("https://cfg.example/api".to_string())
+        );
+    }
+
+    #[test]
+    fn nothing_is_applied_without_a_flag_or_config() {
+        assert_eq!(startup_lichess_api_url(None, None), None);
     }
 
     /// One test drives the whole global so parallel tests cannot race on it.

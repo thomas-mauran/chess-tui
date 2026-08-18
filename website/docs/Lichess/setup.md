@@ -154,6 +154,15 @@ Press `Enter` to save or `Esc` to cancel. The URL must start with `http://` or
 immediately to every subsequent API request and is saved to `config.toml` as
 `lichess_api_url`, so it survives a restart.
 
+### From the command line
+
+```bash
+chess-tui --lichess-api-url "https://lichess.dev/api"
+```
+
+Like `--lichess-token`, the value is written to `config.toml`, so later runs pick it up
+without the flag.
+
 ### From the environment
 
 Set the `CHESS_TUI_LICHESS_API_URL` environment variable:
@@ -172,12 +181,20 @@ chess-tui
 Notes:
 
 - The value should be the API base URL, including the `/api` suffix if your instance uses one.
-- Trailing slashes are trimmed automatically.
-- The variable takes precedence over the value saved in `config.toml`, and is read once at
-  startup. Changing the URL from the TUI still applies for the rest of the session, but the
-  environment variable wins again on the next launch.
-- If the variable is unset or empty, the value from `config.toml` is used, falling back to
-  the default `https://lichess.org/api`.
+- Trailing slashes and surrounding whitespace are trimmed automatically.
+- The variable is read once at startup, so restart `chess-tui` after changing it.
+
+### Precedence
+
+At startup the URL is taken from the first of these that is set:
+
+1. The `--lichess-api-url` command-line flag.
+2. The `CHESS_TUI_LICHESS_API_URL` environment variable.
+3. The `lichess_api_url` value in `config.toml`.
+4. The default, `https://lichess.org/api`.
+
+Changing the URL from the TUI applies immediately and is saved to `config.toml`, but a
+flag or environment variable still wins on the next launch.
 
 ## Verifying Your Setup
 

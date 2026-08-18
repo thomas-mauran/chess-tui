@@ -1,8 +1,8 @@
 use chess_tui::app::{App, AppResult};
 use chess_tui::config::{Args, Config};
 use chess_tui::constants::{
-    DisplayMode, Pages, SKIN_NAME_ASCII, SKIN_NAME_DEFAULT, config_dir,
-    lichess_api_url_is_env_pinned, set_lichess_api_url,
+    DisplayMode, Pages, SKIN_NAME_ASCII, SKIN_NAME_DEFAULT, config_dir, set_lichess_api_url,
+    startup_lichess_api_url,
 };
 use chess_tui::event::{Event, EventHandler};
 use chess_tui::game_logic::opponent::wait_for_game_start;
@@ -52,6 +52,9 @@ fn main() -> AppResult<()> {
     // Initialize global sound state from app default
     chess_tui::sound::set_sound_enabled(app.sound_enabled);
 
+    // Persisted Lichess API URL, applied further down once the CLI flag is known.
+    let mut config_lichess_api_url: Option<String> = None;
+
     // We store the chess engine path if there is one
     if let Ok(content) = fs::read_to_string(config_path) {
         if content.trim().is_empty() {
@@ -89,13 +92,9 @@ fn main() -> AppResult<()> {
                 app.lichess_state.token = Some(lichess_token.clone());
                 app.lichess_state.client = Some(LichessClient::new(lichess_token));
             }
-            // The CHESS_TUI_LICHESS_API_URL environment variable wins over the
-            // persisted value, so only apply the config when it is not set.
-            if let Some(api_url) = config.lichess_api_url
-                && !lichess_api_url_is_env_pinned()
-            {
-                set_lichess_api_url(&api_url);
-            }
+            // Applied together with the CLI flag below so the precedence between
+            // flag, environment variable, and config lives in one place.
+            config_lichess_api_url = config.lichess_api_url;
             // Add sound enabled handling
             if let Some(sound_enabled) = config.sound_enabled {
                 app.sound_enabled = sound_enabled;
@@ -218,6 +217,15 @@ fn main() -> AppResult<()> {
     // Command line lichess token takes precedence over configuration file
     if let Some(token) = &args.lichess_token {
         app.lichess_state.token = Some(token.clone());
+    }
+
+    // Lichess API URL: command-line flag, then CHESS_TUI_LICHESS_API_URL (already
+    // loaded), then the configuration file.
+    if let Some(api_url) = startup_lichess_api_url(
+        args.lichess_api_url.as_deref(),
+        config_lichess_api_url.as_deref(),
+    ) {
+        set_lichess_api_url(&api_url);
     }
 
     // Command line no-sound flag takes precedence over configuration file
@@ -432,6 +440,7 @@ mod tests {
             depth: None,
             difficulty: None,
             lichess_token: None,
+            lichess_api_url: None,
             no_sound: false,
             skin: None,
             update_skins: false,

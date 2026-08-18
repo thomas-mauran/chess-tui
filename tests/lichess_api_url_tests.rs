@@ -2,6 +2,7 @@
 mod lichess_api_url_tests {
     use chess_tui::{
         app::{App, AppResult},
+        config::{Args, Config},
         constants::{DEFAULT_LICHESS_API_URL, Popups},
         handlers::handler::handle_key_events,
         ui::popup::lichess::{
@@ -107,6 +108,50 @@ mod lichess_api_url_tests {
             "Popup should stay open so the user can fix the URL"
         );
         assert!(app.game.ui.prompt.error.is_some());
+        Ok(())
+    }
+
+    fn args_with_api_url(api_url: Option<&str>) -> Args {
+        Args {
+            engine_path: String::new(),
+            depth: None,
+            difficulty: None,
+            lichess_token: None,
+            lichess_api_url: api_url.map(str::to_string),
+            no_sound: false,
+            skin: None,
+            update_skins: false,
+            pgn: None,
+        }
+    }
+
+    #[test]
+    fn the_cli_flag_is_persisted_and_normalized() -> AppResult<()> {
+        let folder = std::env::temp_dir().join("chess-tui-api-url-flag-test");
+        let config_path = folder.join("config.toml");
+        let _ = std::fs::remove_dir_all(&folder);
+
+        Config::config_create(
+            &args_with_api_url(Some(" https://lichess.dev/api/ ")),
+            &folder,
+            &config_path,
+        )?;
+
+        let written: Config = toml::from_str(&std::fs::read_to_string(&config_path)?)?;
+        assert_eq!(
+            written.lichess_api_url.as_deref(),
+            Some("https://lichess.dev/api")
+        );
+
+        // Omitting the flag must not clobber the value a previous run stored.
+        Config::config_create(&args_with_api_url(None), &folder, &config_path)?;
+        let written: Config = toml::from_str(&std::fs::read_to_string(&config_path)?)?;
+        assert_eq!(
+            written.lichess_api_url.as_deref(),
+            Some("https://lichess.dev/api")
+        );
+
+        std::fs::remove_dir_all(&folder)?;
         Ok(())
     }
 }

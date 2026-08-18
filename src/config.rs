@@ -1,6 +1,7 @@
 //! Merges CLI args onto the persisted TOML config; exposes `Args` and `Config` to the rest of the crate.
 
 use crate::app::AppResult;
+use crate::constants::resolve_lichess_api_url;
 use log::LevelFilter;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -28,6 +29,9 @@ pub struct Args {
     /// Lichess API token
     #[arg(short, long)]
     pub lichess_token: Option<String>,
+    /// Lichess API base URL (e.g. for a self-hosted instance). Defaults to https://lichess.org/api.
+    #[arg(long)]
+    pub lichess_api_url: Option<String>,
     /// Disable sound effects
     #[arg(long)]
     pub no_sound: bool,
@@ -151,6 +155,11 @@ impl Config {
         // Always update Lichess token if provided via command line
         if let Some(token) = &args.lichess_token {
             config.lichess_token = Some(token.clone());
+        }
+
+        // Always update the Lichess API URL if provided via command line
+        if let Some(api_url) = &args.lichess_api_url {
+            config.lichess_api_url = Some(resolve_lichess_api_url(Some(api_url.clone())));
         }
 
         // Update bot_depth if provided via command line
