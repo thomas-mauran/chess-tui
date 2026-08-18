@@ -1,6 +1,6 @@
 //! Account and profile endpoints.
 
-use crate::constants::LICHESS_API_URL;
+use crate::constants::lichess_api_url;
 use crate::lichess::models::{
     LichessClient, OngoingGame, OngoingGamesResponse, RatingHistoryEntry, UserProfile,
 };
@@ -8,7 +8,7 @@ use std::error::Error;
 
 impl LichessClient {
     pub fn get_user_profile(&self) -> Result<UserProfile, Box<dyn Error>> {
-        let url = format!("{}/account", LICHESS_API_URL.as_str());
+        let url = format!("{}/account", lichess_api_url());
         log::info!("Fetching user profile from: {}", url);
 
         let response = self
@@ -34,11 +34,7 @@ impl LichessClient {
         &self,
         username: &str,
     ) -> Result<Vec<RatingHistoryEntry>, Box<dyn Error>> {
-        let url = format!(
-            "{}/user/{}/rating-history",
-            LICHESS_API_URL.as_str(),
-            username
-        );
+        let url = format!("{}/user/{}/rating-history", lichess_api_url(), username);
         log::info!("Fetching rating history from: {}", url);
 
         let response = self
@@ -64,7 +60,7 @@ impl LichessClient {
     }
 
     pub fn get_ongoing_games(&self) -> Result<Vec<OngoingGame>, Box<dyn Error>> {
-        let url = format!("{}/account/playing", LICHESS_API_URL.as_str());
+        let url = format!("{}/account/playing", lichess_api_url());
         log::info!("Fetching ongoing games from: {}", url);
 
         let response = self

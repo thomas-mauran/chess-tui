@@ -1,6 +1,6 @@
 //! Game seek, join, and resign endpoints.
 
-use crate::constants::LICHESS_API_URL;
+use crate::constants::lichess_api_url;
 use crate::lichess::models::{GameEvent, LichessClient};
 use shakmaty::Color;
 use std::error::Error;
@@ -23,7 +23,7 @@ impl LichessClient {
     ) -> Result<(usize, Option<String>), Box<dyn Error>> {
         // Use public stream endpoint /api/stream/game/{id} (same as polling)
         // Read the first line (gameFull event), then close the stream
-        let url = format!("{}/stream/game/{}", LICHESS_API_URL.as_str(), game_id);
+        let url = format!("{}/stream/game/{}", lichess_api_url(), game_id);
         let response = self
             .client
             .get(&url)
@@ -74,7 +74,7 @@ impl LichessClient {
         increment: u32,
         cancellation_token: std::sync::Arc<std::sync::atomic::AtomicBool>,
     ) -> Result<(String, Color), Box<dyn Error>> {
-        let url = format!("{}/board/seek", LICHESS_API_URL.as_str());
+        let url = format!("{}/board/seek", lichess_api_url());
 
         // Track games we've seen before seeking to detect new games
         let initial_games = self.get_ongoing_games().unwrap_or_default();
@@ -260,7 +260,7 @@ impl LichessClient {
 
         // If not in ongoing games, try to accept the challenge in case it hasn't been accepted yet
         log::info!("Attempting to accept challenge: {}", game_id);
-        let accept_url = format!("{}/challenge/{}/accept", LICHESS_API_URL.as_str(), game_id);
+        let accept_url = format!("{}/challenge/{}/accept", lichess_api_url(), game_id);
         let accept_response = self
             .client
             .post(&accept_url)
@@ -322,7 +322,7 @@ impl LichessClient {
             }
 
             // Try to stream the game
-            let url = format!("{}/board/game/{}/stream", LICHESS_API_URL.as_str(), game_id);
+            let url = format!("{}/board/game/{}/stream", lichess_api_url(), game_id);
             let response = match self
                 .client
                 .get(&url)
@@ -458,7 +458,7 @@ impl LichessClient {
     pub fn make_move(&self, game_id: &str, move_str: &str) -> Result<(), Box<dyn Error>> {
         let url = format!(
             "{}/board/game/{}/move/{}",
-            LICHESS_API_URL.as_str(),
+            lichess_api_url(),
             game_id,
             move_str
         );
@@ -473,7 +473,7 @@ impl LichessClient {
     /// Resign a game
     /// Uses the board API endpoint /board/game/{id}/resign
     pub fn resign_game(&self, game_id: &str) -> Result<(), Box<dyn Error>> {
-        let url = format!("{}/board/game/{}/resign", LICHESS_API_URL.as_str(), game_id);
+        let url = format!("{}/board/game/{}/resign", lichess_api_url(), game_id);
         log::info!("Resigning game: {}", game_id);
 
         let response = self

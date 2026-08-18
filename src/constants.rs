@@ -2,7 +2,7 @@
 
 use core::fmt;
 use std::path::PathBuf;
-use std::sync::LazyLock;
+use std::sync::{LazyLock, RwLock};
 
 use ratatui::style::Color;
 use throbber_widgets_tui::Set;
@@ -173,6 +173,8 @@ pub enum Popups {
     EnterGameCode,
     /// Masked text input for the Lichess API token.
     EnterLichessToken,
+    /// Text input for the Lichess API base URL.
+    EnterLichessApiUrl,
     /// Y/N confirmation before resigning.
     ResignConfirmation,
     /// SAN move text entry.
@@ -194,11 +196,46 @@ pub const LICHESS_API_URL_ENV: &str = "CHESS_TUI_LICHESS_API_URL";
 /// Defaults to [`DEFAULT_LICHESS_API_URL`], and can be overridden by setting the
 /// `CHESS_TUI_LICHESS_API_URL` environment variable. Any trailing slashes are
 /// trimmed so callers can safely append `/some/path`.
-pub static LICHESS_API_URL: LazyLock<String> =
-    LazyLock::new(|| resolve_lichess_api_url(std::env::var(LICHESS_API_URL_ENV).ok()));
+static LICHESS_API_URL: LazyLock<RwLock<String>> = LazyLock::new(|| {
+    RwLock::new(resolve_lichess_api_url(
+        std::env::var(LICHESS_API_URL_ENV).ok(),
+    ))
+});
 
-/// Normalizes the raw `CHESS_TUI_LICHESS_API_URL` value, falling back to the default.
-fn resolve_lichess_api_url(raw: Option<String>) -> String {
+/// Returns the Lichess API base URL currently in effect, without a trailing slash.
+pub fn lichess_api_url() -> String {
+    LICHESS_API_URL
+        .read()
+        .map(|url| url.clone())
+        .unwrap_or_else(|poisoned| poisoned.into_inner().clone())
+}
+
+/// Overrides the Lichess API base URL for the rest of the process.
+///
+/// The value is normalized the same way as the environment variable: surrounding
+/// whitespace and trailing slashes are trimmed, and a blank value resets the URL
+/// to [`DEFAULT_LICHESS_API_URL`]. Returns the value that was stored.
+pub fn set_lichess_api_url(raw: &str) -> String {
+    let resolved = resolve_lichess_api_url(Some(raw.to_string()));
+    match LICHESS_API_URL.write() {
+        Ok(mut url) => *url = resolved.clone(),
+        Err(poisoned) => *poisoned.into_inner() = resolved.clone(),
+    }
+    resolved
+}
+
+/// Returns `true` when the API URL is pinned by the environment variable.
+///
+/// The variable takes precedence over the persisted config at startup, so the UI
+/// uses this to tell the user why their saved value was not applied.
+pub fn lichess_api_url_is_env_pinned() -> bool {
+    std::env::var(LICHESS_API_URL_ENV)
+        .ok()
+        .is_some_and(|url| !url.trim().is_empty())
+}
+
+/// Normalizes a raw Lichess API base URL, falling back to the default when blank.
+pub fn resolve_lichess_api_url(raw: Option<String>) -> String {
     raw.map(|url| url.trim().trim_end_matches('/').to_string())
         .filter(|url| !url.is_empty())
         .unwrap_or_else(|| DEFAULT_LICHESS_API_URL.to_string())
@@ -208,7 +245,9 @@ pub const DOCS_URL: &str = "https://thomas-mauran.github.io/chess-tui/docs";
 
 #[cfg(test)]
 mod tests {
-    use super::{DEFAULT_LICHESS_API_URL, resolve_lichess_api_url};
+    use super::{
+        DEFAULT_LICHESS_API_URL, lichess_api_url, resolve_lichess_api_url, set_lichess_api_url,
+    };
 
     #[test]
     fn unset_env_falls_back_to_default() {
@@ -237,5 +276,19 @@ mod tests {
             resolve_lichess_api_url(Some(" https://lichess.dev/api// ".to_string())),
             "https://lichess.dev/api"
         );
+    }
+
+    /// One test drives the whole global so parallel tests cannot race on it.
+    #[test]
+    fn setting_the_url_at_runtime_replaces_it_and_normalizes() {
+        assert_eq!(
+            set_lichess_api_url(" http://localhost:9663/api/ "),
+            "http://localhost:9663/api"
+        );
+        assert_eq!(lichess_api_url(), "http://localhost:9663/api");
+
+        // A blank value restores the default rather than emptying the URL.
+        assert_eq!(set_lichess_api_url("   "), DEFAULT_LICHESS_API_URL);
+        assert_eq!(lichess_api_url(), DEFAULT_LICHESS_API_URL);
     }
 }

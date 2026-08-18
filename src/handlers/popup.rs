@@ -26,6 +26,7 @@ pub fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
         Popups::LoadPgnPath => handle_load_pgn_path(app, key_event),
         Popups::EnterGameCode => handle_enter_game_code(app, key_event),
         Popups::EnterLichessToken => handle_enter_lichess_token(app, key_event),
+        Popups::EnterLichessApiUrl => handle_enter_lichess_api_url(app, key_event),
         Popups::SeekingLichessGame => handle_seeking_lichess_game(app, key_event),
         Popups::ResignConfirmation => handle_resign_confirmation(app, key_event),
         Popups::MoveInputSelection => handle_move_input_selection(app, key_event),
@@ -235,11 +236,27 @@ fn handle_enter_lichess_token(app: &mut App, key_event: KeyEvent) {
                 app.ui_state.close_popup();
             }
         }
+        KeyCode::Tab => app.open_lichess_api_url_popup(Some(Popups::EnterLichessToken)),
         KeyCode::Char(to_insert) => app.game.ui.prompt.enter_char(to_insert),
         KeyCode::Backspace => app.game.ui.prompt.delete_char(),
         KeyCode::Left => app.game.ui.prompt.move_cursor_left(),
         KeyCode::Right => app.game.ui.prompt.move_cursor_right(),
         KeyCode::Esc => app.ui_state.close_popup(),
+        _ => fallback_key_handler(app, key_event),
+    }
+}
+
+fn handle_enter_lichess_api_url(app: &mut App, key_event: KeyEvent) {
+    match key_event.code {
+        KeyCode::Enter => {
+            let url = app.game.ui.prompt.input.clone();
+            app.save_lichess_api_url(url);
+        }
+        KeyCode::Char(to_insert) => app.game.ui.prompt.enter_char(to_insert),
+        KeyCode::Backspace => app.game.ui.prompt.delete_char(),
+        KeyCode::Left => app.game.ui.prompt.move_cursor_left(),
+        KeyCode::Right => app.game.ui.prompt.move_cursor_right(),
+        KeyCode::Esc => app.close_lichess_api_url_popup(),
         _ => fallback_key_handler(app, key_event),
     }
 }

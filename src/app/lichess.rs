@@ -1,7 +1,9 @@
 //! Lichess authentication, game streaming, and puzzle management.
 
 use crate::app::App;
-use crate::constants::{DOCS_URL, Pages, Popups, SLEEP_DURATION_RESIGN_MS};
+use crate::constants::{
+    DOCS_URL, Pages, Popups, SLEEP_DURATION_RESIGN_MS, lichess_api_url, set_lichess_api_url,
+};
 use crate::game_logic::game::GameState;
 use crate::game_logic::opponent::Opponent;
 use crate::game_logic::puzzle::PuzzleGame;
@@ -58,6 +60,49 @@ impl App {
                 self.ui_state.current_popup = Some(Popups::Error);
                 self.ui_state.show_message_popup(msg, Popups::Error);
             }
+        }
+    }
+
+    /// Opens the API URL popup, pre-filled with the URL currently in effect.
+    ///
+    /// `return_popup` is restored when the user cancels or saves, along with whatever
+    /// had been typed into it, so opening this from the token popup loses nothing.
+    pub fn open_lichess_api_url_popup(&mut self, return_popup: Option<Popups>) {
+        self.lichess_state.api_url_return_popup =
+            return_popup.map(|popup| (popup, self.game.ui.prompt.input.clone()));
+        self.game.ui.prompt.reset();
+        self.game.ui.prompt.set_input(&lichess_api_url());
+        self.ui_state.current_popup = Some(Popups::EnterLichessApiUrl);
+    }
+
+    /// Applies the API URL typed into the popup and persists it to the config file.
+    ///
+    /// An empty input restores the default endpoint. Anything that is not an
+    /// `http://` or `https://` URL is rejected inline so the popup stays open.
+    pub fn save_lichess_api_url(&mut self, raw: String) {
+        let trimmed = raw.trim();
+        if !trimmed.is_empty()
+            && !trimmed.starts_with("http://")
+            && !trimmed.starts_with("https://")
+        {
+            self.game.ui.prompt.error = Some("URL must start with http:// or https://".to_string());
+            return;
+        }
+
+        set_lichess_api_url(trimmed);
+        self.update_config_from_app();
+        self.close_lichess_api_url_popup();
+    }
+
+    /// Restores whichever popup was showing before the API URL popup opened.
+    pub fn close_lichess_api_url_popup(&mut self) {
+        self.game.ui.prompt.reset();
+        match self.lichess_state.api_url_return_popup.take() {
+            Some((popup, previous_input)) => {
+                self.game.ui.prompt.set_input(&previous_input);
+                self.ui_state.current_popup = Some(popup);
+            }
+            None => self.ui_state.close_popup(),
         }
     }
 

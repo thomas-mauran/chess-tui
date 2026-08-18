@@ -2,7 +2,7 @@
 
 use crate::ui::prompt::Prompt;
 use crate::{
-    constants::{DOCS_URL, WHITE},
+    constants::{DOCS_URL, WHITE, lichess_api_url},
     ui::components::centered_rect::centered_rect,
 };
 use ratatui::{
@@ -21,7 +21,7 @@ pub fn render_enter_lichess_token_popup(frame: &mut Frame, prompt: &Prompt) {
         .border_type(BorderType::Rounded)
         .padding(Padding::horizontal(1))
         .border_style(Style::default().fg(WHITE));
-    let area = centered_rect(70, 40, frame.area());
+    let area = centered_rect(70, 60, frame.area());
 
     let current_input = prompt.input.as_str();
     // Mask the token for security (show only last 4 characters)
@@ -42,9 +42,10 @@ pub fn render_enter_lichess_token_popup(frame: &mut Frame, prompt: &Prompt) {
         Line::from(""),
         Line::from(masked_input),
         Line::from(""),
+        Line::from(format!("Get a token: {}/Lichess/setup", DOCS_URL)),
         Line::from(""),
-        Line::from("To get a token, follow the documentation:"),
-        Line::from(format!("Documentation: {}/Lichess/setup", DOCS_URL)),
+        Line::from(format!("API URL: {}", lichess_api_url())),
+        Line::from("Press `Tab` to use a different Lichess server."),
         Line::from(""),
         Line::from("Press `Enter` to save, `Esc` to cancel.").alignment(Alignment::Center),
     ];

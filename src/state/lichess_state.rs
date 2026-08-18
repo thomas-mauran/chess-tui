@@ -1,6 +1,7 @@
 //! Holds the API token, the [`LichessClient`], incoming event channels, and the active puzzle game if any.
 
 use crate::{
+    constants::Popups,
     game_logic::puzzle::PuzzleGame,
     lichess::models::{LichessClient, LichessError, OngoingGame, RatingHistoryEntry, UserProfile},
 };
@@ -39,6 +40,9 @@ pub struct LichessState {
     pub puzzle_game: Option<PuzzleGame>,
     /// Lichess menu stats scroll offset
     pub lichess_stats_scroll: u16,
+    /// Popup to restore once the API URL popup is dismissed, together with the
+    /// prompt input it had, so a half-typed token survives the detour.
+    pub api_url_return_popup: Option<(Popups, String)>,
 }
 
 impl LichessState {

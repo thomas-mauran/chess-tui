@@ -134,9 +134,29 @@ If the file doesn't exist, create it with this content. Make sure to replace `YO
 
 By default `chess-tui` talks to the official Lichess API at `https://lichess.org/api`.
 
-You can point it at a different endpoint by setting the `CHESS_TUI_LICHESS_API_URL`
-environment variable. This is useful for self-hosted [lila](https://github.com/lichess-org/lila)
-instances, staging environments, or a local mock server used during development.
+You can point it at a different endpoint, which is useful for self-hosted
+[lila](https://github.com/lichess-org/lila) instances, staging environments, or a local
+mock server used during development.
+
+### From the TUI
+
+The API URL input is pre-filled with the URL currently in effect, so you only need to
+edit the part you want to change. It can be reached from two places:
+
+- **Before logging in** press `Tab` on the "Enter Lichess API Token" popup. The popup
+  shows the URL that your token will be validated against, so use this when your token
+  belongs to a server other than `lichess.org`. Anything you already typed into the
+  token field is kept while you edit the URL.
+- **After logging in** select **API URL** in the Lichess menu.
+
+Press `Enter` to save or `Esc` to cancel. The URL must start with `http://` or
+`https://`; submitting an empty input restores the default. The new URL applies
+immediately to every subsequent API request and is saved to `config.toml` as
+`lichess_api_url`, so it survives a restart.
+
+### From the environment
+
+Set the `CHESS_TUI_LICHESS_API_URL` environment variable:
 
 ```bash
 CHESS_TUI_LICHESS_API_URL="https://lichess.dev/api" chess-tui
@@ -153,8 +173,11 @@ Notes:
 
 - The value should be the API base URL, including the `/api` suffix if your instance uses one.
 - Trailing slashes are trimmed automatically.
-- If the variable is unset or empty, the default `https://lichess.org/api` is used.
-- The variable is read once at startup, so restart `chess-tui` after changing it.
+- The variable takes precedence over the value saved in `config.toml`, and is read once at
+  startup. Changing the URL from the TUI still applies for the rest of the session, but the
+  environment variable wins again on the next launch.
+- If the variable is unset or empty, the value from `config.toml` is used, falling back to
+  the default `https://lichess.org/api`.
 
 ## Verifying Your Setup
 

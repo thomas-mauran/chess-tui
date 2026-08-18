@@ -53,6 +53,8 @@ pub struct Config {
     pub bot_difficulty: Option<u8>,
     pub selected_skin_name: Option<String>,
     pub lichess_token: Option<String>,
+    /// Lichess API base URL. Overridden at startup by `CHESS_TUI_LICHESS_API_URL`.
+    pub lichess_api_url: Option<String>,
     pub sound_enabled: Option<bool>,
     pub animations_enabled: Option<bool>,
 }
@@ -67,6 +69,7 @@ impl Default for Config {
             bot_difficulty: None,
             selected_skin_name: Some("Default".to_string()),
             lichess_token: None,
+            lichess_api_url: None,
             sound_enabled: Some(true),
             animations_enabled: Some(false),
         }

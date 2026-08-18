@@ -1,6 +1,9 @@
 use chess_tui::app::{App, AppResult};
 use chess_tui::config::{Args, Config};
-use chess_tui::constants::{DisplayMode, Pages, SKIN_NAME_ASCII, SKIN_NAME_DEFAULT, config_dir};
+use chess_tui::constants::{
+    DisplayMode, Pages, SKIN_NAME_ASCII, SKIN_NAME_DEFAULT, config_dir,
+    lichess_api_url_is_env_pinned, set_lichess_api_url,
+};
 use chess_tui::event::{Event, EventHandler};
 use chess_tui::game_logic::opponent::wait_for_game_start;
 use chess_tui::handlers::handler::{handle_key_events, handle_mouse_events};
@@ -85,6 +88,13 @@ fn main() -> AppResult<()> {
             if let Some(lichess_token) = config.lichess_token {
                 app.lichess_state.token = Some(lichess_token.clone());
                 app.lichess_state.client = Some(LichessClient::new(lichess_token));
+            }
+            // The CHESS_TUI_LICHESS_API_URL environment variable wins over the
+            // persisted value, so only apply the config when it is not set.
+            if let Some(api_url) = config.lichess_api_url
+                && !lichess_api_url_is_env_pinned()
+            {
+                set_lichess_api_url(&api_url);
             }
             // Add sound enabled handling
             if let Some(sound_enabled) = config.sound_enabled {

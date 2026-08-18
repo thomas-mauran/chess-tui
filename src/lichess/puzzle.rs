@@ -1,7 +1,7 @@
 //! Puzzle fetch endpoint.
 
 use crate::{
-    constants::LICHESS_API_URL,
+    constants::lichess_api_url,
     lichess::models::{LichessClient, Puzzle},
 };
 use std::error::Error;
@@ -15,7 +15,7 @@ impl LichessClient {
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()
             .as_millis();
-        let url = format!("{}/puzzle/next?t={}", LICHESS_API_URL.as_str(), _timestamp);
+        let url = format!("{}/puzzle/next?t={}", lichess_api_url(), _timestamp);
 
         log::info!("Fetching puzzle from: {}", url);
 
@@ -61,7 +61,7 @@ impl LichessClient {
             }]
         });
 
-        let url = format!("{}/puzzle/batch/angle", LICHESS_API_URL.as_str());
+        let url = format!("{}/puzzle/batch/angle", lichess_api_url());
         log::info!("=== SUBMITTING PUZZLE RESULT ===");
         log::info!("URL: {}", url);
         log::info!("Puzzle ID: {}, Win: {}, Time: {:?}ms", puzzle_id, win, time);
