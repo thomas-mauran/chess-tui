@@ -42,7 +42,7 @@ impl LichessClient {
 
         thread::spawn(move || {
             log::info!("Starting event stream thread for game detection");
-            let url = format!("{}/stream/event", LICHESS_API_URL);
+            let url = format!("{}/stream/event", LICHESS_API_URL.as_str());
 
             loop {
                 if cancellation_token.load(std::sync::atomic::Ordering::Relaxed) {
@@ -152,7 +152,8 @@ impl LichessClient {
             let mut last_status: Option<String> = None;
 
             loop {
-                let stream_url = format!("{}/board/game/stream/{}", LICHESS_API_URL, game_id);
+                let stream_url =
+                    format!("{}/board/game/stream/{}", LICHESS_API_URL.as_str(), game_id);
                 log::info!("Connecting to board game stream: {}", stream_url);
 
                 let response = match client

@@ -2,6 +2,7 @@
 
 use core::fmt;
 use std::path::PathBuf;
+use std::sync::LazyLock;
 
 use ratatui::style::Color;
 use throbber_widgets_tui::Set;
@@ -182,7 +183,59 @@ pub enum Popups {
     Loading,
 }
 
+/// Default base URL for all Lichess REST API requests.
+pub const DEFAULT_LICHESS_API_URL: &str = "https://lichess.org/api";
+
+/// Environment variable used to override the Lichess API base URL.
+pub const LICHESS_API_URL_ENV: &str = "CHESS_TUI_LICHESS_API_URL";
+
 /// Base URL for all Lichess REST API requests.
-pub const LICHESS_API_URL: &str = "https://lichess.org/api";
+///
+/// Defaults to [`DEFAULT_LICHESS_API_URL`], and can be overridden by setting the
+/// `CHESS_TUI_LICHESS_API_URL` environment variable. Any trailing slashes are
+/// trimmed so callers can safely append `/some/path`.
+pub static LICHESS_API_URL: LazyLock<String> =
+    LazyLock::new(|| resolve_lichess_api_url(std::env::var(LICHESS_API_URL_ENV).ok()));
+
+/// Normalizes the raw `CHESS_TUI_LICHESS_API_URL` value, falling back to the default.
+fn resolve_lichess_api_url(raw: Option<String>) -> String {
+    raw.map(|url| url.trim().trim_end_matches('/').to_string())
+        .filter(|url| !url.is_empty())
+        .unwrap_or_else(|| DEFAULT_LICHESS_API_URL.to_string())
+}
 /// Base URL for the chess-tui documentation.
 pub const DOCS_URL: &str = "https://thomas-mauran.github.io/chess-tui/docs";
+
+#[cfg(test)]
+mod tests {
+    use super::{DEFAULT_LICHESS_API_URL, resolve_lichess_api_url};
+
+    #[test]
+    fn unset_env_falls_back_to_default() {
+        assert_eq!(resolve_lichess_api_url(None), DEFAULT_LICHESS_API_URL);
+    }
+
+    #[test]
+    fn blank_env_falls_back_to_default() {
+        assert_eq!(
+            resolve_lichess_api_url(Some("   ".to_string())),
+            DEFAULT_LICHESS_API_URL
+        );
+    }
+
+    #[test]
+    fn custom_url_is_used() {
+        assert_eq!(
+            resolve_lichess_api_url(Some("http://localhost:9663/api".to_string())),
+            "http://localhost:9663/api"
+        );
+    }
+
+    #[test]
+    fn trailing_slashes_and_whitespace_are_trimmed() {
+        assert_eq!(
+            resolve_lichess_api_url(Some(" https://lichess.dev/api// ".to_string())),
+            "https://lichess.dev/api"
+        );
+    }
+}

@@ -130,6 +130,32 @@ lichess_token = "YOUR_LICHESS_TOKEN_HERE"
 
 If the file doesn't exist, create it with this content. Make sure to replace `YOUR_LICHESS_TOKEN_HERE` with your actual token.
 
+## Using a Custom API Endpoint
+
+By default `chess-tui` talks to the official Lichess API at `https://lichess.org/api`.
+
+You can point it at a different endpoint by setting the `CHESS_TUI_LICHESS_API_URL`
+environment variable. This is useful for self-hosted [lila](https://github.com/lichess-org/lila)
+instances, staging environments, or a local mock server used during development.
+
+```bash
+CHESS_TUI_LICHESS_API_URL="https://lichess.dev/api" chess-tui
+```
+
+Or export it for the whole shell session:
+
+```bash
+export CHESS_TUI_LICHESS_API_URL="http://localhost:9663/api"
+chess-tui
+```
+
+Notes:
+
+- The value should be the API base URL, including the `/api` suffix if your instance uses one.
+- Trailing slashes are trimmed automatically.
+- If the variable is unset or empty, the default `https://lichess.org/api` is used.
+- The variable is read once at startup, so restart `chess-tui` after changing it.
+
 ## Verifying Your Setup
 
 Once you've configured your token, you can verify it's working:

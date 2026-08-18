@@ -15,7 +15,7 @@ impl LichessClient {
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()
             .as_millis();
-        let url = format!("{}/puzzle/next?t={}", LICHESS_API_URL, _timestamp);
+        let url = format!("{}/puzzle/next?t={}", LICHESS_API_URL.as_str(), _timestamp);
 
         log::info!("Fetching puzzle from: {}", url);
 
@@ -61,7 +61,7 @@ impl LichessClient {
             }]
         });
 
-        let url = format!("{}/puzzle/batch/angle", LICHESS_API_URL);
+        let url = format!("{}/puzzle/batch/angle", LICHESS_API_URL.as_str());
         log::info!("=== SUBMITTING PUZZLE RESULT ===");
         log::info!("URL: {}", url);
         log::info!("Puzzle ID: {}, Win: {}, Time: {:?}ms", puzzle_id, win, time);

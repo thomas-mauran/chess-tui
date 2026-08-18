@@ -8,7 +8,7 @@ use std::error::Error;
 
 impl LichessClient {
     pub fn get_user_profile(&self) -> Result<UserProfile, Box<dyn Error>> {
-        let url = format!("{}/account", LICHESS_API_URL);
+        let url = format!("{}/account", LICHESS_API_URL.as_str());
         log::info!("Fetching user profile from: {}", url);
 
         let response = self
@@ -34,7 +34,11 @@ impl LichessClient {
         &self,
         username: &str,
     ) -> Result<Vec<RatingHistoryEntry>, Box<dyn Error>> {
-        let url = format!("{}/user/{}/rating-history", LICHESS_API_URL, username);
+        let url = format!(
+            "{}/user/{}/rating-history",
+            LICHESS_API_URL.as_str(),
+            username
+        );
         log::info!("Fetching rating history from: {}", url);
 
         let response = self
@@ -60,7 +64,7 @@ impl LichessClient {
     }
 
     pub fn get_ongoing_games(&self) -> Result<Vec<OngoingGame>, Box<dyn Error>> {
-        let url = format!("{}/account/playing", LICHESS_API_URL);
+        let url = format!("{}/account/playing", LICHESS_API_URL.as_str());
         log::info!("Fetching ongoing games from: {}", url);
 
         let response = self
