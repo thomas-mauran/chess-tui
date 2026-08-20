@@ -53,6 +53,15 @@ impl Prompt {
         self.reset_cursor();
     }
 
+    /// Replaces `input` with `value` and places the cursor at the end of it.
+    ///
+    /// Used to pre-fill a prompt with an existing value the user can edit.
+    pub fn set_input(&mut self, value: &str) {
+        self.input = value.to_string();
+        self.character_index = self.input.chars().count();
+        self.error = None;
+    }
+
     /// Copies `input` into `message`, then clears `input` and resets the cursor.
     pub fn submit_message(&mut self) {
         self.message = self.input.clone();

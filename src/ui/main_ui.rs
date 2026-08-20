@@ -23,6 +23,7 @@ use crate::{
             error::render_error_popup,
             help::render_help_popup,
             lichess::{
+                api_url::render_enter_lichess_api_url_popup,
                 game_code::render_enter_game_code_popup, puzzle_end::render_puzzle_end_popup,
                 token::render_enter_lichess_token_popup,
             },
@@ -113,6 +114,9 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
         }
         Some(Popups::EnterLichessToken) => {
             render_enter_lichess_token_popup(frame, &app.game.ui.prompt);
+        }
+        Some(Popups::EnterLichessApiUrl) => {
+            render_enter_lichess_api_url_popup(frame, app);
         }
         Some(Popups::ResignConfirmation) => {
             render_resign_confirmation_popup(frame, app);

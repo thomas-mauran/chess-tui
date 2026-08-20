@@ -1,7 +1,8 @@
 //! Puzzle fetch endpoint.
 
 use crate::{
-    constants::LICHESS_API_URL,
+    constants::lichess_api_url,
+    lichess::errors::{status_error, transport_error},
     lichess::models::{LichessClient, Puzzle},
 };
 use std::error::Error;
@@ -15,7 +16,7 @@ impl LichessClient {
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()
             .as_millis();
-        let url = format!("{}/puzzle/next?t={}", LICHESS_API_URL, _timestamp);
+        let url = format!("{}/puzzle/next?t={}", lichess_api_url(), _timestamp);
 
         log::info!("Fetching puzzle from: {}", url);
 
@@ -27,13 +28,18 @@ impl LichessClient {
                 "chess-tui (https://github.com/thomas-mauran/chess-tui)",
             )
             .bearer_auth(&self.token)
-            .send()?;
+            .send()
+            .map_err(|e| transport_error("reach the Lichess server", &url, &e))?;
 
-        if !response.status().is_success() {
-            return Err(format!("Failed to fetch puzzle: {}", response.status()).into());
+        let status = response.status();
+        if !status.is_success() {
+            let body = response.text().unwrap_or_default();
+            return Err(status_error("fetch a puzzle", &url, status, &body).into());
         }
 
-        let puzzle: Puzzle = response.json()?;
+        let puzzle: Puzzle = response
+            .json()
+            .map_err(|e| transport_error("read the puzzle", &url, &e))?;
         log::info!(
             "Fetched puzzle: {} (rating: {})",
             puzzle.puzzle.id,
@@ -61,7 +67,7 @@ impl LichessClient {
             }]
         });
 
-        let url = format!("{}/puzzle/batch/angle", LICHESS_API_URL);
+        let url = format!("{}/puzzle/batch/angle", lichess_api_url());
         log::info!("=== SUBMITTING PUZZLE RESULT ===");
         log::info!("URL: {}", url);
         log::info!("Puzzle ID: {}, Win: {}, Time: {:?}ms", puzzle_id, win, time);
@@ -80,7 +86,8 @@ impl LichessClient {
             .header("Content-Type", "application/json")
             .bearer_auth(&self.token)
             .json(&payload)
-            .send()?;
+            .send()
+            .map_err(|e| transport_error("reach the Lichess server", &url, &e))?;
 
         let status = response.status();
         let response_text = response.text().unwrap_or_default();
@@ -94,11 +101,9 @@ impl LichessClient {
                 status,
                 response_text
             );
-            return Err(format!(
-                "Failed to submit puzzle result: {} - {}",
-                status, response_text
-            )
-            .into());
+            return Err(
+                status_error("submit the puzzle result", &url, status, &response_text).into(),
+            );
         }
 
         log::info!("✓ Puzzle result submitted successfully to Lichess!");

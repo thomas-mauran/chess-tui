@@ -1,6 +1,7 @@
 //! Board event streaming.
 
-use crate::constants::LICHESS_API_URL;
+use crate::constants::lichess_api_url;
+use crate::lichess::errors::{status_error, transport_error};
 use crate::lichess::models::{EventStreamEvent, GameEvent, LichessClient};
 use shakmaty::Color;
 use std::error::Error;
@@ -42,7 +43,7 @@ impl LichessClient {
 
         thread::spawn(move || {
             log::info!("Starting event stream thread for game detection");
-            let url = format!("{}/stream/event", LICHESS_API_URL);
+            let url = format!("{}/stream/event", lichess_api_url());
 
             loop {
                 if cancellation_token.load(std::sync::atomic::Ordering::Relaxed) {
@@ -61,14 +62,19 @@ impl LichessClient {
                 {
                     Ok(resp) => resp,
                     Err(e) => {
-                        log::error!("Failed to connect to event stream: {}", e);
+                        log::error!("{}", transport_error("open the event stream", &url, &e));
                         std::thread::sleep(std::time::Duration::from_secs(5));
                         continue;
                     }
                 };
 
-                if !response.status().is_success() {
-                    log::error!("Event stream returned status: {}", response.status());
+                let status = response.status();
+                if !status.is_success() {
+                    let body = response.text().unwrap_or_default();
+                    log::error!(
+                        "{}",
+                        status_error("open the event stream", &url, status, &body)
+                    );
                     std::thread::sleep(std::time::Duration::from_secs(5));
                     continue;
                 }
@@ -152,7 +158,7 @@ impl LichessClient {
             let mut last_status: Option<String> = None;
 
             loop {
-                let stream_url = format!("{}/board/game/stream/{}", LICHESS_API_URL, game_id);
+                let stream_url = format!("{}/board/game/stream/{}", lichess_api_url(), game_id);
                 log::info!("Connecting to board game stream: {}", stream_url);
 
                 let response = match client
@@ -166,18 +172,26 @@ impl LichessClient {
                 {
                     Ok(resp) => resp,
                     Err(e) => {
-                        log::error!("Failed to connect to board game stream: {}", e);
+                        log::error!(
+                            "{}",
+                            transport_error("open the game stream", &stream_url, &e)
+                        );
                         std::thread::sleep(std::time::Duration::from_secs(5));
                         continue;
                     }
                 };
 
-                if !response.status().is_success() {
-                    if response.status() == reqwest::StatusCode::NOT_FOUND {
+                let status = response.status();
+                if !status.is_success() {
+                    if status == reqwest::StatusCode::NOT_FOUND {
                         log::info!("Game {} not found, stopping stream", game_id);
                         break;
                     }
-                    log::error!("Game stream returned status: {}", response.status());
+                    let body = response.text().unwrap_or_default();
+                    log::error!(
+                        "{}",
+                        status_error("open the game stream", &stream_url, status, &body)
+                    );
                     std::thread::sleep(std::time::Duration::from_secs(5));
                     continue;
                 }

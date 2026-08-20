@@ -1,11 +1,24 @@
 //! Holds the API token, the [`LichessClient`], incoming event channels, and the active puzzle game if any.
 
 use crate::{
+    constants::Popups,
     game_logic::puzzle::PuzzleGame,
     lichess::models::{LichessClient, LichessError, OngoingGame, RatingHistoryEntry, UserProfile},
 };
 use shakmaty::Color;
 use std::sync::mpsc::Receiver;
+
+/// Which button is highlighted on the "missing `/api`" confirmation.
+///
+/// Appending is highlighted first because a base URL without `/api` is almost
+/// always a mistake, but the user can still keep what they typed.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ApiUrlSuffixChoice {
+    /// Save the URL with `/api` appended.
+    Append,
+    /// Save the URL exactly as it was typed.
+    KeepAsTyped,
+}
 
 pub enum LichessUpdate {
     ProfileResult(Result<Box<(UserProfile, Vec<RatingHistoryEntry>)>, String>),
@@ -39,6 +52,12 @@ pub struct LichessState {
     pub puzzle_game: Option<PuzzleGame>,
     /// Lichess menu stats scroll offset
     pub lichess_stats_scroll: u16,
+    /// Popup to restore once the API URL popup is dismissed, together with the
+    /// prompt input it had, so a half-typed token survives the detour.
+    pub api_url_return_popup: Option<(Popups, String)>,
+    /// Set while the API URL popup is asking whether to append the missing `/api`
+    /// suffix; the value is the highlighted button. `None` means normal editing.
+    pub api_url_suffix_choice: Option<ApiUrlSuffixChoice>,
 }
 
 impl LichessState {
