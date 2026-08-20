@@ -180,7 +180,11 @@ chess-tui
 
 Notes:
 
-- The value should be the API base URL, including the `/api` suffix if your instance uses one.
+- The value must be the API base URL, ending in `/api` — that is where Lichess serves
+  its API. A URL like `https://lichess.example` answers on the web root but returns a
+  404 page for every API call, which is the most common cause of "cannot connect".
+  When you change the URL from the TUI, chess-tui warns about a missing `/api` and
+  offers to append it for you; you can still save the URL as typed.
 - Trailing slashes and surrounding whitespace are trimmed automatically.
 - The variable is read once at startup, so restart `chess-tui` after changing it.
 
@@ -195,6 +199,18 @@ At startup the URL is taken from the first of these that is set:
 
 Changing the URL from the TUI applies immediately and is saved to `config.toml`, but a
 flag or environment variable still wins on the next launch.
+
+### Tokens for a custom instance
+
+A token is only valid on the server that issued it, so a custom instance needs its own.
+Once the API URL is set, both the API URL popup and the token popup show a link to that
+instance's token page with the scopes chess-tui needs already ticked:
+
+```
+https://YOUR_INSTANCE/account/oauth/token/create?scopes[]=preference:read&scopes[]=board:play&scopes[]=challenge:write&scopes[]=puzzle:read&description=chess-tui
+```
+
+Open it in a browser, submit the form, and paste the token back into chess-tui.
 
 ## Verifying Your Setup
 
@@ -216,9 +232,15 @@ If you're having issues with your token:
 
 ### Common Error Messages
 
-- **"Invalid token"**: Your token may be incorrect or expired. Generate a new one.
-- **"Token missing permissions"**: Make sure you enabled all required scopes when generating the token.
-- **"Failed to fetch profile"**: Check your internet connection and try again.
+- **"The server rejected the token"** (HTTP 401): the token is wrong, expired, or was
+  issued by a different server than the configured API URL. Generate a new one from the
+  link in the token popup.
+- **"The token is missing a scope"** (HTTP 403): regenerate the token with
+  `preference:read`, `board:play`, `challenge:write`, and `puzzle:read` ticked.
+- **"The server has no such endpoint"** (HTTP 404): the API base URL is wrong. If it does
+  not end in `/api`, that is almost certainly the problem.
+- **"Could not open a connection"**: the host is unreachable from this machine — check
+  the host name, the port, and whether its TLS certificate is trusted here.
 
 ### Need Help?
 

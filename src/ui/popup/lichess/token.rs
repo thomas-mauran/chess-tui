@@ -2,7 +2,7 @@
 
 use crate::ui::prompt::Prompt;
 use crate::{
-    constants::{DOCS_URL, WHITE, lichess_api_url},
+    constants::{DOCS_URL, WHITE, lichess_api_url, lichess_token_create_url},
     ui::components::centered_rect::centered_rect,
 };
 use ratatui::{
@@ -42,7 +42,10 @@ pub fn render_enter_lichess_token_popup(frame: &mut Frame, prompt: &Prompt) {
         Line::from(""),
         Line::from(masked_input),
         Line::from(""),
-        Line::from(format!("Get a token: {}/Lichess/setup", DOCS_URL)),
+        Line::from("Create one with the right scopes already ticked:"),
+        Line::from(lichess_token_create_url(&lichess_api_url())),
+        Line::from(""),
+        Line::from(format!("Guide: {}/Lichess/setup", DOCS_URL)),
         Line::from(""),
         Line::from(format!("API URL: {}", lichess_api_url())),
         Line::from("Press `Tab` to use a different Lichess server."),

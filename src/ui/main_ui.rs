@@ -114,7 +114,7 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
             render_enter_lichess_token_popup(frame, &app.game.ui.prompt);
         }
         Some(Popups::EnterLichessApiUrl) => {
-            render_enter_lichess_api_url_popup(frame, &app.game.ui.prompt);
+            render_enter_lichess_api_url_popup(frame, app);
         }
         Some(Popups::ResignConfirmation) => {
             render_resign_confirmation_popup(frame, app);

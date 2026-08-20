@@ -1,6 +1,7 @@
 //! Account and profile endpoints.
 
 use crate::constants::lichess_api_url;
+use crate::lichess::errors::{status_error, transport_error};
 use crate::lichess::models::{
     LichessClient, OngoingGame, OngoingGamesResponse, RatingHistoryEntry, UserProfile,
 };
@@ -19,13 +20,18 @@ impl LichessClient {
                 "chess-tui (https://github.com/thomas-mauran/chess-tui)",
             )
             .bearer_auth(&self.token)
-            .send()?;
+            .send()
+            .map_err(|e| transport_error("reach the Lichess server", &url, &e))?;
 
-        if !response.status().is_success() {
-            return Err(format!("Failed to fetch user profile: {}", response.status()).into());
+        let status = response.status();
+        if !status.is_success() {
+            let body = response.text().unwrap_or_default();
+            return Err(status_error("fetch your Lichess profile", &url, status, &body).into());
         }
 
-        let profile: UserProfile = response.json()?;
+        let profile: UserProfile = response
+            .json()
+            .map_err(|e| transport_error("read your Lichess profile", &url, &e))?;
         log::info!("Fetched user profile: {}", profile.username);
         Ok(profile)
     }
@@ -45,13 +51,18 @@ impl LichessClient {
                 "chess-tui (https://github.com/thomas-mauran/chess-tui)",
             )
             .bearer_auth(&self.token)
-            .send()?;
+            .send()
+            .map_err(|e| transport_error("reach the Lichess server", &url, &e))?;
 
-        if !response.status().is_success() {
-            return Err(format!("Failed to fetch rating history: {}", response.status()).into());
+        let status = response.status();
+        if !status.is_success() {
+            let body = response.text().unwrap_or_default();
+            return Err(status_error("fetch your rating history", &url, status, &body).into());
         }
 
-        let history: Vec<RatingHistoryEntry> = response.json()?;
+        let history: Vec<RatingHistoryEntry> = response
+            .json()
+            .map_err(|e| transport_error("read your rating history", &url, &e))?;
         log::info!(
             "Fetched rating history with {} time controls",
             history.len()
@@ -71,16 +82,18 @@ impl LichessClient {
                 "chess-tui (https://github.com/thomas-mauran/chess-tui)",
             )
             .bearer_auth(&self.token)
-            .send()?;
+            .send()
+            .map_err(|e| transport_error("reach the Lichess server", &url, &e))?;
 
-        if !response.status().is_success() {
-            if response.status() == reqwest::StatusCode::UNAUTHORIZED {
-                return Err("Invalid token. Please check your token or generate a new one.".into());
-            }
-            return Err(format!("Failed to fetch ongoing games: {}", response.status()).into());
+        let status = response.status();
+        if !status.is_success() {
+            let body = response.text().unwrap_or_default();
+            return Err(status_error("fetch your ongoing games", &url, status, &body).into());
         }
 
-        let games_response: OngoingGamesResponse = response.json()?;
+        let games_response: OngoingGamesResponse = response
+            .json()
+            .map_err(|e| transport_error("read your ongoing games", &url, &e))?;
         log::info!("Found {} ongoing games", games_response.now_playing.len());
         Ok(games_response.now_playing)
     }

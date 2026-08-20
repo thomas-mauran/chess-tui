@@ -4,6 +4,7 @@ use crate::{
     app::App,
     constants::{Pages, Popups},
     handlers::handler::fallback_key_handler,
+    state::lichess_state::ApiUrlSuffixChoice,
     utils::normalize_lowercase_to_san,
 };
 use ratatui::crossterm::event::{KeyCode, KeyEvent};
@@ -247,6 +248,23 @@ fn handle_enter_lichess_token(app: &mut App, key_event: KeyEvent) {
 }
 
 fn handle_enter_lichess_api_url(app: &mut App, key_event: KeyEvent) {
+    // While the "missing /api" confirmation is up, the keys pick a button instead
+    // of editing the URL, so that branch has to come first.
+    if let Some(choice) = app.lichess_state.api_url_suffix_choice {
+        match key_event.code {
+            KeyCode::Enter => app.confirm_lichess_api_url_suffix(choice),
+            KeyCode::Left | KeyCode::Right | KeyCode::Tab => {
+                app.lichess_state.api_url_suffix_choice = Some(match choice {
+                    ApiUrlSuffixChoice::Append => ApiUrlSuffixChoice::KeepAsTyped,
+                    ApiUrlSuffixChoice::KeepAsTyped => ApiUrlSuffixChoice::Append,
+                });
+            }
+            KeyCode::Esc => app.cancel_lichess_api_url_suffix(),
+            _ => {}
+        }
+        return;
+    }
+
     match key_event.code {
         KeyCode::Enter => {
             let url = app.game.ui.prompt.input.clone();

@@ -3,8 +3,9 @@ mod lichess_api_url_tests {
     use chess_tui::{
         app::{App, AppResult},
         config::{Args, Config},
-        constants::{DEFAULT_LICHESS_API_URL, Popups},
+        constants::{DEFAULT_LICHESS_API_URL, Popups, lichess_api_url, set_lichess_api_url},
         handlers::handler::handle_key_events,
+        state::lichess_state::ApiUrlSuffixChoice,
         ui::popup::lichess::{
             api_url::render_enter_lichess_api_url_popup, token::render_enter_lichess_token_popup,
         },
@@ -71,8 +72,7 @@ mod lichess_api_url_tests {
         assert_eq!(app.ui_state.current_popup, Some(Popups::EnterLichessApiUrl));
         assert_eq!(app.game.ui.prompt.input, DEFAULT_LICHESS_API_URL);
 
-        let rendered =
-            render(|frame| render_enter_lichess_api_url_popup(frame, &app.game.ui.prompt))?;
+        let rendered = render(|frame| render_enter_lichess_api_url_popup(frame, &app))?;
         assert!(
             rendered.contains(DEFAULT_LICHESS_API_URL),
             "API URL popup should be pre-filled with the current URL.\nRendered:\n{rendered}"
@@ -108,6 +108,87 @@ mod lichess_api_url_tests {
             "Popup should stay open so the user can fix the URL"
         );
         assert!(app.game.ui.prompt.error.is_some());
+        Ok(())
+    }
+
+    /// The API URL is a process-wide global, so a single test drives both outcomes
+    /// rather than racing a sibling test that also writes it.
+    #[test]
+    fn a_url_without_the_api_suffix_asks_before_saving() -> AppResult<()> {
+        let mut app = App::default();
+        app.open_lichess_api_url_popup(None);
+        app.game.ui.prompt.set_input("https://lichess.verde.zoe");
+
+        handle_key_events(key_press(KeyCode::Enter), &mut app)?;
+
+        assert_eq!(app.ui_state.current_popup, Some(Popups::EnterLichessApiUrl));
+        assert_eq!(
+            app.lichess_state.api_url_suffix_choice,
+            Some(ApiUrlSuffixChoice::Append),
+            "Appending should be the highlighted button"
+        );
+
+        let rendered = render(|frame| render_enter_lichess_api_url_popup(frame, &app))?;
+        assert!(
+            rendered.contains("does not end in /api"),
+            "The popup should warn about the missing suffix.\nRendered:\n{rendered}"
+        );
+
+        // Confirming the highlighted button appends the suffix and closes the popup.
+        handle_key_events(key_press(KeyCode::Enter), &mut app)?;
+        assert_eq!(lichess_api_url(), "https://lichess.verde.zoe/api");
+        assert_eq!(app.ui_state.current_popup, None);
+
+        // Moving off the highlighted button keeps the URL exactly as typed.
+        app.open_lichess_api_url_popup(None);
+        app.game.ui.prompt.set_input("https://lichess.verde.zoe");
+        handle_key_events(key_press(KeyCode::Enter), &mut app)?;
+        handle_key_events(key_press(KeyCode::Right), &mut app)?;
+        assert_eq!(
+            app.lichess_state.api_url_suffix_choice,
+            Some(ApiUrlSuffixChoice::KeepAsTyped)
+        );
+        handle_key_events(key_press(KeyCode::Enter), &mut app)?;
+        assert_eq!(lichess_api_url(), "https://lichess.verde.zoe");
+
+        set_lichess_api_url(DEFAULT_LICHESS_API_URL);
+        Ok(())
+    }
+
+    #[test]
+    fn escaping_the_warning_returns_to_editing_the_url() -> AppResult<()> {
+        let mut app = App::default();
+        app.open_lichess_api_url_popup(None);
+        app.game.ui.prompt.set_input("https://lichess.verde.zoe");
+
+        handle_key_events(key_press(KeyCode::Enter), &mut app)?;
+        handle_key_events(key_press(KeyCode::Esc), &mut app)?;
+
+        assert_eq!(app.lichess_state.api_url_suffix_choice, None);
+        assert_eq!(app.ui_state.current_popup, Some(Popups::EnterLichessApiUrl));
+        assert_eq!(app.game.ui.prompt.input, "https://lichess.verde.zoe");
+        Ok(())
+    }
+
+    #[test]
+    fn a_valid_url_offers_a_scoped_token_link_for_that_instance() -> AppResult<()> {
+        let mut app = App::default();
+        app.open_lichess_api_url_popup(None);
+        app.game
+            .ui
+            .prompt
+            .set_input("https://lichess.verde.zoe/api");
+
+        let rendered = render(|frame| render_enter_lichess_api_url_popup(frame, &app))?;
+        // The rendered buffer wraps, so assert on the distinctive pieces.
+        assert!(
+            rendered.contains("account/oauth/token/create"),
+            "A valid URL should offer the token creation link.\nRendered:\n{rendered}"
+        );
+        assert!(
+            rendered.contains("board:play"),
+            "The link should preselect the scopes chess-tui needs.\nRendered:\n{rendered}"
+        );
         Ok(())
     }
 

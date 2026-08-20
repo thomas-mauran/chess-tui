@@ -1,6 +1,7 @@
 //! Game seek, join, and resign endpoints.
 
 use crate::constants::lichess_api_url;
+use crate::lichess::errors::{status_error, transport_error};
 use crate::lichess::models::{GameEvent, LichessClient};
 use shakmaty::Color;
 use std::error::Error;
@@ -31,10 +32,13 @@ impl LichessClient {
                 "User-Agent",
                 "chess-tui (https://github.com/thomas-mauran/chess-tui)",
             )
-            .send()?;
+            .send()
+            .map_err(|e| transport_error("reach the Lichess server", &url, &e))?;
 
-        if !response.status().is_success() {
-            return Err(format!("Failed to get game info: {}", response.status()).into());
+        let status = response.status();
+        if !status.is_success() {
+            let body = response.text().unwrap_or_default();
+            return Err(status_error("read the game", &url, status, &body).into());
         }
 
         // Read the first line which should be the gameFull event
@@ -119,7 +123,8 @@ impl LichessClient {
                     ("days", "3"),
                     ("color", "random"),
                 ])
-                .send()?
+                .send()
+                .map_err(|e| transport_error("reach the Lichess server", &url, &e))?
         } else {
             // Real-time game
             let time_str = time.to_string();
@@ -133,7 +138,8 @@ impl LichessClient {
                     ("increment", &inc_str),
                     ("color", "random"),
                 ])
-                .send()?
+                .send()
+                .map_err(|e| transport_error("reach the Lichess server", &url, &e))?
         };
 
         let status = response.status();
@@ -141,21 +147,12 @@ impl LichessClient {
             let error_text = response.text().unwrap_or_default();
             log::error!("Seek request failed: {} - {}", status, error_text);
 
-            if status == reqwest::StatusCode::FORBIDDEN {
-                return Err("Token missing permissions. Please generate a new token with 'board:play' scope enabled.".into());
-            }
-            if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
-                return Err(
-                    "Rate limit exceeded. Please wait a minute before trying again.".into(),
-                );
-            }
-            if status == reqwest::StatusCode::UNAUTHORIZED {
-                return Err("Invalid token. Please check your token or generate a new one.".into());
-            }
+            // Only the seek-specific case is spelled out here; everything else is
+            // shared with the other endpoints.
             if status == reqwest::StatusCode::BAD_REQUEST {
                 return Err(format!("Invalid seek parameters: {}", error_text).into());
             }
-            return Err(format!("Failed to seek game: {} - {}", status, error_text).into());
+            return Err(status_error("seek a game", &url, status, &error_text).into());
         }
 
         log::info!("Seek created. Waiting for event stream to detect game start...");
@@ -462,10 +459,17 @@ impl LichessClient {
             game_id,
             move_str
         );
-        let response = self.client.post(&url).bearer_auth(&self.token).send()?;
+        let response = self
+            .client
+            .post(&url)
+            .bearer_auth(&self.token)
+            .send()
+            .map_err(|e| transport_error("reach the Lichess server", &url, &e))?;
 
-        if !response.status().is_success() {
-            return Err(format!("Failed to make move: {}", response.status()).into());
+        let status = response.status();
+        if !status.is_success() {
+            let body = response.text().unwrap_or_default();
+            return Err(status_error("play your move", &url, status, &body).into());
         }
         Ok(())
     }
@@ -484,13 +488,14 @@ impl LichessClient {
                 "chess-tui (https://github.com/thomas-mauran/chess-tui)",
             )
             .bearer_auth(&self.token)
-            .send()?;
+            .send()
+            .map_err(|e| transport_error("reach the Lichess server", &url, &e))?;
 
-        if !response.status().is_success() {
-            let status = response.status();
+        let status = response.status();
+        if !status.is_success() {
             let error_text = response.text().unwrap_or_default();
             log::error!("Failed to resign game: {} - {}", status, error_text);
-            return Err(format!("Failed to resign game: {} - {}", status, error_text).into());
+            return Err(status_error("resign the game", &url, status, &error_text).into());
         }
 
         log::info!("Successfully resigned game: {}", game_id);

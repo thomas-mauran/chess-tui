@@ -2,13 +2,14 @@
 
 use crate::app::App;
 use crate::constants::{
-    DOCS_URL, Pages, Popups, SLEEP_DURATION_RESIGN_MS, lichess_api_url, set_lichess_api_url,
+    DOCS_URL, Pages, Popups, SLEEP_DURATION_RESIGN_MS, append_lichess_api_suffix,
+    is_valid_lichess_api_url, lichess_api_url, lichess_api_url_has_suffix, set_lichess_api_url,
 };
 use crate::game_logic::game::GameState;
 use crate::game_logic::opponent::Opponent;
 use crate::game_logic::puzzle::PuzzleGame;
 use crate::lichess::models::LichessClient;
-use crate::state::lichess_state::LichessUpdate;
+use crate::state::lichess_state::{ApiUrlSuffixChoice, LichessUpdate};
 use shakmaty::Color;
 use std::sync::mpsc::channel;
 
@@ -53,9 +54,13 @@ impl App {
             }
             Err(e) => {
                 // Token is invalid, show error
+                // The client already explains what failed and what to try, so pass it
+                // through rather than assuming every failure is a bad token.
                 let msg = format!(
-                    "Invalid Lichess token.\n\nError: {}\n\n Please check your token and try again.\n\n Follow the documentation: {}/Lichess/setup",
-                    DOCS_URL, e
+                    "{}\n\nAPI URL: {}\n\nSetup guide: {}/Lichess/setup",
+                    e,
+                    lichess_api_url(),
+                    DOCS_URL
                 );
                 self.ui_state.current_popup = Some(Popups::Error);
                 self.ui_state.show_message_popup(msg, Popups::Error);
@@ -68,6 +73,7 @@ impl App {
     /// `return_popup` is restored when the user cancels or saves, along with whatever
     /// had been typed into it, so opening this from the token popup loses nothing.
     pub fn open_lichess_api_url_popup(&mut self, return_popup: Option<Popups>) {
+        self.lichess_state.api_url_suffix_choice = None;
         self.lichess_state.api_url_return_popup =
             return_popup.map(|popup| (popup, self.game.ui.prompt.input.clone()));
         self.game.ui.prompt.reset();
@@ -78,24 +84,50 @@ impl App {
     /// Applies the API URL typed into the popup and persists it to the config file.
     ///
     /// An empty input restores the default endpoint. Anything that is not an
-    /// `http://` or `https://` URL is rejected inline so the popup stays open.
+    /// `http://` or `https://` URL is rejected inline so the popup stays open. A URL
+    /// without the `/api` suffix is not rejected, but the popup asks about it first
+    /// via [`App::confirm_lichess_api_url_suffix`].
     pub fn save_lichess_api_url(&mut self, raw: String) {
         let trimmed = raw.trim();
-        if !trimmed.is_empty()
-            && !trimmed.starts_with("http://")
-            && !trimmed.starts_with("https://")
-        {
+        if !is_valid_lichess_api_url(trimmed) {
             self.game.ui.prompt.error = Some("URL must start with http:// or https://".to_string());
             return;
         }
 
-        set_lichess_api_url(trimmed);
+        if !lichess_api_url_has_suffix(trimmed) {
+            self.lichess_state.api_url_suffix_choice = Some(ApiUrlSuffixChoice::Append);
+            return;
+        }
+
+        self.store_lichess_api_url(trimmed.to_string());
+    }
+
+    /// Resolves the "missing `/api`" confirmation with the highlighted choice.
+    pub fn confirm_lichess_api_url_suffix(&mut self, choice: ApiUrlSuffixChoice) {
+        let typed = self.game.ui.prompt.input.trim().to_string();
+        let url = match choice {
+            ApiUrlSuffixChoice::Append => append_lichess_api_suffix(&typed),
+            ApiUrlSuffixChoice::KeepAsTyped => typed,
+        };
+        self.lichess_state.api_url_suffix_choice = None;
+        self.store_lichess_api_url(url);
+    }
+
+    /// Dismisses the "missing `/api`" confirmation and returns to editing the URL.
+    pub fn cancel_lichess_api_url_suffix(&mut self) {
+        self.lichess_state.api_url_suffix_choice = None;
+    }
+
+    /// Installs `url` as the API base URL, persists it, and closes the popup.
+    fn store_lichess_api_url(&mut self, url: String) {
+        set_lichess_api_url(&url);
         self.update_config_from_app();
         self.close_lichess_api_url_popup();
     }
 
     /// Restores whichever popup was showing before the API URL popup opened.
     pub fn close_lichess_api_url_popup(&mut self) {
+        self.lichess_state.api_url_suffix_choice = None;
         self.game.ui.prompt.reset();
         match self.lichess_state.api_url_return_popup.take() {
             Some((popup, previous_input)) => {
