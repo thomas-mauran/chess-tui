@@ -1,7 +1,10 @@
 //! Board event streaming.
 
-use crate::constants::LICHESS_API_URL;
-use crate::lichess::models::{EventStreamEvent, GameEvent, LichessClient};
+use crate::constants::lichess_api_url;
+use crate::lichess::errors::{status_error, transport_error};
+use crate::lichess::models::{
+    EventStreamEvent, GameEvent, LichessClient, unsupported_variant_name,
+};
 use shakmaty::Color;
 use std::error::Error;
 use std::sync::mpsc::Sender;
@@ -42,7 +45,7 @@ impl LichessClient {
 
         thread::spawn(move || {
             log::info!("Starting event stream thread for game detection");
-            let url = format!("{}/stream/event", LICHESS_API_URL);
+            let url = format!("{}/stream/event", lichess_api_url());
 
             loop {
                 if cancellation_token.load(std::sync::atomic::Ordering::Relaxed) {
@@ -61,14 +64,19 @@ impl LichessClient {
                 {
                     Ok(resp) => resp,
                     Err(e) => {
-                        log::error!("Failed to connect to event stream: {}", e);
+                        log::error!("{}", transport_error("open the event stream", &url, &e));
                         std::thread::sleep(std::time::Duration::from_secs(5));
                         continue;
                     }
                 };
 
-                if !response.status().is_success() {
-                    log::error!("Event stream returned status: {}", response.status());
+                let status = response.status();
+                if !status.is_success() {
+                    let body = response.text().unwrap_or_default();
+                    log::error!(
+                        "{}",
+                        status_error("open the event stream", &url, status, &body)
+                    );
                     std::thread::sleep(std::time::Duration::from_secs(5));
                     continue;
                 }
@@ -101,6 +109,17 @@ impl LichessClient {
                         Ok(EventStreamEvent::GameStart { game }) => {
                             // Check if this is a new game
                             if !initial_game_ids.contains(&game.game_id) {
+                                // Only standard chess can be set up; see GameVariant.
+                                if let Some(variant) =
+                                    unsupported_variant_name(game.variant.as_ref())
+                                {
+                                    let _ = game_found_tx.send(Err(format!(
+                                        "The game that started is {}.\n\nchess-tui plays standard chess only, so it cannot open this game.",
+                                        variant
+                                    )));
+                                    return;
+                                }
+
                                 let color = parse_game_color(&game.color);
                                 log::info!(
                                     "Event stream found new game: {} as {:?}",
@@ -152,7 +171,7 @@ impl LichessClient {
             let mut last_status: Option<String> = None;
 
             loop {
-                let stream_url = format!("{}/board/game/stream/{}", LICHESS_API_URL, game_id);
+                let stream_url = format!("{}/board/game/stream/{}", lichess_api_url(), game_id);
                 log::info!("Connecting to board game stream: {}", stream_url);
 
                 let response = match client
@@ -166,18 +185,26 @@ impl LichessClient {
                 {
                     Ok(resp) => resp,
                     Err(e) => {
-                        log::error!("Failed to connect to board game stream: {}", e);
+                        log::error!(
+                            "{}",
+                            transport_error("open the game stream", &stream_url, &e)
+                        );
                         std::thread::sleep(std::time::Duration::from_secs(5));
                         continue;
                     }
                 };
 
-                if !response.status().is_success() {
-                    if response.status() == reqwest::StatusCode::NOT_FOUND {
+                let status = response.status();
+                if !status.is_success() {
+                    if status == reqwest::StatusCode::NOT_FOUND {
                         log::info!("Game {} not found, stopping stream", game_id);
                         break;
                     }
-                    log::error!("Game stream returned status: {}", response.status());
+                    let body = response.text().unwrap_or_default();
+                    log::error!(
+                        "{}",
+                        status_error("open the game stream", &stream_url, status, &body)
+                    );
                     std::thread::sleep(std::time::Duration::from_secs(5));
                     continue;
                 }

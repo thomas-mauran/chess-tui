@@ -86,6 +86,7 @@ fn render_menu_panel(frame: &mut Frame, app: &App, area: Rect) {
         ("Puzzle", "Play a puzzle"),
         ("My Ongoing Games", "View and join your current games"),
         ("Join by Code", "Enter a game code to join"),
+        ("API URL", "Change the Lichess server to talk to"),
         ("Disconnect", "Remove Lichess token and logout"),
     ];
 
@@ -93,7 +94,7 @@ fn render_menu_panel(frame: &mut Frame, app: &App, area: Rect) {
 
     for (idx, (option, description)) in menu_items.iter().enumerate() {
         let is_selected = app.ui_state.menu_cursor == idx as u8;
-        let is_disconnect = idx == 4;
+        let is_disconnect = idx == menu_items.len() - 1;
 
         let style = if is_selected {
             if is_disconnect {

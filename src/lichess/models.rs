@@ -45,9 +45,38 @@ pub struct EventStreamGame {
     #[serde(rename = "gameId")]
     pub game_id: String,
     pub color: String,
-    // We only need game_id and color, but keep minimal structure for deserialization
+    /// chess-tui plays standard chess only, so the variant decides whether the
+    /// game can be set up at all. See [`GameVariant::is_standard`].
+    #[serde(default)]
+    pub variant: Option<GameVariant>,
+    // We only need game_id, color and variant, but keep minimal structure for deserialization
     #[serde(flatten)]
     _rest: serde_json::Value,
+}
+
+/// Rule set a game is played under, as reported by the API.
+///
+/// chess-tui models every position with [`shakmaty::Chess`], so anything other
+/// than `standard` cannot be parsed, let alone played: a Horde FEN has no white
+/// king and its moves are illegal in standard chess from the first ply.
+#[derive(Debug, Deserialize, Clone)]
+pub struct GameVariant {
+    pub key: String,
+    pub name: String,
+}
+
+impl GameVariant {
+    /// Standard chess is the only rule set chess-tui can set up a board for.
+    pub fn is_standard(&self) -> bool {
+        self.key == "standard"
+    }
+}
+
+/// Name of a game's variant when it is one chess-tui cannot play.
+///
+/// A missing `variant` is treated as standard, which is how the API omits it.
+pub fn unsupported_variant_name(variant: Option<&GameVariant>) -> Option<String> {
+    variant.filter(|v| !v.is_standard()).map(|v| v.name.clone())
 }
 
 #[derive(Debug, Deserialize)]
@@ -72,6 +101,9 @@ pub struct OngoingGame {
     pub opponent: OpponentInfo,
     #[serde(rename = "isMyTurn")]
     pub is_my_turn: bool,
+    /// See [`GameVariant`]: non-standard games cannot be set up.
+    #[serde(default)]
+    pub variant: Option<GameVariant>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -96,8 +128,12 @@ pub struct Puzzle {
 #[derive(Debug, Deserialize, Clone)]
 pub struct PuzzleGame {
     pub id: String,
+    /// Empty on instances whose puzzle database has no game replay for the puzzle.
+    #[serde(default)]
     pub pgn: String,
-    pub clock: String,
+    /// Absent on instances whose puzzles do not come from a clocked game.
+    #[serde(default)]
+    pub clock: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -109,6 +145,12 @@ pub struct PuzzleInfo {
     pub initial_ply: u16,
     pub solution: Vec<String>,
     pub themes: Vec<String>,
+    /// Starting position of the puzzle. Sent by instances that have no game PGN
+    /// to replay, and is then the only way to set up the board.
+    #[serde(default)]
+    pub fen: Option<String>,
+    #[serde(default, rename = "lastMove")]
+    pub last_move: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]

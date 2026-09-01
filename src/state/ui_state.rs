@@ -71,6 +71,10 @@ impl UIState {
 
     /// Opens a popup and stores `message` so the UI can display it.
     pub fn show_message_popup(&mut self, message: String, popup_type: Popups) {
+        // A dismissed popup is gone; the log is what a bug report can be built from.
+        if popup_type == Popups::Error {
+            log::error!("Error popup shown: {}", message);
+        }
         self.popup_message = Some(message);
         self.current_popup = Some(popup_type);
     }

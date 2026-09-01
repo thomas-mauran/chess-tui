@@ -12,6 +12,7 @@ pub enum LichessMenuItems {
     Puzzle,
     MyOngoingGames,
     JoinByCode,
+    ApiUrl,
     Disconnect,
 }
 
@@ -22,7 +23,8 @@ impl From<u8> for LichessMenuItems {
             1 => LichessMenuItems::Puzzle,
             2 => LichessMenuItems::MyOngoingGames,
             3 => LichessMenuItems::JoinByCode,
-            4 => LichessMenuItems::Disconnect,
+            4 => LichessMenuItems::ApiUrl,
+            5 => LichessMenuItems::Disconnect,
             _ => unreachable!("Invalid LichessMenuItems value: {value}"),
         }
     }
@@ -32,8 +34,8 @@ impl From<u8> for LichessMenuItems {
 /// Supports navigation through menu items and selection.
 pub fn handle_lichess_menu_page_events(app: &mut App, key_event: KeyEvent) {
     match key_event.code {
-        KeyCode::Up | KeyCode::Char('k') => app.ui_state.menu_cursor_up(5), // 5 menu options
-        KeyCode::Down | KeyCode::Char('j') => app.ui_state.menu_cursor_down(5),
+        KeyCode::Up | KeyCode::Char('k') => app.ui_state.menu_cursor_up(6), // 6 menu options
+        KeyCode::Down | KeyCode::Char('j') => app.ui_state.menu_cursor_down(6),
         KeyCode::PageUp => {
             // Scroll stats up
             if app.lichess_state.lichess_stats_scroll > 0 {
@@ -133,6 +135,9 @@ pub fn handle_lichess_menu_page_events(app: &mut App, key_event: KeyEvent) {
                     }
                     app.ui_state.current_popup = Some(Popups::EnterGameCode);
                     app.game.ui.prompt.reset();
+                }
+                LichessMenuItems::ApiUrl => {
+                    app.open_lichess_api_url_popup(None);
                 }
                 LichessMenuItems::Disconnect => {
                     // Disconnect

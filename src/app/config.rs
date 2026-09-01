@@ -2,7 +2,7 @@
 
 use crate::app::App;
 use crate::config::Config;
-use crate::constants::config_dir;
+use crate::constants::{config_dir, lichess_api_url};
 use std::fs::{self, File};
 use std::io::Write;
 
@@ -27,6 +27,7 @@ impl App {
         config.bot_difficulty = self.bot_state.bot_difficulty;
         config.selected_skin_name = Some(self.theme_state.selected_skin_name.clone());
         config.lichess_token = self.lichess_state.token.clone();
+        config.lichess_api_url = Some(lichess_api_url());
         config.sound_enabled = Some(self.sound_enabled);
         config.animations_enabled = Some(self.animations_enabled);
 

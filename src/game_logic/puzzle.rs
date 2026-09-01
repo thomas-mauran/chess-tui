@@ -4,6 +4,7 @@ use crate::game_logic::game::Game;
 use crate::game_logic::game::GameState;
 use crate::game_logic::game_board::GameBoard;
 use crate::lichess::models::{LichessClient, Puzzle};
+use crate::lichess::puzzle::PuzzleSubmitOutcome;
 use crate::utils::get_coord_from_square;
 use shakmaty::{Position, Square};
 use std::sync::mpsc::Receiver;
@@ -19,7 +20,10 @@ pub struct PuzzleGame {
     pub submitted: bool,
     pub rating_before: Option<u16>,
     pub elo_change: Option<i32>,
-    pub elo_change_receiver: Option<Receiver<i32>>,
+    pub elo_change_receiver: Option<Receiver<PuzzleSubmitOutcome>>,
+    /// Set when the instance has no puzzle-result endpoint, so the end screen can
+    /// say why no rating change is coming instead of waiting for one forever.
+    pub submit_unsupported: bool,
 }
 
 impl PuzzleGame {
@@ -35,6 +39,7 @@ impl PuzzleGame {
             rating_before,
             elo_change: None,
             elo_change_receiver: None,
+            submit_unsupported: false,
         }
     }
 
@@ -195,10 +200,12 @@ impl PuzzleGame {
             self.elo_change_receiver = Some(rx);
 
             std::thread::spawn(move || {
-                if let Ok(rating_diff) = client.submit_puzzle_result(&puzzle_id, win, Some(time_ms))
-                {
-                    let _ = tx.send(rating_diff);
-                }
+                // Always send something: the end screen shows "Calculating Elo change..."
+                // for as long as the receiver is open, so a silent drop hangs it forever.
+                let outcome = client
+                    .submit_puzzle_result(&puzzle_id, win, Some(time_ms))
+                    .unwrap_or(PuzzleSubmitOutcome::Failed);
+                let _ = tx.send(outcome);
             });
 
             self.submitted = true;
@@ -207,9 +214,14 @@ impl PuzzleGame {
 
     pub fn check_elo_update(&mut self) {
         if let Some(ref rx) = self.elo_change_receiver
-            && let Ok(elo_change) = rx.try_recv()
+            && let Ok(outcome) = rx.try_recv()
         {
-            self.elo_change = Some(elo_change);
+            match outcome {
+                PuzzleSubmitOutcome::Rated(elo_change) => self.elo_change = Some(elo_change),
+                PuzzleSubmitOutcome::Unsupported => self.submit_unsupported = true,
+                // The error is already logged; the end screen just stops waiting.
+                PuzzleSubmitOutcome::Failed => {}
+            }
             self.elo_change_receiver = None;
         }
     }
@@ -250,98 +262,141 @@ impl PuzzleGame {
 
     pub fn load(client: &LichessClient, game_board: &mut GameBoard) -> Result<Puzzle, String> {
         match client.get_next_puzzle() {
-            Ok(puzzle) => {
-                log::info!(
-                    "Loaded puzzle: {} (rating: {})",
-                    puzzle.puzzle.id,
-                    puzzle.puzzle.rating
-                );
-                log::info!("Puzzle solution: {:?}", puzzle.puzzle.solution);
-                log::info!("Puzzle themes: {:?}", puzzle.puzzle.themes);
-                log::info!("Puzzle PGN: {}", puzzle.game.pgn);
-
-                // Extract moves from PGN (after the headers)
-                let moves_section = if let Some(moves_start) = puzzle.game.pgn.rfind("\n\n") {
-                    &puzzle.game.pgn[moves_start + 2..]
-                } else {
-                    &puzzle.game.pgn
-                };
-
-                // Parse moves (remove move numbers and result)
-                // Move numbers are in format "1." "2." etc, or just numbers
-                let move_strings: Vec<&str> = moves_section
-                    .split_whitespace()
-                    .filter(|s| {
-                        // Filter out move numbers (e.g., "1.", "2.", "35.")
-                        // Filter out results (*, 1-0, 0-1, 1/2-1/2)
-                        // But keep actual moves like "Kg4", "e4", etc.
-                        !s.ends_with('.')
-                            && *s != "*"
-                            && *s != "1-0"
-                            && *s != "0-1"
-                            && *s != "1/2-1/2"
-                    })
-                    .collect();
-
-                log::info!("Extracted moves: {:?}", move_strings);
-                log::info!("Total moves extracted: {}", move_strings.len());
-
-                // Start from the initial position
-                let mut position = shakmaty::Chess::default();
-                let mut position_history = vec![position.clone()];
-                let mut move_history = Vec::new();
-
-                // Apply moves and store them in history
-                let moves_to_apply = move_strings.len();
-                log::info!("Will apply {} moves", moves_to_apply);
-
-                for (i, move_str) in move_strings.iter().take(moves_to_apply).enumerate() {
-                    if let Ok(san) = shakmaty::san::San::from_ascii(move_str.as_bytes()) {
-                        if let Ok(chess_move) = san.to_move(&position) {
-                            // Store the move before playing it
-                            move_history.push(chess_move.clone());
-
-                            position = match position.play(&chess_move) {
-                                Ok(new_pos) => {
-                                    log::info!("Applied move {}: {}", i + 1, move_str);
-                                    // Store the position after the move
-                                    position_history.push(new_pos.clone());
-                                    new_pos
-                                }
-                                Err(e) => {
-                                    log::error!("Failed to play move {}: {}", move_str, e);
-                                    // Remove the move we just added since it failed
-                                    move_history.pop();
-                                    // Return the default position if move fails
-                                    shakmaty::Chess::default()
-                                }
-                            };
-                        } else {
-                            log::error!("Failed to convert SAN to move: {}", move_str);
-                        }
-                    } else {
-                        log::error!("Failed to parse SAN: {}", move_str);
-                    }
-                }
-
-                log::info!(
-                    "Finished applying moves. Current turn: {:?}",
-                    position.turn()
-                );
-                log::info!(
-                    "Stored {} moves and {} positions in history",
-                    move_history.len(),
-                    position_history.len()
-                );
-
-                // Set up the game with the puzzle position and all past moves
-                game_board.position_history = position_history;
-                game_board.move_history = move_history;
-                game_board.history_position_index = None;
-
-                Ok(puzzle)
-            }
+            Ok(puzzle) => Self::setup_board(puzzle, game_board),
             Err(e) => Err(e.to_string()),
         }
+    }
+
+    /// Sets `game_board` up for `puzzle` and hands the puzzle back.
+    ///
+    /// Split out of [`PuzzleGame::load`] so it can be tested without a live client:
+    /// this is where the two payload shapes diverge.
+    pub fn setup_board(puzzle: Puzzle, game_board: &mut GameBoard) -> Result<Puzzle, String> {
+        log::info!(
+            "Loaded puzzle: {} (rating: {})",
+            puzzle.puzzle.id,
+            puzzle.puzzle.rating
+        );
+        log::info!("Puzzle solution: {:?}", puzzle.puzzle.solution);
+        log::info!("Puzzle themes: {:?}", puzzle.puzzle.themes);
+        log::info!("Puzzle PGN: {}", puzzle.game.pgn);
+        log::info!("Puzzle game clock: {:?}", puzzle.game.clock);
+
+        // Extract moves from PGN (after the headers)
+        let moves_section = if let Some(moves_start) = puzzle.game.pgn.rfind("\n\n") {
+            &puzzle.game.pgn[moves_start + 2..]
+        } else {
+            &puzzle.game.pgn
+        };
+
+        // Parse moves (remove move numbers and result)
+        // Move numbers are in format "1." "2." etc, or just numbers
+        let move_strings: Vec<&str> = moves_section
+            .split_whitespace()
+            .filter(|s| {
+                // Filter out move numbers (e.g., "1.", "2.", "35.")
+                // Filter out results (*, 1-0, 0-1, 1/2-1/2)
+                // But keep actual moves like "Kg4", "e4", etc.
+                !s.ends_with('.') && *s != "*" && *s != "1-0" && *s != "0-1" && *s != "1/2-1/2"
+            })
+            .collect();
+
+        log::info!("Extracted moves: {:?}", move_strings);
+        log::info!("Total moves extracted: {}", move_strings.len());
+
+        // Some instances serve puzzles with no game to replay, and send the
+        // puzzle's starting FEN instead. Set the board straight from it.
+        if move_strings.is_empty() {
+            let Some(fen_str) = puzzle.puzzle.fen.as_deref() else {
+                return Err(format!(
+                    "Puzzle {} arrived with neither a game PGN nor a FEN, so there is no position to set up.\n\nThis Lichess instance serves puzzles in a shape chess-tui cannot use.",
+                    puzzle.puzzle.id
+                ));
+            };
+
+            let position = shakmaty::fen::Fen::from_ascii(fen_str.as_bytes())
+                .map_err(|e| {
+                    format!(
+                        "Puzzle {} has an unreadable FEN '{}': {}",
+                        puzzle.puzzle.id, fen_str, e
+                    )
+                })?
+                .into_position::<shakmaty::Chess>(shakmaty::CastlingMode::Standard)
+                .map_err(|e| {
+                    format!(
+                        "Puzzle {} FEN '{}' is not a legal standard-chess position: {}",
+                        puzzle.puzzle.id, fen_str, e
+                    )
+                })?;
+
+            log::info!(
+                "No PGN for puzzle {}; starting from FEN {} (turn {:?})",
+                puzzle.puzzle.id,
+                fen_str,
+                position.turn()
+            );
+
+            // There is no history to step back through - the instance sent none.
+            game_board.position_history = vec![position];
+            game_board.move_history = Vec::new();
+            game_board.history_position_index = None;
+
+            return Ok(puzzle);
+        }
+
+        // Start from the initial position
+        let mut position = shakmaty::Chess::default();
+        let mut position_history = vec![position.clone()];
+        let mut move_history = Vec::new();
+
+        // Apply moves and store them in history
+        let moves_to_apply = move_strings.len();
+        log::info!("Will apply {} moves", moves_to_apply);
+
+        for (i, move_str) in move_strings.iter().take(moves_to_apply).enumerate() {
+            if let Ok(san) = shakmaty::san::San::from_ascii(move_str.as_bytes()) {
+                if let Ok(chess_move) = san.to_move(&position) {
+                    // Store the move before playing it
+                    move_history.push(chess_move.clone());
+
+                    position = match position.play(&chess_move) {
+                        Ok(new_pos) => {
+                            log::info!("Applied move {}: {}", i + 1, move_str);
+                            // Store the position after the move
+                            position_history.push(new_pos.clone());
+                            new_pos
+                        }
+                        Err(e) => {
+                            log::error!("Failed to play move {}: {}", move_str, e);
+                            // Remove the move we just added since it failed
+                            move_history.pop();
+                            // Return the default position if move fails
+                            shakmaty::Chess::default()
+                        }
+                    };
+                } else {
+                    log::error!("Failed to convert SAN to move: {}", move_str);
+                }
+            } else {
+                log::error!("Failed to parse SAN: {}", move_str);
+            }
+        }
+
+        log::info!(
+            "Finished applying moves. Current turn: {:?}",
+            position.turn()
+        );
+        log::info!(
+            "Stored {} moves and {} positions in history",
+            move_history.len(),
+            position_history.len()
+        );
+
+        // Set up the game with the puzzle position and all past moves
+        game_board.position_history = position_history;
+        game_board.move_history = move_history;
+        game_board.history_position_index = None;
+
+        Ok(puzzle)
     }
 }

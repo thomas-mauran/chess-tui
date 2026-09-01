@@ -13,11 +13,14 @@ use ratatui::{
 ///
 /// `elo_change` is `None` while the rating update is still being fetched from Lichess;
 /// `is_calculating` should be `true` in that interval to show a "Calculating..." message.
+/// `submit_unsupported` is `true` when the instance has no puzzle-result endpoint, in
+/// which case no rating change is coming and the popup says so instead of staying blank.
 pub fn render_puzzle_end_popup(
     frame: &mut Frame,
     sentence: &str,
     elo_change: Option<i32>,
     is_calculating: bool,
+    submit_unsupported: bool,
 ) {
     let block = Block::default()
         .title("Puzzle Complete")
@@ -54,6 +57,18 @@ pub fn render_puzzle_end_popup(
             Line::from(change_text)
                 .alignment(Alignment::Center)
                 .style(Style::default().fg(color).add_modifier(Modifier::BOLD)),
+        );
+    } else if submit_unsupported {
+        text.push(Line::from(""));
+        text.push(
+            Line::from("This Lichess instance does not record puzzle results,")
+                .alignment(Alignment::Center)
+                .style(Style::default().fg(Color::Gray)),
+        );
+        text.push(
+            Line::from("so your rating is unchanged.")
+                .alignment(Alignment::Center)
+                .style(Style::default().fg(Color::Gray)),
         );
     } else if is_calculating {
         text.push(Line::from(""));
