@@ -4,6 +4,7 @@ use crate::animations::AnimationState;
 use crate::constants::Popups;
 use crate::game_logic::game::Game;
 use crate::game_logic::game::GameState;
+use crate::graphics::KittyPieces;
 use crate::state::bot_state::BotState;
 use crate::state::game_mode_state::GameModeState;
 use crate::state::lichess_state::LichessState;
@@ -26,6 +27,8 @@ pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 
 /// Top-level application context that owns all runtime state.
 pub struct App {
+    /// High-resolution pieces when Kitty's graphics protocol is available.
+    pub kitty_pieces: Option<KittyPieces>,
     /// Is the application running?
     pub running: bool,
     /// Game
@@ -58,6 +61,7 @@ pub struct App {
 impl Default for App {
     fn default() -> Self {
         Self {
+            kitty_pieces: None,
             running: true,
             game: Game::default(),
             log_level: LevelFilter::Off,

@@ -8,6 +8,7 @@ pub mod config;
 pub mod constants;
 pub mod event;
 pub mod game_logic;
+pub mod graphics;
 pub mod handlers;
 pub mod lichess;
 pub mod logging;

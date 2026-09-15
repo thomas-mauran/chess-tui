@@ -25,17 +25,14 @@ pub fn render_menu_ui(frame: &mut Frame, app: &App, main_area: Rect) {
 
     let main_layout_horizontal = Layout::default()
         .direction(Direction::Vertical)
-        .constraints(
-            [
-                Constraint::Ratio(1, 5),         // Title
-                Constraint::Length(1),           // Subtitle
-                Constraint::Min(0),              // Flexible space above menu
-                Constraint::Length(menu_height), // Menu (fixed height)
-                Constraint::Min(0),              // Flexible space below menu
-                Constraint::Ratio(1, 10),        // Footer/hints
-            ]
-            .as_ref(),
-        )
+        .constraints([
+            Constraint::Ratio(1, 5),         // Title
+            Constraint::Length(1),           // Subtitle
+            Constraint::Min(0),              // Flexible space above menu
+            Constraint::Length(menu_height), // Menu (fixed height)
+            Constraint::Min(0),              // Flexible space below menu
+            Constraint::Ratio(1, 10),        // Footer/hints
+        ])
         .split(main_area);
 
     // Title

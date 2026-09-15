@@ -16,28 +16,22 @@ use crate::{
 pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
     let main_layout_horizontal = Layout::default()
         .direction(Direction::Vertical)
-        .constraints(
-            [
-                Constraint::Ratio(1, 20),  // Top padding
-                Constraint::Ratio(18, 20), // Board area (increased)
-                Constraint::Min(0),        // Bottom padding (minimal)
-            ]
-            .as_ref(),
-        )
+        .constraints([
+            Constraint::Ratio(1, 20),  // Top padding
+            Constraint::Ratio(18, 20), // Board area (increased)
+            Constraint::Min(0),        // Bottom padding (minimal)
+        ])
         .split(main_area);
 
     let main_layout_vertical = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints(
-            [
-                Constraint::Ratio(1, 18),  // Left padding (reduced)
-                Constraint::Ratio(1, 18),  // Rank labels (1-8)
-                Constraint::Ratio(11, 18), // Board (increased from 9 to 11)
-                Constraint::Ratio(1, 18),  // Right padding
-                Constraint::Ratio(4, 18),  // Sidebar (reduced from 5 to 4)
-            ]
-            .as_ref(),
-        )
+        .constraints([
+            Constraint::Ratio(1, 18),  // Left padding (reduced)
+            Constraint::Ratio(1, 18),  // Rank labels (1-8)
+            Constraint::Ratio(11, 18), // Board (increased from 9 to 11)
+            Constraint::Ratio(1, 18),  // Right padding
+            Constraint::Ratio(4, 18),  // Sidebar (reduced from 5 to 4)
+        ])
         .split(main_layout_horizontal[1]);
 
     // Create layout for board + file labels + clock
@@ -45,25 +39,19 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
     let board_with_labels = if has_clock {
         Layout::default()
             .direction(Direction::Vertical)
-            .constraints(
-                [
-                    Constraint::Length(1), // Clock area (small text)
-                    Constraint::Min(0),    // Board (takes remaining space)
-                    Constraint::Length(1), // File labels (A-H) - minimal height
-                ]
-                .as_ref(),
-            )
+            .constraints([
+                Constraint::Length(1), // Clock area (small text)
+                Constraint::Min(0),    // Board (takes remaining space)
+                Constraint::Length(1), // File labels (A-H) - minimal height
+            ])
             .split(main_layout_vertical[2])
     } else {
         Layout::default()
             .direction(Direction::Vertical)
-            .constraints(
-                [
-                    Constraint::Min(0),    // Board (takes remaining space)
-                    Constraint::Length(1), // File labels (A-H) - minimal height
-                ]
-                .as_ref(),
-            )
+            .constraints([
+                Constraint::Min(0),    // Board (takes remaining space)
+                Constraint::Length(1), // File labels (A-H) - minimal height
+            ])
             .split(main_layout_vertical[2])
     };
 
@@ -71,13 +59,10 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
     if has_clock {
         let clock_area = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints(
-                [
-                    Constraint::Ratio(1, 2), // White clock (left)
-                    Constraint::Ratio(1, 2), // Black clock (right)
-                ]
-                .as_ref(),
-            )
+            .constraints([
+                Constraint::Ratio(1, 2), // White clock (left)
+                Constraint::Ratio(1, 2), // Black clock (right)
+            ])
             .split(board_with_labels[0]);
 
         use ratatui::style::{Color, Modifier, Style};
@@ -156,25 +141,19 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
     // Split rank label area to match board height
     let rank_label_area = Layout::default()
         .direction(Direction::Vertical)
-        .constraints(
-            [
-                Constraint::Min(0),    // Rank labels (aligned with board - takes remaining space)
-                Constraint::Length(1), // Empty space (aligned with file labels - minimal)
-            ]
-            .as_ref(),
-        )
+        .constraints([
+            Constraint::Min(0),    // Rank labels (aligned with board - takes remaining space)
+            Constraint::Length(1), // Empty space (aligned with file labels - minimal)
+        ])
         .split(main_layout_vertical[1]);
 
     let right_box_layout = Layout::default()
         .direction(Direction::Vertical)
-        .constraints(
-            [
-                Constraint::Ratio(2, 15),
-                Constraint::Ratio(11, 15),
-                Constraint::Ratio(2, 15),
-            ]
-            .as_ref(),
-        )
+        .constraints([
+            Constraint::Ratio(2, 15),
+            Constraint::Ratio(11, 15),
+            Constraint::Ratio(2, 15),
+        ])
         .split(main_layout_vertical[4]);
     // Board block representing the full board div
     let board_block = Block::default().style(Style::default());
@@ -183,11 +162,11 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
     frame.render_widget(board_block.clone(), board_with_labels[board_index]);
 
     // Split borrows to avoid borrow checker issue
-    let (ui, logic) = (&mut app.game.ui, &app.game.logic);
+    let (ui, logic, kitty_pieces) = (&mut app.game.ui, &app.game.logic, &mut app.kitty_pieces);
 
     // Get the inner area of the board (accounting for any block padding)
     let board_inner = board_block.inner(board_with_labels[board_index]);
-    ui.board_render(board_inner, frame, logic);
+    ui.board_render(board_inner, frame, logic, kitty_pieces.as_mut());
 
     // Render rank labels (1-8) on the left - aligned with board's inner area
     ui.render_rank_labels(frame, rank_label_area[0], logic.game_board.is_flipped);

@@ -39,6 +39,8 @@ rodio = { version = "0.22", optional = true }
 rand = "0.10.1"
 throbber-widgets-tui = "0.11.0"
 tachyonfx = "0.25.0"
+ratatui-image = { version = "11.0.6", default-features = false, features = ["crossterm"] }
+image = { version = "0.25", default-features = false, features = ["png"] }
 
 [dev-dependencies]
 tempfile = "3.8"

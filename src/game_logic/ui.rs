@@ -10,6 +10,7 @@ use crate::{
     color::{adapt_color, board_black, board_white},
     constants::{BLACK, DisplayMode, WHITE},
     game_logic::coord::MoveDirection,
+    graphics::KittyPieces,
     pieces::{PieceSize, role_to_utf_enum},
     skin::{PieceStyle, Skin},
     ui::{components::cell::render_cell, prompt::Prompt},
@@ -22,6 +23,7 @@ use ratatui::{
     text::{Line, Span},
     widgets::{Block, BorderType, Borders, Padding, Paragraph},
 };
+use ratatui_image::{Resize, StatefulImage};
 use shakmaty::{Position, Role, Square};
 
 /// Context for rendering a single cell of the board
@@ -320,7 +322,7 @@ impl UI {
 
         let right_panel_layout = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Length(height - 1), Constraint::Length(1)].as_ref())
+            .constraints([Constraint::Length(height - 1), Constraint::Length(1)])
             .split(area);
 
         // Calculate available width in the inner area (after borders and padding)
@@ -436,7 +438,7 @@ impl UI {
 
         let right_panel_layout = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Length(height - 1), Constraint::Length(1)].as_ref())
+            .constraints([Constraint::Length(height - 1), Constraint::Length(1)])
             .split(area);
         frame.render_widget(white_block.clone(), right_panel_layout[0]);
         frame.render_widget(
@@ -480,7 +482,7 @@ impl UI {
 
         let right_panel_layout = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Length(height - 1), Constraint::Length(1)].as_ref())
+            .constraints([Constraint::Length(height - 1), Constraint::Length(1)])
             .split(area);
         frame.render_widget(white_block.clone(), right_panel_layout[0]);
         frame.render_widget(
@@ -528,7 +530,7 @@ impl UI {
 
         let right_panel_layout = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Length(height - 1), Constraint::Length(1)].as_ref())
+            .constraints([Constraint::Length(height - 1), Constraint::Length(1)])
             .split(area);
 
         frame.render_widget(black_block.clone(), right_panel_layout[0]);
@@ -624,7 +626,13 @@ impl UI {
     /// # Panics
     ///
     /// Panics if position_history is empty (should never happen in normal gameplay)
-    pub fn board_render(&mut self, area: Rect, frame: &mut Frame<'_>, logic: &GameLogic) {
+    pub fn board_render(
+        &mut self,
+        area: Rect,
+        frame: &mut Frame<'_>,
+        logic: &GameLogic,
+        kitty_pieces: Option<&mut KittyPieces>,
+    ) {
         let Some(last_position) = logic.game_board.position_history.last() else {
             return;
         };
@@ -641,6 +649,35 @@ impl UI {
             .map(|s| flip_square_if_needed(s, logic.game_board.is_flipped));
 
         self.render_board_grid(area, frame, logic, actual_square);
+        if let Some(pieces) = kitty_pieces {
+            self.render_kitty_pieces(frame, logic, pieces);
+        }
+    }
+
+    fn render_kitty_pieces(
+        &self,
+        frame: &mut Frame<'_>,
+        logic: &GameLogic,
+        pieces: &mut KittyPieces,
+    ) {
+        for i in 0..8u8 {
+            for j in 0..8u8 {
+                let square = get_square_from_coord(Coord::new(i, j), logic.game_board.is_flipped);
+                if let Some(piece) = logic.game_board.position_ref().board().piece_at(square) {
+                    let area = Rect::new(
+                        self.top_x + u16::from(j) * self.width,
+                        self.top_y + u16::from(i) * self.height,
+                        self.width,
+                        self.height,
+                    );
+                    frame.render_stateful_widget(
+                        StatefulImage::default().resize(Resize::Fit(None)),
+                        area,
+                        pieces.get_mut(piece.color, piece.role),
+                    );
+                }
+            }
+        }
     }
 
     /// Render the board grid (helper to reduce function size)
@@ -664,22 +701,19 @@ impl UI {
         // We have 8 vertical lines
         let columns = Layout::default()
             .direction(Direction::Vertical)
-            .constraints(
-                [
-                    // spread the excess border
-                    Constraint::Length(border_height),
-                    Constraint::Length(height),
-                    Constraint::Length(height),
-                    Constraint::Length(height),
-                    Constraint::Length(height),
-                    Constraint::Length(height),
-                    Constraint::Length(height),
-                    Constraint::Length(height),
-                    Constraint::Length(height),
-                    Constraint::Length(border_height),
-                ]
-                .as_ref(),
-            )
+            .constraints([
+                // spread the excess border
+                Constraint::Length(border_height),
+                Constraint::Length(height),
+                Constraint::Length(height),
+                Constraint::Length(height),
+                Constraint::Length(height),
+                Constraint::Length(height),
+                Constraint::Length(height),
+                Constraint::Length(height),
+                Constraint::Length(height),
+                Constraint::Length(border_height),
+            ])
             .split(area);
 
         let (last_move_from, last_move_to) = Self::get_last_move_squares(logic);
@@ -689,21 +723,18 @@ impl UI {
         for i in 0..8u8 {
             let lines = Layout::default()
                 .direction(Direction::Horizontal)
-                .constraints(
-                    [
-                        Constraint::Length(border_width),
-                        Constraint::Length(width),
-                        Constraint::Length(width),
-                        Constraint::Length(width),
-                        Constraint::Length(width),
-                        Constraint::Length(width),
-                        Constraint::Length(width),
-                        Constraint::Length(width),
-                        Constraint::Length(width),
-                        Constraint::Length(border_width),
-                    ]
-                    .as_ref(),
-                )
+                .constraints([
+                    Constraint::Length(border_width),
+                    Constraint::Length(width),
+                    Constraint::Length(width),
+                    Constraint::Length(width),
+                    Constraint::Length(width),
+                    Constraint::Length(width),
+                    Constraint::Length(width),
+                    Constraint::Length(width),
+                    Constraint::Length(width),
+                    Constraint::Length(border_width),
+                ])
                 .split(columns[i as usize + 1]);
 
             for j in 0..8u8 {

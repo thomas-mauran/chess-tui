@@ -277,6 +277,7 @@ fn main() -> AppResult<()> {
 
     // Initialize the terminal user interface.
     let terminal = ratatui::try_init()?;
+    app.kitty_pieces = chess_tui::graphics::KittyPieces::detect();
     let events = EventHandler::new(250);
     let mut tui = Tui::new(terminal, events);
 
