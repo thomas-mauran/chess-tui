@@ -1,7 +1,7 @@
 //! Renders the user profile, rating sparkline, and menu options for the Lichess landing page.
 
 use super::rating_chart::render_rating_history_chart;
-use crate::app::App;
+use crate::{app::App, constants::LICHESS_TIME_CONTROL_OPTIONS};
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -10,18 +10,66 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Paragraph},
 };
 
+struct LichessLayout {
+    title: Rect,
+    menu: Rect,
+    time_control: Rect,
+    profile: Rect,
+    chart: Rect,
+    footer: Rect,
+}
+
+impl LichessLayout {
+    fn new(area: Rect) -> Self {
+        // Create main layout: title, content (menu + stats), footer
+        let main_chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(3), // Title
+                Constraint::Min(10),   // Content (menu + stats)
+                Constraint::Length(3), // Footer
+            ])
+            .split(area);
+
+        let content_stats = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Percentage(40), // Menu + time control
+                Constraint::Percentage(60), // Stats
+            ])
+            .split(main_chunks[1]);
+
+        let menu_time_control = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Percentage(90), // Menu
+                Constraint::Length(3),      // Time control
+            ])
+            .split(content_stats[0]);
+
+        let profile_and_chart = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Min(2),     // Stats text
+                Constraint::Length(24), // Graph
+            ])
+            .split(content_stats[1]);
+
+        LichessLayout {
+            title: main_chunks[0],
+            menu: menu_time_control[0],
+            time_control: menu_time_control[1],
+            profile: profile_and_chart[0],
+            chart: profile_and_chart[1],
+            footer: main_chunks[2],
+        }
+    }
+}
+
 pub fn render_lichess_menu(frame: &mut Frame, app: &App) {
     let area = frame.area();
 
-    // Create main layout: title, content (menu + stats), footer
-    let main_chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(3), // Title
-            Constraint::Min(10),   // Content (menu + stats)
-            Constraint::Length(3), // Footer
-        ])
-        .split(area);
+    let layout = LichessLayout::new(area);
 
     // Title
     let title = Paragraph::new("Lichess Menu")
@@ -36,36 +84,19 @@ pub fn render_lichess_menu(frame: &mut Frame, app: &App) {
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded),
         );
-    frame.render_widget(title, main_chunks[0]);
+    frame.render_widget(title, layout.title);
 
-    // Split content area into menu (left) and stats (right)
-    let content_chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage(40), // Menu
-            Constraint::Percentage(60), // Stats
-        ])
-        .split(main_chunks[1]);
-
-    // Split stats area into stats text and graph
-    let stats_chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Min(2),     // Stats text
-            Constraint::Length(24), // Graph
-        ])
-        .split(content_chunks[1]);
-
-    render_menu_panel(frame, app, content_chunks[0]);
-
-    render_user_stats_panel(frame, app, stats_chunks[0]);
-
-    render_chart_panel(frame, app, stats_chunks[1]);
+    render_menu_panel(frame, app, layout.menu);
+    render_time_control(frame, app, layout.time_control);
+    render_user_stats_panel(frame, app, layout.profile);
+    render_chart_panel(frame, app, layout.chart);
 
     // Footer with controls
     let footer = Paragraph::new(vec![Line::from(vec![
         Span::styled("↑/↓", Style::default().fg(Color::Cyan)),
-        Span::raw(" Navigate  "),
+        Span::raw(" Menu  "),
+        Span::styled("←/→", Style::default().fg(Color::Cyan)),
+        Span::raw(" Time  "),
         Span::styled("Enter", Style::default().fg(Color::Cyan)),
         Span::raw(" Select  "),
         Span::styled("Esc", Style::default().fg(Color::Cyan)),
@@ -77,7 +108,60 @@ pub fn render_lichess_menu(frame: &mut Frame, app: &App) {
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded),
     );
-    frame.render_widget(footer, main_chunks[2]);
+    frame.render_widget(footer, layout.footer);
+}
+
+/// Renders the time control selector (Rapid/Classical), showing the base
+/// minutes of each preset. Only the selected text gets a highlighted
+/// background, sized to the text itself.
+fn render_time_control(frame: &mut Frame, app: &App, area: Rect) {
+    use crate::constants::LICHESS_TIME_CONTROL_MINUTES;
+
+    let menu = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .title("Time Control");
+    let inner_area = menu.inner(area);
+    frame.render_widget(menu, area);
+
+    // Lichess only allows the Rapid (3) and Classical (4) presets.
+    let selected = usize::from(app.game_mode_state.clock_cursor >= 4);
+
+    let labels: Vec<String> = LICHESS_TIME_CONTROL_OPTIONS
+        .iter()
+        .enumerate()
+        .map(|(idx, name)| format!("{} {}m", name, LICHESS_TIME_CONTROL_MINUTES[idx]))
+        .collect();
+
+    let widths: Vec<Constraint> = labels
+        .iter()
+        .map(|label| Constraint::Length(label.len() as u16 + 2))
+        .collect();
+    let button_area = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(widths)
+        .split(inner_area);
+
+    for (idx, label) in labels.iter().enumerate() {
+        let style = if idx == selected {
+            Style::default()
+                .fg(Color::Black)
+                .bg(Color::White)
+                .add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(Color::White)
+        };
+
+        // Size the render area to the text so the highlight hugs the label.
+        let text_len = label.len() as u16;
+        let text_rect = Rect {
+            x: button_area[idx].x + button_area[idx].width.saturating_sub(text_len) / 2,
+            y: button_area[idx].y,
+            width: text_len.min(button_area[idx].width),
+            height: button_area[idx].height,
+        };
+        frame.render_widget(Paragraph::new(label.as_str()).style(style), text_rect);
+    }
 }
 
 fn render_menu_panel(frame: &mut Frame, app: &App, area: Rect) {
