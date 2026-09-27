@@ -45,7 +45,13 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
         .split(main_layout_horizontal[1]);
 
     // Create layout for board + file labels + clock
-    let has_clock = app.game.logic.clock.state() != ClockState::NotStarted;
+    let has_clock = app.game.logic.clock.state() != ClockState::Disabled
+        || app
+            .game
+            .logic
+            .opponent
+            .as_ref()
+            .is_some_and(|o| o.is_lichess());
     let board_with_labels = if has_clock {
         Layout::default()
             .direction(Direction::Vertical)

@@ -1,14 +1,15 @@
 //! Board event streaming.
 
 use crate::constants::LICHESS_API_URL;
+use crate::lichess;
 use crate::lichess::models::{EventStreamEvent, GameEvent, LichessClient};
+use reqwest::blocking::Client;
 use shakmaty::Color;
 use std::error::Error;
-use std::sync::mpsc::Sender;
-
-use reqwest::blocking::Client;
 use std::io::{BufRead, BufReader};
+use std::sync::mpsc::Sender;
 use std::thread;
+
 fn parse_game_color(color_str: &str) -> Color {
     if color_str == "white" {
         Color::White
@@ -28,6 +29,21 @@ fn send_status_message(status: &str, move_tx: &Sender<String>) {
     if let Some(m) = msg {
         let _ = move_tx.send(m.to_string());
     }
+}
+
+/// Sends the server-reported remaining times so the app clock can resync.
+/// The player to move is derived from move-count parity (white on even turns).
+fn send_clock_sync(state: &lichess::models::GameState, move_tx: &Sender<String>) {
+    let turns = state.moves.split_whitespace().count();
+    let active = if turns.is_multiple_of(2) {
+        "white"
+    } else {
+        "black"
+    };
+    let _ = move_tx.send(format!(
+        "CLOCK_SYNC:{}:{}:{}",
+        state.wtime, state.btime, active
+    ));
 }
 
 impl LichessClient {
@@ -227,6 +243,8 @@ impl LichessClient {
                                 // Send initial move count
                                 let _ = move_tx.send(format!("INIT_MOVES:{}", turns));
                             }
+
+                            send_clock_sync(&state, &move_tx);
                         }
                         Ok(GameEvent::GameState(state)) => {
                             // Handle game state updates (new moves)
@@ -263,6 +281,8 @@ impl LichessClient {
                                 }
                                 let _ = move_tx.send(format!("INIT_MOVES:{}", current_turns));
                             }
+
+                            send_clock_sync(&state, &move_tx);
                         }
                         Ok(GameEvent::ChatLine) => {
                             // Ignore chat lines
