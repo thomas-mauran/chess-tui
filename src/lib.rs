@@ -15,6 +15,7 @@ pub mod logging;
 pub mod pgn_viewer;
 pub mod pieces;
 pub mod server;
+pub mod setup;
 pub mod skin;
 pub mod sound;
 pub mod state;
