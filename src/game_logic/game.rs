@@ -688,8 +688,13 @@ impl GameLogic {
             return false;
         }
 
-        // Handle control messages (INIT_MOVES, GAME_STATUS)
-        if Self::handle_opponent_control_message(opponent, &mut self.game_state, &opponent_move) {
+        // Handle control messages (INIT_MOVES, GAME_STATUS, CLOCK_SYNC)
+        if Self::handle_opponent_control_message(
+            opponent,
+            &mut self.clock,
+            &mut self.game_state,
+            &opponent_move,
+        ) {
             return false;
         }
 
@@ -884,6 +889,7 @@ impl GameLogic {
 
     fn handle_opponent_control_message(
         opponent: &mut Opponent,
+        clock: &mut Clock,
         game_state: &mut GameState,
         message: &str,
     ) -> bool {
@@ -904,6 +910,22 @@ impl GameLogic {
                 if opponent.moves_received < count {
                     opponent.moves_received = count;
                 }
+            }
+            return true;
+        }
+
+        // Resync the clock with the server-reported remaining times (Lichess)
+        if message.starts_with("CLOCK_SYNC:") {
+            let parts: Vec<&str> = message.split(':').collect();
+            if let [_, w, b, color] = parts.as_slice() {
+                let white_ms = w.parse::<u64>().unwrap_or(0);
+                let black_ms = b.parse::<u64>().unwrap_or(0);
+                let active_color = if *color == "white" {
+                    Color::White
+                } else {
+                    Color::Black
+                };
+                clock.sync_from_server(white_ms, black_ms, active_color, Instant::now());
             }
             return true;
         }

@@ -14,6 +14,7 @@ use crate::state::theme_state::ThemeState;
 use crate::state::ui_state::UIState;
 use log::LevelFilter;
 use std::error;
+use std::time::Instant;
 
 pub mod bot;
 pub mod config;
@@ -118,6 +119,24 @@ impl App {
             }
 
             self.lichess_state.puzzle_game = Some(puzzle_game);
+        }
+
+        let is_lichess = self
+            .game
+            .logic
+            .opponent
+            .as_ref()
+            .is_some_and(|o| o.is_lichess());
+
+        let clock = &self.game.logic.clock;
+
+        // Detect time running out for Lichess games (the server stops sending
+        // events once a player flags, so we finish the countdown locally).
+        if is_lichess
+            && let ClockState::Running { active_color, .. } = self.game.logic.clock.state()
+            && clock.get_time(active_color, Instant::now()).is_zero()
+        {
+            self.game.logic.clock.force_time_up(active_color);
         }
 
         // Check clock for time up (for local games and bot games with clock)
