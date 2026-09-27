@@ -22,6 +22,7 @@ pub mod lichess;
 pub mod menu;
 pub mod multiplayer;
 pub mod resume;
+pub mod run;
 
 /// Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
