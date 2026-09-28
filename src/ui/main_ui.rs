@@ -23,6 +23,7 @@ use crate::{
             error::render_error_popup,
             help::render_help_popup,
             lichess::{
+                api_url::render_enter_lichess_api_url_popup,
                 game_code::render_enter_game_code_popup, puzzle_end::render_puzzle_end_popup,
                 token::render_enter_lichess_token_popup,
             },
@@ -114,6 +115,9 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
         Some(Popups::EnterLichessToken) => {
             render_enter_lichess_token_popup(frame, &app.game.ui.prompt);
         }
+        Some(Popups::EnterLichessApiUrl) => {
+            render_enter_lichess_api_url_popup(frame, app);
+        }
         Some(Popups::ResignConfirmation) => {
             render_resign_confirmation_popup(frame, app);
         }
@@ -126,18 +130,25 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
             };
 
             // Check if we're still waiting for Elo change calculation
-            let (elo_change, is_calculating) = if let Some(puzzle_game) =
+            let (elo_change, is_calculating, submit_unsupported) = if let Some(puzzle_game) =
                 &app.lichess_state.puzzle_game
             {
                 (
                     puzzle_game.elo_change,
                     puzzle_game.elo_change.is_none() && puzzle_game.elo_change_receiver.is_some(),
+                    puzzle_game.submit_unsupported,
                 )
             } else {
-                (None, false)
+                (None, false, false)
             };
 
-            render_puzzle_end_popup(frame, &message, elo_change, is_calculating);
+            render_puzzle_end_popup(
+                frame,
+                &message,
+                elo_change,
+                is_calculating,
+                submit_unsupported,
+            );
         }
         Some(Popups::Loading) => {
             let message = if let Some(ref msg) = app.ui_state.popup_message {

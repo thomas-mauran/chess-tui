@@ -1,6 +1,7 @@
 //! Game seek, join, and resign endpoints.
 
-use crate::constants::LICHESS_API_URL;
+use crate::constants::lichess_api_url;
+use crate::lichess::errors::{status_error, transport_error};
 use crate::lichess::models::{GameEvent, LichessClient};
 use shakmaty::Color;
 use std::error::Error;
@@ -23,7 +24,7 @@ impl LichessClient {
     ) -> Result<(usize, Option<String>), Box<dyn Error>> {
         // Use public stream endpoint /api/stream/game/{id} (same as polling)
         // Read the first line (gameFull event), then close the stream
-        let url = format!("{}/stream/game/{}", LICHESS_API_URL, game_id);
+        let url = format!("{}/stream/game/{}", lichess_api_url(), game_id);
         let response = self
             .client
             .get(&url)
@@ -31,10 +32,13 @@ impl LichessClient {
                 "User-Agent",
                 "chess-tui (https://github.com/thomas-mauran/chess-tui)",
             )
-            .send()?;
+            .send()
+            .map_err(|e| transport_error("reach the Lichess server", &url, &e))?;
 
-        if !response.status().is_success() {
-            return Err(format!("Failed to get game info: {}", response.status()).into());
+        let status = response.status();
+        if !status.is_success() {
+            let body = response.text().unwrap_or_default();
+            return Err(status_error("read the game", &url, status, &body).into());
         }
 
         // Read the first line which should be the gameFull event
@@ -74,7 +78,7 @@ impl LichessClient {
         increment: u32,
         cancellation_token: std::sync::Arc<std::sync::atomic::AtomicBool>,
     ) -> Result<(String, Color), Box<dyn Error>> {
-        let url = format!("{}/board/seek", LICHESS_API_URL);
+        let url = format!("{}/board/seek", lichess_api_url());
 
         // Track games we've seen before seeking to detect new games
         let initial_games = self.get_ongoing_games().unwrap_or_default();
@@ -119,7 +123,8 @@ impl LichessClient {
                     ("days", "3"),
                     ("color", "random"),
                 ])
-                .send()?
+                .send()
+                .map_err(|e| transport_error("reach the Lichess server", &url, &e))?
         } else {
             // Real-time game
             let time_str = time.to_string();
@@ -133,7 +138,8 @@ impl LichessClient {
                     ("increment", &inc_str),
                     ("color", "random"),
                 ])
-                .send()?
+                .send()
+                .map_err(|e| transport_error("reach the Lichess server", &url, &e))?
         };
 
         let status = response.status();
@@ -141,21 +147,12 @@ impl LichessClient {
             let error_text = response.text().unwrap_or_default();
             log::error!("Seek request failed: {} - {}", status, error_text);
 
-            if status == reqwest::StatusCode::FORBIDDEN {
-                return Err("Token missing permissions. Please generate a new token with 'board:play' scope enabled.".into());
-            }
-            if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
-                return Err(
-                    "Rate limit exceeded. Please wait a minute before trying again.".into(),
-                );
-            }
-            if status == reqwest::StatusCode::UNAUTHORIZED {
-                return Err("Invalid token. Please check your token or generate a new one.".into());
-            }
+            // Only the seek-specific case is spelled out here; everything else is
+            // shared with the other endpoints.
             if status == reqwest::StatusCode::BAD_REQUEST {
                 return Err(format!("Invalid seek parameters: {}", error_text).into());
             }
-            return Err(format!("Failed to seek game: {} - {}", status, error_text).into());
+            return Err(status_error("seek a game", &url, status, &error_text).into());
         }
 
         log::info!("Seek created. Waiting for event stream to detect game start...");
@@ -260,7 +257,7 @@ impl LichessClient {
 
         // If not in ongoing games, try to accept the challenge in case it hasn't been accepted yet
         log::info!("Attempting to accept challenge: {}", game_id);
-        let accept_url = format!("{}/challenge/{}/accept", LICHESS_API_URL, game_id);
+        let accept_url = format!("{}/challenge/{}/accept", lichess_api_url(), game_id);
         let accept_response = self
             .client
             .post(&accept_url)
@@ -322,7 +319,7 @@ impl LichessClient {
             }
 
             // Try to stream the game
-            let url = format!("{}/board/game/{}/stream", LICHESS_API_URL, game_id);
+            let url = format!("{}/board/game/{}/stream", lichess_api_url(), game_id);
             let response = match self
                 .client
                 .get(&url)
@@ -458,12 +455,21 @@ impl LichessClient {
     pub fn make_move(&self, game_id: &str, move_str: &str) -> Result<(), Box<dyn Error>> {
         let url = format!(
             "{}/board/game/{}/move/{}",
-            LICHESS_API_URL, game_id, move_str
+            lichess_api_url(),
+            game_id,
+            move_str
         );
-        let response = self.client.post(&url).bearer_auth(&self.token).send()?;
+        let response = self
+            .client
+            .post(&url)
+            .bearer_auth(&self.token)
+            .send()
+            .map_err(|e| transport_error("reach the Lichess server", &url, &e))?;
 
-        if !response.status().is_success() {
-            return Err(format!("Failed to make move: {}", response.status()).into());
+        let status = response.status();
+        if !status.is_success() {
+            let body = response.text().unwrap_or_default();
+            return Err(status_error("play your move", &url, status, &body).into());
         }
         Ok(())
     }
@@ -471,7 +477,7 @@ impl LichessClient {
     /// Resign a game
     /// Uses the board API endpoint /board/game/{id}/resign
     pub fn resign_game(&self, game_id: &str) -> Result<(), Box<dyn Error>> {
-        let url = format!("{}/board/game/{}/resign", LICHESS_API_URL, game_id);
+        let url = format!("{}/board/game/{}/resign", lichess_api_url(), game_id);
         log::info!("Resigning game: {}", game_id);
 
         let response = self
@@ -482,13 +488,14 @@ impl LichessClient {
                 "chess-tui (https://github.com/thomas-mauran/chess-tui)",
             )
             .bearer_auth(&self.token)
-            .send()?;
+            .send()
+            .map_err(|e| transport_error("reach the Lichess server", &url, &e))?;
 
-        if !response.status().is_success() {
-            let status = response.status();
+        let status = response.status();
+        if !status.is_success() {
             let error_text = response.text().unwrap_or_default();
             log::error!("Failed to resign game: {} - {}", status, error_text);
-            return Err(format!("Failed to resign game: {} - {}", status, error_text).into());
+            return Err(status_error("resign the game", &url, status, &error_text).into());
         }
 
         log::info!("Successfully resigned game: {}", game_id);

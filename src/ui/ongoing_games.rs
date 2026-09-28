@@ -1,6 +1,7 @@
 //! Ongoing Lichess games list.
 
 use crate::app::App;
+use crate::lichess::models::unsupported_variant_name;
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Direction, Layout},
@@ -74,6 +75,10 @@ pub fn render_ongoing_games(frame: &mut Frame, app: &App) {
                 ""
             };
 
+            // chess-tui plays standard chess only, so flag variant games here rather
+            // than letting the user select one and hit a board-setup failure.
+            let unsupported = unsupported_variant_name(game.variant.as_ref());
+
             game_lines.push(Line::from(vec![
                 Span::styled(prefix, style),
                 Span::styled(
@@ -89,6 +94,19 @@ pub fn render_ongoing_games(frame: &mut Frame, app: &App) {
                     Style::default().fg(Color::Gray),
                 ),
             ]));
+
+            if let Some(variant) = unsupported {
+                game_lines.push(Line::from(vec![
+                    Span::raw("    "),
+                    Span::styled(
+                        format!(
+                            "{} - not playable, chess-tui is standard chess only",
+                            variant
+                        ),
+                        Style::default().fg(Color::Red),
+                    ),
+                ]));
+            }
 
             game_lines.push(Line::from(""));
         }
