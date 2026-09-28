@@ -1,5 +1,4 @@
 //! Bishop ASCII art.
-
 use crate::pieces::PieceSize;
 use crate::skin::PieceStyle;
 use shakmaty::Color;
@@ -22,14 +21,16 @@ impl Bishop {
                     None => " ".to_string(),
                 },
                 PieceSize::Compact => " ▆▖▆ \n ▐▙▌ \n ▀▀▀ ".to_string(),
+
                 PieceSize::Extended => " ▄▁▗ \n ██▟ \n ▟█▙ \n▝▀▀▀▘".to_string(),
-                PieceSize::Large => r#"▗▅  ▖
-██▍ █
-███▍█
-▝███▘
-▀▀▀▀▀
-"#
-                .to_string(),
+
+                PieceSize::Large =>
+r#"
+ ▄█▎
+▟██ ▙
+███▟█
+▜███▛
+"#.to_string()
             },
             "ASCII" => "B".to_string(),
             _ => piece_styles
@@ -48,3 +49,4 @@ impl Bishop {
         }
     }
 }
+
