@@ -430,13 +430,24 @@ fn build_local_detail_lines(app: &App) -> Vec<Line<'static>> {
         Line::from("Perfect for practicing chess alone or"),
         Line::from("playing with your friend on a single computer."),
         Line::from(""),
-        Line::from(vec![Span::styled(
-            "Time Control:",
-            Style::default()
-                .fg(Color::Cyan)
-                .add_modifier(Modifier::BOLD),
-        )]),
     ];
+
+    if app.has_resume_save(crate::state::resume::ResumeMode::Local) {
+        lines.push(Line::from(vec![Span::styled(
+            "Saved game available — press R to resume",
+            Style::default()
+                .fg(Color::Green)
+                .add_modifier(Modifier::BOLD),
+        )]));
+        lines.push(Line::from(""));
+    }
+
+    lines.push(Line::from(vec![Span::styled(
+        "Time Control:",
+        Style::default()
+            .fg(Color::Cyan)
+            .add_modifier(Modifier::BOLD),
+    )]));
 
     let current_time_control = app.game_mode_state.get_time_control_name();
     let time_label = if let Some(seconds) = app.game_mode_state.get_time_control_seconds() {
@@ -539,6 +550,19 @@ fn build_bot_detail_lines(app: &App) -> Vec<Line<'static>> {
         Line::from("Challenge a chess engine"),
         Line::from("and improve your skills."),
         Line::from(""),
+    ];
+
+    if app.has_resume_save(crate::state::resume::ResumeMode::Bot) {
+        lines.push(Line::from(vec![Span::styled(
+            "Saved game available — press R to resume",
+            Style::default()
+                .fg(Color::Green)
+                .add_modifier(Modifier::BOLD),
+        )]));
+        lines.push(Line::from(""));
+    }
+
+    lines.extend([
         Line::from(vec![Span::styled(
             "Features:",
             Style::default()
@@ -550,7 +574,7 @@ fn build_bot_detail_lines(app: &App) -> Vec<Line<'static>> {
         Line::from("  • UCI engine support"),
         Line::from("  • Play offline."),
         Line::from(""),
-    ];
+    ]);
 
     if let Some(ref path) = app.bot_state.chess_engine_path {
         let display_path = if path.len() > 25 {
