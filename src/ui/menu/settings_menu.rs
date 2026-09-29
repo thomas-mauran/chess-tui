@@ -83,6 +83,15 @@ pub fn render_settings_menu(frame: &mut Frame, app: &App) {
         format!("Bot Difficulty: {difficulty}")
     };
 
+    let kitty_graphics_menu = {
+        let kitty_status = if app.kitty_graphics_enabled {
+            "On"
+        } else {
+            "Off"
+        };
+        format!("Kitty Graphics: {kitty_status}")
+    };
+
     // Menu items with descriptions
     let mut menu_items: Vec<(&str, &str)> = vec![(&display_mode_menu, "Change display theme")];
 
@@ -99,6 +108,10 @@ pub fn render_settings_menu(frame: &mut Frame, app: &App) {
     ));
     menu_items.push((&bot_depth_menu, "Set bot thinking depth for chess engine"));
     menu_items.push((&bot_difficulty_menu, "Set bot difficulty for chess engine"));
+    menu_items.push((
+        &kitty_graphics_menu,
+        "Draw pieces as images in Kitty (Off uses skin pieces)",
+    ));
 
     let mut menu_lines = vec![Line::from("")];
 

@@ -39,6 +39,8 @@ pub struct App {
     pub sound_enabled: bool,
     /// Whether animations are enabled
     pub animations_enabled: bool,
+    /// Whether to draw pieces as images when Kitty graphics are available
+    pub kitty_graphics_enabled: bool,
     /// Everything related to the skin handling through the app
     pub theme_state: ThemeState,
     /// Bot engine state (path, depth, difficulty, move channel)
@@ -73,6 +75,7 @@ impl Default for App {
             ui_state: UIState::default(),
             sound_enabled: true,
             animations_enabled: false,
+            kitty_graphics_enabled: true,
             pgn_viewer_state: None,
             pgn_viewer_game_idx: 0,
             animations: AnimationState::default(),

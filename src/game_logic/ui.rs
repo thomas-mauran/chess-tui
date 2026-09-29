@@ -670,10 +670,18 @@ impl UI {
                         self.width,
                         self.height,
                     );
+                    let protocol = pieces.get_mut(piece.color, piece.role);
+                    // Fit keeps the aspect ratio and anchors top-left, so center the fitted size in the cell.
+                    // ponytail: centered to whole cells; sub-cell offset remains when cell/image aspect differ.
+                    let fitted = protocol.size_for(Resize::Fit(None), area.as_size());
+                    let area = area.centered(
+                        Constraint::Length(fitted.width),
+                        Constraint::Length(fitted.height),
+                    );
                     frame.render_stateful_widget(
                         StatefulImage::default().resize(Resize::Fit(None)),
                         area,
-                        pieces.get_mut(piece.color, piece.role),
+                        protocol,
                     );
                 }
             }

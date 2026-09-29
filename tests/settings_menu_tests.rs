@@ -136,3 +136,18 @@ fn change_bot_difficulty() -> AppResult<()> {
 
     Ok(())
 }
+
+#[test]
+fn toggle_kitty_graphics() -> AppResult<()> {
+    let mut app = open_settings_menu()?;
+    assert!(app.kitty_graphics_enabled);
+
+    // Up from the first item wraps to the last one (Kitty Graphics).
+    send(&mut app, &[KeyCode::Up, KeyCode::Enter])?;
+    assert!(!app.kitty_graphics_enabled);
+
+    send(&mut app, &[KeyCode::Enter])?;
+    assert!(app.kitty_graphics_enabled);
+
+    Ok(())
+}

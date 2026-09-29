@@ -16,6 +16,7 @@ pub enum SettingsMenuItems {
     ChessEnginePath,
     BotDepth,
     BotDifficulty,
+    KittyGraphics,
 }
 
 impl From<u8> for SettingsMenuItems {
@@ -27,7 +28,8 @@ impl From<u8> for SettingsMenuItems {
             2 => SettingsMenuItems::AnimationsSelector,
             3 => SettingsMenuItems::ChessEnginePath,
             4 => SettingsMenuItems::BotDepth,
-            _ => SettingsMenuItems::BotDifficulty,
+            5 => SettingsMenuItems::BotDifficulty,
+            _ => SettingsMenuItems::KittyGraphics,
         }
         #[cfg(not(feature = "sound"))]
         match value {
@@ -35,16 +37,17 @@ impl From<u8> for SettingsMenuItems {
             1 => SettingsMenuItems::AnimationsSelector,
             2 => SettingsMenuItems::ChessEnginePath,
             3 => SettingsMenuItems::BotDepth,
-            _ => SettingsMenuItems::BotDifficulty,
+            4 => SettingsMenuItems::BotDifficulty,
+            _ => SettingsMenuItems::KittyGraphics,
         }
     }
 }
 
 impl SettingsMenuItems {
     #[cfg(feature = "sound")]
-    pub const COUNT: u8 = 6;
+    pub const COUNT: u8 = 7;
     #[cfg(not(feature = "sound"))]
-    pub const COUNT: u8 = 5;
+    pub const COUNT: u8 = 6;
 }
 
 /// Handles keyboard input on the Settings menu page.
@@ -133,6 +136,10 @@ fn handle_menu_events(app: &mut App, key_event: KeyEvent) {
                 SettingsMenuItems::BotDifficulty => {
                     // Cycle through available difficulty levels
                     app.cycle_bot_difficulty(true);
+                    app.update_config_from_app();
+                }
+                SettingsMenuItems::KittyGraphics => {
+                    app.kitty_graphics_enabled = !app.kitty_graphics_enabled;
                     app.update_config_from_app();
                 }
             }

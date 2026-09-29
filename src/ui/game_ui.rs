@@ -166,7 +166,12 @@ pub fn render_game_ui(frame: &mut Frame<'_>, app: &mut App, main_area: Rect) {
 
     // Get the inner area of the board (accounting for any block padding)
     let board_inner = board_block.inner(board_with_labels[board_index]);
-    ui.board_render(board_inner, frame, logic, kitty_pieces.as_mut());
+    ui.board_render(
+        board_inner,
+        frame,
+        logic,
+        kitty_pieces.as_mut().filter(|_| app.kitty_graphics_enabled),
+    );
 
     // Render rank labels (1-8) on the left - aligned with board's inner area
     ui.render_rank_labels(frame, rank_label_area[0], logic.game_board.is_flipped);
