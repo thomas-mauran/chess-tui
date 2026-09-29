@@ -108,10 +108,12 @@ pub fn render_settings_menu(frame: &mut Frame, app: &App) {
     ));
     menu_items.push((&bot_depth_menu, "Set bot thinking depth for chess engine"));
     menu_items.push((&bot_difficulty_menu, "Set bot difficulty for chess engine"));
-    menu_items.push((
-        &kitty_graphics_menu,
-        "Draw pieces as images in Kitty (Off uses skin pieces)",
-    ));
+    if app.kitty_pieces.is_some() {
+        menu_items.push((
+            &kitty_graphics_menu,
+            "Draw pieces as images in Kitty (Off uses skin pieces)",
+        ));
+    }
 
     let mut menu_lines = vec![Line::from("")];
 
