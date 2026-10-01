@@ -4,6 +4,7 @@ use crate::animations::AnimationState;
 use crate::constants::Popups;
 use crate::game_logic::game::Game;
 use crate::game_logic::game::GameState;
+use crate::graphics::KittyPieces;
 use crate::state::bot_state::BotState;
 use crate::state::game_mode_state::GameModeState;
 use crate::state::lichess_state::LichessState;
@@ -27,6 +28,8 @@ pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 
 /// Top-level application context that owns all runtime state.
 pub struct App {
+    /// High-resolution pieces when Kitty's graphics protocol is available.
+    pub kitty_pieces: Option<KittyPieces>,
     /// Is the application running?
     pub running: bool,
     /// Game
@@ -37,6 +40,8 @@ pub struct App {
     pub sound_enabled: bool,
     /// Whether animations are enabled
     pub animations_enabled: bool,
+    /// Whether to draw pieces as images when Kitty graphics are available
+    pub kitty_graphics_enabled: bool,
     /// Everything related to the skin handling through the app
     pub theme_state: ThemeState,
     /// Bot engine state (path, depth, difficulty, move channel)
@@ -65,6 +70,7 @@ pub struct App {
 impl Default for App {
     fn default() -> Self {
         Self {
+            kitty_pieces: None,
             running: true,
             game: Game::default(),
             log_level: LevelFilter::Off,
@@ -76,6 +82,7 @@ impl Default for App {
             ui_state: UIState::default(),
             sound_enabled: true,
             animations_enabled: false,
+            kitty_graphics_enabled: true,
             pgn_viewer_state: None,
             pgn_viewer_game_idx: 0,
             animations: AnimationState::default(),

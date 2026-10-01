@@ -55,6 +55,7 @@ pub struct Config {
     pub lichess_token: Option<String>,
     pub sound_enabled: Option<bool>,
     pub animations_enabled: Option<bool>,
+    pub kitty_graphics_enabled: Option<bool>,
 }
 
 impl Default for Config {
@@ -69,6 +70,7 @@ impl Default for Config {
             lichess_token: None,
             sound_enabled: Some(true),
             animations_enabled: Some(false),
+            kitty_graphics_enabled: Some(true),
         }
     }
 }
@@ -138,6 +140,9 @@ impl Config {
         }
         if config.animations_enabled.is_none() {
             config.animations_enabled = Some(false);
+        }
+        if config.kitty_graphics_enabled.is_none() {
+            config.kitty_graphics_enabled = Some(true);
         }
 
         // Always update engine_path if provided via command line (command line takes precedence)

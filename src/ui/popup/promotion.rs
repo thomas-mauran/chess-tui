@@ -43,27 +43,21 @@ pub fn render_promotion_popup(frame: &mut Frame, app: &mut App) {
 
     let inner_popup_layout_vertical = Layout::default()
         .direction(Direction::Vertical)
-        .constraints(
-            [
-                Constraint::Ratio(1, 3),
-                Constraint::Ratio(1, 3),
-                Constraint::Ratio(1, 3),
-            ]
-            .as_ref(),
-        )
+        .constraints([
+            Constraint::Ratio(1, 3),
+            Constraint::Ratio(1, 3),
+            Constraint::Ratio(1, 3),
+        ])
         .split(area);
 
     let inner_popup_layout_horizontal = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints(
-            [
-                Constraint::Ratio(1, 4),
-                Constraint::Ratio(1, 4),
-                Constraint::Ratio(1, 4),
-                Constraint::Ratio(1, 4),
-            ]
-            .as_ref(),
-        )
+        .constraints([
+            Constraint::Ratio(1, 4),
+            Constraint::Ratio(1, 4),
+            Constraint::Ratio(1, 4),
+            Constraint::Ratio(1, 4),
+        ])
         .split(inner_popup_layout_vertical[1]);
 
     // When a promotion is happening, the mouse should be able to know where the icons are

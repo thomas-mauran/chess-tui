@@ -94,6 +94,9 @@ fn main() -> AppResult<()> {
             if let Some(animations_enabled) = config.animations_enabled {
                 app.animations_enabled = animations_enabled;
             }
+            if let Some(kitty_graphics_enabled) = config.kitty_graphics_enabled {
+                app.kitty_graphics_enabled = kitty_graphics_enabled;
+            }
         }
     } else {
         println!("Error reading the file or the file does not exist");
@@ -277,6 +280,7 @@ fn main() -> AppResult<()> {
 
     // Initialize the terminal user interface.
     let terminal = ratatui::try_init()?;
+    app.kitty_pieces = chess_tui::graphics::KittyPieces::detect();
     let events = EventHandler::new(250);
     let mut tui = Tui::new(terminal, events);
 

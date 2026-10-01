@@ -136,3 +136,15 @@ fn change_bot_difficulty() -> AppResult<()> {
 
     Ok(())
 }
+
+#[test]
+fn kitty_graphics_hidden_outside_kitty() -> AppResult<()> {
+    // App::default() has no Kitty pieces loaded, as in a non-Kitty terminal.
+    let mut app = open_settings_menu()?;
+
+    // Up from the first item wraps to the last visible one, which must not be Kitty Graphics.
+    send(&mut app, &[KeyCode::Up, KeyCode::Enter])?;
+    assert!(app.kitty_graphics_enabled);
+
+    Ok(())
+}

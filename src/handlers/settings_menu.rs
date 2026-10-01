@@ -16,6 +16,7 @@ pub enum SettingsMenuItems {
     ChessEnginePath,
     BotDepth,
     BotDifficulty,
+    KittyGraphics,
 }
 
 impl From<u8> for SettingsMenuItems {
@@ -27,7 +28,8 @@ impl From<u8> for SettingsMenuItems {
             2 => SettingsMenuItems::AnimationsSelector,
             3 => SettingsMenuItems::ChessEnginePath,
             4 => SettingsMenuItems::BotDepth,
-            _ => SettingsMenuItems::BotDifficulty,
+            5 => SettingsMenuItems::BotDifficulty,
+            _ => SettingsMenuItems::KittyGraphics,
         }
         #[cfg(not(feature = "sound"))]
         match value {
@@ -35,21 +37,27 @@ impl From<u8> for SettingsMenuItems {
             1 => SettingsMenuItems::AnimationsSelector,
             2 => SettingsMenuItems::ChessEnginePath,
             3 => SettingsMenuItems::BotDepth,
-            _ => SettingsMenuItems::BotDifficulty,
+            4 => SettingsMenuItems::BotDifficulty,
+            _ => SettingsMenuItems::KittyGraphics,
         }
     }
 }
 
 impl SettingsMenuItems {
     #[cfg(feature = "sound")]
-    pub const COUNT: u8 = 6;
+    pub const COUNT: u8 = 7;
     #[cfg(not(feature = "sound"))]
-    pub const COUNT: u8 = 5;
+    pub const COUNT: u8 = 6;
+
+    /// Number of visible items; Kitty Graphics (always last) is hidden outside Kitty.
+    pub fn visible_count(app: &App) -> u8 {
+        Self::COUNT - u8::from(app.kitty_pieces.is_none())
+    }
 }
 
 /// Handles keyboard input on the Settings menu page.
 pub fn handle_settings_menu_page_events(app: &mut App, key_event: KeyEvent) {
-    if app.ui_state.menu_cursor > SettingsMenuItems::COUNT {
+    if app.ui_state.menu_cursor >= SettingsMenuItems::visible_count(app) {
         app.ui_state.menu_cursor = 0;
     }
 
@@ -62,10 +70,12 @@ fn handle_menu_events(app: &mut App, key_event: KeyEvent) {
 
     match key_event.code {
         KeyCode::Up | KeyCode::Char('k') => {
-            app.ui_state.menu_cursor_up(SettingsMenuItems::COUNT);
+            app.ui_state
+                .menu_cursor_up(SettingsMenuItems::visible_count(app));
         }
         KeyCode::Down | KeyCode::Char('j') => {
-            app.ui_state.menu_cursor_down(SettingsMenuItems::COUNT);
+            app.ui_state
+                .menu_cursor_down(SettingsMenuItems::visible_count(app));
         }
         // If on skin or bot difficulty selection menu item, use left/right to cycle options
         KeyCode::Left | KeyCode::Char('h') => {
@@ -133,6 +143,10 @@ fn handle_menu_events(app: &mut App, key_event: KeyEvent) {
                 SettingsMenuItems::BotDifficulty => {
                     // Cycle through available difficulty levels
                     app.cycle_bot_difficulty(true);
+                    app.update_config_from_app();
+                }
+                SettingsMenuItems::KittyGraphics => {
+                    app.kitty_graphics_enabled = !app.kitty_graphics_enabled;
                     app.update_config_from_app();
                 }
             }
