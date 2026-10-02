@@ -34,7 +34,7 @@ pub fn setup_app(args: &Args) -> AppResult<App> {
     setup_sound(&mut app, &config, args);
 
     setup_display_mode(&mut app, &config);
-    setup_skin_and_piece_styles(&mut app, &config_dir)?;
+    setup_skin_and_piece_styles(&mut app, &config_dir);
     apply_skin(&mut app, &config, args);
 
     setup_animations(&mut app, &config);
@@ -241,7 +241,7 @@ fn get_piece_styles(skins_path: &PathBuf) -> AppResult<Vec<PieceStyle>> {
     Ok(piece_styles)
 }
 
-fn setup_skin_and_piece_styles(app: &mut App, config_dir: &Path) -> AppResult<()> {
+fn setup_skin_and_piece_styles(app: &mut App, config_dir: &Path) {
     // Always start with Default and ASCII display modes at the beginning
     app.theme_state.available_skins.push(Skin::default());
     app.theme_state
@@ -251,20 +251,28 @@ fn setup_skin_and_piece_styles(app: &mut App, config_dir: &Path) -> AppResult<()
     let skins_path = config_dir.join("chess-tui/skins.json");
 
     // Create skins.json if it doesn't exist
-    if !skins_path.exists() {
-        Skin::create_default_skins_file(&skins_path)?;
+    if !skins_path.exists()
+        && let Err(e) = Skin::create_default_skins_file(&skins_path)
+    {
+        log::error!("Error creating default skin file: {e}")
     }
 
-    let skins = get_skins(&skins_path)?;
-    let piece_styles = get_piece_styles(&skins_path)?;
+    match get_skins(&skins_path) {
+        Ok(skins) => {
+            app.theme_state.available_skins.extend(skins);
+        }
+        Err(e) => log::error!("Error retrieving skins from file: {e}"),
+    }
 
-    app.theme_state.available_skins.extend(skins);
-    app.theme_state.available_piece_styles.extend(piece_styles);
+    match get_piece_styles(&skins_path) {
+        Ok(piece_styles) => {
+            app.theme_state.available_piece_styles.extend(piece_styles);
+        }
+        Err(e) => log::error!("Error retrieving the piece styles from file: {e}"),
+    }
 
     // Sync loaded piece styles to the game UI so rendering can use them
     app.game.ui.available_piece_styles = app.theme_state.available_piece_styles.clone();
-
-    Ok(())
 }
 
 fn apply_skin(app: &mut App, config: &Config, args: &Args) {
