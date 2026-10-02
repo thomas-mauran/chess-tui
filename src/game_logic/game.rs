@@ -5,6 +5,7 @@ use super::{
 };
 use crate::utils::flip_square_if_needed;
 use shakmaty::{Color, Move, Position, Role, Square};
+use core::num;
 
 #[derive(Clone, Debug, PartialEq, Eq, Copy)]
 pub enum GameState {
@@ -630,6 +631,31 @@ impl GameLogic {
             // We store it in the history
             self.game_board.move_history.push(move_to_store);
         }
+    }
+
+    pub fn undo_move(&mut self) {
+        if self.game_board.move_history.is_empty() || self.game_board.position_history.len() <= 1 {
+            return;
+        }
+
+        let mut num_moves_to_undo = 1;
+        if (self.bot.is_some()){
+            num_moves_to_undo = 2;
+        }
+
+        for _ in 0..num_moves_to_undo {
+            // Revert the move on the board
+            self.game_board.undo();
+
+            // Switch player turn back
+            self.switch_player_turn();
+
+            self.game_board.flip_the_board();
+
+            // Update game state after undo
+            self.update_game_state();
+        }
+
     }
 
     /// Parse a move string in chess notation (e.g., "e2e4" or "e7e8q")

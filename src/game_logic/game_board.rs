@@ -582,6 +582,26 @@ impl GameBoard {
         }
     }
 
+    pub fn undo(&mut self) -> Option<Move> {
+        // Remove the last move and position
+        let last_move = self.move_history.pop();
+        self.position_history.pop();
+
+        self.consecutive_non_pawn_or_capture = self
+            .move_history
+            .iter()
+            .rev()
+            .take_while(|m| m.role() != Role::Pawn && !m.is_capture())
+            .count() as i32;
+
+        // Reset history navigation when undoing a move
+        self.history_position_index = None;
+        self.original_flip_state = None;
+
+        last_move
+    }
+
+
     // Execute a move on the shakmaty Chess position and sync the visual board
     // Optionally specify a promotion piece type
     /// Wrapper to execute a move from shakmaty
