@@ -365,7 +365,7 @@ fn extract_san_tokens(movetext: &str) -> Vec<String> {
             Some(i) => &token[i + 1..],
             None => token,
         };
-        
+
         // Move numbers: "1.", "2.", "1...", "10.", etc.
         let is_move_number = token
             .trim_end_matches('.')
