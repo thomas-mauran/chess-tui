@@ -27,13 +27,13 @@ impl App {
 
             self.check_lichess_updates();
 
+            // Check if game ended
+            self.check_game_end_status();
+
             // Persist local/bot games each loop iteration. A move always
             // triggers a write; clock-only changes are throttled to ~1 Hz inside
             // so we don't hit the disk on every animation frame.
             self.tick_resume_state();
-
-            // Check if game ended
-            self.check_game_end_status();
 
             self.check_multiplayer_game_start();
 
