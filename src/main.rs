@@ -14,7 +14,7 @@ fn main() -> AppResult<()> {
 
     let mut app = chess_tui::setup::setup_app(&args)?;
 
-    let _ = app.run();
+    let result = app.run();
 
     // Exit the user interface.
     ratatui::try_restore()?;
@@ -24,7 +24,7 @@ fn main() -> AppResult<()> {
         ratatui::crossterm::event::DisableMouseCapture
     )?;
 
-    Ok(())
+    result
 }
 
 #[cfg(test)]
