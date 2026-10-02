@@ -366,6 +366,12 @@ fn handle_menu_navigation(app: &mut App, key_event: KeyEvent, game_mode: Availab
                     }
                 }
                 AvailableGameMode::PGNLoader => {
+                    // PGN loading opens a path-entry popup, not a configuration
+                    // form. Leaving `form_active` set (it is enabled above for the
+                    // form-based modes) made the page handler treat the menu as a
+                    // form, so after the popup was dismissed the arrow keys were
+                    // swallowed until a second Esc (issue #349).
+                    app.game_mode_state.form_active = false;
                     app.game.ui.prompt.reset();
                     app.ui_state.current_popup = Some(Popups::LoadPgnPath);
                 }
