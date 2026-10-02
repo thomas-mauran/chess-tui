@@ -87,6 +87,14 @@ pub fn chess_inputs(app: &mut App, key_event: KeyEvent) {
     let is_playing = app.game.logic.game_state == GameState::Playing;
 
     match key_event.code {
+
+        KeyCode::Backspace | KeyCode::Char('u') => {
+            // Undo last move (only if game is in progress)
+            if is_playing && app.game.logic.opponent.is_none() && !app.bot_state.is_bot_thinking() {
+                app.game.logic.undo_move();
+            }
+        }
+
         // Vertical cursor movement (only during active play)
         KeyCode::Up | KeyCode::Char('k') if is_playing => app.go_up_in_game(),
         KeyCode::Down | KeyCode::Char('j') if is_playing => app.go_down_in_game(),

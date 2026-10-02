@@ -71,6 +71,8 @@ pub fn render_help_popup(frame: &mut Frame, app: &crate::app::App) {
         Line::from(""),
         Line::from("m: Type a move in chess notation (e.g. e4, Nf3, O-O)"),
         Line::from(""),
+        Line::from("u / backspace: Undo your last move (solo / bot mode)"),
+        Line::from(""),
     ]);
 
     // Only show history navigation controls in solo mode (not against bot or puzzle)
