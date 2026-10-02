@@ -360,6 +360,12 @@ fn extract_san_tokens(movetext: &str) -> Vec<String> {
 
     let mut result = Vec::new();
     for token in text.split_whitespace() {
+        // Strip move number glued to the move: "1.e4" -> "e4", "3...a6" -> "a6"
+        let token = match token.rfind('.') {
+            Some(i) => &token[i + 1..],
+            None => token,
+        };
+
         // Move numbers: "1.", "2.", "1...", "10.", etc.
         let is_move_number = token
             .trim_end_matches('.')
@@ -446,5 +452,19 @@ mod tests {
         v.end_banner_dismissed = true;
         v.prev();
         assert!(!v.end_banner_dismissed);
+    }
+
+    #[test]
+    fn parses_move_numbers_without_space() {
+        let pgn = "[Event \"X\"]\n\n1.e4 e5 2.Qh5 Nc6 3.Bc4 Nf6 4.Qxf7# 0-1";
+        let games = PgnViewer::from_pgn_str(pgn).expect("parse PGN");
+        assert_eq!(games[0].moves.len(), 7);
+    }
+
+    #[test]
+    fn parses_black_move_number_ellipsis() {
+        let pgn = "[Event \"X\"]\n\n1.e4 {comment} 1...e5 2.Nf3 0-1";
+        let games = PgnViewer::from_pgn_str(pgn).expect("parse PGN");
+        assert_eq!(games[0].sans, vec!["e4", "e5", "Nf3"]);
     }
 }
