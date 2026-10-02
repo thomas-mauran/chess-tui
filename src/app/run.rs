@@ -145,9 +145,8 @@ impl App {
 
         let is_checkmate = self.game.logic.game_board.is_checkmate();
         let is_draw = self.game.logic.game_board.is_draw();
-        let execute_opponent_move = self.game.logic.execute_opponent_move();
 
-        if !is_checkmate && !is_draw && execute_opponent_move {
+        if !is_checkmate && !is_draw && self.game.logic.execute_opponent_move() {
             self.game.switch_player_turn();
         }
 
