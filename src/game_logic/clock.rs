@@ -262,14 +262,18 @@ mod tests {
     use shakmaty::Color;
     use std::time::{Duration, Instant};
 
+    const MINUTE: u64 = 1;
+    const HOUR: u64 = 60 * MINUTE;
+    const DAY: u64 = HOUR * 24;
+
     fn five_minute_clock() -> Clock {
-        Clock::new(TimeControl::Custom(5))
+        Clock::new(TimeControl::Custom(MINUTE * 5))
     }
 
     #[test]
     fn test_new_clock_initial_time() {
         let clock = five_minute_clock();
-        let duration = Duration::from_secs(300);
+        let duration = Duration::from_mins(5);
         let instant = Instant::now();
 
         assert_eq!(clock.get_time(Color::White, instant), duration);
@@ -281,7 +285,7 @@ mod tests {
     fn test_default_clock_is_ten_minutes() {
         let clock = Clock::default();
         let instant = Instant::now();
-        let duration = Duration::from_secs(600);
+        let duration = Duration::from_mins(10);
         assert_eq!(clock.get_time(Color::White, instant), duration);
         assert_eq!(clock.get_time(Color::Black, instant), duration);
     }
@@ -352,7 +356,7 @@ mod tests {
     #[test]
     fn test_get_time_returns_full_time_when_stopped() {
         let clock = five_minute_clock();
-        let duration = Duration::from_secs(300);
+        let duration = Duration::from_mins(5);
         assert_eq!(clock.white_time(), duration);
         assert_eq!(clock.black_time(), duration);
     }
@@ -393,7 +397,7 @@ mod tests {
 
     #[test]
     fn test_format_time_exactly_one_minute() {
-        let clock = Clock::new(TimeControl::Custom(1));
+        let clock = Clock::new(TimeControl::Custom(MINUTE));
         let i = Instant::now();
         assert_eq!(clock.format_time(Color::White, i), "01:00");
     }
@@ -402,7 +406,10 @@ mod tests {
     fn test_format_time_under_one_minute() {
         let mut clock = five_minute_clock();
         let i = Instant::now();
-        clock.sync_from_server(45_000, 45_000, Color::White, i);
+        let secs = 45;
+        let milis = secs * 1000;
+
+        clock.sync_from_server(milis, milis, Color::White, i);
         assert_eq!(clock.format_time(Color::White, i), "45.000");
     }
 
@@ -419,6 +426,71 @@ mod tests {
         let i = Instant::now();
         clock.sync_from_server(65_000, 65_000, Color::White, i);
         assert_eq!(clock.format_time(Color::White, i), "01:05");
+    }
+
+    #[test]
+    fn test_format_time_days() {
+        let instant = Instant::now();
+        let clock = Clock::new(TimeControl::Custom(DAY * 2 + HOUR * 3));
+
+        assert_eq!(
+            clock.format_time(Color::White, instant).as_str(),
+            "2 days, 3 hours"
+        );
+    }
+    #[test]
+    fn test_format_time_hours() {
+        let instant = Instant::now();
+        let clock = Clock::new(TimeControl::Custom(HOUR * 3 + 15 * MINUTE));
+
+        assert_eq!(
+            clock.format_time(Color::White, instant).as_str(),
+            "3 hours, 15 minutes"
+        );
+    }
+
+    #[test]
+    fn test_format_single_hour_single_minute() {
+        let instant = Instant::now();
+        let clock = Clock::new(TimeControl::Custom(HOUR + MINUTE));
+
+        assert_eq!(
+            clock.format_time(Color::White, instant).as_str(),
+            "1 hour, 1 minute"
+        );
+    }
+
+    #[test]
+    fn test_format_single_hour() {
+        let instant = Instant::now();
+        let clock = Clock::new(TimeControl::Custom(HOUR + 15 * MINUTE));
+
+        assert_eq!(
+            clock.format_time(Color::White, instant).as_str(),
+            "1 hour, 15 minutes"
+        );
+    }
+
+    #[test]
+    fn test_format_single_day() {
+        let instant = Instant::now();
+        let clock = Clock::new(TimeControl::Custom(DAY + 5 * HOUR));
+
+        assert_eq!(
+            clock.format_time(Color::White, instant).as_str(),
+            "1 day, 5 hours"
+        );
+    }
+
+    #[test]
+    fn test_format_single_day_single_hour() {
+        let instant = Instant::now();
+        let clock = Clock::new(TimeControl::Custom(DAY + HOUR));
+
+        assert_eq!(
+            clock.format_time(Color::White, instant).as_str(),
+            "1 day, 1 hour"
+        );
     }
 
     #[test]
@@ -462,5 +534,26 @@ mod tests {
             },
             clock.state()
         );
+    }
+
+    #[test]
+    fn disabled_clock_doesnt_change_state() {
+        let mut clock = Clock::new(TimeControl::NoClock);
+        let now = Instant::now();
+
+        assert_eq!(clock.state(), ClockState::Disabled);
+
+        clock.start(now);
+        clock.switch_turn(now + Duration::from_secs(10));
+
+        assert_eq!(clock.state(), ClockState::Disabled);
+
+        clock.pause(now + Duration::from_secs(20));
+
+        assert_eq!(clock.state(), ClockState::Disabled);
+
+        clock.resume(now + Duration::from_secs(30));
+
+        assert_eq!(clock.state(), ClockState::Disabled);
     }
 }
