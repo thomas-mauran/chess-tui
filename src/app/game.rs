@@ -2,6 +2,7 @@
 
 use crate::app::App;
 use crate::constants::{Pages, Popups};
+use crate::game_logic::clock::Clock;
 use crate::game_logic::game::Game;
 use crate::game_logic::game::GameState;
 use shakmaty::Color;
@@ -87,11 +88,8 @@ impl App {
         self.ui_state.close_popup();
 
         // Re-initialize clock for local games and bot games
-        if (is_local_game || is_bot_game)
-            && let Some(seconds) = self.game_mode_state.get_time_control_seconds()
-        {
-            use crate::game_logic::clock::Clock;
-            self.game.logic.clock = Some(Clock::new(seconds));
+        if is_local_game || is_bot_game {
+            self.game.logic.clock = Clock::new(self.game_mode_state.get_time_control());
         }
 
         if self

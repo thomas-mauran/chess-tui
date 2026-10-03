@@ -2,6 +2,7 @@
 
 use crate::animations::AnimationState;
 use crate::constants::Popups;
+use crate::game_logic::clock::ClockState;
 use crate::game_logic::game::Game;
 use crate::game_logic::game::GameState;
 use crate::graphics::KittyPieces;
@@ -13,6 +14,7 @@ use crate::state::theme_state::ThemeState;
 use crate::state::ui_state::UIState;
 use log::LevelFilter;
 use std::error;
+use std::time::Instant;
 
 pub mod bot;
 pub mod config;
@@ -119,17 +121,28 @@ impl App {
             self.lichess_state.puzzle_game = Some(puzzle_game);
         }
 
-        // Check clock for time up (for local games and bot games with clock)
-        if let Some(ref mut clock) = self.game.logic.clock
-            && clock.any_time_up()
-            && let Some(time_up_color) = clock.get_time_up_color()
+        let is_lichess = self
+            .game
+            .logic
+            .opponent
+            .as_ref()
+            .is_some_and(|o| o.is_lichess());
+
+        let clock = &self.game.logic.clock;
+
+        // Detect time running out for Lichess games (the server stops sending
+        // events once a player flags, so we finish the countdown locally).
+        if is_lichess
+            && let ClockState::Running { active_color, .. } = self.game.logic.clock.state()
+            && clock.get_time(active_color, Instant::now()).is_zero()
         {
+            self.game.logic.clock.force_time_up(active_color);
+        }
+
+        // Check clock for time up (for local games and bot games with clock)
+        if let ClockState::TimeUp { loser_color } = self.game.logic.clock.state() {
             // Time is up - end the game
-            let winner = time_up_color.other();
-            // Stop the clock (it should already be stopped, but ensure it)
-            if clock.is_running {
-                clock.stop();
-            }
+            let winner = loser_color.other();
             self.game.logic.game_state = GameState::Checkmate;
             // Set player_turn to the winner so check_and_show_game_end shows correct winner
             self.game.logic.player_turn = winner;

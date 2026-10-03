@@ -45,6 +45,13 @@ pub const SKIN_NAME_ASCII: &str = "ASCII";
 /// Index into [`TIME_CONTROL_OPTIONS`] that selects the "Custom" entry.
 pub const TIME_CONTROL_CUSTOM_INDEX: u8 = 6;
 
+/// Time control presets offered when seeking a Lichess game. The board seek
+/// API only allows Rapid and Classical for public real-time seeks.
+pub const LICHESS_TIME_CONTROL_OPTIONS: [&str; 2] = ["Rapid", "Classical"];
+/// Base minutes for each Lichess seek preset, aligned with
+/// [`LICHESS_TIME_CONTROL_OPTIONS`].
+pub const LICHESS_TIME_CONTROL_MINUTES: [u32; 2] = [10, 30];
+
 /// Display labels for the four bot difficulty presets.
 pub const BOT_DIFFICULTY_NAMES: [&str; 4] =
     ["Easy (400)", "Medium (900)", "Hard (1500)", "Magnus (2700)"];

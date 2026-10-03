@@ -24,12 +24,6 @@ fn main() -> AppResult<()> {
         return Skin::run_update_skins();
     }
 
-    // Used to enable mouse capture (only after we know we're running the TUI)
-    ratatui::crossterm::execute!(
-        std::io::stdout(),
-        ratatui::crossterm::event::EnableMouseCapture
-    )?;
-
     let config_dir = config_dir()?;
     let folder_path = config_dir.join("chess-tui");
     let config_path = config_dir.join("chess-tui/config.toml");
@@ -293,6 +287,12 @@ fn main() -> AppResult<()> {
         );
         default_panic(info);
     }));
+
+    // Used to enable mouse capture (only after we know we're running the TUI)
+    ratatui::crossterm::execute!(
+        std::io::stdout(),
+        ratatui::crossterm::event::EnableMouseCapture
+    )?;
 
     // Start the main loop.
     while app.running {
