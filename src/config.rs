@@ -102,7 +102,7 @@ impl Config {
 
     /// Creates or updates the config file, merging CLI `args` on top of any existing values.
     /// Tolerates a read-only config: write errors are logged but never propagated.
-    pub fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResult<()> {
+    pub fn config_create(args: &Args, folder_path: &Path, config_path: &Path) -> AppResult<Self> {
         std::fs::create_dir_all(folder_path)?;
 
         // Attempt to read the configuration file and parse it as a TOML Value.
@@ -115,7 +115,7 @@ impl Config {
         // We update the configuration with the engine_path and display_mode.
         // If these keys are already in the configuration, we leave them as they are.
         // If they're not, we add them with default values.
-        if config.engine_path.as_ref().is_none_or(|s| s.is_empty()) {
+        if config.engine_path.as_ref().is_none_or(String::is_empty) {
             if args.engine_path.is_empty() {
                 config.engine_path = Some(String::new());
             } else {
@@ -199,6 +199,6 @@ impl Config {
             }
         }
 
-        Ok(())
+        Ok(config)
     }
 }
