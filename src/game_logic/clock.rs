@@ -443,4 +443,25 @@ mod tests {
             clock.state()
         );
     }
+
+    #[test]
+    fn disabled_clock_doesnt_change_state() {
+        let mut clock = Clock::new(TimeControl::NoClock);
+        let now = Instant::now();
+
+        assert_eq!(clock.state(), ClockState::Disabled);
+
+        clock.start(now);
+        clock.switch_turn(now + Duration::from_secs(10));
+
+        assert_eq!(clock.state(), ClockState::Disabled);
+
+        clock.pause(now + Duration::from_secs(20));
+
+        assert_eq!(clock.state(), ClockState::Disabled);
+
+        clock.resume(now + Duration::from_secs(30));
+
+        assert_eq!(clock.state(), ClockState::Disabled);
+    }
 }
