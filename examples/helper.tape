@@ -12,6 +12,8 @@ Set Height 1300
 Set WindowBar Colorful
 Set WindowBarSize 40
 
+Set TypingSpeed 10ms
+
 Type "cargo run -- --no-sound --depth 10 --difficulty hard --skin Default" Sleep 300ms  Enter
 
 Sleep 2s
