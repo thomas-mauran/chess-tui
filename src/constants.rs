@@ -176,6 +176,8 @@ pub enum Popups {
     EnterLichessToken,
     /// Y/N confirmation before resigning.
     ResignConfirmation,
+    /// Y/N confirmation before a new game replaces a saved one.
+    NewGameConfirmation,
     /// SAN move text entry.
     MoveInputSelection,
     /// File path entry for loading a PGN file.

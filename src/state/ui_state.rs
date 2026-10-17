@@ -21,6 +21,17 @@ pub struct UIState {
     pub end_screen_dismissed: bool,
     /// menu current cursor
     pub menu_cursor: u8,
+    /// What `Popups::NewGameConfirmation` starts once the user says yes
+    pub pending_new_game: Option<NewGame>,
+}
+
+/// A new game that would discard a resume save, held until the user confirms it.
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum NewGame {
+    /// From the game-mode form: start a game on this page.
+    Start(Pages),
+    /// From a game in progress: restart it.
+    Restart,
 }
 
 impl Default for UIState {
@@ -31,6 +42,7 @@ impl Default for UIState {
             popup_message: None,
             end_screen_dismissed: false,
             menu_cursor: 0,
+            pending_new_game: None,
         }
     }
 }

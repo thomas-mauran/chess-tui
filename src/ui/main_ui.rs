@@ -32,6 +32,7 @@ use crate::{
                 enter_ip::render_enter_multiplayer_ip,
                 wait_for_player::render_wait_for_other_player,
             },
+            new_game::render_new_game_confirmation_popup,
             pgn::path::render_load_pgn_popup,
             resignation::render_resign_confirmation_popup,
             success::render_success_popup,
@@ -116,6 +117,9 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
         }
         Some(Popups::ResignConfirmation) => {
             render_resign_confirmation_popup(frame, app);
+        }
+        Some(Popups::NewGameConfirmation) => {
+            render_new_game_confirmation_popup(frame, app);
         }
         Some(Popups::PuzzleEndScreen) => {
             // Show puzzle completion message

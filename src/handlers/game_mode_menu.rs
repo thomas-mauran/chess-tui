@@ -4,7 +4,7 @@ use crate::{
     app::App,
     constants::{BOT_DIFFICULTY_COUNT, Pages, Popups},
     handlers::handler::fallback_key_handler,
-    state::resume::ResumeMode,
+    state::{resume::ResumeMode, ui_state::NewGame},
 };
 use ratatui::crossterm::event::{KeyCode, KeyEvent};
 
@@ -432,7 +432,25 @@ fn apply_clock_and_start(app: &mut App, page: Pages) {
 }
 
 fn finish_form(app: &mut App, page: Pages) {
-    // Starting a brand-new resumable game invalidates any previous save.
+    // A saved game in this mode would be lost: ask first.
+    let mode = match page {
+        Pages::Solo => Some(ResumeMode::Local),
+        Pages::Bot => Some(ResumeMode::Bot),
+        _ => None,
+    };
+    if let Some(mode) = mode
+        && app.has_resume_save(mode)
+    {
+        app.ui_state.pending_new_game = Some(NewGame::Start(page));
+        app.ui_state.current_popup = Some(Popups::NewGameConfirmation);
+        return;
+    }
+    start_game(app, page);
+}
+
+/// Leaves the form for `page`'s game. Starting a brand-new resumable game invalidates any
+/// previous save.
+pub fn start_game(app: &mut App, page: Pages) {
     match page {
         Pages::Solo => app.clear_resume_state(ResumeMode::Local),
         Pages::Bot => app.clear_resume_state(ResumeMode::Bot),
