@@ -41,6 +41,20 @@ impl App {
         }
     }
 
+    /// `restart`, but asks first when that would discard the game's resume save, which exists
+    /// once a move has been played. A finished game has none, so it restarts at once.
+    pub fn request_restart(&mut self) {
+        if self
+            .current_resume_mode()
+            .is_some_and(|mode| self.has_resume_save(mode))
+        {
+            self.ui_state.pending_new_game = Some(crate::state::ui_state::NewGame::Restart);
+            self.ui_state.current_popup = Some(Popups::NewGameConfirmation);
+        } else {
+            self.restart();
+        }
+    }
+
     /// Restarts the current game while keeping the same opponent and bot.
     /// Re-randomizes color if random color mode is active, re-initializes the clock, and
     /// triggers the bot's first move if it starts as White.

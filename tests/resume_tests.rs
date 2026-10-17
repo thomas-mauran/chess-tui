@@ -9,7 +9,7 @@ use std::sync::Mutex;
 
 use chess_tui::{
     app::{App, AppResult},
-    constants::Pages,
+    constants::{Pages, Popups},
     game_logic::game::GameState,
     handlers::handler::handle_key_events,
     state::resume::{ClockState, ResumeMode, SavedGame, has_save, save, save_path},
@@ -244,11 +244,108 @@ fn starting_new_game_clears_existing_save() -> AppResult<()> {
 
     let mut app = App::default();
     start_local_game(&mut app)?;
+    assert_eq!(
+        app.ui_state.current_popup,
+        Some(Popups::NewGameConfirmation)
+    );
+    assert!(
+        has_save(ResumeMode::Local),
+        "Nothing is wiped before the user confirms"
+    );
 
+    send(&mut app, &[KeyCode::Char('y')])?;
     assert!(
         !has_save(ResumeMode::Local),
-        "Submitting the Local form should wipe a stale save",
+        "Confirming a new game from the Local form should wipe the old save",
     );
+    assert_eq!(app.ui_state.current_page, Pages::Solo);
+    assert_eq!(app.ui_state.current_popup, None);
+    Ok(())
+}
+
+fn existing_local_save() {
+    let saved = SavedGame {
+        mode: ResumeMode::Local,
+        fen: "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2".into(),
+        is_flipped: false,
+        taken_pieces: vec![],
+        bot: None,
+        clock: None,
+        moves_uci: vec!["e2e4".into(), "e7e5".into()],
+    };
+    save(ResumeMode::Local, &saved);
+}
+
+#[test]
+fn new_game_over_a_save_can_be_cancelled() -> AppResult<()> {
+    let _guard = ResumeDirGuard::new();
+    existing_local_save();
+
+    for cancel in [KeyCode::Char('n'), KeyCode::Esc, KeyCode::Enter] {
+        let mut app = App::default();
+        start_local_game(&mut app)?;
+        send(&mut app, &[cancel])?;
+        assert!(
+            has_save(ResumeMode::Local),
+            "{cancel:?} must not discard the save"
+        );
+        assert_eq!(app.ui_state.current_page, Pages::GameModeMenu);
+    }
+    Ok(())
+}
+
+#[test]
+fn new_game_popup_r_resumes_the_save() -> AppResult<()> {
+    let _guard = ResumeDirGuard::new();
+    existing_local_save();
+
+    let mut app = App::default();
+    start_local_game(&mut app)?;
+    send(&mut app, &[KeyCode::Char('r')])?;
+    assert_eq!(app.ui_state.current_page, Pages::Solo);
+    assert_eq!(app.ui_state.current_popup, None);
+    assert_eq!(app.game.logic.game_board.move_history.len(), 2);
+    assert!(has_save(ResumeMode::Local));
+    Ok(())
+}
+
+#[test]
+fn restart_mid_game_asks_first() -> AppResult<()> {
+    let _guard = ResumeDirGuard::new();
+
+    let mut app = App::default();
+    start_local_game(&mut app)?;
+    play_e2e4(&mut app)?;
+    app.autosave_resume_state(); // the main loop's tick
+    assert!(has_save(ResumeMode::Local));
+
+    send(&mut app, &[KeyCode::Char('r')])?;
+    assert_eq!(
+        app.ui_state.current_popup,
+        Some(Popups::NewGameConfirmation)
+    );
+    send(&mut app, &[KeyCode::Char('n')])?;
+    assert_eq!(
+        app.game.logic.game_board.move_history.len(),
+        1,
+        "n keeps the game"
+    );
+    assert!(has_save(ResumeMode::Local));
+
+    send(&mut app, &[KeyCode::Char('r'), KeyCode::Char('y')])?;
+    assert_eq!(app.game.logic.game_board.move_history.len(), 0);
+    assert!(!has_save(ResumeMode::Local));
+    Ok(())
+}
+
+#[test]
+fn restart_before_any_move_does_not_ask() -> AppResult<()> {
+    let _guard = ResumeDirGuard::new();
+
+    let mut app = App::default();
+    start_local_game(&mut app)?;
+    send(&mut app, &[KeyCode::Char('r')])?;
+    assert_eq!(app.ui_state.current_popup, None);
     Ok(())
 }
 

@@ -7,7 +7,7 @@ use ratatui::crossterm::event::{KeyCode, KeyEvent};
 /// Includes restart functionality and bot state cleanup.
 pub fn handle_bot_page_events(app: &mut App, key_event: KeyEvent) {
     match key_event.code {
-        KeyCode::Char('r') => app.restart(), // Restart current game
+        KeyCode::Char('r') => app.request_restart(), // Restart current game, asking if saved
         KeyCode::Char('b') => {
             // Return to home menu - clean up bot and reset state
             app.reset_home();

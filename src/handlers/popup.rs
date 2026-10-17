@@ -3,7 +3,8 @@
 use crate::{
     app::App,
     constants::{Pages, Popups},
-    handlers::handler::fallback_key_handler,
+    handlers::{game_mode_menu::start_game, handler::fallback_key_handler},
+    state::{resume::ResumeMode, ui_state::NewGame},
     utils::normalize_lowercase_to_san,
 };
 use ratatui::crossterm::event::{KeyCode, KeyEvent};
@@ -28,6 +29,7 @@ pub fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
         Popups::EnterLichessToken => handle_enter_lichess_token(app, key_event),
         Popups::SeekingLichessGame => handle_seeking_lichess_game(app, key_event),
         Popups::ResignConfirmation => handle_resign_confirmation(app, key_event),
+        Popups::NewGameConfirmation => handle_new_game_confirmation(app, key_event),
         Popups::MoveInputSelection => handle_move_input_selection(app, key_event),
         Popups::EnterEnginePath => handle_enter_engine_path(app, key_event),
         _ => fallback_key_handler(app, key_event),
@@ -264,6 +266,40 @@ fn handle_resign_confirmation(app: &mut App, key_event: KeyEvent) {
     match key_event.code {
         KeyCode::Char('y' | 'Y') | KeyCode::Enter => app.confirm_resign_game(),
         KeyCode::Char('n' | 'N') | KeyCode::Esc => app.ui_state.close_popup(),
+        _ => fallback_key_handler(app, key_event),
+    }
+}
+
+/// Only `y` discards the save: Enter is what started the form, and a second press shouldn't
+/// lose a game. From the menu, `r` resumes the saved game instead.
+fn handle_new_game_confirmation(app: &mut App, key_event: KeyEvent) {
+    match key_event.code {
+        KeyCode::Char('y' | 'Y') => {
+            app.ui_state.close_popup();
+            match app.ui_state.pending_new_game.take() {
+                Some(NewGame::Start(page)) => start_game(app, page),
+                Some(NewGame::Restart) => app.restart(),
+                None => {}
+            }
+        }
+        KeyCode::Char('r' | 'R') => {
+            if let Some(NewGame::Start(page)) = app.ui_state.pending_new_game {
+                app.ui_state.pending_new_game = None;
+                app.ui_state.close_popup();
+                let mode = if page == Pages::Bot {
+                    ResumeMode::Bot
+                } else {
+                    ResumeMode::Local
+                };
+                app.game_mode_state.form_active = false;
+                app.game_mode_state.form_cursor = 0;
+                app.resume_from_saved(mode);
+            }
+        }
+        KeyCode::Char('n' | 'N') | KeyCode::Esc => {
+            app.ui_state.pending_new_game = None;
+            app.ui_state.close_popup();
+        }
         _ => fallback_key_handler(app, key_event),
     }
 }

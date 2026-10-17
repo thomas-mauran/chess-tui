@@ -9,6 +9,7 @@ pub mod lichess;
 pub mod loading;
 pub mod move_input;
 pub mod multiplayer;
+pub mod new_game;
 pub mod pgn;
 pub mod promotion;
 pub mod resignation;

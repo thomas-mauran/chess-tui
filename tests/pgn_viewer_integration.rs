@@ -3,6 +3,8 @@
 //! These drive the public event handler exactly the way the terminal would,
 //! so the assertions prove the observable behaviour the maintainer asked for.
 
+mod common;
+
 use chess_tui::{
     app::{App, AppResult},
     constants::{Pages, Popups},
@@ -30,6 +32,7 @@ fn send(app: &mut App, keys: &[KeyCode]) -> AppResult<()> {
 fn load_sample_viewer() -> App {
     let games =
         PgnViewer::from_file("examples/sample.pgn").expect("examples/sample.pgn should parse");
+    common::isolate_resume_saves();
     let mut app = App::default();
     app.pgn_viewer_state = Some(games);
     app.pgn_viewer_game_idx = 0;

@@ -6,7 +6,7 @@ use ratatui::crossterm::event::{KeyCode, KeyEvent};
 /// Handles keyboard input during solo (two-player) game mode.
 pub fn handle_solo_page_events(app: &mut App, key_event: KeyEvent) {
     match key_event.code {
-        KeyCode::Char('r') => app.restart(), // Restart current game
+        KeyCode::Char('r') => app.request_restart(), // Restart current game, asking if saved
         KeyCode::Char('b') => {
             // Return to home menu - reset all game state
             app.reset_home();

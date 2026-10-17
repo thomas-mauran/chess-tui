@@ -1,3 +1,5 @@
+mod common;
+
 #[cfg(test)]
 mod local_game_tests {
     use chess_tui::{
@@ -31,6 +33,7 @@ mod local_game_tests {
     }
 
     fn setup_local_game_start() -> AppResult<App> {
+        crate::common::isolate_resume_saves();
         let mut app = App::default();
 
         send_keys(
