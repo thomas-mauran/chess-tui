@@ -11,21 +11,15 @@ use shakmaty::Color;
 use std::sync::mpsc::channel;
 
 impl App {
+
+    const LICHESS_CLIENT_NOT_INITIALIZED_MSG: &'static str = "Lichess client not properly initialized, did you configure a lichess token ?";
+
     /// Validates a Lichess API token by fetching the user profile, then saves it to config and
     /// navigates to the Lichess menu on success, or shows an error popup on failure.
     pub fn save_and_validate_lichess_token(&mut self, token: String) {
         // First, try to validate the token by fetching the user profile
 
-        let Ok(client) = self.lichess_state.require_client() else {
-            self.ui_state.show_message_popup(
-                "Lichess client not properly initialized, did you configure a lichess token ?"
-                    .to_string(),
-                Popups::Error,
-            );
-            return;
-        };
-
-        match client.get_user_profile() {
+        match LichessClient::new(token.clone()).get_user_profile() {
             Ok(profile) => {
                 // Token is valid, save it
                 self.lichess_state.token = Some(token.clone());
@@ -88,8 +82,7 @@ impl App {
     pub fn create_lichess_opponent(&mut self) {
         let Ok(client) = self.lichess_state.require_client() else {
             self.ui_state.show_message_popup(
-                "Lichess client not properly initialized, did you configure a lichess token ?"
-                    .to_string(),
+                Self::LICHESS_CLIENT_NOT_INITIALIZED_MSG.to_string(),
                 Popups::Error,
             );
             return;
@@ -123,8 +116,7 @@ impl App {
     pub fn join_lichess_game_by_code(&mut self, game_code: String) {
         let Ok(client) = self.lichess_state.require_client() else {
             self.ui_state.show_message_popup(
-                "Lichess client not properly initialized, did you configure a lichess token ?"
-                    .to_string(),
+                Self::LICHESS_CLIENT_NOT_INITIALIZED_MSG.to_string(),
                 Popups::Error,
             );
             return;
@@ -262,8 +254,7 @@ impl App {
         if fen.is_none() {
             let Ok(client) = self.lichess_state.require_client() else {
                 self.ui_state.show_message_popup(
-                    "Lichess client not properly initialized, did you configure a lichess token ?"
-                        .to_string(),
+                    Self::LICHESS_CLIENT_NOT_INITIALIZED_MSG.to_string(),
                     Popups::Error,
                 );
                 return false;
@@ -288,8 +279,7 @@ impl App {
 
             let Ok(client) = self.lichess_state.require_client() else {
                 self.ui_state.show_message_popup(
-                    "Lichess client not properly initialized, did you configure a lichess token ?"
-                        .to_string(),
+                    Self::LICHESS_CLIENT_NOT_INITIALIZED_MSG.to_string(),
                     Popups::Error,
                 );
                 return false;
@@ -375,8 +365,7 @@ impl App {
 
         let Ok(client) = self.lichess_state.require_client() else {
             self.ui_state.show_message_popup(
-                "Lichess client not properly initialized, did you configure a lichess token ?"
-                    .to_string(),
+                Self::LICHESS_CLIENT_NOT_INITIALIZED_MSG.to_string(),
                 Popups::Error,
             );
             return;
@@ -446,8 +435,7 @@ impl App {
     pub fn fetch_ongoing_games(&mut self) {
         let Ok(client) = self.lichess_state.require_client() else {
             self.ui_state.show_message_popup(
-                "Lichess client not properly initialized, did you configure a lichess token ?"
-                    .to_string(),
+                Self::LICHESS_CLIENT_NOT_INITIALIZED_MSG.to_string(),
                 Popups::Error,
             );
             return;
@@ -491,8 +479,7 @@ impl App {
 
             let Ok(client) = self.lichess_state.require_client() else {
                 self.ui_state.show_message_popup(
-                    "Lichess client not properly initialized, did you configure a lichess token ?"
-                        .to_string(),
+                    Self::LICHESS_CLIENT_NOT_INITIALIZED_MSG.to_string(),
                     Popups::Error,
                 );
                 return;
@@ -552,8 +539,7 @@ impl App {
     pub fn fetch_lichess_user_profile(&mut self) {
         let Ok(client) = self.lichess_state.require_client() else {
             self.ui_state.show_message_popup(
-                "Lichess client not properly initialized, did you configure a lichess token ?"
-                    .to_string(),
+                Self::LICHESS_CLIENT_NOT_INITIALIZED_MSG.to_string(),
                 Popups::Error,
             );
             return;
@@ -654,8 +640,7 @@ impl App {
 
         let Ok(client) = self.lichess_state.require_client() else {
             self.ui_state.show_message_popup(
-                "Lichess client not properly initialized, did you configure a lichess token ?"
-                    .to_string(),
+                Self::LICHESS_CLIENT_NOT_INITIALIZED_MSG.to_string(),
                 Popups::Error,
             );
             return;
