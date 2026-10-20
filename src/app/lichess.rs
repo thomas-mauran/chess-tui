@@ -705,8 +705,12 @@ impl App {
         }
 
         // Convert the move to UCI format (e.g., "e2e4")
-        let move_uci = format!("{}{}", from, to);
+        self.validate_puzzle_move_uci(format!("{}{}", from, to))
+    }
 
+    /// Validates an already executed puzzle move given in UCI format (e.g. "e2e4", "e7e8q").
+    /// Returns `true` if correct or if not in puzzle mode.
+    pub fn validate_puzzle_move_uci(&mut self, move_uci: String) -> bool {
         // We need to temporarily take puzzle_game out to avoid borrowing issues
         if let Some(mut puzzle_game) = self.lichess_state.puzzle_game.take() {
             let (is_correct, message) = puzzle_game.validate_move(

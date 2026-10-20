@@ -5,6 +5,7 @@ use crate::constants::{Pages, Popups};
 use crate::game_logic::coord::Coord;
 use crate::game_logic::game::GameState;
 use crate::utils::flip_square_if_needed;
+use shakmaty::CastlingMode;
 
 impl App {
     /// Moves the board cursor one square to the left.
@@ -175,6 +176,31 @@ impl App {
 
             self.check_and_show_game_end();
         }
+    }
+
+    /// Plays a move typed in the move input popup. In puzzle mode the move is validated
+    /// against the solution and the board stays unflipped. Returns `true` if the move was played.
+    pub fn submit_typed_move(&mut self, chess_move: &shakmaty::Move) -> bool {
+        let Some(from) = chess_move.from() else {
+            return false;
+        };
+
+        if !self
+            .game
+            .apply_player_move(from, chess_move.to(), chess_move.promotion())
+        {
+            return false;
+        }
+
+        if self.lichess_state.puzzle_game.is_some() {
+            // Standard UCI so castling is "e1g1" (not king to rook) and promotions keep their piece
+            let move_uci = chess_move.to_uci(CastlingMode::Standard).to_string();
+            self.validate_puzzle_move_uci(move_uci);
+            self.game.logic.game_board.is_flipped = false;
+        }
+
+        self.check_and_show_game_end();
+        true
     }
 
     /// Attempts to move the selected piece to `target_square` via mouse click.

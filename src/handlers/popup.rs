@@ -334,16 +334,10 @@ fn handle_move_input_selection(app: &mut App, key_event: KeyEvent) {
                 }
             };
 
-            let from = match chess_move.from() {
-                Some(from) => from,
-                None => {
-                    app.game.ui.prompt.error = Some("Illegal move".into());
-                    return;
-                }
-            };
-
-            app.game
-                .apply_player_move(from, chess_move.to(), chess_move.promotion());
+            if !app.submit_typed_move(&chess_move) {
+                app.game.ui.prompt.error = Some("Illegal move".into());
+                return;
+            }
             app.game.ui.prompt.reset();
         }
         KeyCode::Char(to_insert) => app.game.ui.prompt.enter_char(to_insert),
