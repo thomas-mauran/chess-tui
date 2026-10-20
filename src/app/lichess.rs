@@ -11,8 +11,8 @@ use shakmaty::Color;
 use std::sync::mpsc::channel;
 
 impl App {
-
-    const LICHESS_CLIENT_NOT_INITIALIZED_MSG: &'static str = "Lichess client not properly initialized, did you configure a lichess token ?";
+    const LICHESS_CLIENT_NOT_INITIALIZED_MSG: &'static str =
+        "Lichess client not properly initialized, did you configure a lichess token ?";
 
     /// Validates a Lichess API token by fetching the user profile, then saves it to config and
     /// navigates to the Lichess menu on success, or shows an error popup on failure.
