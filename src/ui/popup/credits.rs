@@ -21,35 +21,29 @@ pub fn render_credit_popup(frame: &mut Frame) {
 
     let credits_text = vec![
         Line::from(""),
-        Line::from("Hi 👋, I'm Thomas, a 23 years old French computer engineer."),
-        Line::from(
-            "Thank you for playing Chess-tui! This project started as a personal journey to improve my algorithmic skills and learn Rust.",
-        ),
+        Line::from("Thank you for playing chess-tui!"),
         Line::from(""),
         Line::from(
-            "The entire source code is available on GitHub at https://github.com/thomas-mauran/chess-tui",
+            "chess-tui is an open source chess game for the terminal, written in Rust and built by its community of contributors.",
         ),
+        Line::from(""),
+        Line::from("Source code: https://github.com/thomas-mauran/chess-tui"),
         Line::from(""),
         Line::from(
-            "Feel free to contribute by picking an issue or creating a new one and star the repo if you wanna support the project !",
+            "Contributions are welcome: open an issue, submit a pull request, or star the repository to support the project.",
         ),
         Line::from(""),
-        Line::from("Special thanks to my classmates for their support and inspiration!"),
-        Line::from(""),
-        Line::from(""),
+        Line::from("Thanks to everyone who has contributed, reported bugs, or shared feedback."),
         Line::from(""),
         Line::from(""),
         Line::from("Press `Esc` to close the popup.").alignment(Alignment::Center),
     ];
 
-    // Assuming Alignment is an enum or struct you have defined
-
     let paragraph = Paragraph::new(credits_text)
-        .block(block.clone())
+        .block(block)
         .alignment(Alignment::Left)
         .wrap(Wrap { trim: true });
 
-    frame.render_widget(Clear, area); //this clears out the background
-    frame.render_widget(block, area);
+    frame.render_widget(Clear, area);
     frame.render_widget(paragraph, area);
 }
