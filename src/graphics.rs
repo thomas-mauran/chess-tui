@@ -28,7 +28,11 @@ impl KittyPieces {
     /// Loads image states only when the application is running in Kitty.
     pub fn detect() -> Option<Self> {
         // Allow execution if we are in Ghostty OR if Kitty's window ID is present
-        if std::env::var_os("KITTY_WINDOW_ID").is_none() && std::env::var("TERM_PROGRAM").as_deref() != Ok("ghostty") { return None; }
+        if std::env::var_os("KITTY_WINDOW_ID").is_none()
+            && std::env::var("TERM_PROGRAM").as_deref() != Ok("ghostty")
+        {
+            return None;
+        }
 
         if std::env::var_os("TMUX").is_some() {
             // SAFETY: startup calls this before the event handler creates its worker thread.
