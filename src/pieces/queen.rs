@@ -1,5 +1,4 @@
 //! Queen ASCII art.
-
 use crate::pieces::PieceSize;
 use crate::skin::PieceStyle;
 use shakmaty::Color;
@@ -23,11 +22,12 @@ impl Queen {
                 },
                 PieceSize::Compact => " ▆▄▆ \n ▗█▖ \n ▀▀▀ ".to_string(),
                 PieceSize::Extended => "▂ ▄ ▂\n▜▙█▟▛\n ▜█▛ \n▝▀▀▀▘".to_string(),
-                PieceSize::Large => r#"▗  ▂  ▖
-▐▙▟█▙▟▌
- ▜███▛ 
- ▗███▖ 
-▝▀▀▀▀▀▘
+                PieceSize::Large =>
+r#"
+▛   █   ▜
+█▙▖▟█▙▗▟█
+▝███████▘
+  ▆▆▆▆▆ 
 "#
                 .to_string(),
             },

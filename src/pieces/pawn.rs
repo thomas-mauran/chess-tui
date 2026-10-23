@@ -24,10 +24,10 @@ impl Pawn {
                 PieceSize::Compact => "  ▂  \n ▆█▆ \n ▔▔▔ ".to_string(),
                 PieceSize::Extended => "     \n ▝█▘ \n ▟█▙ \n ▔▔▔ ".to_string(),
                 PieceSize::Large => r#"
- ▄▇▄
- ▜█▛
-▄███▄
-▔▔▔▔▔
+  ▂
+ ███
+  █
+▂▟█▙▂
 "#
                 .to_string(),
             },
@@ -48,3 +48,4 @@ impl Pawn {
         }
     }
 }
+
