@@ -4,7 +4,7 @@
 use chess_tui::{
     app::{App, AppResult},
     constants::{Pages, Popups},
-    handlers::handler::handle_key_events,
+    handlers::{handler::handle_key_events, popup::handle_paste_event},
 };
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
@@ -25,12 +25,12 @@ fn send(app: &mut App, keys: &[KeyCode]) -> AppResult<()> {
 }
 
 /// Navigates Home -> GameModeMenu and selects the PGN loader, which opens the
-/// `LoadPgnPath` popup. `PGNLoader` is the 4th entry (index 3, COUNT = 4).
+/// source selection popup. `PGNLoader` is the fourth entry.
 fn open_pgn_loader_popup() -> AppResult<App> {
     let mut app = App::default();
     send(&mut app, &[KeyCode::Enter])?; // Home "Play Game" -> GameModeMenu
     send(&mut app, &[KeyCode::Down, KeyCode::Down, KeyCode::Down])?; // -> PGNLoader
-    send(&mut app, &[KeyCode::Enter])?; // open LoadPgnPath popup
+    send(&mut app, &[KeyCode::Enter])?;
     Ok(app)
 }
 
@@ -38,6 +38,8 @@ fn open_pgn_loader_popup() -> AppResult<App> {
 fn esc_closes_pgn_popup_and_returns_control_to_menu() -> AppResult<()> {
     let mut app = open_pgn_loader_popup()?;
     assert_eq!(app.ui_state.current_page, Pages::GameModeMenu);
+    assert_eq!(app.ui_state.current_popup, Some(Popups::LoadPgnSource));
+    send(&mut app, &[KeyCode::Enter])?;
     assert_eq!(app.ui_state.current_popup, Some(Popups::LoadPgnPath));
     assert_eq!(app.ui_state.menu_cursor, 3);
 
@@ -58,8 +60,9 @@ fn esc_closes_pgn_popup_and_returns_control_to_menu() -> AppResult<()> {
 }
 
 #[test]
-fn esc_with_empty_path_closes_popup_and_returns_control_to_menu() -> AppResult<()> {
+fn submitting_empty_path_closes_popup_and_returns_control_to_menu() -> AppResult<()> {
     let mut app = open_pgn_loader_popup()?;
+    send(&mut app, &[KeyCode::Enter])?;
     assert_eq!(app.ui_state.current_popup, Some(Popups::LoadPgnPath));
 
     // Submitting an empty path also closes the popup; the menu must stay usable.
@@ -72,5 +75,35 @@ fn esc_with_empty_path_closes_popup_and_returns_control_to_menu() -> AppResult<(
         "menu must be navigable after dismissing the popup with an empty path"
     );
 
+    Ok(())
+}
+
+#[test]
+fn pasted_pgn_loads_multiple_games_and_allows_retry() -> AppResult<()> {
+    let mut app = open_pgn_loader_popup()?;
+    send(&mut app, &[KeyCode::Down, KeyCode::Enter])?;
+    assert_eq!(app.ui_state.current_popup, Some(Popups::LoadPgnPaste));
+
+    handle_paste_event(&mut app, "invalid PGN".into());
+    send(&mut app, &[KeyCode::Enter])?;
+    assert_eq!(app.ui_state.current_popup, Some(Popups::LoadPgnPaste));
+    assert!(app.game.ui.prompt.error.is_some());
+
+    let comment = "a".repeat(220);
+    let pgn = format!(
+        "[Event \"First\"]\r\n\r\n1. e4 {{{comment}}} e5 *\r\n\r\n[Event \"Second\"]\r\n\r\n1. d4 d5 *"
+    );
+    handle_paste_event(&mut app, pgn);
+    assert!(app.game.ui.prompt.error.is_none());
+    send(&mut app, &[KeyCode::Enter])?;
+
+    assert_eq!(app.ui_state.current_page, Pages::PgnViewer);
+    assert_eq!(app.ui_state.current_popup, None);
+    assert!(app.game.ui.prompt.input.is_empty());
+    let games = app.pgn_viewer_state.as_deref().unwrap_or_default();
+    assert_eq!(games.len(), 2);
+    assert_eq!(games[0].title, "First");
+    assert_eq!(games[1].title, "Second");
+    assert_eq!(games[1].sans, ["d4", "d5"]);
     Ok(())
 }

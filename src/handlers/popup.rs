@@ -4,10 +4,11 @@ use crate::{
     app::App,
     constants::{Pages, Popups},
     handlers::{game_mode_menu::start_game, handler::fallback_key_handler},
+    pgn_viewer::PgnViewer,
     state::{resume::ResumeMode, ui_state::NewGame},
     utils::normalize_lowercase_to_san,
 };
-use ratatui::crossterm::event::{KeyCode, KeyEvent};
+use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use shakmaty::san::San;
 
 /// Handles keyboard input when a popup is active.
@@ -24,7 +25,9 @@ pub fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
         Popups::PuzzleEndScreen => handle_puzzle_end_screen(app, key_event),
         Popups::Error => handle_error_popup(app, key_event),
         Popups::Success => handle_success_popup(app, key_event),
+        Popups::LoadPgnSource => handle_load_pgn_source(app, key_event),
         Popups::LoadPgnPath => handle_load_pgn_path(app, key_event),
+        Popups::LoadPgnPaste => handle_load_pgn_paste(app, key_event),
         Popups::EnterGameCode => handle_enter_game_code(app, key_event),
         Popups::EnterLichessToken => handle_enter_lichess_token(app, key_event),
         Popups::SeekingLichessGame => handle_seeking_lichess_game(app, key_event),
@@ -166,6 +169,54 @@ fn handle_success_popup(app: &mut App, key_event: KeyEvent) {
     }
 }
 
+fn handle_load_pgn_source(app: &mut App, key_event: KeyEvent) {
+    match key_event.code {
+        KeyCode::Up | KeyCode::Char('k') => app.game_mode_state.form_cursor = 0,
+        KeyCode::Down | KeyCode::Char('j') => app.game_mode_state.form_cursor = 1,
+        KeyCode::Enter | KeyCode::Char(' ') => {
+            app.ui_state.current_popup = Some(if app.game_mode_state.form_cursor == 0 {
+                Popups::LoadPgnPath
+            } else {
+                Popups::LoadPgnPaste
+            });
+        }
+        KeyCode::Esc => app.ui_state.close_popup(),
+        _ => fallback_key_handler(app, key_event),
+    }
+}
+
+/// Replaces the PGN text as a single input, preserving embedded newlines.
+pub fn handle_paste_event(app: &mut App, text: String) {
+    if app.ui_state.current_popup == Some(Popups::LoadPgnPaste) {
+        let prompt = &mut app.game.ui.prompt;
+        prompt.input = text.replace("\r\n", "\n").replace('\r', "\n");
+        prompt.error = None;
+    }
+}
+
+fn handle_load_pgn_paste(app: &mut App, key_event: KeyEvent) {
+    match key_event.code {
+        KeyCode::Enter => match PgnViewer::from_pgn_str(&app.game.ui.prompt.input) {
+            Ok(games) => open_pgn_viewer(app, games),
+            Err(error) => app.game.ui.prompt.error = Some(error),
+        },
+        KeyCode::Esc => {
+            app.game.ui.prompt.reset();
+            app.ui_state.close_popup();
+        }
+        KeyCode::Char('c' | 'C') if key_event.modifiers == KeyModifiers::CONTROL => app.quit(),
+        _ => {}
+    }
+}
+
+fn open_pgn_viewer(app: &mut App, games: Vec<PgnViewer>) {
+    app.pgn_viewer_state = Some(games);
+    app.pgn_viewer_game_idx = 0;
+    app.ui_state.current_page = Pages::PgnViewer;
+    app.ui_state.close_popup();
+    app.game.ui.prompt.reset();
+}
+
 fn handle_load_pgn_path(app: &mut App, key_event: KeyEvent) {
     match key_event.code {
         KeyCode::Enter => {
@@ -175,14 +226,8 @@ fn handle_load_pgn_path(app: &mut App, key_event: KeyEvent) {
                 app.ui_state.current_popup = None;
                 return;
             }
-            match crate::pgn_viewer::PgnViewer::from_file(&path) {
-                Ok(games) => {
-                    app.pgn_viewer_state = Some(games);
-                    app.pgn_viewer_game_idx = 0;
-                    app.ui_state.current_page = Pages::PgnViewer;
-                    app.ui_state.current_popup = None;
-                    app.game.ui.prompt.reset();
-                }
+            match PgnViewer::from_file(&path) {
+                Ok(games) => open_pgn_viewer(app, games),
                 Err(e) => {
                     app.ui_state.popup_message = Some(format!("Failed to load PGN:\n{}", e));
                     app.ui_state.current_popup = Some(Popups::Error);

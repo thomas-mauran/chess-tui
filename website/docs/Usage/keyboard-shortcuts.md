@@ -47,6 +47,9 @@ The mouse is also supported for piece selection and movement during gameplay.
 
 ## PGN Viewer
 
+In the game menu, select **Load PGN**, then choose **File path** or **Paste PGN**.
+Use your terminal's paste shortcut to insert PGN text, then press **Enter** to load it.
+
 | Key | Action |
 |-----|--------|
 | **← / h** | Previous move |

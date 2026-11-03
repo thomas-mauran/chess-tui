@@ -338,7 +338,7 @@ pub fn render_game_mode_menu(frame: &mut Frame, app: &App) {
         ),
         ("Multiplayer", "Play with friends over network"),
         ("Play Bot", "Challenge a chess engine"),
-        ("Load PGN", "Open a .pgn file and step through the game"),
+        ("Load PGN", "Open a file or paste PGN to replay a game"),
     ];
 
     let mut menu_lines = vec![Line::from("")];
@@ -644,7 +644,7 @@ fn build_pgn_detail_lines() -> Vec<Line<'static>> {
                 .add_modifier(Modifier::BOLD),
         )]),
         Line::from(""),
-        Line::from("Open a PGN file and step through the"),
+        Line::from("Open a file or paste PGN, then step through the"),
         Line::from("game move by move, with auto-play and"),
         Line::from("multi-game navigation."),
         Line::from(""),
