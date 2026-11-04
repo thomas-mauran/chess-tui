@@ -5,6 +5,7 @@ pub mod end;
 pub mod engine_path;
 pub mod error;
 pub mod help;
+pub mod home_confirmation;
 pub mod lichess;
 pub mod loading;
 pub mod move_input;

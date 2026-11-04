@@ -22,6 +22,7 @@ use crate::{
             engine_path::render_enter_engine_path_popup,
             error::render_error_popup,
             help::render_help_popup,
+            home_confirmation::render_home_confirmation_popup,
             lichess::{
                 game_code::render_enter_game_code_popup, puzzle_end::render_puzzle_end_popup,
                 token::render_enter_lichess_token_popup,
@@ -120,6 +121,9 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
         }
         Some(Popups::NewGameConfirmation) => {
             render_new_game_confirmation_popup(frame, app);
+        }
+        Some(Popups::HomeConfirmation) => {
+            render_home_confirmation_popup(frame);
         }
         Some(Popups::PuzzleEndScreen) => {
             // Show puzzle completion message
