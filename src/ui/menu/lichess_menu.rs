@@ -1,7 +1,7 @@
 //! Renders the user profile, rating sparkline, and menu options for the Lichess landing page.
 
 use super::rating_chart::render_rating_history_chart;
-use crate::{app::App, constants::LICHESS_TIME_CONTROL_OPTIONS};
+use crate::{app::App, constants::LICHESS_TIME_CONTROLS};
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -111,12 +111,10 @@ pub fn render_lichess_menu(frame: &mut Frame, app: &App) {
     frame.render_widget(footer, layout.footer);
 }
 
-/// Renders the time control selector (Rapid/Classical), showing the base
-/// minutes of each preset. Only the selected text gets a highlighted
+/// Renders the time control selector (Rapid/Classical) using standard chess
+/// notation, e.g. `10+0 Rapid`. Only the selected text gets a highlighted
 /// background, sized to the text itself.
 fn render_time_control(frame: &mut Frame, app: &App, area: Rect) {
-    use crate::constants::LICHESS_TIME_CONTROL_MINUTES;
-
     let menu = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
@@ -127,11 +125,7 @@ fn render_time_control(frame: &mut Frame, app: &App, area: Rect) {
     // Lichess only allows the Rapid (3) and Classical (4) presets.
     let selected = usize::from(app.game_mode_state.clock_cursor >= 4);
 
-    let labels: Vec<String> = LICHESS_TIME_CONTROL_OPTIONS
-        .iter()
-        .enumerate()
-        .map(|(idx, name)| format!("{} {}m", name, LICHESS_TIME_CONTROL_MINUTES[idx]))
-        .collect();
+    let labels: Vec<String> = LICHESS_TIME_CONTROLS.iter().map(|tc| tc.label()).collect();
 
     let widths: Vec<Constraint> = labels
         .iter()

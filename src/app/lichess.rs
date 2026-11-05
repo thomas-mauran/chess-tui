@@ -1,7 +1,7 @@
 //! Lichess authentication, game streaming, and puzzle management.
 
 use crate::app::App;
-use crate::constants::{DOCS_URL, Pages, Popups, SLEEP_DURATION_RESIGN_MS};
+use crate::constants::{DOCS_URL, LICHESS_TIME_CONTROLS, Pages, Popups, SLEEP_DURATION_RESIGN_MS};
 use crate::game_logic::clock::Clock;
 use crate::game_logic::game::GameState;
 use crate::game_logic::opponent::Opponent;
@@ -96,11 +96,12 @@ impl App {
         let cancellation_token = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
         self.lichess_state.cancellation_token = Some(cancellation_token.clone());
 
-        // Lichess board seek only supports Rapid/Classical (cursor 3 or 4 in
-        // the shared time control list), both with zero increment.
+        // Lichess board seek only supports the two presets in
+        // `LICHESS_TIME_CONTROLS` (cursor 3 or 4 in the shared time control
+        // list).
         let idx = usize::from(cursor >= 4);
-        let time = crate::constants::LICHESS_TIME_CONTROL_MINUTES[idx];
-        let (time, increment) = (time, 0);
+        let time_control = LICHESS_TIME_CONTROLS[idx];
+        let (time, increment) = (time_control.minutes, time_control.increment);
 
         self.ui_state.current_popup = Some(Popups::SeekingLichessGame);
 
