@@ -15,7 +15,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
       name: Checkout project
       with:
         fetch-depth: 0
@@ -142,7 +142,7 @@ jobs:
     env:
       TAG: ${{ needs.create-release.outputs.version }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
       with:
         repository: thomas-mauran/homebrew-tap
         ssh-key: ${{ secrets.TAP_DEPLOY_KEY }}
