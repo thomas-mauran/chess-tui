@@ -17,6 +17,8 @@ RUN mkdir src && echo "fn main() {}" > src/main.rs && \
 
 # 4. Copy the actual source code
 COPY src/ ./src/
+# Piece images embedded at compile time via include_bytes!
+COPY assets/ ./assets/
 
 # 5. Build your program for release
 RUN cargo build --release
