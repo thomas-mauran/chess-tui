@@ -24,7 +24,7 @@ jobs:
     - uses: actions/checkout@v7
     - uses: docker/setup-buildx-action@v3
     # amd64 only: enough to catch Dockerfile and toolchain breakage without slow QEMU builds
-    - uses: docker/build-push-action@v5
+    - uses: docker/build-push-action@v7
       with:
         push: false
         platforms: linux/amd64
