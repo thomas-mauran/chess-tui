@@ -21,7 +21,7 @@ jobs:
     name: Docker build
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - uses: docker/setup-buildx-action@v3
     # amd64 only: enough to catch Dockerfile and toolchain breakage without slow QEMU builds
     - uses: docker/build-push-action@v5
