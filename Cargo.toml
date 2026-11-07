@@ -4,6 +4,7 @@ version = "2.8.0"
 authors = ["Thomas Mauran"]
 license = "MIT"
 edition = "2024"
+rust-version = "1.90"
 description = "Play chess in the terminal. Rust TUI, Stockfish, Lichess."
 keywords = ["chess", "tui", "terminal", "lichess", "uci"]
 readme = "README.md"

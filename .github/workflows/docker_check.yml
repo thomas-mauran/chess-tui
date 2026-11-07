@@ -1,0 +1,31 @@
+name: Docker build check
+
+on:
+  pull_request:
+    paths:
+    - Dockerfile
+    - Cargo.toml
+    - Cargo.lock
+    - src/**
+    - .github/workflows/docker_check.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-check-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Docker build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: docker/setup-buildx-action@v3
+    # amd64 only: enough to catch Dockerfile and toolchain breakage without slow QEMU builds
+    - uses: docker/build-push-action@v5
+      with:
+        push: false
+        platforms: linux/amd64
+        cache-from: type=gha

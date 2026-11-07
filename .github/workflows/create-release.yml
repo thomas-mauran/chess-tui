@@ -4,72 +4,91 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version tag (e.g. 2.6.0)"
-        required: true
+        description: "Version tag (e.g. 2.6.0). Leave empty to use the version in Cargo.toml"
+        required: false
 
 jobs:
   create-release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
-        name: Checkout project
-        with:
-          fetch-depth: 0
+    - uses: actions/checkout@v4
+      name: Checkout project
+      with:
+        fetch-depth: 0
 
-      - name: Generate changelog
-        uses: orhun/git-cliff-action@v4
-        with:
-          config: cliff.toml
-          args: --unreleased --strip all
-        env:
-          OUTPUT: changelog_fragment.md
+    - name: Resolve and check version
+      id: version
+      env:
+        INPUT_VERSION: ${{ github.event.inputs.version }}
+      run: |
+        CARGO_VERSION=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
+        VERSION="${INPUT_VERSION:-$CARGO_VERSION}"
+        if [ "$VERSION" != "$CARGO_VERSION" ]; then
+          echo "::error::Input version $VERSION does not match Cargo.toml version $CARGO_VERSION. Bump Cargo.toml first."
+          exit 1
+        fi
+        if git rev-parse -q --verify "refs/tags/$VERSION" >/dev/null; then
+          echo "::error::Tag $VERSION already exists. Bump Cargo.toml first."
+          exit 1
+        fi
+        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Build release body with logo
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          GENERATED=$(gh api repos/${{ github.repository }}/releases/generate-notes \
-            --method POST \
-            --field tag_name=${{ github.event.inputs.version }} \
-            --jq '.body')
+    - name: Generate changelog
+      uses: orhun/git-cliff-action@v4
+      with:
+        config: cliff.toml
+        args: --unreleased --strip all
+      env:
+        OUTPUT: changelog_fragment.md
 
-          CONTRIBUTORS=$(echo "$GENERATED" | awk '/^## New Contributors/{found=1} found{print}' | grep -v "^\*\*Full Changelog" || true)
-          FULL_CHANGELOG=$(echo "$GENERATED" | grep "^\*\*Full Changelog" || true)
+    - name: Build release body with logo
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        GENERATED=$(gh api repos/${{ github.repository }}/releases/generate-notes \
+          --method POST \
+          --field tag_name=${{ steps.version.outputs.version }} \
+          --jq '.body')
 
-          {
-            echo '<p align="center">'
-            echo '  <img src="https://raw.githubusercontent.com/${{ github.repository }}/main/website/static/img/logo.png" width="180" />'
-            echo '</p>'
+        CONTRIBUTORS=$(echo "$GENERATED" | awk '/^## New Contributors/{found=1} found{print}' | grep -v "^\*\*Full Changelog" || true)
+        FULL_CHANGELOG=$(echo "$GENERATED" | grep "^\*\*Full Changelog" || true)
+
+        {
+          echo '<p align="center">'
+          echo '  <img src="https://raw.githubusercontent.com/${{ github.repository }}/main/website/static/img/logo.png" width="180" />'
+          echo '</p>'
+          echo ''
+          echo '<h1 align="center">Chess-tui ${{ steps.version.outputs.version }}</h1>'
+          echo ''
+          cat changelog_fragment.md
+          echo ''
+          if [ -n "$CONTRIBUTORS" ]; then
+            echo "$CONTRIBUTORS"
             echo ''
-            echo '<h1 align="center">Chess-tui ${{ github.event.inputs.version }}</h1>'
-            echo ''
-            cat changelog_fragment.md
-            echo ''
-            if [ -n "$CONTRIBUTORS" ]; then
-              echo "$CONTRIBUTORS"
-              echo ''
-            fi
-            if [ -n "$FULL_CHANGELOG" ]; then
-              echo "$FULL_CHANGELOG"
-            fi
-          } > release_body.md
+          fi
+          if [ -n "$FULL_CHANGELOG" ]; then
+            echo "$FULL_CHANGELOG"
+          fi
+        } > release_body.md
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.event.inputs.version }}
-          name: ${{ github.event.inputs.version }}
-          body_path: release_body.md
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ steps.version.outputs.version }}
+        name: ${{ steps.version.outputs.version }}
+        body_path: release_body.md
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   release-binaries:
     needs: create-release
     uses: ./.github/workflows/release_binary.yml
     with:
-      tag: ${{ github.event.inputs.version }}
+      tag: ${{ needs.create-release.outputs.version }}
     permissions:
       contents: write
 
@@ -77,16 +96,109 @@ jobs:
     needs: create-release
     uses: ./.github/workflows/release_docker.yml
     with:
-      tag: ${{ github.event.inputs.version }}
+      tag: ${{ needs.create-release.outputs.version }}
     permissions:
       packages: write
       contents: read
+
+  release-crate:
+    needs: create-release
+    uses: ./.github/workflows/release_cargo.yml
+    secrets: inherit
 
   release-blog-post:
     needs: create-release
     uses: ./.github/workflows/generate-blog-post.yml
     with:
-      tag: ${{ github.event.inputs.version }}
+      tag: ${{ needs.create-release.outputs.version }}
     permissions:
       contents: write
       pull-requests: write
+
+  checksums:
+    name: Upload SHA256SUMS
+    needs: [ create-release, release-binaries ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ needs.create-release.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+    - name: Compute and upload checksums
+      run: |
+        mkdir -p "$RUNNER_TEMP/assets" && cd "$RUNNER_TEMP/assets"
+        gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern '*.tar.gz' --pattern '*.deb'
+        sha256sum * > SHA256SUMS
+        cat SHA256SUMS
+        gh release upload "$TAG" SHA256SUMS --repo "$GITHUB_REPOSITORY" --clobber
+
+  homebrew:
+    name: Update Homebrew tap
+    needs: [ create-release, release-binaries ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      TAG: ${{ needs.create-release.outputs.version }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        repository: thomas-mauran/homebrew-tap
+        ssh-key: ${{ secrets.TAP_DEPLOY_KEY }}
+
+    - name: Download release archives
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir "$RUNNER_TEMP/assets" --pattern 'chess-tui-*.tar.gz'
+
+    - name: Generate formula
+      run: |
+        base="https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG"
+        sha() { sha256sum "$RUNNER_TEMP/assets/chess-tui-$TAG-$1.tar.gz" | cut -d' ' -f1; }
+        mkdir -p Formula
+        cat > Formula/chess-tui.rb <<EOF
+        class ChessTui < Formula
+          desc "Play chess in your terminal"
+          homepage "https://github.com/$GITHUB_REPOSITORY"
+          version "${TAG#v}"
+          license "MIT"
+          head "https://github.com/$GITHUB_REPOSITORY.git", branch: "main"
+
+          on_macos do
+            if Hardware::CPU.arm?
+              url "$base/chess-tui-$TAG-aarch64-apple-darwin.tar.gz"
+              sha256 "$(sha aarch64-apple-darwin)"
+            else
+              url "$base/chess-tui-$TAG-x86_64-apple-darwin.tar.gz"
+              sha256 "$(sha x86_64-apple-darwin)"
+            end
+          end
+
+          on_linux do
+            if Hardware::CPU.arm?
+              url "$base/chess-tui-$TAG-aarch64-unknown-linux-gnu.tar.gz"
+              sha256 "$(sha aarch64-unknown-linux-gnu)"
+            else
+              url "$base/chess-tui-$TAG-x86_64-unknown-linux-gnu.tar.gz"
+              sha256 "$(sha x86_64-unknown-linux-gnu)"
+            end
+          end
+
+          def install
+            bin.install "chess-tui"
+          end
+
+          test do
+            assert_match version.to_s, shell_output("#{bin}/chess-tui --version")
+          end
+        end
+        EOF
+
+    - name: Commit and push formula
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add Formula/chess-tui.rb
+        git diff --cached --quiet || git commit -m "chore: bump chess-tui ${TAG#v}"
+        git push origin HEAD:main

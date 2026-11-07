@@ -1,5 +1,5 @@
 # 1. This tells docker to use the Rust official image
-FROM rust:1.88 as builder
+FROM rust:1.98-bookworm AS builder
 
 # Install ALSA development libraries for rodio
 RUN apt-get update && \
@@ -17,6 +17,8 @@ RUN mkdir src && echo "fn main() {}" > src/main.rs && \
 
 # 4. Copy the actual source code
 COPY src/ ./src/
+# Piece images embedded at compile time via include_bytes!
+COPY assets/ ./assets/
 
 # 5. Build your program for release
 RUN cargo build --release

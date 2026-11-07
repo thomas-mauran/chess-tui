@@ -1,0 +1,29 @@
+name: Dependabot auto-merge
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  automerge:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+    - name: Fetch Dependabot metadata
+      id: meta
+      uses: dependabot/fetch-metadata@v2
+
+    # Cargo minor bumps on 0.x crates can be breaking, so cargo only gets patch.
+    # Website npm deps and GitHub Actions get patch and minor.
+    - name: Enable auto-merge
+      if: >-
+        steps.meta.outputs.update-type == 'version-update:semver-patch' ||
+        (steps.meta.outputs.update-type == 'version-update:semver-minor' &&
+         steps.meta.outputs.package-ecosystem != 'cargo')
+      run: gh pr merge --auto --squash "$PR_URL"
+      env:
+        PR_URL: ${{ github.event.pull_request.html_url }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
