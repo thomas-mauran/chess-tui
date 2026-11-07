@@ -34,7 +34,7 @@ use crate::{
                 wait_for_player::render_wait_for_other_player,
             },
             new_game::render_new_game_confirmation_popup,
-            pgn::path::render_load_pgn_popup,
+            pgn::path::{render_load_pgn_popup, render_pgn_paste_popup},
             resignation::render_resign_confirmation_popup,
             success::render_success_popup,
         },
@@ -112,6 +112,9 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
         }
         Some(Popups::LoadPgnPath) => {
             render_load_pgn_popup(frame, &app.game.ui.prompt);
+        }
+        Some(Popups::LoadPgnPaste) => {
+            render_pgn_paste_popup(frame, &app.game.ui.prompt);
         }
         Some(Popups::EnterLichessToken) => {
             render_enter_lichess_token_popup(frame, &app.game.ui.prompt);

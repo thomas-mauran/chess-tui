@@ -195,7 +195,7 @@ fn handle_form_left(app: &mut App, game_mode: AvailableGameMode) {
             }
             BotFormField::DifficultySelection => cycle_difficulty_prev(app),
         },
-        AvailableGameMode::PGNLoader => {}
+        AvailableGameMode::PGNLoader => app.game_mode_state.form_cursor = 0,
     }
 }
 
@@ -262,7 +262,7 @@ fn handle_form_right(app: &mut App, game_mode: AvailableGameMode) {
             }
             BotFormField::DifficultySelection => cycle_difficulty_next(app),
         },
-        AvailableGameMode::PGNLoader => {}
+        AvailableGameMode::PGNLoader => app.game_mode_state.form_cursor = 1,
     }
 }
 
@@ -331,7 +331,16 @@ fn handle_form_enter(app: &mut App, game_mode: AvailableGameMode) {
             }
             BotFormField::DifficultySelection => finish_form(app, Pages::Bot),
         },
-        AvailableGameMode::PGNLoader => {}
+        AvailableGameMode::PGNLoader => {
+            // Dismissing either input dialog must restore menu navigation (#349).
+            app.game_mode_state.form_active = false;
+            app.game.ui.prompt.reset();
+            app.ui_state.current_popup = Some(if app.game_mode_state.form_cursor == 0 {
+                Popups::LoadPgnPath
+            } else {
+                Popups::LoadPgnPaste
+            });
+        }
     }
 }
 
@@ -366,14 +375,7 @@ fn handle_menu_navigation(app: &mut App, key_event: KeyEvent, game_mode: Availab
                     }
                 }
                 AvailableGameMode::PGNLoader => {
-                    // PGN loading opens a path-entry popup, not a configuration
-                    // form. Leaving `form_active` set (it is enabled above for the
-                    // form-based modes) made the page handler treat the menu as a
-                    // form, so after the popup was dismissed the arrow keys were
-                    // swallowed until a second Esc (issue #349).
-                    app.game_mode_state.form_active = false;
                     app.game.ui.prompt.reset();
-                    app.ui_state.current_popup = Some(Popups::LoadPgnPath);
                 }
                 _ => {
                     app.game_mode_state.form_active = true;

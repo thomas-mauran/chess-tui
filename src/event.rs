@@ -7,12 +7,14 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 /// Terminal events.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub enum Event {
     /// Terminal tick.
     Tick,
     /// Key press.
     Key(KeyEvent),
+    /// Text delivered by a bracketed paste.
+    Paste(String),
     /// Mouse click/scroll.
     Mouse(MouseEvent),
     /// Terminal resize.
@@ -51,6 +53,7 @@ impl EventHandler {
                     {
                         let send_result = match event {
                             CrosstermEvent::Key(e) => sender.send(Event::Key(e)),
+                            CrosstermEvent::Paste(text) => sender.send(Event::Paste(text)),
                             CrosstermEvent::Mouse(e) => sender.send(Event::Mouse(e)),
                             CrosstermEvent::Resize(w, h) => sender.send(Event::Resize(w, h)),
                             _ => Ok(()),

@@ -3,6 +3,7 @@ use crate::{
     event::Event,
     game_logic::opponent::wait_for_game_start,
     handlers::handler::{handle_key_events, handle_mouse_events},
+    handlers::popup::handle_paste_event,
     ui::tui::Tui,
 };
 
@@ -49,6 +50,7 @@ impl App {
             match tui.events.try_next() {
                 Some(Event::Tick) => self.tick(),
                 Some(Event::Key(key_event)) => handle_key_events(key_event, self)?,
+                Some(Event::Paste(text)) => handle_paste_event(self, text),
                 Some(Event::Mouse(mouse_event)) => handle_mouse_events(mouse_event, self)?,
                 Some(Event::Resize(_, _)) | None => {}
             }
@@ -57,6 +59,7 @@ impl App {
             match tui.events.next()? {
                 Event::Tick => self.tick(),
                 Event::Key(key_event) => handle_key_events(key_event, self)?,
+                Event::Paste(text) => handle_paste_event(self, text),
                 Event::Mouse(mouse_event) => handle_mouse_events(mouse_event, self)?,
                 Event::Resize(_, _) => {}
             }

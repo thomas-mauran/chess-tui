@@ -47,6 +47,14 @@ The mouse is also supported for piece selection and movement during gameplay.
 
 ## PGN Viewer
 
+In the game menu, select **Load PGN** and press **Enter** to activate its configuration.
+Choose **File path** or **Paste PGN** with **← / →** (or **h / l**), then press
+**Enter** (or **Space**) to open the input dialog. **Esc** cancels the selector or
+closes the dialog and returns control to the game menu.
+Use your terminal's paste shortcut to insert PGN text, then press **Enter** to load it.
+If the terminal does not support bracketed paste (such as a legacy Windows console),
+an error dialog appears. Use **File path** or switch to a terminal with bracketed paste support.
+
 | Key | Action |
 |-----|--------|
 | **← / h** | Previous move |

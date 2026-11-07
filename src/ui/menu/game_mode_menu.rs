@@ -338,7 +338,7 @@ pub fn render_game_mode_menu(frame: &mut Frame, app: &App) {
         ),
         ("Multiplayer", "Play with friends over network"),
         ("Play Bot", "Challenge a chess engine"),
-        ("Load PGN", "Open a .pgn file and step through the game"),
+        ("Load PGN", "Open a file or paste PGN to replay a game"),
     ];
 
     let mut menu_lines = vec![Line::from("")];
@@ -387,27 +387,37 @@ pub fn render_game_mode_menu(frame: &mut Frame, app: &App) {
     render_details_panel(frame, app, content_chunks[1], game_mode);
 
     // Footer with controls
-    let footer_text = if app.game_mode_state.form_active {
-        vec![Line::from(vec![
-            Span::styled("↑/↓", Style::default().fg(Color::Cyan)),
-            Span::raw(" Navigate form  "),
-            Span::styled("←/→", Style::default().fg(Color::Cyan)),
-            Span::raw(" Change value  "),
-            Span::styled("Enter", Style::default().fg(Color::Cyan)),
-            Span::raw(" Start game  "),
-            Span::styled("Esc", Style::default().fg(Color::Cyan)),
-            Span::raw(" Back"),
-        ])]
-    } else {
-        vec![Line::from(vec![
-            Span::styled("↑/↓", Style::default().fg(Color::Cyan)),
-            Span::raw(" Navigate menu  "),
-            Span::styled("Enter", Style::default().fg(Color::Cyan)),
-            Span::raw(" Activate form  "),
-            Span::styled("Esc", Style::default().fg(Color::Cyan)),
-            Span::raw(" Back to Home"),
-        ])]
-    };
+    let footer_text =
+        if app.game_mode_state.form_active && game_mode == AvailableGameMode::PGNLoader {
+            vec![Line::from(vec![
+                Span::styled("←/→", Style::default().fg(Color::Cyan)),
+                Span::raw(" Choose source  "),
+                Span::styled("Enter", Style::default().fg(Color::Cyan)),
+                Span::raw(" Open input  "),
+                Span::styled("Esc", Style::default().fg(Color::Cyan)),
+                Span::raw(" Back"),
+            ])]
+        } else if app.game_mode_state.form_active {
+            vec![Line::from(vec![
+                Span::styled("↑/↓", Style::default().fg(Color::Cyan)),
+                Span::raw(" Navigate form  "),
+                Span::styled("←/→", Style::default().fg(Color::Cyan)),
+                Span::raw(" Change value  "),
+                Span::styled("Enter", Style::default().fg(Color::Cyan)),
+                Span::raw(" Start game  "),
+                Span::styled("Esc", Style::default().fg(Color::Cyan)),
+                Span::raw(" Back"),
+            ])]
+        } else {
+            vec![Line::from(vec![
+                Span::styled("↑/↓", Style::default().fg(Color::Cyan)),
+                Span::raw(" Navigate menu  "),
+                Span::styled("Enter", Style::default().fg(Color::Cyan)),
+                Span::raw(" Activate form  "),
+                Span::styled("Esc", Style::default().fg(Color::Cyan)),
+                Span::raw(" Back to Home"),
+            ])]
+        };
     let footer = Paragraph::new(footer_text)
         .alignment(Alignment::Center)
         .block(
@@ -644,7 +654,7 @@ fn build_pgn_detail_lines() -> Vec<Line<'static>> {
                 .add_modifier(Modifier::BOLD),
         )]),
         Line::from(""),
-        Line::from("Open a PGN file and step through the"),
+        Line::from("Open a file or paste PGN, then step through the"),
         Line::from("game move by move, with auto-play and"),
         Line::from("multi-game navigation."),
         Line::from(""),
@@ -654,8 +664,10 @@ fn build_pgn_detail_lines() -> Vec<Line<'static>> {
                 .fg(Color::Cyan)
                 .add_modifier(Modifier::BOLD),
         )]),
-        Line::from("  Press Enter, then paste the"),
-        Line::from("  absolute path to a .pgn file."),
+        Line::from("  Press Enter to choose a source."),
+        Line::from("  ← / →: File path or Paste PGN"),
+        Line::from("  Enter: Open the input dialog"),
+        Line::from("  Enter again to load the game."),
         Line::from(""),
         Line::from(vec![Span::styled(
             "Controls in viewer:",
@@ -931,9 +943,7 @@ fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: Av
         Color::DarkGray
     };
 
-    let form_title = if game_mode == AvailableGameMode::PGNLoader {
-        "Press Enter to open a PGN file"
-    } else if is_active {
+    let form_title = if is_active {
         "Configuration"
     } else {
         "Configuration (Press Enter to activate)"
@@ -1016,6 +1026,48 @@ fn render_game_mode_form(frame: &mut Frame, app: &App, area: Rect, game_mode: Av
             is_active,
             grey_color,
         ),
-        AvailableGameMode::PGNLoader => {}
+        AvailableGameMode::PGNLoader => {
+            render_pgn_source_form(frame, app, form_chunks[chunk_idx], is_active);
+        }
+    }
+}
+
+/// Uses the same inline selector styling as the other game-mode forms.
+fn render_pgn_source_form(frame: &mut Frame, app: &App, area: Rect, is_active: bool) {
+    let [label_area, choices_area] =
+        Layout::vertical([Constraint::Length(1), Constraint::Length(1)]).areas(area);
+    let label_style = if is_active {
+        Style::default()
+            .fg(Color::Cyan)
+            .add_modifier(Modifier::BOLD)
+    } else {
+        Style::default().fg(Color::DarkGray)
+    };
+    frame.render_widget(Paragraph::new("Source:").style(label_style), label_area);
+
+    let choices = ["File path", "Paste PGN"];
+    let choice_areas = Layout::horizontal(
+        choices
+            .iter()
+            .map(|choice| Constraint::Length(choice.len() as u16 + 2)),
+    )
+    .split(choices_area);
+    for (index, choice) in choices.iter().enumerate() {
+        let style = if !is_active {
+            Style::default().fg(Color::DarkGray)
+        } else if usize::from(app.game_mode_state.form_cursor) == index {
+            Style::default()
+                .fg(Color::Black)
+                .bg(Color::White)
+                .add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(Color::White)
+        };
+        frame.render_widget(
+            Paragraph::new(*choice)
+                .alignment(Alignment::Center)
+                .style(style),
+            choice_areas[index],
+        );
     }
 }
