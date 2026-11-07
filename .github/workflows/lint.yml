@@ -1,16 +1,23 @@
-name: Cargo Build & Test
+name: Lint
 
 on:
   pull_request:
   workflow_call:
 
+permissions:
+  contents: read
+
+concurrency:
+  # Prefix keeps this group distinct from the caller's group when run via workflow_call
+  group: lint-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   lint:
-    name: Rust project - latest
+    name: Lint
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4

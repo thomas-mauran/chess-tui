@@ -5,51 +5,51 @@ on:
   workflow_call:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  # Prefix keeps this group distinct from the caller's group when run via workflow_call
+  group: build-test-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   build_and_test:
-    name: Rust project - latest
+    # fmt and clippy run in lint.yml, this job only builds and tests
+    name: Test (${{ matrix.toolchain }}, ${{ matrix.os }})
     strategy:
+      fail-fast: false
       matrix:
         toolchain:
         - stable
-        - beta
-        - nightly
         os:
         - macos-latest
         - macos-15-intel
         - ubuntu-latest
         - ubuntu-24.04-arm
         - windows-latest
+        include:
+        # MSRV: must match rust-version in Cargo.toml
+        - { toolchain: "1.90", os: ubuntu-latest }
+        # Early warning only: beta and nightly failures do not fail the PR
+        - { toolchain: beta, os: ubuntu-latest, experimental: true }
+        - { toolchain: nightly, os: ubuntu-latest, experimental: true }
+    continue-on-error: ${{ matrix.experimental == true }}
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v4
+
+    - uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ matrix.toolchain }}
+
     - uses: Swatinem/rust-cache@v2
-    - name: Install ALSA development libraries (Linux/Unix only)
-      if: runner.os == 'Linux' || runner.os == 'Unix'
-      run: |
-        if command -v apt-get &> /dev/null; then
-          sudo apt-get update && sudo apt-get install -y libasound2-dev
-        elif command -v dnf &> /dev/null; then
-          sudo dnf install -y alsa-lib-devel
-        elif command -v yum &> /dev/null; then
-          sudo yum install -y alsa-lib-devel
-        elif command -v pacman &> /dev/null; then
-          sudo pacman -S --noconfirm alsa-lib
-        elif command -v zypper &> /dev/null; then
-          sudo zypper install -y alsa-devel
-        elif command -v pkg_add &> /dev/null; then
-          sudo pkg_add alsa-lib || pkg_add alsa-lib
-        else
-          echo "Unknown package manager, skipping ALSA installation"
-        fi
-    - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
-      continue-on-error: true
-    - name: Install clippy and rustfmt
-      run: rustup component add clippy rustfmt
-    - run: cargo fmt --check
-    - run: cargo clippy --verbose -- -D warnings
-    - run: cargo test --verbose
+
+    - name: Install ALSA development libraries
+      if: runner.os == 'Linux'
+      run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+
+    - run: cargo test --locked --verbose

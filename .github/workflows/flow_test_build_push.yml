@@ -1,4 +1,4 @@
-name: Build and push docker image
+name: CI on main
 
 on:
   push:
@@ -18,9 +18,3 @@ jobs:
     needs: lint
     name: Build and test
     uses: ./.github/workflows/build_and_test.yml
-
-  release_crate:
-    name: Release new crate
-    needs: build_and_test
-    uses: ./.github/workflows/release_cargo.yml
-    secrets: inherit
