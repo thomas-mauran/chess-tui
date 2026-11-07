@@ -178,6 +178,8 @@ pub enum Popups {
     ResignConfirmation,
     /// Y/N confirmation before a new game replaces a saved one.
     NewGameConfirmation,
+    /// Y/N confirmation before returning to the home page.
+    HomeConfirmation,
     /// SAN move text entry.
     MoveInputSelection,
     /// File path entry for loading a PGN file.

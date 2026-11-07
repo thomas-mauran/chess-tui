@@ -30,6 +30,7 @@ pub fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
         Popups::SeekingLichessGame => handle_seeking_lichess_game(app, key_event),
         Popups::ResignConfirmation => handle_resign_confirmation(app, key_event),
         Popups::NewGameConfirmation => handle_new_game_confirmation(app, key_event),
+        Popups::HomeConfirmation => handle_home_confirmation(app, key_event),
         Popups::MoveInputSelection => handle_move_input_selection(app, key_event),
         Popups::EnterEnginePath => handle_enter_engine_path(app, key_event),
         _ => fallback_key_handler(app, key_event),
@@ -265,6 +266,14 @@ fn handle_seeking_lichess_game(app: &mut App, key_event: KeyEvent) {
 fn handle_resign_confirmation(app: &mut App, key_event: KeyEvent) {
     match key_event.code {
         KeyCode::Char('y' | 'Y') | KeyCode::Enter => app.confirm_resign_game(),
+        KeyCode::Char('n' | 'N') | KeyCode::Esc => app.ui_state.close_popup(),
+        _ => fallback_key_handler(app, key_event),
+    }
+}
+
+fn handle_home_confirmation(app: &mut App, key_event: KeyEvent) {
+    match key_event.code {
+        KeyCode::Char('y' | 'Y') | KeyCode::Enter => app.reset_home(),
         KeyCode::Char('n' | 'N') | KeyCode::Esc => app.ui_state.close_popup(),
         _ => fallback_key_handler(app, key_event),
     }

@@ -11,6 +11,7 @@ use chess_tui::{
     app::{App, AppResult},
     constants::{Pages, Popups},
     game_logic::game::GameState,
+    game_logic::opponent::Opponent,
     handlers::handler::handle_key_events,
     state::resume::{ClockState, ResumeMode, SavedGame, has_save, save, save_path},
 };
@@ -346,6 +347,108 @@ fn restart_before_any_move_does_not_ask() -> AppResult<()> {
     start_local_game(&mut app)?;
     send(&mut app, &[KeyCode::Char('r')])?;
     assert_eq!(app.ui_state.current_popup, None);
+    Ok(())
+}
+
+#[test]
+fn return_home_before_any_move_does_not_ask() -> AppResult<()> {
+    let _guard = ResumeDirGuard::new();
+
+    let mut app = App::default();
+    start_local_game(&mut app)?;
+    send(&mut app, &[KeyCode::Char('b')])?;
+
+    assert_eq!(app.ui_state.current_page, Pages::Home);
+    assert_eq!(app.ui_state.current_popup, None);
+    Ok(())
+}
+
+#[test]
+fn return_home_before_any_bot_move_does_not_ask() -> AppResult<()> {
+    let _guard = ResumeDirGuard::new();
+
+    let mut app = App::default();
+    app.ui_state.current_page = Pages::Bot;
+    send(&mut app, &[KeyCode::Char('b')])?;
+
+    assert_eq!(app.ui_state.current_page, Pages::Home);
+    assert_eq!(app.ui_state.current_popup, None);
+    Ok(())
+}
+
+#[test]
+fn return_home_after_a_move_opens_confirmation() -> AppResult<()> {
+    let _guard = ResumeDirGuard::new();
+
+    let mut app = App::default();
+    start_local_game(&mut app)?;
+    play_e2e4(&mut app)?;
+    send(&mut app, &[KeyCode::Char('b')])?;
+
+    assert_eq!(app.ui_state.current_popup, Some(Popups::HomeConfirmation));
+    assert_eq!(app.ui_state.current_page, Pages::Solo);
+    assert_eq!(app.game.logic.game_board.move_history.len(), 1);
+    Ok(())
+}
+
+#[test]
+fn return_home_confirmation_depends_on_multiplayer_game_started() -> AppResult<()> {
+    let _guard = ResumeDirGuard::new();
+
+    for page in [Pages::Multiplayer, Pages::Lichess] {
+        for game_started in [false, true] {
+            let mut app = App::default();
+            app.ui_state.current_page = page;
+            app.game.logic.opponent = Some(Opponent {
+                game_started,
+                ..Opponent::default()
+            });
+            send(&mut app, &[KeyCode::Char('b')])?;
+
+            if game_started {
+                assert_eq!(
+                    app.ui_state.current_popup,
+                    Some(Popups::HomeConfirmation),
+                    "{page:?} should ask once the game has started"
+                );
+                assert_eq!(app.ui_state.current_page, page);
+            } else {
+                assert_eq!(app.ui_state.current_page, Pages::Home);
+                assert_eq!(app.ui_state.current_popup, None);
+            }
+        }
+    }
+
+    Ok(())
+}
+
+#[test]
+fn return_home_confirmation_y_goes_home() -> AppResult<()> {
+    let _guard = ResumeDirGuard::new();
+
+    let mut app = App::default();
+    start_local_game(&mut app)?;
+    play_e2e4(&mut app)?;
+    send(&mut app, &[KeyCode::Char('b'), KeyCode::Char('y')])?;
+
+    assert_eq!(app.ui_state.current_page, Pages::Home);
+    assert_eq!(app.ui_state.current_popup, None);
+    assert!(app.game.logic.game_board.move_history.is_empty());
+    Ok(())
+}
+
+#[test]
+fn return_home_confirmation_n_keeps_playing() -> AppResult<()> {
+    let _guard = ResumeDirGuard::new();
+
+    let mut app = App::default();
+    start_local_game(&mut app)?;
+    play_e2e4(&mut app)?;
+    send(&mut app, &[KeyCode::Char('b'), KeyCode::Char('n')])?;
+
+    assert_eq!(app.ui_state.current_page, Pages::Solo);
+    assert_eq!(app.ui_state.current_popup, None);
+    assert_eq!(app.game.logic.game_board.move_history.len(), 1);
     Ok(())
 }
 

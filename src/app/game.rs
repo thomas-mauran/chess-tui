@@ -55,6 +55,27 @@ impl App {
         }
     }
 
+    /// Returns to the home page immediately before play starts, or asks for
+    /// confirmation once a game is in progress.
+    pub fn request_return_home(&mut self) {
+        let game_started = match self.ui_state.current_page {
+            Pages::Solo | Pages::Bot => !self.game.logic.game_board.move_history.is_empty(),
+            Pages::Multiplayer | Pages::Lichess => self
+                .game
+                .logic
+                .opponent
+                .as_ref()
+                .is_some_and(|opponent| opponent.game_started),
+            _ => false,
+        };
+
+        if game_started {
+            self.ui_state.show_popup(Popups::HomeConfirmation);
+        } else {
+            self.reset_home();
+        }
+    }
+
     /// Restarts the current game while keeping the same opponent and bot.
     /// Re-randomizes color if random color mode is active, re-initializes the clock, and
     /// triggers the bot's first move if it starts as White.

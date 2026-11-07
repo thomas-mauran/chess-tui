@@ -7,10 +7,7 @@ use ratatui::crossterm::event::{KeyCode, KeyEvent};
 pub fn handle_solo_page_events(app: &mut App, key_event: KeyEvent) {
     match key_event.code {
         KeyCode::Char('r') => app.request_restart(), // Restart current game, asking if saved
-        KeyCode::Char('b') => {
-            // Return to home menu - reset all game state
-            app.reset_home();
-        }
+        KeyCode::Char('b') => app.request_return_home(),
         KeyCode::Char('n' | 'N') => {
             // In puzzle mode, 'n' is used for new puzzle (handled in popup)
             // Otherwise, navigate to next position in history
