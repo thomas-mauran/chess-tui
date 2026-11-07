@@ -25,7 +25,6 @@ pub fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
         Popups::PuzzleEndScreen => handle_puzzle_end_screen(app, key_event),
         Popups::Error => handle_error_popup(app, key_event),
         Popups::Success => handle_success_popup(app, key_event),
-        Popups::LoadPgnSource => handle_load_pgn_source(app, key_event),
         Popups::LoadPgnPath => handle_load_pgn_path(app, key_event),
         Popups::LoadPgnPaste => handle_load_pgn_paste(app, key_event),
         Popups::EnterGameCode => handle_enter_game_code(app, key_event),
@@ -165,22 +164,6 @@ fn handle_success_popup(app: &mut App, key_event: KeyEvent) {
                 }
             }
         }
-        _ => fallback_key_handler(app, key_event),
-    }
-}
-
-fn handle_load_pgn_source(app: &mut App, key_event: KeyEvent) {
-    match key_event.code {
-        KeyCode::Up | KeyCode::Char('k') => app.game_mode_state.form_cursor = 0,
-        KeyCode::Down | KeyCode::Char('j') => app.game_mode_state.form_cursor = 1,
-        KeyCode::Enter | KeyCode::Char(' ') => {
-            app.ui_state.current_popup = Some(if app.game_mode_state.form_cursor == 0 {
-                Popups::LoadPgnPath
-            } else {
-                Popups::LoadPgnPaste
-            });
-        }
-        KeyCode::Esc => app.ui_state.close_popup(),
         _ => fallback_key_handler(app, key_event),
     }
 }

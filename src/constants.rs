@@ -180,8 +180,6 @@ pub enum Popups {
     NewGameConfirmation,
     /// SAN move text entry.
     MoveInputSelection,
-    /// Choose a file path or pasted text as the PGN source.
-    LoadPgnSource,
     /// File path entry for loading a PGN file.
     LoadPgnPath,
     /// Paste PGN text directly into the viewer.

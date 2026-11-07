@@ -1,39 +1,17 @@
-//! PGN source selection and input popups.
+//! PGN file-path and pasted-text input popups.
 
 use crate::ui::prompt::Prompt;
 use crate::{constants::WHITE, ui::components::centered_rect::centered_rect};
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Layout, Position},
-    style::{Color, Modifier, Style},
+    style::{Color, Style},
     text::Line,
     widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Wrap},
 };
 
-pub fn render_pgn_source_popup(frame: &mut Frame, selection: usize) {
-    let choices = ["File path", "Paste PGN"];
-    let lines = choices.into_iter().enumerate().map(|(index, label)| {
-        if index == selection {
-            Line::styled(
-                format!("> {label}"),
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            )
-        } else {
-            Line::from(format!("  {label}"))
-        }
-    });
-    let mut text: Vec<_> = lines.collect();
-    text.push(Line::from("↑/↓ Choose · Enter Select · Esc Cancel"));
-
-    let area = centered_rect(60, 40, frame.area());
-    frame.render_widget(Clear, area);
-    frame.render_widget(Paragraph::new(text).block(load_block("Load PGN")), area);
-}
-
 pub fn render_pgn_paste_popup(frame: &mut Frame, prompt: &Prompt) {
-    let area = centered_rect(80, 70, frame.area());
+    let area = centered_rect(60, 35, frame.area());
     let block = load_block("Paste PGN");
     let [instructions, preview, status] = Layout::vertical([
         Constraint::Length(2),

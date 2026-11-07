@@ -119,7 +119,7 @@ mod tests {
             panic!("the error popup must not retry enabling paste")
         })?;
 
-        for code in [KeyCode::Esc, KeyCode::Enter, KeyCode::Up, KeyCode::Enter] {
+        for code in [KeyCode::Esc, KeyCode::Enter, KeyCode::Left, KeyCode::Enter] {
             handle_key_events(KeyEvent::new(code, KeyModifiers::NONE), &mut app)?;
         }
         assert_eq!(app.ui_state.current_popup, Some(Popups::LoadPgnPath));
