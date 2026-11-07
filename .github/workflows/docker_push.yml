@@ -28,7 +28,7 @@ jobs:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-    - uses: docker/metadata-action@v5
+    - uses: docker/metadata-action@v6
       name: Extract metadata (tags, labels) for Docker
       id: meta
       with:
