@@ -98,6 +98,8 @@ impl Default for App {
 impl App {
     /// Handles the tick event of the terminal.
     pub fn tick(&mut self) {
+        let instant = Instant::now();
+
         // Advance PGN viewer auto-play
         if let Some(ref mut games) = self.pgn_viewer_state
             && let Some(viewer) = games.get_mut(self.pgn_viewer_game_idx)
@@ -122,26 +124,12 @@ impl App {
             self.lichess_state.puzzle_game = Some(puzzle_game);
         }
 
-        let is_lichess = self
-            .game
-            .logic
-            .opponent
-            .as_ref()
-            .is_some_and(|o| o.is_lichess());
+        let clock = &mut self.game.logic.clock;
 
-        let clock = &self.game.logic.clock;
-
-        // Detect time running out for Lichess games (the server stops sending
-        // events once a player flags, so we finish the countdown locally).
-        if is_lichess
-            && let ClockState::Running { active_color, .. } = self.game.logic.clock.state()
-            && clock.get_time(active_color, Instant::now()).is_zero()
-        {
-            self.game.logic.clock.force_time_up(active_color);
-        }
+        clock.sync_time(instant);
 
         // Check clock for time up (for local games and bot games with clock)
-        if let ClockState::TimeUp { loser_color } = self.game.logic.clock.state() {
+        if let ClockState::TimeUp { loser_color } = clock.state() {
             // Time is up - end the game
             let winner = loser_color.other();
             self.game.logic.game_state = GameState::Checkmate;

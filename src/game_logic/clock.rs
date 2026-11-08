@@ -109,7 +109,7 @@ impl Clock {
         }
     }
 
-    pub fn is_time_up(&self, color: Color, instant: Instant) -> bool {
+    fn is_time_up(&self, color: Color, instant: Instant) -> bool {
         self.get_time(color, instant) == Duration::ZERO
     }
 
@@ -178,6 +178,18 @@ impl Clock {
 
     pub fn white_time(&self) -> Duration {
         self.white_time
+    }
+
+    pub fn sync_time(&mut self, instant: Instant) {
+        if let ClockState::Running { active_color, .. } = self.state
+            && self.is_time_up(active_color, instant)
+        {
+            self.state = ClockState::TimeUp {
+                loser_color: active_color,
+            };
+            let active_time = self.get_base_time(active_color);
+            self.deduct_time(active_color, active_time);
+        }
     }
 
     /// Synchronize with the server-reported remaining times (milliseconds),
