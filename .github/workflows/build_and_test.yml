@@ -33,7 +33,7 @@ jobs:
         - windows-latest
         include:
         # MSRV: must match rust-version in Cargo.toml
-        - { toolchain: "1.90", os: ubuntu-latest }
+        - { toolchain: "1.99.1", os: ubuntu-latest }
         # Early warning only: beta and nightly failures do not fail the PR
         - { toolchain: beta, os: ubuntu-latest, experimental: true }
         - { toolchain: nightly, os: ubuntu-latest, experimental: true }
