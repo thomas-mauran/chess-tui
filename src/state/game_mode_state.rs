@@ -1,5 +1,6 @@
 //! Captures the game mode, color choice, clock settings, and bot difficulty selected during game configuration.
 
+use crate::game_logic::clock::TimeControl;
 use crate::handlers::game_mode_menu::AvailableGameMode;
 use shakmaty::Color;
 
@@ -59,6 +60,22 @@ impl GameModeState {
             5 => "No clock",
             x if x == crate::constants::TIME_CONTROL_CUSTOM_INDEX => "Custom",
             _ => "Rapid",
+        }
+    }
+
+    /// Get the [`TimeControl`] for the current time control index.
+    pub fn get_time_control(&self) -> TimeControl {
+        match self.clock_cursor {
+            0 => TimeControl::UltraBullet,
+            1 => TimeControl::Bullet,
+            2 => TimeControl::Blitz,
+            3 => TimeControl::Rapid,
+            4 => TimeControl::Classical,
+            5 => TimeControl::NoClock,
+            x if x == crate::constants::TIME_CONTROL_CUSTOM_INDEX => {
+                TimeControl::Custom(self.custom_time_minutes as u64)
+            }
+            _ => TimeControl::Rapid,
         }
     }
 

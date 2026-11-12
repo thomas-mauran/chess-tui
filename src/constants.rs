@@ -45,6 +45,42 @@ pub const SKIN_NAME_ASCII: &str = "ASCII";
 /// Index into [`TIME_CONTROL_OPTIONS`] that selects the "Custom" entry.
 pub const TIME_CONTROL_CUSTOM_INDEX: u8 = 6;
 
+/// A Lichess seek preset: its speed category name, base minutes, and increment
+/// in seconds.
+#[derive(Clone, Copy, Debug)]
+pub struct LichessTimeControl {
+    pub name: &'static str,
+    pub minutes: u32,
+    pub increment: u32,
+}
+
+impl LichessTimeControl {
+    /// Standard chess notation for the time control, e.g. `10+0`.
+    pub fn notation(&self) -> String {
+        format!("{}+{}", self.minutes, self.increment)
+    }
+
+    /// Label used in the time-control selector, e.g. `10+0 Rapid`.
+    pub fn label(&self) -> String {
+        format!("{} {}", self.notation(), self.name)
+    }
+}
+
+/// Time control presets offered when seeking a Lichess game. The board seek
+/// API only allows Rapid and Classical for public real-time seeks.
+pub const LICHESS_TIME_CONTROLS: [LichessTimeControl; 2] = [
+    LichessTimeControl {
+        name: "Rapid",
+        minutes: 10,
+        increment: 0,
+    },
+    LichessTimeControl {
+        name: "Classical",
+        minutes: 30,
+        increment: 0,
+    },
+];
+
 /// Display labels for the four bot difficulty presets.
 pub const BOT_DIFFICULTY_NAMES: [&str; 4] =
     ["Easy (400)", "Medium (900)", "Hard (1500)", "Magnus (2700)"];
@@ -196,3 +232,16 @@ pub enum Popups {
 pub const LICHESS_API_URL: &str = "https://lichess.org/api";
 /// Base URL for the chess-tui documentation.
 pub const DOCS_URL: &str = "https://thomas-mauran.github.io/chess-tui/docs";
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn lichess_time_controls_use_standard_notation() {
+        assert_eq!(LICHESS_TIME_CONTROLS[0].notation(), "10+0");
+        assert_eq!(LICHESS_TIME_CONTROLS[0].label(), "10+0 Rapid");
+        assert_eq!(LICHESS_TIME_CONTROLS[1].notation(), "30+0");
+        assert_eq!(LICHESS_TIME_CONTROLS[1].label(), "30+0 Classical");
+    }
+}

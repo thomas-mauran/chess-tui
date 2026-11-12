@@ -34,6 +34,15 @@ pub fn handle_lichess_menu_page_events(app: &mut App, key_event: KeyEvent) {
     match key_event.code {
         KeyCode::Up | KeyCode::Char('k') => app.ui_state.menu_cursor_up(5), // 5 menu options
         KeyCode::Down | KeyCode::Char('j') => app.ui_state.menu_cursor_down(5),
+        KeyCode::Right | KeyCode::Char('l') => {
+            // Only Rapid (3) and Classical (4) are valid for Lichess seeks.
+            let cursor = &mut app.game_mode_state.clock_cursor;
+            *cursor = if *cursor >= 4 { 3 } else { 4 };
+        }
+        KeyCode::Left | KeyCode::Char('h') => {
+            let cursor = &mut app.game_mode_state.clock_cursor;
+            *cursor = if *cursor <= 3 { 4 } else { 3 };
+        }
         KeyCode::PageUp => {
             // Scroll stats up
             if app.lichess_state.lichess_stats_scroll > 0 {
@@ -68,7 +77,8 @@ pub fn handle_lichess_menu_page_events(app: &mut App, key_event: KeyEvent) {
                     }
                     app.ui_state.menu_cursor = 0;
                     app.ui_state.current_page = Pages::Lichess;
-                    app.create_lichess_opponent();
+                    let cursor = app.game_mode_state.clock_cursor.clamp(3, 4);
+                    app.create_lichess_opponent(cursor);
                 }
                 LichessMenuItems::Puzzle => {
                     // Puzzle
