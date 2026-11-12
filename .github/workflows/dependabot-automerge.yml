@@ -14,7 +14,7 @@ jobs:
     steps:
     - name: Fetch Dependabot metadata
       id: meta
-      uses: dependabot/fetch-metadata@v2
+      uses: dependabot/fetch-metadata@v3
 
     # Cargo minor bumps on 0.x crates can be breaking, so cargo only gets patch.
     # Website npm deps and GitHub Actions get patch and minor.
