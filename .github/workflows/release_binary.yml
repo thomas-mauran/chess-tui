@@ -68,7 +68,7 @@ jobs:
       shell: bash # needed for windows
       name: Set TAR_NAME from tag and platform, create tar file containing the binary
 
-    - uses: softprops/action-gh-release@v2
+    - uses: softprops/action-gh-release@v3
       name: Upload binary to release
       if: inputs.tag != '' || github.ref_type == 'tag'
       with:
@@ -110,7 +110,7 @@ jobs:
         DEB_PATH=$(find target/debian -name "*.deb" | head -n 1)
         echo "deb_path=$DEB_PATH" >> "$GITHUB_OUTPUT"
 
-    - uses: softprops/action-gh-release@v2
+    - uses: softprops/action-gh-release@v3
       name: Upload .deb to release
       if: inputs.tag != '' || github.ref_type == 'tag'
       with:
