@@ -495,3 +495,69 @@ impl LichessClient {
         Ok(())
     }
 }
+
+/// Extracts the 8-character game ID from a Lichess game URL or a bare ID.
+///
+/// Accepts forms like `abcdefgh`, `https://lichess.org/abcdefgh`,
+/// `lichess.org/abcdefgh/black#12` and 12-character player IDs.
+fn parse_game_id(input: &str) -> Option<String> {
+    let path = input
+        .trim()
+        .trim_start_matches("https://")
+        .trim_start_matches("http://");
+    let path = path.strip_prefix("lichess.org/").unwrap_or(path);
+    let segment = path.split(['/', '#', '?']).next()?;
+    let id = segment.get(..8)?;
+    (id.chars().all(|c| c.is_ascii_alphanumeric()) && (segment.len() == 8 || segment.len() == 12))
+        .then(|| id.to_string())
+}
+
+/// Downloads the PGN of a public Lichess game. No token is required.
+// shortcut: blocking call on the UI thread (10s timeout), move to a background thread if it feels laggy.
+pub fn export_game_pgn(input: &str) -> Result<String, String> {
+    let id =
+        parse_game_id(input).ok_or_else(|| format!("Invalid Lichess game URL or ID: {input}"))?;
+    let response = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        // Lichess answers 403 to requests without a User-Agent.
+        .user_agent(concat!("chess-tui/", env!("CARGO_PKG_VERSION")))
+        .build()
+        .and_then(|client| {
+            client
+                .get(format!(
+                    "https://lichess.org/game/export/{id}?clocks=false&evals=false"
+                ))
+                .header("Accept", "application/x-chess-pgn")
+                .send()
+        })
+        .map_err(|e| format!("Failed to reach Lichess: {e}"))?;
+    match response.status() {
+        reqwest::StatusCode::NOT_FOUND => Err(format!("Lichess game '{id}' not found")),
+        status if !status.is_success() => Err(format!("Lichess returned {status}")),
+        _ => response
+            .text()
+            .map_err(|e| format!("Failed to read Lichess response: {e}")),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_game_id;
+
+    #[test]
+    fn parses_game_ids_from_urls() {
+        for input in [
+            "q7ZvsdUF",
+            " https://lichess.org/q7ZvsdUF ",
+            "http://lichess.org/q7ZvsdUF/black",
+            "lichess.org/q7ZvsdUF#24",
+            "https://lichess.org/q7ZvsdUFxyz1",
+            "https://lichess.org/q7ZvsdUF?foo=bar",
+        ] {
+            assert_eq!(parse_game_id(input).as_deref(), Some("q7ZvsdUF"), "{input}");
+        }
+        for input in ["", "abc", "https://lichess.org/", "q7Zv-dUF"] {
+            assert_eq!(parse_game_id(input), None, "{input}");
+        }
+    }
+}

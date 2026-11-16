@@ -125,9 +125,11 @@ fn source_selector_uses_horizontal_arrows_and_vim_keys() -> AppResult<()> {
     for (code, selected) in [
         (KeyCode::Left, 0),
         (KeyCode::Right, 1),
-        (KeyCode::Right, 1),
-        (KeyCode::Char('h'), 0),
-        (KeyCode::Char('l'), 1),
+        (KeyCode::Right, 2),
+        (KeyCode::Right, 2),
+        (KeyCode::Char('h'), 1),
+        (KeyCode::Char('l'), 2),
+        (KeyCode::Left, 1),
         (KeyCode::Left, 0),
     ] {
         send(&mut app, &[code])?;
@@ -138,6 +140,17 @@ fn source_selector_uses_horizontal_arrows_and_vim_keys() -> AppResult<()> {
     send(&mut app, &[KeyCode::Char(' ')])?;
     assert_eq!(app.ui_state.current_popup, Some(Popups::LoadPgnPath));
     assert!(!app.game_mode_state.form_active);
+    Ok(())
+}
+
+#[test]
+fn lichess_source_opens_lichess_popup() -> AppResult<()> {
+    let mut app = open_pgn_source_form()?;
+    send(&mut app, &[KeyCode::Right, KeyCode::Right, KeyCode::Enter])?;
+    assert_eq!(app.ui_state.current_popup, Some(Popups::LoadPgnLichess));
+    assert!(!app.game_mode_state.form_active);
+    send(&mut app, &[KeyCode::Esc])?;
+    assert_eq!(app.ui_state.current_popup, None);
     Ok(())
 }
 
