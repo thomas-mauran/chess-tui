@@ -30,7 +30,7 @@ jobs:
       working-directory: website
 
     - name: Upload Build Artifact
-      uses: actions/upload-pages-artifact@v3
+      uses: actions/upload-pages-artifact@v5
       with:
         path: website/build
 
