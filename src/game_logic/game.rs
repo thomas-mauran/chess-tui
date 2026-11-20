@@ -560,6 +560,9 @@ impl GameLogic {
             // Remove the last move and position from history
             self.game_board.move_history.pop();
             self.game_board.position_history.pop();
+            if last_move.capture().is_some() {
+                self.game_board.taken_pieces.pop();
+            }
 
             // Re-execute the move with the correct promotion
             if self.game_board.execute_shakmaty_move_with_promotion(
