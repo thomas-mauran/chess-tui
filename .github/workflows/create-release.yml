@@ -162,7 +162,7 @@ jobs:
           desc "Play chess in your terminal"
           homepage "https://github.com/$GITHUB_REPOSITORY"
           version "${TAG#v}"
-          license "MIT"
+          license "GPL-3.0-or-later"
           head "https://github.com/$GITHUB_REPOSITORY.git", branch: "main"
 
           on_macos do

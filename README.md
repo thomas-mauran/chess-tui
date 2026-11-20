@@ -6,7 +6,7 @@
 
 <div>
 
-![Stars](https://img.shields.io/github/stars/thomas-mauran/chess-tui?logo=github) ![Downloads](https://img.shields.io/crates/d/chess-tui?logo=rust) ![GitHub CI](https://github.com/thomas-mauran/chess-tui/actions/workflows/flow_test_build_push.yml/badge.svg) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![GitHub release](https://img.shields.io/github/v/release/thomas-mauran/chess-tui?color=success)](https://github.com/thomas-mauran/chess-tui/releases/latest) [![Built With Ratatui](https://img.shields.io/badge/Built_With-Ratatui-000?logo=ratatui&logoColor=fff)](https://ratatui.rs/)
+![Stars](https://img.shields.io/github/stars/thomas-mauran/chess-tui?logo=github) ![Downloads](https://img.shields.io/crates/d/chess-tui?logo=rust) ![GitHub CI](https://github.com/thomas-mauran/chess-tui/actions/workflows/flow_test_build_push.yml/badge.svg) [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![GitHub release](https://img.shields.io/github/v/release/thomas-mauran/chess-tui?color=success)](https://github.com/thomas-mauran/chess-tui/releases/latest) [![Built With Ratatui](https://img.shields.io/badge/Built_With-Ratatui-000?logo=ratatui&logoColor=fff)](https://ratatui.rs/)
 
   </div>
 </div>

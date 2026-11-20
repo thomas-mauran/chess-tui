@@ -179,7 +179,7 @@ const config: Config = {
           priceCurrency: 'USD',
         },
         codeRepository: 'https://github.com/thomas-mauran/chess-tui',
-        license: 'https://opensource.org/licenses/MIT',
+        license: 'https://www.gnu.org/licenses/gpl-3.0.html',
       }),
     },
   ],

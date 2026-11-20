@@ -6,9 +6,12 @@ Thank you for your interest in improving Chess-tui! We'd love to have your contr
 
 ## License
 
-Chess-tui is an MIT licensed project and so are all contributions. Please see the [`LICENSE`] file in this directory for more details.
+Chess-tui is licensed under the GNU General Public License v3.0 or later (GPL-3.0-or-later) and so are all contributions. Please see the [`LICENSE`] file in this directory for more details.
+
+Code contributed before the switch to GPL-3.0-or-later was released under the MIT License. Its original notice is kept in [`LICENSE-MIT`].
 
 [`LICENSE`]: https://github.com/thomas-mauran/chess-tui/blob/main/LICENSE
+[`LICENSE-MIT`]: https://github.com/thomas-mauran/chess-tui/blob/main/LICENSE-MIT
 
 ## Pull Requests
 
