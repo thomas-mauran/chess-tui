@@ -186,6 +186,8 @@ pub enum Popups {
     LoadPgnPath,
     /// Paste PGN text directly into the viewer.
     LoadPgnPaste,
+    /// Lichess game URL or ID entry for loading its PGN.
+    LoadPgnLichess,
     /// Spinner to make user wait
     Loading,
     /// Text input for chess engine path.
