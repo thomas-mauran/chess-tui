@@ -239,7 +239,7 @@ fn parse_single_game(pgn: &str) -> Result<PgnViewer, String> {
         }
         if past_headers {
             movetext.push_str(line);
-            movetext.push(' ');
+            movetext.push('\n');
         }
     }
 
@@ -318,6 +318,14 @@ fn extract_san_tokens(movetext: &str) -> Vec<String> {
             _ => break,
         }
     }
+
+    // Remove line comments (`;` to end of line)
+    let mut without_line_comments = String::new();
+    for line in text.lines() {
+        without_line_comments.push_str(line.split(';').next().unwrap_or(""));
+        without_line_comments.push('\n');
+    }
+    text = without_line_comments;
 
     // Remove variations (…) - handle nesting
     loop {
