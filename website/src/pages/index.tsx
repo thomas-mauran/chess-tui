@@ -37,7 +37,7 @@ function HomepageHeader() {
           </Heading>
           <div className={styles.badges}>
             <span className={styles.badge}>🦀 Rust</span>
-            <span className={styles.badge}>MIT License</span>
+            <span className={styles.badge}>GPL-3.0 License</span>
             <span className={styles.badge}>Open Source</span>
           </div>
           <p className={styles.hero__subtitle}>{siteConfig.tagline}</p>
