@@ -5,6 +5,7 @@ use crate::{
     constants::{Pages, Popups},
     handlers::{game_mode_menu::start_game, handler::fallback_key_handler},
     pgn_viewer::PgnViewer,
+    sound::play_menu_nav_sound,
     state::{resume::ResumeMode, ui_state::NewGame},
     utils::normalize_lowercase_to_san,
 };
@@ -30,6 +31,7 @@ pub fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
         Popups::EnterGameCode => handle_enter_game_code(app, key_event),
         Popups::EnterLichessToken => handle_enter_lichess_token(app, key_event),
         Popups::SeekingLichessGame => handle_seeking_lichess_game(app, key_event),
+        Popups::LichessTimeControl => handle_lichess_time_control(app, key_event),
         Popups::ResignConfirmation => handle_resign_confirmation(app, key_event),
         Popups::NewGameConfirmation => handle_new_game_confirmation(app, key_event),
         Popups::HomeConfirmation => handle_home_confirmation(app, key_event),
@@ -286,6 +288,29 @@ fn handle_seeking_lichess_game(app: &mut App, key_event: KeyEvent) {
             app.lichess_state.cancellation_token = None;
             app.ui_state.close_popup();
             app.ui_state.current_page = Pages::Home;
+        }
+        _ => fallback_key_handler(app, key_event),
+    }
+}
+
+fn handle_lichess_time_control(app: &mut App, key_event: KeyEvent) {
+    match key_event.code {
+        KeyCode::Left | KeyCode::Char('h') | KeyCode::Right | KeyCode::Char('l') => {
+            // Only Rapid (3) and Classical (4) are valid for Lichess seeks.
+            let cursor = &mut app.game_mode_state.clock_cursor;
+            *cursor = if *cursor >= 4 { 3 } else { 4 };
+            play_menu_nav_sound();
+        }
+        KeyCode::Enter | KeyCode::Char(' ') => {
+            let cursor = app.game_mode_state.clock_cursor.clamp(3, 4);
+            app.ui_state.close_popup();
+            app.ui_state.menu_cursor = 0;
+            app.ui_state.current_page = Pages::Lichess;
+            app.create_lichess_opponent(cursor);
+        }
+        KeyCode::Esc | KeyCode::Char('b') => {
+            app.ui_state.close_popup();
+            app.ui_state.current_page = Pages::LichessMenu;
         }
         _ => fallback_key_handler(app, key_event),
     }

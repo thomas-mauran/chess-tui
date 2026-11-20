@@ -10,18 +10,56 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Paragraph},
 };
 
+struct LichessLayout {
+    title: Rect,
+    menu: Rect,
+    profile: Rect,
+    chart: Rect,
+    footer: Rect,
+}
+
+impl LichessLayout {
+    fn new(area: Rect) -> Self {
+        // Create main layout: title, content (menu + stats), footer
+        let main_chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(3), // Title
+                Constraint::Min(10),   // Content (menu + stats)
+                Constraint::Length(3), // Footer
+            ])
+            .split(area);
+
+        let content_stats = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Percentage(40), // Menu
+                Constraint::Percentage(60), // Stats
+            ])
+            .split(main_chunks[1]);
+
+        let profile_and_chart = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Min(2),     // Stats text
+                Constraint::Length(24), // Graph
+            ])
+            .split(content_stats[1]);
+
+        LichessLayout {
+            title: main_chunks[0],
+            menu: content_stats[0],
+            profile: profile_and_chart[0],
+            chart: profile_and_chart[1],
+            footer: main_chunks[2],
+        }
+    }
+}
+
 pub fn render_lichess_menu(frame: &mut Frame, app: &App) {
     let area = frame.area();
 
-    // Create main layout: title, content (menu + stats), footer
-    let main_chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(3), // Title
-            Constraint::Min(10),   // Content (menu + stats)
-            Constraint::Length(3), // Footer
-        ])
-        .split(area);
+    let layout = LichessLayout::new(area);
 
     // Title
     let title = Paragraph::new("Lichess Menu")
@@ -36,48 +74,12 @@ pub fn render_lichess_menu(frame: &mut Frame, app: &App) {
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded),
         );
-    frame.render_widget(title, main_chunks[0]);
+    frame.render_widget(title, layout.title);
 
-    // Split content area into menu (left) and stats (right)
-    let content_chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage(40), // Menu
-            Constraint::Percentage(60), // Stats
-        ])
-        .split(main_chunks[1]);
-
-    // Split stats area into stats text and graph
-    let stats_chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Min(2),     // Stats text
-            Constraint::Length(24), // Graph
-        ])
-        .split(content_chunks[1]);
-
-    render_menu_panel(frame, app, content_chunks[0]);
-
-    render_user_stats_panel(frame, app, stats_chunks[0]);
-
-    render_chart_panel(frame, app, stats_chunks[1]);
-
-    // Footer with controls
-    let footer = Paragraph::new(vec![Line::from(vec![
-        Span::styled("↑/↓", Style::default().fg(Color::Cyan)),
-        Span::raw(" Navigate  "),
-        Span::styled("Enter", Style::default().fg(Color::Cyan)),
-        Span::raw(" Select  "),
-        Span::styled("Esc", Style::default().fg(Color::Cyan)),
-        Span::raw(" Back to Home"),
-    ])])
-    .alignment(Alignment::Center)
-    .block(
-        Block::default()
-            .borders(Borders::ALL)
-            .border_type(BorderType::Rounded),
-    );
-    frame.render_widget(footer, main_chunks[2]);
+    render_menu_panel(frame, app, layout.menu);
+    render_user_stats_panel(frame, app, layout.profile);
+    render_chart_panel(frame, app, layout.chart);
+    render_footer_with_controls(frame, layout.footer);
 }
 
 fn render_menu_panel(frame: &mut Frame, app: &App, area: Rect) {
@@ -452,4 +454,24 @@ fn render_chart_panel(frame: &mut Frame, app: &App, area: Rect) {
             .alignment(Alignment::Center);
         frame.render_widget(loading_graph, area);
     }
+}
+
+fn render_footer_with_controls(frame: &mut Frame, area: Rect) {
+    // Footer with controls
+    let footer = Paragraph::new(vec![Line::from(vec![
+        Span::styled("↑/↓", Style::default().fg(Color::Cyan)),
+        Span::raw(" Menu  "),
+        Span::styled("Enter", Style::default().fg(Color::Cyan)),
+        Span::raw(" Select  "),
+        Span::styled("Esc", Style::default().fg(Color::Cyan)),
+        Span::raw(" Back to Home"),
+    ])])
+    .alignment(Alignment::Center)
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded),
+    );
+
+    frame.render_widget(footer, area);
 }

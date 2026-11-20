@@ -59,6 +59,10 @@ pub struct Player {
 pub struct GameState {
     pub moves: String,
     pub status: String,
+    #[serde(default)]
+    pub wtime: usize,
+    #[serde(default)]
+    pub btime: usize,
 }
 
 #[derive(Debug, Deserialize, Clone)]

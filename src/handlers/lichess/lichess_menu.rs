@@ -67,8 +67,12 @@ pub fn handle_lichess_menu_page_events(app: &mut App, key_event: KeyEvent) {
                         return;
                     }
                     app.ui_state.menu_cursor = 0;
-                    app.ui_state.current_page = Pages::Lichess;
-                    app.create_lichess_opponent();
+                    // Only Rapid (3) and Classical (4) are valid for Lichess seeks.
+                    let cursor = &mut app.game_mode_state.clock_cursor;
+                    if *cursor < 3 || *cursor > 4 {
+                        *cursor = 3;
+                    }
+                    app.ui_state.current_popup = Some(Popups::LichessTimeControl);
                 }
                 LichessMenuItems::Puzzle => {
                     // Puzzle
