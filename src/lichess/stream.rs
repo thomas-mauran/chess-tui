@@ -242,15 +242,12 @@ impl LichessClient {
                             // Check for new moves
                             if let Some(last_turns_val) = last_turns {
                                 if current_turns > last_turns_val {
-                                    // New move detected
-                                    if let Some(new_move) = state.moves.split_whitespace().last()
-                                        && last_move_seen.as_ref() != Some(&new_move.to_string())
+                                    for new_move in
+                                        state.moves.split_whitespace().skip(last_turns_val)
                                     {
-                                        log::info!("New move from stream: {}", new_move);
                                         let _ = move_tx.send(new_move.to_string());
-                                        last_move_seen = Some(new_move.to_string());
-                                        last_turns = Some(current_turns);
                                     }
+                                    last_turns = Some(current_turns);
                                 }
                             } else {
                                 // First gameState event - initialize
