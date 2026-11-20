@@ -109,6 +109,26 @@ pub const DEFAULT_TIME_CONTROL_SELECTED: u8 = 3;
 /// Default duration in minutes when "Custom" time control is selected.
 pub const DEFAULT_CUSTOM_TIME_VALUE: u16 = 10;
 
+/// ASCII art shown for the Rapid option in the Lichess seek popup.
+pub const LICHESS_RAPID_ASCII_ART: &str = r#"      ,\
+         \\\,_
+          \` ,\
+     __,.-" =__)
+   ."        )
+,_/   ,    \/\_
+\_|    )_-\ \_-`
+   `-----` `--`"#;
+
+/// ASCII art shown for the Classical option in the Lichess seek popup.
+pub const LICHESS_CLASSICAL_ASCII_ART: &str = r#"
+
+              __
+    .,-;-;-,. /'_\
+  _/_/_/_|_\_\) /
+'-<_><_><_><_>=/\
+  `/_/====/_/-'\_\
+   ""     ""    """#;
+
 /// ASCII-art banner rendered on the home screen.
 pub const TITLE: &str = r"
  ██████╗██╗  ██╗███████╗███████╗███████╗   ████████╗██╗   ██╗██╗
@@ -206,6 +226,8 @@ pub enum Popups {
     Success,
     /// Waiting for a Lichess game pairing.
     SeekingLichessGame,
+    /// Time-control picker shown before seeking a Lichess game.
+    LichessTimeControl,
     /// Text input for a Lichess game ID or URL.
     EnterGameCode,
     /// Masked text input for the Lichess API token.

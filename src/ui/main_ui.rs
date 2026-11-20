@@ -25,6 +25,7 @@ use crate::{
             home_confirmation::render_home_confirmation_popup,
             lichess::{
                 game_code::render_enter_game_code_popup, puzzle_end::render_puzzle_end_popup,
+                time_control::render_lichess_time_control_popup,
                 token::render_enter_lichess_token_popup,
             },
             loading::render_loading_popup,
@@ -106,6 +107,9 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
                 .block(block)
                 .alignment(Alignment::Center);
             frame.render_widget(paragraph, popup_area);
+        }
+        Some(Popups::LichessTimeControl) => {
+            render_lichess_time_control_popup(frame, app);
         }
         Some(Popups::EnterGameCode) => {
             render_enter_game_code_popup(frame, &app.game.ui.prompt);
