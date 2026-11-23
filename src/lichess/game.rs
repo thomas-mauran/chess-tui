@@ -499,13 +499,15 @@ impl LichessClient {
 /// Extracts the 8-character game ID from a Lichess game URL or a bare ID.
 ///
 /// Accepts forms like `abcdefgh`, `https://lichess.org/abcdefgh`,
-/// `lichess.org/abcdefgh/black#12` and 12-character player IDs.
+/// `lichess.org/abcdefgh/black#12`, `lichess.org/game/abcdefgh` and
+/// 12-character player IDs.
 fn parse_game_id(input: &str) -> Option<String> {
     let path = input
         .trim()
         .trim_start_matches("https://")
         .trim_start_matches("http://");
     let path = path.strip_prefix("lichess.org/").unwrap_or(path);
+    let path = path.strip_prefix("game/").unwrap_or(path);
     let segment = path.split(['/', '#', '?']).next()?;
     let id = segment.get(..8)?;
     (id.chars().all(|c| c.is_ascii_alphanumeric()) && (segment.len() == 8 || segment.len() == 12))
@@ -553,10 +555,18 @@ mod tests {
             "lichess.org/q7ZvsdUF#24",
             "https://lichess.org/q7ZvsdUFxyz1",
             "https://lichess.org/q7ZvsdUF?foo=bar",
+            "https://lichess.org/game/q7ZvsdUFxyz1",
+            "lichess.org/game/q7ZvsdUF/black#24",
         ] {
             assert_eq!(parse_game_id(input).as_deref(), Some("q7ZvsdUF"), "{input}");
         }
-        for input in ["", "abc", "https://lichess.org/", "q7Zv-dUF"] {
+        for input in [
+            "",
+            "abc",
+            "https://lichess.org/",
+            "https://lichess.org/game/",
+            "q7Zv-dUF",
+        ] {
             assert_eq!(parse_game_id(input), None, "{input}");
         }
     }
