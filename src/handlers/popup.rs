@@ -207,8 +207,18 @@ fn handle_load_pgn_path(app: &mut App, key_event: KeyEvent) {
 }
 
 fn handle_load_pgn_lichess(app: &mut App, key_event: KeyEvent) {
+    let default_side = app.game_mode_state.lichess_pgn_side;
+    if key_event.code == KeyCode::Tab {
+        app.game_mode_state.lichess_pgn_side = default_side.other();
+        return;
+    }
     handle_pgn_text_input(app, key_event, |input| {
-        crate::lichess::game::export_game_pgn(input).and_then(|pgn| PgnViewer::from_pgn_str(&pgn))
+        let (pgn, side) = crate::lichess::game::export_game_pgn(input)?;
+        let mut games = PgnViewer::from_pgn_str(&pgn)?;
+        for game in &mut games {
+            game.is_flipped = side.unwrap_or(default_side).is_black();
+        }
+        Ok(games)
     });
 }
 

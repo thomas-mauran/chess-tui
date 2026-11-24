@@ -56,6 +56,8 @@ If the terminal does not support bracketed paste (such as a legacy Windows conso
 an error dialog appears. Use **File path** or switch to a terminal with bracketed paste support.
 With **Lichess URL**, enter a game link (such as `https://lichess.org/abcdefgh`) or its
 8-character ID to download and replay that game. No Lichess token is needed.
+Press **Tab** to choose which side the board is viewed from. A link ending in `/white` or
+`/black` overrides this choice.
 
 | Key | Action |
 |-----|--------|

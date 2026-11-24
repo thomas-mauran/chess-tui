@@ -56,17 +56,22 @@ pub fn render_load_pgn_popup(frame: &mut Frame, prompt: &Prompt) {
         prompt,
         "Load PGN",
         "Enter the absolute path to a .pgn file:",
+        "",
         "Multi-game PGN files are supported.",
     );
 }
 
 /// Renders a text input for a Lichess game URL or ID.
-pub fn render_lichess_pgn_popup(frame: &mut Frame, prompt: &Prompt) {
+pub fn render_lichess_pgn_popup(frame: &mut Frame, prompt: &Prompt, side: shakmaty::Color) {
     render_input_popup(
         frame,
         prompt,
         "Load from Lichess",
         "Enter a Lichess game URL or ID:",
+        side.fold_wb(
+            "View from: [x] White  [ ] Black  (Tab)",
+            "View from: [ ] White  [x] Black  (Tab)",
+        ),
         "e.g. https://lichess.org/abcdefgh",
     );
 }
@@ -76,6 +81,7 @@ fn render_input_popup(
     prompt: &Prompt,
     title: &'static str,
     label: &'static str,
+    option: &'static str,
     hint: &'static str,
 ) {
     let block = load_block(title);
@@ -88,7 +94,7 @@ fn render_input_popup(
         Line::from(""),
         Line::from(current_input),
         Line::from(""),
-        Line::from(""),
+        Line::from(option),
         Line::from(hint),
         Line::from(""),
         Line::from("Press `Enter` to load, `Esc` to cancel.").alignment(Alignment::Center),

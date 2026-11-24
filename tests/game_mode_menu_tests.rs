@@ -13,6 +13,7 @@ use ratatui::{
     crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
     style::Color,
 };
+use shakmaty::Color as Side;
 
 fn key(code: KeyCode) -> KeyEvent {
     KeyEvent {
@@ -149,8 +150,25 @@ fn lichess_source_opens_lichess_popup() -> AppResult<()> {
     send(&mut app, &[KeyCode::Right, KeyCode::Right, KeyCode::Enter])?;
     assert_eq!(app.ui_state.current_popup, Some(Popups::LoadPgnLichess));
     assert!(!app.game_mode_state.form_active);
-    send(&mut app, &[KeyCode::Esc])?;
+    for side in [Side::White, Side::Black, Side::White, Side::Black] {
+        assert_eq!(app.game_mode_state.lichess_pgn_side, side);
+        send(&mut app, &[KeyCode::Tab])?;
+    }
+    send(&mut app, &[KeyCode::Tab, KeyCode::Esc])?;
     assert_eq!(app.ui_state.current_popup, None);
+
+    // Reopening starts from White again.
+    send(
+        &mut app,
+        &[
+            KeyCode::Enter,
+            KeyCode::Right,
+            KeyCode::Right,
+            KeyCode::Enter,
+        ],
+    )?;
+    assert_eq!(app.ui_state.current_popup, Some(Popups::LoadPgnLichess));
+    assert_eq!(app.game_mode_state.lichess_pgn_side, Side::White);
     Ok(())
 }
 

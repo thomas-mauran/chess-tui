@@ -117,7 +117,11 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
             render_pgn_paste_popup(frame, &app.game.ui.prompt);
         }
         Some(Popups::LoadPgnLichess) => {
-            render_lichess_pgn_popup(frame, &app.game.ui.prompt);
+            render_lichess_pgn_popup(
+                frame,
+                &app.game.ui.prompt,
+                app.game_mode_state.lichess_pgn_side,
+            );
         }
         Some(Popups::EnterLichessToken) => {
             render_enter_lichess_token_popup(frame, &app.game.ui.prompt);

@@ -339,6 +339,7 @@ fn handle_form_enter(app: &mut App, game_mode: AvailableGameMode) {
             // Dismissing either input dialog must restore menu navigation (#349).
             app.game_mode_state.form_active = false;
             app.game.ui.prompt.reset();
+            app.game_mode_state.lichess_pgn_side = shakmaty::Color::White;
             app.ui_state.current_popup = Some(match app.game_mode_state.form_cursor {
                 0 => Popups::LoadPgnPath,
                 1 => Popups::LoadPgnPaste,
