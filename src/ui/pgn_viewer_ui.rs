@@ -13,13 +13,14 @@ use ratatui::{
 /// Sync the PgnViewer's current ply into `app.game.logic.game_board` so that
 /// existing board/history render functions see the right position.
 pub fn sync_pgn_to_board(app: &mut App) {
-    let (positions, moves, current_ply) = {
+    let (positions, moves, current_ply, is_flipped) = {
         if let Some(ref viewer) = app.pgn_viewer_state {
             let v = &viewer[app.pgn_viewer_game_idx];
             (
                 v.positions[..=v.current_ply].to_vec(),
                 v.moves[..v.current_ply].to_vec(),
                 v.current_ply,
+                v.is_flipped,
             )
         } else {
             return;
@@ -29,6 +30,7 @@ pub fn sync_pgn_to_board(app: &mut App) {
     app.game.logic.game_board.position_history = positions;
     app.game.logic.game_board.move_history = moves;
     app.game.logic.game_board.history_position_index = None;
+    app.game.logic.game_board.is_flipped = is_flipped;
     app.game.ui.selected_square = None;
     app.game.logic.game_state = GameState::Playing;
     // Hide the square cursor - viewer is read-only, nothing to select.

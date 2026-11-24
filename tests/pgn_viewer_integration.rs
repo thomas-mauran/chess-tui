@@ -157,10 +157,15 @@ fn speed_steps_through_multipliers() -> AppResult<()> {
 #[test]
 fn esc_returns_home_and_does_not_leave_stale_state() -> AppResult<()> {
     let mut app = load_sample_viewer();
+    app.pgn_viewer_state.as_mut().unwrap()[0].is_flipped = true;
 
     // Inject the state that a real render pass would install.
     use chess_tui::ui::pgn_viewer_ui::sync_pgn_to_board;
     sync_pgn_to_board(&mut app);
+    assert!(
+        app.game.logic.game_board.is_flipped,
+        "precondition: board is viewed from Black's side"
+    );
     assert!(app.game.ui.hide_cursor, "precondition: viewer hides cursor");
     assert!(!app.game.logic.game_board.position_history.is_empty());
 
@@ -180,6 +185,7 @@ fn esc_returns_home_and_does_not_leave_stale_state() -> AppResult<()> {
         "new game must start with just the initial position"
     );
     assert!(app.game.logic.game_board.move_history.is_empty());
+    assert!(!app.game.logic.game_board.is_flipped);
     Ok(())
 }
 

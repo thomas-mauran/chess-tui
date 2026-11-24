@@ -25,6 +25,8 @@ pub struct GameModeState {
     pub is_random_color: bool,
     // Selected color when playing against the bot or in multiplayer
     pub selected_color: Option<Color>,
+    /// Side a Lichess game is viewed from when its URL has no `/white` or `/black`.
+    pub lichess_pgn_side: Color,
 }
 
 impl Default for GameModeState {
@@ -36,6 +38,7 @@ impl Default for GameModeState {
             clock_cursor: 3,         // Default: Rapid (index 3 = 15 minutes)
             custom_time_minutes: 10, // Default custom time: 10 minutes
             selected_color: None,
+            lichess_pgn_side: Color::White,
             is_random_color: false,
         }
     }

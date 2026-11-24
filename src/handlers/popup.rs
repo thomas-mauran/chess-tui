@@ -28,6 +28,7 @@ pub fn handle_popup_input(app: &mut App, key_event: KeyEvent, popup: Popups) {
         Popups::Success => handle_success_popup(app, key_event),
         Popups::LoadPgnPath => handle_load_pgn_path(app, key_event),
         Popups::LoadPgnPaste => handle_load_pgn_paste(app, key_event),
+        Popups::LoadPgnLichess => handle_load_pgn_lichess(app, key_event),
         Popups::EnterGameCode => handle_enter_game_code(app, key_event),
         Popups::EnterLichessToken => handle_enter_lichess_token(app, key_event),
         Popups::SeekingLichessGame => handle_seeking_lichess_game(app, key_event),
@@ -204,15 +205,40 @@ fn open_pgn_viewer(app: &mut App, games: Vec<PgnViewer>) {
 }
 
 fn handle_load_pgn_path(app: &mut App, key_event: KeyEvent) {
+    handle_pgn_text_input(app, key_event, PgnViewer::from_file);
+}
+
+fn handle_load_pgn_lichess(app: &mut App, key_event: KeyEvent) {
+    let default_side = app.game_mode_state.lichess_pgn_side;
+    if key_event.code == KeyCode::Tab {
+        app.game_mode_state.lichess_pgn_side = default_side.other();
+        return;
+    }
+    handle_pgn_text_input(app, key_event, |input| {
+        let (pgn, side) = crate::lichess::game::export_game_pgn(input)?;
+        let mut games = PgnViewer::from_pgn_str(&pgn)?;
+        for game in &mut games {
+            game.is_flipped = side.unwrap_or(default_side).is_black();
+        }
+        Ok(games)
+    });
+}
+
+/// Single-line input popup that loads games from the submitted text.
+fn handle_pgn_text_input(
+    app: &mut App,
+    key_event: KeyEvent,
+    load: impl FnOnce(&str) -> Result<Vec<PgnViewer>, String>,
+) {
     match key_event.code {
         KeyCode::Enter => {
             app.game.ui.prompt.submit_message();
-            let path = app.game.ui.prompt.message.clone().trim().to_string();
-            if path.is_empty() {
+            let input = app.game.ui.prompt.message.clone().trim().to_string();
+            if input.is_empty() {
                 app.ui_state.current_popup = None;
                 return;
             }
-            match PgnViewer::from_file(&path) {
+            match load(&input) {
                 Ok(games) => open_pgn_viewer(app, games),
                 Err(e) => {
                     app.ui_state.popup_message = Some(format!("Failed to load PGN:\n{}", e));

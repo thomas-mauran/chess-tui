@@ -196,7 +196,9 @@ fn handle_form_left(app: &mut App, game_mode: AvailableGameMode) {
             }
             BotFormField::DifficultySelection => cycle_difficulty_prev(app),
         },
-        AvailableGameMode::PGNLoader => app.game_mode_state.form_cursor = 0,
+        AvailableGameMode::PGNLoader => {
+            app.game_mode_state.form_cursor = app.game_mode_state.form_cursor.saturating_sub(1)
+        }
     }
 }
 
@@ -263,7 +265,9 @@ fn handle_form_right(app: &mut App, game_mode: AvailableGameMode) {
             }
             BotFormField::DifficultySelection => cycle_difficulty_next(app),
         },
-        AvailableGameMode::PGNLoader => app.game_mode_state.form_cursor = 1,
+        AvailableGameMode::PGNLoader => {
+            app.game_mode_state.form_cursor = (app.game_mode_state.form_cursor + 1).min(2)
+        }
     }
 }
 
@@ -336,10 +340,11 @@ fn handle_form_enter(app: &mut App, game_mode: AvailableGameMode) {
             // Dismissing either input dialog must restore menu navigation (#349).
             app.game_mode_state.form_active = false;
             app.game.ui.prompt.reset();
-            app.ui_state.current_popup = Some(if app.game_mode_state.form_cursor == 0 {
-                Popups::LoadPgnPath
-            } else {
-                Popups::LoadPgnPaste
+            app.game_mode_state.lichess_pgn_side = shakmaty::Color::White;
+            app.ui_state.current_popup = Some(match app.game_mode_state.form_cursor {
+                0 => Popups::LoadPgnPath,
+                1 => Popups::LoadPgnPaste,
+                _ => Popups::LoadPgnLichess,
             });
         }
     }

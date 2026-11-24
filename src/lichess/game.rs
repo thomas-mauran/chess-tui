@@ -495,3 +495,104 @@ impl LichessClient {
         Ok(())
     }
 }
+
+/// Extracts the 8-character game ID from a Lichess game URL or a bare ID, and the side
+/// to view it from if the URL ends with `/white` or `/black`.
+///
+/// Accepts forms like `abcdefgh`, `https://lichess.org/abcdefgh`,
+/// `lichess.org/abcdefgh/black#12`, `lichess.org/game/abcdefgh` and
+/// 12-character player IDs.
+fn parse_game_url(input: &str) -> Option<(String, Option<Color>)> {
+    let path = input
+        .trim()
+        .trim_start_matches("https://")
+        .trim_start_matches("http://");
+    let path = path.strip_prefix("lichess.org/").unwrap_or(path);
+    let path = path.strip_prefix("game/").unwrap_or(path);
+    let mut segments = path.split(['#', '?']).next()?.split('/');
+    let segment = segments.next()?;
+    let side = match segments.next() {
+        Some("white") => Some(Color::White),
+        Some("black") => Some(Color::Black),
+        _ => None,
+    };
+    let id = segment.get(..8)?;
+    (id.chars().all(|c| c.is_ascii_alphanumeric()) && (segment.len() == 8 || segment.len() == 12))
+        .then(|| (id.to_string(), side))
+}
+
+/// Downloads the PGN of a public Lichess game, and returns it with the side set in the URL, if any.
+/// No token is required.
+// shortcut: blocking call on the UI thread (10s timeout), move to a background thread if it feels laggy.
+pub fn export_game_pgn(input: &str) -> Result<(String, Option<Color>), String> {
+    let (id, side) =
+        parse_game_url(input).ok_or_else(|| format!("Invalid Lichess game URL or ID: {input}"))?;
+    let response = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        // Lichess answers 403 to requests without a User-Agent.
+        .user_agent(concat!("chess-tui/", env!("CARGO_PKG_VERSION")))
+        .build()
+        .and_then(|client| {
+            client
+                .get(format!(
+                    "https://lichess.org/game/export/{id}?clocks=false&evals=false"
+                ))
+                .header("Accept", "application/x-chess-pgn")
+                .send()
+        })
+        .map_err(|e| format!("Failed to reach Lichess: {e}"))?;
+    match response.status() {
+        reqwest::StatusCode::NOT_FOUND => Err(format!("Lichess game '{id}' not found")),
+        status if !status.is_success() => Err(format!("Lichess returned {status}")),
+        _ => response
+            .text()
+            .map(|pgn| (pgn, side))
+            .map_err(|e| format!("Failed to read Lichess response: {e}")),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_game_url;
+    use shakmaty::Color;
+
+    #[test]
+    fn parses_game_ids_from_urls() {
+        for input in [
+            "q7ZvsdUF",
+            " https://lichess.org/q7ZvsdUF ",
+            "http://lichess.org/q7ZvsdUF/black",
+            "lichess.org/q7ZvsdUF#24",
+            "https://lichess.org/q7ZvsdUFxyz1",
+            "https://lichess.org/q7ZvsdUF?foo=bar",
+            "https://lichess.org/game/q7ZvsdUFxyz1",
+            "lichess.org/game/q7ZvsdUF/black#24",
+        ] {
+            let (id, _) = parse_game_url(input).expect(input);
+            assert_eq!(id, "q7ZvsdUF", "{input}");
+        }
+        for input in [
+            "",
+            "abc",
+            "https://lichess.org/",
+            "https://lichess.org/game/",
+            "q7Zv-dUF",
+        ] {
+            assert_eq!(parse_game_url(input), None, "{input}");
+        }
+    }
+
+    #[test]
+    fn parses_side_from_urls() {
+        for (input, side) in [
+            ("q7ZvsdUF", None),
+            ("q7ZvsdUF#black", None),
+            ("https://lichess.org/q7ZvsdUF/white", Some(Color::White)),
+            ("https://lichess.org/q7ZvsdUF/black", Some(Color::Black)),
+            ("lichess.org/game/q7ZvsdUF/black#24", Some(Color::Black)),
+            ("lichess.org/q7ZvsdUF/black/?foo=bar", Some(Color::Black)),
+        ] {
+            assert_eq!(parse_game_url(input).map(|g| g.1), Some(side), "{input}");
+        }
+    }
+}

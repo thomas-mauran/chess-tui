@@ -51,18 +51,51 @@ fn load_block(title: &'static str) -> Block<'static> {
 
 /// Renders a text input for typing an absolute path to a `.pgn` file.
 pub fn render_load_pgn_popup(frame: &mut Frame, prompt: &Prompt) {
-    let block = load_block("Load PGN");
+    render_input_popup(
+        frame,
+        prompt,
+        "Load PGN",
+        "Enter the absolute path to a .pgn file:",
+        "",
+        "Multi-game PGN files are supported.",
+    );
+}
+
+/// Renders a text input for a Lichess game URL or ID.
+pub fn render_lichess_pgn_popup(frame: &mut Frame, prompt: &Prompt, side: shakmaty::Color) {
+    render_input_popup(
+        frame,
+        prompt,
+        "Load from Lichess",
+        "Enter a Lichess game URL or ID:",
+        side.fold_wb(
+            "View from: [x] White  [ ] Black  (Tab)",
+            "View from: [ ] White  [x] Black  (Tab)",
+        ),
+        "e.g. https://lichess.org/abcdefgh",
+    );
+}
+
+fn render_input_popup(
+    frame: &mut Frame,
+    prompt: &Prompt,
+    title: &'static str,
+    label: &'static str,
+    option: &'static str,
+    hint: &'static str,
+) {
+    let block = load_block(title);
     let area = centered_rect(60, 35, frame.area());
 
     let current_input = prompt.input.as_str();
 
     let text = vec![
-        Line::from("Enter the absolute path to a .pgn file:").alignment(Alignment::Center),
+        Line::from(label).alignment(Alignment::Center),
         Line::from(""),
         Line::from(current_input),
         Line::from(""),
-        Line::from(""),
-        Line::from("Multi-game PGN files are supported."),
+        Line::from(option),
+        Line::from(hint),
         Line::from(""),
         Line::from("Press `Enter` to load, `Esc` to cancel.").alignment(Alignment::Center),
     ];

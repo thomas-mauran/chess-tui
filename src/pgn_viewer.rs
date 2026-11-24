@@ -34,6 +34,8 @@ pub struct PgnViewer {
     /// Set to true when the user presses `h` on the end-of-game banner.
     /// Reset when the viewer moves off the final ply.
     pub end_banner_dismissed: bool,
+    /// Show the board from Black's side
+    pub is_flipped: bool,
     /// Metadata from PGN headers
     pub title: String,
     pub white: String,
@@ -286,6 +288,7 @@ fn parse_single_game(pgn: &str) -> Result<PgnViewer, String> {
         speed_idx: DEFAULT_SPEED_IDX,
         auto_play_accum: 0.0,
         end_banner_dismissed: false,
+        is_flipped: false,
         title,
         white,
         black,

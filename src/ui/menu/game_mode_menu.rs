@@ -338,7 +338,10 @@ pub fn render_game_mode_menu(frame: &mut Frame, app: &App) {
         ),
         ("Multiplayer", "Play with friends over network"),
         ("Play Bot", "Challenge a chess engine"),
-        ("Load PGN", "Open a file or paste PGN to replay a game"),
+        (
+            "Load PGN",
+            "Open a file, paste PGN or a Lichess game to replay it",
+        ),
     ];
 
     let mut menu_lines = vec![Line::from("")];
@@ -654,7 +657,8 @@ fn build_pgn_detail_lines() -> Vec<Line<'static>> {
                 .add_modifier(Modifier::BOLD),
         )]),
         Line::from(""),
-        Line::from("Open a file or paste PGN, then step through the"),
+        Line::from("Open a file, paste PGN or a Lichess game URL,"),
+        Line::from("then step through the"),
         Line::from("game move by move, with auto-play and"),
         Line::from("multi-game navigation."),
         Line::from(""),
@@ -665,7 +669,7 @@ fn build_pgn_detail_lines() -> Vec<Line<'static>> {
                 .add_modifier(Modifier::BOLD),
         )]),
         Line::from("  Press Enter to choose a source."),
-        Line::from("  ← / →: File path or Paste PGN"),
+        Line::from("  ← / →: File path, Paste PGN or Lichess URL"),
         Line::from("  Enter: Open the input dialog"),
         Line::from("  Enter again to load the game."),
         Line::from(""),
@@ -1045,7 +1049,7 @@ fn render_pgn_source_form(frame: &mut Frame, app: &App, area: Rect, is_active: b
     };
     frame.render_widget(Paragraph::new("Source:").style(label_style), label_area);
 
-    let choices = ["File path", "Paste PGN"];
+    let choices = ["File path", "Paste PGN", "Lichess URL"];
     let choice_areas = Layout::horizontal(
         choices
             .iter()
