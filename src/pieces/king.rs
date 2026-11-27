@@ -33,11 +33,12 @@ impl King {
                 }
                 PieceSize::Large => {
                     // Current multi-line art
-                    r#"  ▂▃╋▃▂  
- ▐█████▋ 
-  ▜███▛  
-   ▟█▙   
-  ▀▀▀▀▀  
+
+ r#"▗▄▖
+   ▜█▛
+▗███████▖
+▆▆▆▆▆▆▆▆▆
+▝███████▘
 "#
                     .to_string()
                 }
@@ -59,3 +60,6 @@ impl King {
         }
     }
 }
+
+
+
